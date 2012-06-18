@@ -8,7 +8,7 @@
 
 ;; Version: 0.98
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
-;; Keywords: HTML PHP JavaScript CSS Template
+;; Keywords: HTML PHP JavaScript CSS Template Web
 ;; URL: http://github.com/fxbois/web-mode
 
 ;; This file is not part of Emacs
