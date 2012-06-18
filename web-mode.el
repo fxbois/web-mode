@@ -59,9 +59,6 @@
 (define-derived-mode web-mode fundamental-mode "Web"
   "Major mode for editing mixed HTML Templates."
 
-;;  (set (make-local-variable 'comment-start) "<!--")
-;;  (set (make-local-variable 'comment-end) "-->")
-;;  (set (make-local-variable 'comment-start-skip) "// *")
   (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords
                                                    t
                                                    t
