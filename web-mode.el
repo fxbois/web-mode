@@ -736,7 +736,7 @@
    '("\\<[[:alnum:]-]+=" 0 'web-mode-html-attr-face t t)
    
    ;; html attribute value
-   '("=\\(\"\\(.\\|\n\\)*?\"\\)" 1 'web-mode-string-face t t)
+   '("[[:alnum:]]=\\(\"\\(.\\|\n\\)*?\"\\)" 1 'web-mode-string-face t t)
 
    ;; php tags : en cours de rédaction
    '("<\\?[ph=]*" 0 'web-mode-preprocessor-face t t)
