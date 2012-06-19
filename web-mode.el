@@ -745,8 +745,8 @@
    '(web-mode-highlight-style-bloc)
    '(web-mode-highlight-script-bloc)
    '(web-mode-highlight-php-bloc)
-   '("<!D\\(.\\|\n\\)*?>" 0 'web-mode-doctype-face t t)
-   '("<\\?xml .+\\?>" 0 'web-mode-doctype-face t t)
+   '("^<!D\\(.\\|\n\\)*?>" 0 'web-mode-doctype-face t t)
+   '("^<\\?xml .+\\?>" 0 'web-mode-doctype-face t t)
    '("<!--\\(.\\|\n\\)*?-->" 0 'web-mode-comment-face t t)
    ))
 
