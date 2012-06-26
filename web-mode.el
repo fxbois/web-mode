@@ -83,7 +83,7 @@
   (define-key web-mode-map (kbd "C-c C-i") 'web-mode-insert)
   (define-key web-mode-map (kbd "C-c C-o") 'web-mode-is-opened-element)
   (define-key web-mode-map (kbd "C-c C-n") 'web-mode-match-tag)
-  (define-key web-mode-map (kbd "C-c C-p") 'web-mode-previous-usable-line)
+  (define-key web-mode-map (kbd "C-c C-p") 'web-mode-parent-element)
   (define-key web-mode-map (kbd "C-c C-r") 'web-mode-reload)
   (define-key web-mode-map (kbd "C-c C-t") 'web-mode-insert-table)
   (define-key web-mode-map (kbd "C-c C-v") 'web-mode-is-comment-or-string)
@@ -102,30 +102,6 @@
   (define-key web-mode-map [menu-bar web debug]
     '("debug" . web-mode-debug))
 )
-
-
-;; (defvar web-mode-preprocessor-face 'web-mode-preprocessor-face
-;;   "Face name to use for preprocessor.")
-;; (defvar web-mode-doctype-face 'web-mode-doctype-face
-;;   "Face name to use for HTML doctype.")
-;; (defvar web-mode-html-tag-face 'web-mode-html-tag-face
-;;   "Face name to use for HTML tags.")
-;; (defvar web-mode-html-attr-face 'web-mode-html-attr-face
-;;   "Face name to use for HTML attributes.")
-;; (defvar web-mode-css-rule-face 'web-mode-css-rule-face
-;;   "Face name to use for CSS rules.")
-;; (defvar web-mode-css-prop-face 'web-mode-css-prop-face
-;;   "Face name to use for CSS props.")
-;; (defvar web-mode-variable-name-face 'web-mode-variable-name-face
-;;   "Face name to use for variable names.")
-;; (defvar web-mode-function-name-face 'web-mode-function-name-face
-;;   "Face name to use for function names.")
-;; (defvar web-mode-comment-face 'web-mode-comment-face
-;;   "Face name to use for comments.")
-;; (defvar web-mode-string-face 'web-mode-string-face
-;;   "Face name to use for strings.")
-;; (defvar web-mode-constant-face 'web-mode-constant-face
-;;   "Face name to use for PHP constants.")
 
 (defvar web-mode-hook nil
   "List of functions to be executed with web-mode.")
@@ -609,6 +585,48 @@
     )
   )
 
+(defun web-mode-parent-element ()
+  "Fetch parent element."
+  (interactive)
+  (let (pt 
+        is-closing-tag tag
+        n
+        (continue t)
+        (h (make-hash-table :test 'equal)))
+    (save-excursion
+      (unless (string= (string (char-after)) "<")
+        (progn
+          (forward-char)
+          (re-search-backward "<[[:alpha:]]" nil t)))
+      (while (and continue
+                  (re-search-backward "</?[[:alpha:]]" nil t))
+        (forward-char)
+        (setq is-closing-tag (string= (string (char-after)) "/"))
+        (if (eq is-closing-tag t) (forward-char))
+        (setq nb (skip-chars-forward "a-zA-Z"))
+        (setq tag (buffer-substring-no-properties (- (point) nb) (point)))
+        (setq n (gethash tag h 0))
+;;        (message "%s %d %d" tag n (point))
+        (when (not (web-mode-is-void-html-element tag))
+          (search-backward "<")
+          (if (eq is-closing-tag t)
+              (puthash tag (1- n) h)
+            (progn
+              (puthash tag (1+ n) h)
+              (if (eq n 0)
+                  (progn
+                    (setq continue nil)
+                    (setq pt (point))
+                    (setq continue nil)))
+              )
+            )
+          ) ;; when
+        ) ;; while
+      ) ;; save-excursion
+    (if (null continue) (goto-char pt))
+    ) ;; let
+  )
+
 ;;(what-cursor-position)
 (defun web-mode-text-at-point ()
   "Text at point."
@@ -909,11 +927,6 @@
     (setq end (point-at-eol))
     (indent-region beg end)))
 
-;; TODO
-(defun web-model-parent-tag ()
-  "Parent tag."
-  (interactive)
-  ())
 
 (defun web-mode-match-tag ()
   "Match tag."
