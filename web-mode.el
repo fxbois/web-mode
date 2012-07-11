@@ -10,6 +10,7 @@
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Keywords: HTML PHP JavaScript CSS Template Web
 ;; URL: http://github.com/fxbois/web-mode
+;;      http://web-mode.org
 
 ;; This file is not part of Emacs
 
@@ -56,6 +57,8 @@
 
 ;;(message "obj %S" web-mode-php-constants)
 
+;;(defvar web-mode-map nil "Keymap for web-mode")
+
 (define-derived-mode web-mode fundamental-mode "Web"
   "Major mode for editing mixed HTML Templates."
 
@@ -78,7 +81,6 @@
   (define-key web-mode-map (kbd "C-c C-c") '(lambda ()
                                               (interactive)
                                               (message "elt at pt: %s" (web-mode-element-at-point))
-;;                                              (web-mode-count-char-in-string ?< (web-mode-current-trimmed-line))
                                               ))
   (define-key web-mode-map (kbd "C-c C-i") 'web-mode-insert)
   (define-key web-mode-map (kbd "C-c C-o") 'web-mode-is-opened-element)
@@ -165,7 +167,9 @@
   "Reload web-mode."
   (interactive)
   (unload-feature 'web-mode)
-  (web-mode))
+  (web-mode)
+  (web-mode-hook)  
+)
 
 (defun web-mode-replace-apos ()
   "Replace ' by ’."
@@ -213,7 +217,7 @@
           line)))))
 
 (defun web-mode-in-php-block ()
-  "Detect if point is in a php block."
+  "Detect if point is in a PHP block."
   (let ((pt (point))
         (ln (web-mode-current-line)))
     (save-excursion
@@ -241,7 +245,7 @@
                                            (point) pt)))))))
 
 (defun web-mode-current-line (&optional pt)
-  "Return the line number at point."
+  "Return line number at point."
   (unless pt
     (setq pt (point)))
   (+ (count-lines (window-start) pt)
@@ -519,7 +523,7 @@
     n))
 
 (defun web-mode-element-at-point ()
-  "Return element at (point)"
+  "Return element at point"
   (interactive)
   (save-excursion
     (beginning-of-line)
@@ -645,18 +649,20 @@
    (replace-regexp-in-string
     "[ \t\n]*\\'" "" string)))
 
-(defconst web-mode-void-html-elements
-  '("hr" "br" "input" "link" "meta" "img")
-  "void (self-closing) HTML tags.")
-
 (defun web-mode-is-void-html-element (tag)
   "Test is param is a void HTML tag."
   (find tag web-mode-void-html-elements :test 'equal))
 
+
+(defconst web-mode-void-html-elements
+  '("hr" "br" "col" "input" "link" "meta" "img")
+  "Void (self-closing) HTML tags.")
+
 (defconst web-mode-php-constants
   (regexp-opt
    (append (if (boundp 'web-mode-php-constants) web-mode-php-constants '())
-           '("TRUE" "FALSE" "NULL" "true" "false" "null")))
+           '("TRUE" "FALSE" "NULL" "true" "false" "null"
+ "STR_PAD_LEFT" "STR_PAD_RIGHT")))
   "PHP constants.")
 
 ;;(message "%S" web-mode-php-constants)
@@ -746,7 +752,7 @@
   (list
 
    ;; html tag
-   '("</?[[:alnum:]]\\{0,10\\}?\\(>\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
+   '("</?[[:alnum:]]\\{0,10\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
 ;;   '("<[[:alnum:]]\\{0,10\\}" . 'web-mode-html-tag-face)
    '("/?>" 0 'web-mode-html-tag-face t t)
 
@@ -1181,7 +1187,7 @@
 
     )))
 
-(defvar web-mode-map nil "Keymap for web-mode")
+
 
 (defvar web-mode-syntax-table
   (let ((table (make-syntax-table)))
@@ -1190,8 +1196,6 @@
 ;;    (modify-syntax-entry ?+ "." table)
     table)
   "Syntax table in use in web-mode buffers.")
-
-(add-to-list 'auto-mode-alist '("\\.psp$" . web-mode))
 
 (provide 'web-mode)
 
