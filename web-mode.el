@@ -593,7 +593,8 @@
   "Fetch parent element."
   (interactive)
   (let (pt 
-        is-closing-tag tag
+        is-closing-tag
+        tag
         n
         (continue t)
         (h (make-hash-table :test 'equal)))
@@ -619,7 +620,6 @@
               (puthash tag (1+ n) h)
               (if (eq n 0)
                   (progn
-                    (setq continue nil)
                     (setq pt (point))
                     (setq continue nil)))
               )
@@ -662,7 +662,7 @@
   (regexp-opt
    (append (if (boundp 'web-mode-php-constants) web-mode-php-constants '())
            '("TRUE" "FALSE" "NULL" "true" "false" "null"
- "STR_PAD_LEFT" "STR_PAD_RIGHT")))
+             "STR_PAD_LEFT" "STR_PAD_RIGHT")))
   "PHP constants.")
 
 ;;(message "%S" web-mode-php-constants)
@@ -735,18 +735,18 @@
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
         (limit (point-max)))
-;;    (set (make-local-variable 'font-lock-defaults)
-;;         '(web-mode-php-font-lock-keywords
-;;           nil
-;;           t
-;;           (("_" . "w"))
-;;           nil))
+;;    (message "%d %d" (point) limit)
     (when (re-search-forward
            "\\(<\\?php\\|<\\?=\\)\\(.\\|\n\\)*?\\?>"
            limit t)
       (setq beg (match-beginning 0)
             end (match-end 0))
-      (font-lock-fontify-region beg end))))
+      (font-lock-fontify-region beg end)
+;;      (message "after %d" (point))
+      ) ;; when
+
+    ))
+
 
 (defconst web-mode-font-lock-keywords
   (list
