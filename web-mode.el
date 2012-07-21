@@ -6,7 +6,7 @@
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
 
-;; Version: 0.98
+;; Version: 0.99
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Keywords: HTML PHP JavaScript CSS Template Web
 ;; URL: http://github.com/fxbois/web-mode
@@ -55,11 +55,8 @@
   :type 'bool
   :group 'web-mode)
 
-;;(message "obj %S" web-mode-php-constants)
-
-;;(defvar web-mode-map nil "Keymap for web-mode")
-
-(define-derived-mode web-mode fundamental-mode "Web"
+(define-derived-mode web-mode prog-mode "Web"
+;;(define-derived-mode web-mode fundamental-mode "Web"
   "Major mode for editing mixed HTML Templates."
 
   (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords
@@ -163,13 +160,6 @@
   "Face for PHP constants."
   :group 'web-mode-faces)
 
-(defun web-mode-reload ()
-  "Reload web-mode."
-  (interactive)
-  (unload-feature 'web-mode)
-  (web-mode)
-  (web-mode-hook)  
-)
 
 (defun web-mode-replace-apos ()
   "Replace ' by ’."
@@ -756,7 +746,7 @@
 ;;   '("<[[:alnum:]]\\{0,10\\}" . 'web-mode-html-tag-face)
    '("/?>" 0 'web-mode-html-tag-face t t)
 
-   ;; html attribute
+   ;; html attribute name
    '("\\<[[:alnum:]-]+=" 0 'web-mode-html-attr-face t t)
    
    ;; html attribute value
@@ -780,8 +770,6 @@
    '("</?style>" 0 'web-mode-html-tag-face t t)
    '("^\\(.+?\\)\\({\\|,\\)" 1 'web-mode-css-rule-face)
    '("[[:alpha:]-]*?:" 0 'web-mode-css-prop-face)
-;;   '("'.*?'" 0 'web-mode-string-face t t)
-;;   '("\".*?\"" 0 'web-mode-string-face t t)
    '("\\(\".*?\"\\|'.*?'\\)" 0 'web-mode-string-face t t)
 ))
 
@@ -793,8 +781,6 @@
    '("\\<\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-js-keywords "\\)\\>") 
          '(0 font-lock-keyword-face))
-;;   '("'\\(.\\|\n\\)*?'" 0 'web-mode-string-face t t)
-;;   '("\"\\(.\\|\n\\)*?\"" 0 'web-mode-string-face t t)
    '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
    '("//.+" 0 'web-mode-comment-face t t)
 ))
@@ -802,22 +788,17 @@
 (defconst web-mode-php-font-lock-keywords
   (list
 
-   ;; reset all faces
    '(".*" 0 nil t t)
 
-   ;; php tags
    '("<\\?\\(php\\|=\\)?" 0 'web-mode-preprocessor-face t t)
    '("\\?>" 0 'web-mode-preprocessor-face t t)
 
-   ;; php keywords
    (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") 
          '(0 font-lock-keyword-face))
 
-   ;; php types
    (cons (concat "(\\s-*\\(" web-mode-php-types "\\)\\s-*)") 
          '(1 font-lock-type-face))
 
-   ;; php constants
    (cons (concat "\\<\\(" web-mode-php-constants "\\)\\>") 
          '(0 'web-mode-constant-face))
 
@@ -825,7 +806,7 @@
    '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
 
    ;; Class::CONSTANT
-   '("::[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-constant-face)
+   '("[[:alnum:]_][ ]?::[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-constant-face)
 
    ;; ->variable
    '("->[ ]?\\(\\sw+\\)" 1 'web-mode-variable-name-face)
@@ -837,27 +818,35 @@
    ;; $var
    '("\\<$\\([[:alnum:]_]*\\)" 1 'web-mode-variable-name-face)
 
-   ;; 'strings'
-;;   '("\"\\(.\\|\n\\)*?\"" 0 'web-mode-string-face t t)
-;;   '("'\\(.\\|\n\\)*?'" 0 'web-mode-string-face t t)
    '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
 
-   ;; comments /* */
    '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
    '("//.+" 0 'web-mode-comment-face t t)
 
    ))
 
-;; TODO : split string in two parts .. better than offset
 (defvar web-mode-snippets
   (list
-   '("table" "<table><tbody>\n<tr>\n<td></td>\n<td></td>\n</tr>\n</tbody></table>" 24)
-   '("ul" "<ul>\n<li></li>\n<li></li>\n</ul>" 9)
-   '("if" "<?php if ( as ):?>\n<?php endfor; ?>" 10)
-   '("for" "<?php for ( ; ; ):?>\n<?php endfor; ?>" 11)
-   '("foreach" "<?php foreach ( as ):?>\n<?php endforeach; ?>" 15)
-   '("doctype" "<!DOCTYPE html>\n" 16)
-   '("html5" "<!DOCTYPE html>\n<html>\n<head>\n<title></title>\n<meta charset=\"utf-8\" />\n</head>\n<body>\n\n</body>\n</html>" 86)
+   '("table" 
+     "<table><tbody>\n<tr>\n<td>"
+     "</td>\n<td></td>\n</tr>\n</tbody></table>")
+   '("ul" 
+     "<ul>\n<li>" 
+     "</li>\n<li></li>\n</ul>")
+   '("if" 
+     "<?php if ( as ): ?>\n" 
+     "\n<?php endif; ?>")
+   '("for" 
+     "<?php for ( ; ; ): ?>\n" 
+     "\n<?php endfor; ?>")
+   '("foreach" 
+     "<?php foreach ( as ): ?>\n" 
+     "\n<?php endforeach; ?>")
+   '("doctype" 
+     "<!DOCTYPE html>\n")
+   '("html5"
+     "<!DOCTYPE html>\n<html>\n<head>\n<title></title>\n<meta charset=\"utf-8\" />\n</head>\n<body>\n" 
+     "\n</body>\n</html>")
    )
   "Code snippets")
 
@@ -884,14 +873,9 @@
     codes
     ))
 
-(defun web-mode-insert-table ()
-  "Insert HTML Table."
-  (interactive)
-  (web-mode-insert-snippet "table"))
-
 (defun web-mode-insert-snippet (code)
   "Insert snippet."
-  (let (beg continue counter end sel snippet l pt)
+  (let (beg continue counter sel snippet l)
     (setq continue t
           counter 0 
           l (length web-mode-snippets))
@@ -901,9 +885,7 @@
                   (region-beginning) (region-end))))
 ;;      (message "selection: %s (%d %d)" sel (region-beginning) (region-end))
 ;;      (goto-char (region-beginning))
-      (delete-region (region-beginning) (region-end))
-
-      )
+      (delete-region (region-beginning) (region-end)))
     (while (and continue (< counter l))
       (setq snippet (nth counter web-mode-snippets))
       (when (string= (nth 0 snippet) code)
@@ -912,17 +894,16 @@
     (when (and (null continue)
                (nth 1 snippet))
       (setq beg (point-at-bol))
-      (setq pt (point))
       (insert (nth 1 snippet))
-      (setq end (point-at-eol))
-      (if (nth 2 snippet)
-          (goto-char (+ pt (nth 2 snippet))))
-      (when sel 
-        (insert sel)
-        (setq end (+ end (length sel))))
-      (indent-region beg end)
-      )
+      (if sel (insert sel))
+      (if (nth 2 snippet) (insert (nth 2 snippet)))
+      (indent-region beg (point-at-eol)))
     ))
+
+(defun web-mode-insert-table ()
+  "Insert HTML Table."
+  (interactive)
+  (web-mode-insert-snippet "table"))
 
 (defun web-mode-insert-and-indent (text)
   "Insert and indent text."
@@ -1187,8 +1168,6 @@
 
     )))
 
-
-
 (defvar web-mode-syntax-table
   (let ((table (make-syntax-table)))
 ;;    (modify-syntax-entry ?# "< b" table)
@@ -1198,6 +1177,13 @@
   "Syntax table in use in web-mode buffers.")
 
 (provide 'web-mode)
+
+(defun web-mode-reload ()
+  "Reload web-mode."
+  (interactive)
+  (unload-feature 'web-mode)
+  (web-mode)
+  (web-mode-hook))
 
 ;;; web-mode.el ends here
 
