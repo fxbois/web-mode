@@ -56,7 +56,6 @@
   :group 'web-mode)
 
 (define-derived-mode web-mode prog-mode "Web"
-;;(define-derived-mode web-mode fundamental-mode "Web"
   "Major mode for editing mixed HTML Templates."
 
   (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords
@@ -160,6 +159,15 @@
   "Face for PHP constants."
   :group 'web-mode-faces)
 
+(defface web-mode-type-face
+  '((t :inherit font-lock-type-face))
+  "Face for PHP/JS types."
+  :group 'web-mode-faces)
+
+(defface web-mode-keyword-face
+  '((t :inherit font-lock-keyword-face))
+  "Face for PHP/JS keywords."
+  :group 'web-mode-faces)
 
 (defun web-mode-replace-apos ()
   "Replace ' by ’."
@@ -643,7 +651,6 @@
   "Test is param is a void HTML tag."
   (find tag web-mode-void-html-elements :test 'equal))
 
-
 (defconst web-mode-void-html-elements
   '("hr" "br" "col" "input" "link" "meta" "img")
   "Void (self-closing) HTML tags.")
@@ -654,8 +661,6 @@
            '("TRUE" "FALSE" "NULL" "true" "false" "null"
              "STR_PAD_LEFT" "STR_PAD_RIGHT")))
   "PHP constants.")
-
-;;(message "%S" web-mode-php-constants)
 
 (defconst web-mode-php-keywords
   (regexp-opt
@@ -737,7 +742,6 @@
 
     ))
 
-
 (defconst web-mode-font-lock-keywords
   (list
 
@@ -752,16 +756,15 @@
    ;; html attribute value
    '("[[:alnum:]]=\\(\"\\(.\\|\n\\)*?\"\\)" 1 'web-mode-string-face t t)
 
-   ;; php tags : en cours de rédaction
    '("<\\?[ph=]*" 0 'web-mode-preprocessor-face t t)
    '("\\?>" 0 'web-mode-preprocessor-face t t)
-
    '(web-mode-highlight-style-bloc)
    '(web-mode-highlight-script-bloc)
    '(web-mode-highlight-php-bloc)
    '("^<!D\\(.\\|\n\\)*?>" 0 'web-mode-doctype-face t t)
    '("^<\\?xml .+\\?>" 0 'web-mode-doctype-face t t)
    '("<!--\\(.\\|\n\\)*?-->" 0 'web-mode-comment-face t t)
+
    ))
 
 (defconst web-mode-style-font-lock-keywords
@@ -771,7 +774,7 @@
    '("^\\(.+?\\)\\({\\|,\\)" 1 'web-mode-css-rule-face)
    '("[[:alpha:]-]*?:" 0 'web-mode-css-prop-face)
    '("\\(\".*?\"\\|'.*?'\\)" 0 'web-mode-string-face t t)
-))
+   ))
 
 (defconst web-mode-script-font-lock-keywords
   (list
@@ -780,10 +783,10 @@
    '(" \\(type\\)=" 0 'web-mode-html-attr-face t t)
    '("\\<\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-js-keywords "\\)\\>") 
-         '(0 font-lock-keyword-face))
+         '(0 'web-mode-keyword-face))
    '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
    '("//.+" 0 'web-mode-comment-face t t)
-))
+   ))
 
 (defconst web-mode-php-font-lock-keywords
   (list
@@ -794,10 +797,10 @@
    '("\\?>" 0 'web-mode-preprocessor-face t t)
 
    (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") 
-         '(0 font-lock-keyword-face))
+         '(0 'web-mode-keyword-face))
 
    (cons (concat "(\\s-*\\(" web-mode-php-types "\\)\\s-*)") 
-         '(1 font-lock-type-face))
+         '(1 'web-mode-type-face))
 
    (cons (concat "\\<\\(" web-mode-php-constants "\\)\\>") 
          '(0 'web-mode-constant-face))
@@ -812,8 +815,9 @@
    '("->[ ]?\\(\\sw+\\)" 1 'web-mode-variable-name-face)
 
    ;; Class::
-   '("\\<\\(\\sw+\\)[ ]?::" 1 font-lock-type-face)
-   '("instanceof[ ]+\\([[:alnum:]_]+\\)" 1 font-lock-type-face)
+   '("\\<\\(\\sw+\\)[ ]?::" 1 'web-mode-type-face)
+   ;; instanceof Class
+   '("instanceof[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-type-face)
 
    ;; $var
    '("\\<$\\([[:alnum:]_]*\\)" 1 'web-mode-variable-name-face)
@@ -861,30 +865,31 @@
 (defun web-mode-snippet-codes ()
   "Snippet codes."
   (interactive)
-  (let (codes counter snippet l)
-    (setq counter 0
-          l (length web-mode-snippets))
+  (let (codes 
+        (counter 0) 
+        snippet 
+        (l (length web-mode-snippets)))
     (while (< counter l)
       (setq snippet (nth counter web-mode-snippets))
       (setq counter (1+ counter))
-      (add-to-list 'codes (list (nth 0 snippet) counter))
-      )
+      (add-to-list 'codes (list (nth 0 snippet) counter)))
 ;;    (message "%S" codes)
-    codes
-    ))
+    codes))
 
 (defun web-mode-insert-snippet (code)
   "Insert snippet."
-  (let (beg continue counter sel snippet l)
-    (setq continue t
-          counter 0 
-          l (length web-mode-snippets))
+  (let (beg 
+        (continue t) 
+        (counter 0) 
+        end 
+        sel 
+        snippet 
+        (l (length web-mode-snippets)) 
+        pt)
     (when mark-active
       (setq sel (web-mode-trim
                  (buffer-substring-no-properties 
                   (region-beginning) (region-end))))
-;;      (message "selection: %s (%d %d)" sel (region-beginning) (region-end))
-;;      (goto-char (region-beginning))
       (delete-region (region-beginning) (region-end)))
     (while (and continue (< counter l))
       (setq snippet (nth counter web-mode-snippets))
@@ -895,9 +900,14 @@
                (nth 1 snippet))
       (setq beg (point-at-bol))
       (insert (nth 1 snippet))
-      (if sel (insert sel))
+      (setq pt (point))
+      (when sel 
+        (insert sel)
+        (setq pt (point)))
       (if (nth 2 snippet) (insert (nth 2 snippet)))
-      (indent-region beg (point-at-eol)))
+      (setq end (point-at-eol))
+      (goto-char pt)
+      (indent-region beg end))
     ))
 
 (defun web-mode-insert-table ()
@@ -913,7 +923,6 @@
     (insert text)
     (setq end (point-at-eol))
     (indent-region beg end)))
-
 
 (defun web-mode-match-tag ()
   "Match tag."
@@ -1176,14 +1185,14 @@
     table)
   "Syntax table in use in web-mode buffers.")
 
-(provide 'web-mode)
-
 (defun web-mode-reload ()
   "Reload web-mode."
   (interactive)
   (unload-feature 'web-mode)
   (web-mode)
   (web-mode-hook))
+
+(provide 'web-mode)
 
 ;;; web-mode.el ends here
 
