@@ -1,4 +1,4 @@
-;;; web-mode.el --- Major mode for editing PHP Templates
+;;; web-mode.el --- major mode for editing PHP Templates
 
 ;; Copyright (C) 2011, 2012 François-Xavier Bois
 
@@ -8,6 +8,8 @@
 
 ;; Version: 0.99
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
+;; Maintainer: François-Xavier Bois
+;; Created: July 2011
 ;; Keywords: HTML PHP JavaScript CSS Template Web
 ;; URL: http://github.com/fxbois/web-mode
 ;;      http://web-mode.org
@@ -32,13 +34,17 @@
 (eval-when-compile (require 'cl))
 
 (defgroup web-mode nil
-  "A PHP template mode."
+  "Major mode for editing PHP templates."
+  :version "0.99"
   :group 'languages)
 
 (defgroup web-mode-faces nil
   "Faces used in web-mode"
   :group 'web-mode
   :group 'faces)
+
+(defconst web-mode-debug nil
+  "t if in debug mode.")
 
 (defcustom web-mode-html-offset 2
   "HTML indentation offset."
@@ -785,7 +791,7 @@
    (cons (concat "\\<\\(" web-mode-js-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face))
    '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
-   '("//.+" 0 'web-mode-comment-face t t)
+   '("[^:]//.+" 0 'web-mode-comment-face t t)
    ))
 
 (defconst web-mode-php-font-lock-keywords
