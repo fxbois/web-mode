@@ -84,14 +84,13 @@
                                               (interactive)
                                               (message "elt at pt: %s" (web-mode-element-at-point))
                                               ))
+  (define-key web-mode-map (kbd "C-c C-(") 'web-mode-fetch-opening-paren)
   (define-key web-mode-map (kbd "C-c C-i") 'web-mode-insert)
-  (define-key web-mode-map (kbd "C-c C-o") 'web-mode-is-opened-element)
   (define-key web-mode-map (kbd "C-c C-n") 'web-mode-match-tag)
   (define-key web-mode-map (kbd "C-c C-p") 'web-mode-parent-element)
   (define-key web-mode-map (kbd "C-c C-r") 'web-mode-reload)
+  (define-key web-mode-map (kbd "C-c C-s") 'web-mode-select-element)
   (define-key web-mode-map (kbd "C-c C-t") 'web-mode-insert-table)
-  (define-key web-mode-map (kbd "C-c C-v") 'web-mode-is-comment-or-string)
-  (define-key web-mode-map (kbd "C-c C-(") 'web-mode-fetch-opening-paren)
 
   (define-key web-mode-map [menu-bar]
     (make-sparse-keymap))
@@ -555,7 +554,16 @@
 ;;      (message "elt at point: %s" line)
       line
       )))
-  
+
+(defun web-mode-select-element ()
+  "Select the current element"
+  (interactive)
+  (when (re-search-backward "<[[:alpha:]]" nil t)
+    (set-mark (point))
+    (web-mode-match-tag)
+    (search-forward ">"))
+  )
+
 (defun web-mode-is-opened-element (&optional line)
   "Is there any HTML element without a closing tag ?"
   (interactive)
@@ -672,12 +680,12 @@
   (regexp-opt
    (append (if (boundp 'web-mode-php-keywords) web-mode-php-keywords '())
            '("array" "as" "break" "catch" "continue"
-             "default" "do"
+             "default" "die" "do"
              "echo" "else" "elseif"
              "endfor" "endforeach" "endif" "endswitch" "endwhile" "exit"
              "for" "foreach"
-             "if" "instanceof"
-             "next" "or" "return" "switch"
+             "if" "include" "instanceof"
+             "next" "or" "require" "return" "switch"
              "when" "while")))
   "PHP keywords.")
 
