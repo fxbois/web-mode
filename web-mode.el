@@ -85,6 +85,7 @@
                                               (message "elt at pt: %s" (web-mode-element-at-point))
                                               ))
   (define-key web-mode-map (kbd "C-c C-(") 'web-mode-fetch-opening-paren)
+  (define-key web-mode-map (kbd "C-c C-d") 'web-mode-delete-element)
   (define-key web-mode-map (kbd "C-c C-i") 'web-mode-insert)
   (define-key web-mode-map (kbd "C-c C-n") 'web-mode-match-tag)
   (define-key web-mode-map (kbd "C-c C-p") 'web-mode-parent-element)
@@ -562,6 +563,14 @@
     (set-mark (point))
     (web-mode-match-tag)
     (search-forward ">"))
+  )
+
+(defun web-mode-delete-element ()
+  "Select the current element"
+  (interactive)
+  (web-mode-select-element)
+  (when mark-active
+    (delete-region (region-beginning) (region-end)))
   )
 
 (defun web-mode-is-opened-element (&optional line)
