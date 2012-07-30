@@ -72,13 +72,12 @@
   (set (make-local-variable 'font-lock-multiline) t)
   (set (make-local-variable 'indent-line-function) 'web-mode-indent-line)
   (set (make-local-variable 'indent-tabs-mode) nil)
-  (set (make-local-variable 'redisplay-preemption-period) 2)
+;;  (set (make-local-variable 'redisplay-preemption-period) 2)
   (set (make-local-variable 'require-final-newline) nil)
 
   (set-syntax-table web-mode-syntax-table)
 
   (add-hook 'after-change-functions 'web-mode-on-after-change t t)
-;;  (run-hooks 'web-mode-hook)
 
   (define-key web-mode-map (kbd "C-c C-c") '(lambda ()
                                               (interactive)
@@ -87,6 +86,7 @@
   (define-key web-mode-map (kbd "C-c C-(") 'web-mode-fetch-opening-paren)
   (define-key web-mode-map (kbd "C-c C-d") 'web-mode-delete-element)
   (define-key web-mode-map (kbd "C-c C-i") 'web-mode-insert)
+  (define-key web-mode-map (kbd "C-c C-j") 'web-mode-duplicate-element)
   (define-key web-mode-map (kbd "C-c C-n") 'web-mode-match-tag)
   (define-key web-mode-map (kbd "C-c C-p") 'web-mode-parent-element)
   (define-key web-mode-map (kbd "C-c C-r") 'web-mode-reload)
@@ -422,7 +422,7 @@
                  (setq offset (current-column))
                  ))
 
-              ((string-match "^<\\?php \\(if\\|for\\|while\\|else\\|end\\)" cur-line)
+              ((string-match "^<\\?php[ ]+\\(if\\|for\\|while\\|else\\|end\\)" cur-line)
                (progn
                  (setq offset 0)
                  ))
@@ -557,7 +557,7 @@
       )))
 
 (defun web-mode-select-element ()
-  "Select the current element"
+  "Select the current HTML element"
   (interactive)
   (when (re-search-backward "<[[:alpha:]]" nil t)
     (set-mark (point))
@@ -566,11 +566,28 @@
   )
 
 (defun web-mode-delete-element ()
-  "Select the current element"
+  "Delete the current HTML element"
   (interactive)
   (web-mode-select-element)
   (when mark-active
     (delete-region (region-beginning) (region-end)))
+  )
+
+(defun web-mode-duplicate-element ()
+  "Duplicate the current HTML element"
+  (interactive)
+  (let ((offset 0))
+    (web-mode-select-element)
+    (when mark-active
+      (save-excursion 
+        (goto-char (region-beginning))
+        (setq offset (current-column)))
+      (kill-region (region-beginning) (region-end))
+      (yank)
+      (newline)
+      (indent-line-to offset)
+      (yank))
+    )
   )
 
 (defun web-mode-is-opened-element (&optional line)
@@ -808,7 +825,7 @@
    (cons (concat "\\<\\(" web-mode-js-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face))
    '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
-   '("[^:]//.+" 0 'web-mode-comment-face t t)
+   '("[^:\"]//.+" 0 'web-mode-comment-face t t)
    ))
 
 (defconst web-mode-php-font-lock-keywords
@@ -848,7 +865,7 @@
    '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
 
    '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
-   '("//.+" 0 'web-mode-comment-face t t)
+   '("[^:\"]//.+" 0 'web-mode-comment-face t t)
 
    ))
 
@@ -1088,13 +1105,6 @@
    '("<?=" "?>" "\\?>" 0)
    '("<!-" "-  -->" "--" 2)  
    '("<im" "g src=\"\" />" "src" 7))
-;;   '("<ta" "ble><tr><td></td></tr></table>" "tr" 12)
-;;   '("<ul" "><li></li><li></li></ul>" "li" 5)
-;;   '("<di" "v></div>" "div" 2)
-;;   '("<sp" "an></span>" "spa" 3)
-;;   '("<fo" "rm></form>" "for" 3)
-;;   '("<a " "href=\"\"></a>" "href" 6)
-;;   '("<in" "put type=\"\" />" "put" 10)
   "Autocompletes")
 
 (defun web-mode-on-after-change (beg end len)
@@ -1116,9 +1126,7 @@
 
     (when (and web-mode-autocompletes-flag
                (= len 0)
-               (= 1 (- end beg))
-               (not (web-mode-is-comment-or-string)))
-
+               (= 1 (- end beg)))
       (if (> (+ end 10) (line-end-position))
           (setq pos-end (line-end-position))
         (setq pos-end (+ end 10)))
