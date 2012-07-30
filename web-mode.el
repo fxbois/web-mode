@@ -232,6 +232,10 @@
            (not (eq ln (web-mode-current-line)))
            ))))
 
+(defun web-mode-in-block (type)
+  "Detect if point is in a block"
+)
+
 (defun web-mode-in-style-block ()
   "Detect if point is in a style block."
   (let ((pt (point)))
@@ -433,6 +437,12 @@
                  (setq offset (current-column))
                  ))
 
+              ((string-match "^</?\\(head\\|body\\|meta\\|link\\|title\\|style\\|script\\)" 
+                             cur-line) 
+               (progn
+                 (setq offset 0)
+                 ))
+
               ((string-match "^</" cur-line)
                (progn
                  (goto-char cur-point)
@@ -440,12 +450,6 @@
                  (re-search-forward "</")
                  (web-mode-match-tag)
                  (setq offset (current-indentation))
-                 ))
-
-              ((string-match "^</?\\(head\\|body\\|meta\\|link\\|title\\|style\\|script\\)" 
-                             cur-line) 
-               (progn
-                 (setq offset 0)
                  ))
 
               ((or (string= "" cur-line)
