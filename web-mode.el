@@ -61,27 +61,49 @@
   :type 'bool
   :group 'web-mode)
 
+(defvar web-mode-syntax-table
+  (let ((table (make-syntax-table)))
+    (modify-syntax-entry ?_ "w" table)
+    table)
+  "Syntax table in use in web-mode buffers.")
+
 (define-derived-mode web-mode prog-mode "Web"
   "Major mode for editing mixed HTML Templates."
 
-  (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords
-                                                   t
-                                                   t
-                                                   (("_" . "w"))
-                                                   nil))
+  ;; let syntax-table above
+  (set-syntax-table web-mode-syntax-table)
+
+  ;; (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords
+  ;;                                                 t
+  ;;                                                  t
+  ;;                                                  (("_" . "w"))
+  ;;                                                  nil))
+
+  (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords))
+  (set (make-local-variable 'font-lock-keywords-only) t)
+  (set (make-local-variable 'font-lock-keywords-case-fold-search) t)
+  (set (make-local-variable 'font-lock-syntax-table) nil)
+  (set (make-local-variable 'font-lock-beginning-of-syntax-function) nil)
   (set (make-local-variable 'font-lock-multiline) t)
+
+  (add-to-list (make-local-variable 'font-lock-extend-region-functions) 
+               'web-mode-font-lock-extend-region)
+
   (set (make-local-variable 'indent-line-function) 'web-mode-indent-line)
   (set (make-local-variable 'indent-tabs-mode) nil)
+  
+;;  (message "%s" (string (char-syntax ?_)))
+
 ;;  (set (make-local-variable 'redisplay-preemption-period) 2)
   (set (make-local-variable 'require-final-newline) nil)
-
-  (set-syntax-table web-mode-syntax-table)
 
   (add-hook 'after-change-functions 'web-mode-on-after-change t t)
 
   (define-key web-mode-map (kbd "C-c C-c") '(lambda ()
                                               (interactive)
-                                              (message "elt at pt: %s" (web-mode-element-at-point))
+                                              (if (web-mode-in-block "script") (message "in script"))
+
+;;                                              (message "elt at pt: %s" (web-mode-element-at-point))
                                               ))
   (define-key web-mode-map (kbd "C-c C-(") 'web-mode-fetch-opening-paren)
   (define-key web-mode-map (kbd "C-c C-d") 'web-mode-delete-element)
@@ -228,29 +250,45 @@
       (and (search-backward "<?" 0 t)
            (not (string-match "\\?>" (buffer-substring-no-properties
                                       (point) pt)))
-;;           (progn (message "lines: %d %d" ln (web-mode-current-line)) 't)
+           ;;           (progn (message "lines: %d %d" ln (web-mode-current-line)) 't)
            (not (eq ln (web-mode-current-line)))
            ))))
 
 (defun web-mode-in-block (type)
   "Detect if point is in a block"
+  (let ((pt (point))
+        (line-pt (web-mode-current-line))
+        line-open line-close)
+    (save-excursion
+      (and (search-backward (concat "<" type) 0 t)
+           (setq line-open (web-mode-current-line))
+           (> line-pt line-open)
+           (search-forward (concat "</" type ">") nil t)
+           (< pt (point))
+           (setq line-close (web-mode-current-line))
+           (not (eq line-open line-close))
+           (<= line-pt line-close)
+           (beginning-of-line)
+           (not (looking-at (concat "[ \t]*</" type)))
+           ))
+    );; let
 )
 
-(defun web-mode-in-style-block ()
-  "Detect if point is in a style block."
-  (let ((pt (point)))
-    (save-excursion
-      (and (search-backward "<style" 0 t)
-           (not (string-match "</style>" (buffer-substring-no-properties
-                                          (point) pt)))))))
+;; (defun web-mode-in-style-block ()
+;;   "Detect if point is in a style block."
+;;   (let ((pt (point)))
+;;     (save-excursion
+;;       (and (search-backward "<style" 0 t)
+;;            (not (string-match "</style>" (buffer-substring-no-properties
+;;                                           (point) pt)))))))
 
-(defun web-mode-in-script-block ()
-  "Detect if point is in a script block."
-  (let ((pt (point)))
-    (save-excursion
-      (and (search-backward "<script" 0 t)
-           (not (string-match "</script>" (buffer-substring-no-properties
-                                           (point) pt)))))))
+;; (defun web-mode-in-script-block ()
+;;   "Detect if point is in a script block."
+;;   (let ((pt (point)))
+;;     (save-excursion
+;;       (and (search-backward "<script" 0 t)
+;;            (not (string-match "</script>" (buffer-substring-no-properties
+;;                                            (point) pt)))))))
 
 (defun web-mode-current-line (&optional pt)
   "Return line number at point."
@@ -287,13 +325,13 @@
             cur-point (point))
       (cond
        ((web-mode-in-php-block)
-        (setq in-php-block (web-mode-in-php-block)))
-       ((web-mode-in-script-block)
-        (setq in-script-block (web-mode-in-script-block)))
-       ((web-mode-in-style-block)
-        (setq in-style-block (web-mode-in-style-block)))
+        (setq in-php-block t))
+       ((web-mode-in-block "script")
+        (setq in-script-block t))
+       ((web-mode-in-block "style")
+        (setq in-style-block t))
        )
-;;      (message "%S" in-php-block)
+;;      (message "php(%S) script(%S) style(%S)" in-php-block in-script-block in-style-block)
       (setq cur-line (web-mode-trim (buffer-substring-no-properties
                                 (line-beginning-position)
                                 (line-end-position))))
@@ -460,8 +498,9 @@
                  (setq continue t)
                  (while (and continue
                              (re-search-backward "^[ \t]*<\\([[:alpha:]]\\|/\\)" nil t))
-;;                   (message "%s" (web-mode-current-trimmed-line))
-                   (when (not (web-mode-is-comment-or-string))
+;;                   (message "current-trimmed-line: %s" (web-mode-current-trimmed-line))
+                   (when (and (not (web-mode-is-comment-or-string))
+                              (not (looking-at "[ \t]*</?\\(script\\|style\\)")))
                      (setq continue nil)
                      (unless (string= (string (following-char)) "<")
                        (re-search-forward "<"))
@@ -479,7 +518,9 @@
 
               (t
                (progn
-                 (message "..")))
+                 ()
+;;                 (message "..")
+                 ))
 
               )) ;; end case html bloc
 
@@ -780,11 +821,19 @@
            limit t)
       (setq beg (match-beginning 0)
             end (match-end 0))
+;;      (message "%s" (buffer-substring-no-properties beg end))
       (font-lock-fontify-region beg end)
+
 ;;      (message "after %d" (point))
       ) ;; when
 
     ))
+
+(defun web-mode-font-lock-extend-region ()
+  "Extend region."
+;;  (message "beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
+  (setq font-lock-end (point-max))
+  )
 
 (defconst web-mode-font-lock-keywords
   (list
@@ -1212,13 +1261,6 @@
 
     )))
 
-(defvar web-mode-syntax-table
-  (let ((table (make-syntax-table)))
-;;    (modify-syntax-entry ?# "< b" table)
-;;    (modify-syntax-entry ?_ "w" table)
-;;    (modify-syntax-entry ?+ "." table)
-    table)
-  "Syntax table in use in web-mode buffers.")
 
 (defun web-mode-reload ()
   "Reload web-mode."
