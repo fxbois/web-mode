@@ -530,15 +530,15 @@
 
       ) ;; save-excursion
 
-
+    
     (when (and offset
-             (not (eq cur-indentation offset))) 
+               (not (eq cur-indentation offset))) 
       (setq offset (max 0 offset))  
       (indent-line-to offset)
       )
-
+    
     (if (< (current-column) (current-indentation)) (back-to-indentation))
-
+    
     ) ;; let
   )
 
@@ -608,7 +608,8 @@
 (defun web-mode-select-element ()
   "Select the current HTML element"
   (interactive)
-  (when (re-search-backward "<[[:alpha:]]" nil t)
+  (when (or (looking-at "<") 
+            (re-search-backward "<[[:alpha:]]" nil t))
     (set-mark (point))
     (web-mode-match-tag)
     (search-forward ">"))
