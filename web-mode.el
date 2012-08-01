@@ -531,9 +531,13 @@
       ) ;; save-excursion
 
 
-    (if (and offset
+    (when (and offset
              (not (eq cur-indentation offset))) 
-        (indent-line-to (max 0 offset)))
+      (setq offset (max 0 offset))  
+      (indent-line-to offset)
+      )
+
+    (if (< (current-column) (current-indentation)) (back-to-indentation))
 
     ) ;; let
   )
