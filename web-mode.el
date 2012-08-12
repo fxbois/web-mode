@@ -39,7 +39,7 @@
   :group 'languages)
 
 (defgroup web-mode-faces nil
-  "Faces used in web-mode"
+  "Faces for syntax highlighting."
   :group 'web-mode
   :group 'faces)
 
@@ -92,20 +92,14 @@
   (set (make-local-variable 'indent-line-function) 'web-mode-indent-line)
   (set (make-local-variable 'indent-tabs-mode) nil)
   
-;;  (message "%s" (string (char-syntax ?_)))
-
 ;;  (set (make-local-variable 'redisplay-preemption-period) 2)
   (set (make-local-variable 'require-final-newline) nil)
 
   (add-hook 'after-change-functions 'web-mode-on-after-change t t)
 
-  (define-key web-mode-map (kbd "C-c C-c") '(lambda ()
-                                              (interactive)
-                                              (if (web-mode-in-block "script") (message "in script"))
-
-;;                                              (message "elt at pt: %s" (web-mode-element-at-point))
-                                              ))
   (define-key web-mode-map (kbd "C-c C-(") 'web-mode-fetch-opening-paren)
+  (define-key web-mode-map (kbd "C-c C-a") 'web-mode-indent-buffer)
+  (define-key web-mode-map (kbd "C-c C-b") 'web-mode-beginning-of-element)
   (define-key web-mode-map (kbd "C-c C-d") 'web-mode-delete-element)
   (define-key web-mode-map (kbd "C-c C-i") 'web-mode-insert)
   (define-key web-mode-map (kbd "C-c C-j") 'web-mode-duplicate-element)
@@ -126,7 +120,7 @@
   (define-key web-mode-map [menu-bar web sep1]
     '("--"))
   (define-key web-mode-map [menu-bar web debug]
-    '("debug" . web-mode-debug))
+    '("debug" . web-mode-debug-point))
 )
 
 (defvar web-mode-hook nil
@@ -205,13 +199,27 @@
     (while (re-search-forward "\\([[:alpha:]]\\)'\\([[:alpha:]]\\)" nil t)
       (replace-match "\\1’\\2"))))
 
+(defun web-mode-indent-buffer ()
+  "Indent all buffer."
+  (interactive)
+  (indent-region (point-min) (point-max)))
+
+(defun web-mode-beginning-of-element ()
+  "Fetch beginning of element"
+  (interactive)
+  (let (continue t)
+    (while continue
+      (re-search-backward "<[[:alpha:]]" nil t)
+      (if (not (web-mode-is-comment-or-string)) (setq continue nil))
+      )
+    ))
+
 (defun web-mode-is-comment-or-string (&optional pt)
   "Check if point is in a comment or in a string."
   (interactive)
   (unless pt
     (setq pt (point)))
-  (let (face) 
-    (setq face (get-text-property pt 'face))
+  (let ((face (get-text-property pt 'face))) 
     (or (eq 'web-mode-comment-face face)
         (eq 'web-mode-string-face face))))
 
@@ -271,24 +279,7 @@
            (beginning-of-line)
            (not (looking-at (concat "[ \t]*</" type)))
            ))
-    );; let
-)
-
-;; (defun web-mode-in-style-block ()
-;;   "Detect if point is in a style block."
-;;   (let ((pt (point)))
-;;     (save-excursion
-;;       (and (search-backward "<style" 0 t)
-;;            (not (string-match "</style>" (buffer-substring-no-properties
-;;                                           (point) pt)))))))
-
-;; (defun web-mode-in-script-block ()
-;;   "Detect if point is in a script block."
-;;   (let ((pt (point)))
-;;     (save-excursion
-;;       (and (search-backward "<script" 0 t)
-;;            (not (string-match "</script>" (buffer-substring-no-properties
-;;                                            (point) pt)))))))
+    ))
 
 (defun web-mode-current-line (&optional pt)
   "Return line number at point."
@@ -398,9 +389,8 @@
              ((string= prev-last-char ".")
               (progn
                 (end-of-line)
-                (search-backward "=")
-                (forward-char)
-                (forward-char)
+                (re-search-backward "[=(]")
+                (re-search-forward "[= (]")
                 (setq offset (current-column))
                 ))
 
@@ -416,7 +406,7 @@
                 (setq offset (+ (current-indentation) web-mode-script-offset))
                 ))
 
-             ((string-match "\\(->[[:alnum:]_]+\\|)\\)$" prev-line)
+             ((string-match "\\(->[ ]?[[:alnum:]_]+\\|)\\)$" prev-line)
               (progn
                 (end-of-line)
                 (search-backward ">")
@@ -534,8 +524,7 @@
     (when (and offset
                (not (eq cur-indentation offset))) 
       (setq offset (max 0 offset))  
-      (indent-line-to offset)
-      )
+      (indent-line-to offset))
     
     (if (< (current-column) (current-indentation)) (back-to-indentation))
     
@@ -555,8 +544,7 @@
         (if (string= (string (char-after)) "(")
             (progn 
               (setq n (1+ n))
-              (if (> n 0)
-                  (setq continue nil))
+              (if (> n 0) (setq continue nil))
               )
           (setq n (1- n))))
       )
@@ -608,20 +596,19 @@
 (defun web-mode-select-element ()
   "Select the current HTML element"
   (interactive)
-  (when (or (looking-at "<") 
-            (re-search-backward "<[[:alpha:]]" nil t))
+  (when (or (looking-at-p "<[[:alpha:]]") 
+            (and (goto-char (+ 1 (point)))
+                 (re-search-backward "<[[:alpha:]]" nil t)))
     (set-mark (point))
     (web-mode-match-tag)
-    (search-forward ">"))
-  )
+    (search-forward ">")))
 
 (defun web-mode-delete-element ()
   "Delete the current HTML element"
   (interactive)
   (web-mode-select-element)
   (when mark-active
-    (delete-region (region-beginning) (region-end)))
-  )
+    (delete-region (region-beginning) (region-end))))
 
 (defun web-mode-duplicate-element ()
   "Duplicate the current HTML element"
@@ -636,9 +623,7 @@
       (yank)
       (newline)
       (indent-line-to offset)
-      (yank))
-    )
-  )
+      (yank))))
 
 (defun web-mode-is-opened-element (&optional line)
   "Is there any HTML element without a closing tag ?"
@@ -719,7 +704,6 @@
     ) ;; let
   )
 
-;;(what-cursor-position)
 (defun web-mode-text-at-point ()
   "Text at point."
   (buffer-substring-no-properties (point) (line-end-position)))
@@ -727,8 +711,8 @@
 (defun web-mode-current-trimmed-line ()
   "Line at point, trimmed."
   (web-mode-trim (buffer-substring-no-properties
-             (line-beginning-position)
-             (line-end-position))))
+                  (line-beginning-position)
+                  (line-end-position))))
 
 (defun web-mode-trim (string)
   "Remove white spaces in beginning and ending of STRING."
@@ -738,7 +722,7 @@
     "[ \t\n]*\\'" "" string)))
 
 (defun web-mode-is-void-html-element (tag)
-  "Test is param is a void HTML tag."
+  "Test if tag is a void HTML tag."
   (find tag web-mode-void-html-elements :test 'equal))
 
 (defconst web-mode-void-html-elements
@@ -780,9 +764,7 @@
 
 (defun web-mode-highlight-style-bloc (limit)
   "Highlight a <style> bloc."
-  (let (beg
-        end
-        (font-lock-keywords web-mode-style-font-lock-keywords)
+  (let ((font-lock-keywords web-mode-style-font-lock-keywords)
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
@@ -790,15 +772,11 @@
     (when (re-search-forward
            "<style>\\(.\\|\n\\)*?</style>"
            limit t)
-      (setq beg (match-beginning 0)
-            end (match-end 0))
-      (font-lock-fontify-region beg end))))
+      (font-lock-fontify-region (match-beginning 0) (match-end 0)))))
 
 (defun web-mode-highlight-script-bloc (limit)
   "Highlight a <script> bloc."
-  (let (beg
-        end
-        (font-lock-keywords web-mode-script-font-lock-keywords)
+  (let ((font-lock-keywords web-mode-script-font-lock-keywords)
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
@@ -806,16 +784,11 @@
     (when (re-search-forward
            "<script.*?>\\(.\\|\n\\)*?</script>"
            limit t)
-      (setq beg (match-beginning 0)
-            end (match-end 0))
-      (font-lock-fontify-region beg end))))
+      (font-lock-fontify-region (match-beginning 0) (match-end 0)))))
 
 (defun web-mode-highlight-php-bloc (limit)
   "Highlight a PHP bloc."
-  (let (beg
-        end
-;;        font-lock-keywords
-        (font-lock-keywords web-mode-php-font-lock-keywords)
+  (let ((font-lock-keywords web-mode-php-font-lock-keywords)
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
@@ -824,11 +797,8 @@
     (when (re-search-forward
            "\\(<\\?php\\|<\\?=\\)\\(.\\|\n\\)*?\\?>"
            limit t)
-      (setq beg (match-beginning 0)
-            end (match-end 0))
-;;      (message "%s" (buffer-substring-no-properties beg end))
-      (font-lock-fontify-region beg end)
-
+;;      (message "%s" (buffer-substring-no-properties (match-beginning 0) (match-end 0)))
+      (font-lock-fontify-region (match-beginning 0) (match-end 0))
 ;;      (message "after %d" (point))
       ) ;; when
 
@@ -837,8 +807,7 @@
 (defun web-mode-font-lock-extend-region ()
   "Extend region."
 ;;  (message "beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
-  (setq font-lock-end (point-max))
-  )
+  (setq font-lock-end (point-max)))
 
 (defconst web-mode-font-lock-keywords
   (list
@@ -907,7 +876,7 @@
    '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
 
    ;; Class::CONSTANT
-   '("[[:alnum:]_][ ]?::[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-constant-face)
+   '("[[:alnum:]_][ ]?::[ ]?\\(\\sw+\\)" 1 'web-mode-constant-face)
 
    ;; ->variable
    '("->[ ]?\\(\\sw+\\)" 1 'web-mode-variable-name-face)
@@ -918,7 +887,8 @@
    '("instanceof[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-type-face)
 
    ;; $var
-   '("\\<$\\([[:alnum:]_]*\\)" 1 'web-mode-variable-name-face)
+;;   '("\\<$\\([[:alnum:]_]*\\)" 1 'web-mode-variable-name-face)
+   '("\\<$\\(\\sw*\\)" 1 'web-mode-variable-name-face)
 
    '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
 
@@ -1027,12 +997,10 @@
   (interactive)
   (let ((pt (point)))
     (when (not (web-mode-is-comment-or-string))
-      (if (and (= (current-column) 0)
+      (when (and (= (current-column) 0)
                (not (string= (string (char-after)) "<")))
-          (progn
-            (search-forward "<" nil t)
-            (backward-char)
-            ))
+        (search-forward "<" nil t)
+        (backward-char))
       (if (or (string= (string (char-after)) "<")
               (search-backward "<" 1 t))
           (if (string= (string (char-after (1+ (point)))) "?")
@@ -1153,7 +1121,7 @@
           )))
     (search-backward "<")))
 
-(defun web-mode-debug ()
+(defun web-mode-debug-point ()
   (interactive)
   (what-cursor-position))
 
@@ -1161,8 +1129,7 @@
   (list
    '("<?p" "hp  ?>" "\\?>" 3)
    '("<?=" "?>" "\\?>" 0)
-   '("<!-" "-  -->" "--" 2)  
-   '("<im" "g src=\"\" />" "src" 7))
+   '("<!-" "-  -->" "--" 2))
   "Autocompletes")
 
 (defun web-mode-on-after-change (beg end len)
@@ -1190,38 +1157,35 @@
         (setq pos-end (+ end 10)))
       (setq after (buffer-substring-no-properties end pos-end))
 
-      (when (and (>= cur-col 2)
-                 (not found))
-        (setq chunk (buffer-substring-no-properties (- beg 1) end))
-
-        (if (string= "</" chunk)
-            (progn
-              (setq continue t)
-              (setq counter 1)
-              (while (and continue 
-                          (re-search-backward "<\\(/?[[:alnum:]]+\\)" 0 t))
-                (when (not (web-mode-is-comment-or-string))
-                  (setq tag (substring (match-string-no-properties 0) 1))
-                  (if (string= (substring tag 0 1) "/")
-                      (setq counter (1+ counter))
-                    (if (not (web-mode-is-void-html-element tag)) 
-                        (setq counter (1- counter))
-                      ))
-                  (if (eq counter 0)
+      (when (and (not found)
+                 (>= cur-col 2)
+                 (string= "</" (buffer-substring-no-properties (- beg 1) end)))
+        (setq continue t
+              counter 1)
+        (while (and continue 
+                    (re-search-backward "<\\(/?[[:alnum:]]+\\)" 0 t))
+          (when (not (web-mode-is-comment-or-string))
+            (setq tag (substring (match-string-no-properties 0) 1))
+            (if (string= (substring tag 0 1) "/")
+                (setq counter (1+ counter))
+              (if (not (web-mode-is-void-html-element tag)) 
+                  (setq counter (1- counter))
+                ))
+            (if (eq counter 0)
+                (progn
+                  (setq continue nil
+                        found t)
+                  (goto-char pt)
+                  (if (looking-at ">")
                       (progn
-                        (setq continue nil)
-                        (setq found t)
-                        (goto-char pt)
-                        (if (looking-at ">")
-                            (progn
-                              (insert tag)
-                              (goto-char (+ (point) 1)))
-                          (insert (concat tag ">")))
-                        ))
-                  ) ;; when
-                ) ;; while
-              (if continue (goto-char pt))
-              ))
+                        (insert tag)
+                        (goto-char (+ (point) 1)))
+                    (insert (concat tag ">")))
+                  ))
+            ) ;; when
+          ) ;; while
+        (if continue (goto-char pt))
+        
         );; when
 
       (when (and (>= cur-col 3)
@@ -1241,30 +1205,9 @@
           (setq i (1+ i)))        
         ) ;; when
 
-      (when (and (>= cur-col 6) 
-                 (not found))
+    )
 
-        (setq chunk (buffer-substring-no-properties (- beg 5) end))
-        (cond
-         ((string= "?php i" chunk)
-          (unless (string-match "if" after)
-            (progn
-              (insert "f ():")
-              (re-search-forward ">")
-              (insert "\n<?php endif; ?>")
-              (goto-char (+ pt 3)))))
-
-         ((string= "?php f" chunk)
-          (unless (string-match "for" after)
-            (progn
-              (insert "oreach ( as ):")
-              (re-search-forward ">")
-              (insert "\n<?php endforeach; ?>")
-              (goto-char (+ pt 8)))))
-        )
-      ) ;; end when
-
-    )))
+    ))
 
 
 (defun web-mode-reload ()
