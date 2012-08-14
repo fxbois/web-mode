@@ -276,7 +276,8 @@
            (setq line-close (web-mode-current-line))
            (not (eq line-open line-close))
            (<= line-pt line-close)
-           (beginning-of-line)
+           (progn (goto-char pt) (beginning-of-line) t)
+           ;;           (message "-> %s" type)
            (not (looking-at (concat "[ \t]*</" type)))
            ))
     ))
@@ -397,7 +398,7 @@
              ((string= prev-last-char ";")
               (progn
                 (end-of-line)
-                (re-search-backward "[=(]")
+                (re-search-backward "\\([=(]\\|^[ ]*var[ ]*\\)")
                 (setq offset (current-indentation))
                 ))
 
