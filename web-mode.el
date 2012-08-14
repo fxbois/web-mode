@@ -813,7 +813,7 @@
   (list
 
    ;; html tag
-   '("</?[[:alnum:]]\\{0,10\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
+   '("</?[[:alnum:]:]\\{0,10\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
 ;;   '("<[[:alnum:]]\\{0,10\\}" . 'web-mode-html-tag-face)
    '("/?>" 0 'web-mode-html-tag-face t t)
 
