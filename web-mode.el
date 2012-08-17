@@ -540,7 +540,7 @@
   (let ((continue t) 
         (n 0))
     (while (and continue
-                (re-search-backward "[()]"))
+                (re-search-backward "[)(]"))
       (unless (web-mode-is-comment-or-string)
         (if (string= (string (char-after)) "(")
             (progn 
@@ -854,6 +854,7 @@
          '(0 'web-mode-keyword-face))
    '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
    '("[^:\"]//.+" 0 'web-mode-comment-face t t)
+   '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
    ))
 
 (defconst web-mode-php-font-lock-keywords
