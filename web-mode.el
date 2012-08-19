@@ -6,7 +6,7 @@
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
 
-;; Version: 0.99
+;; Version: 1.00
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -136,6 +136,11 @@
   "Face for HTML doctype."
   :group 'web-mode-faces)
 
+(defface web-mode-xml-tag-face
+  '((t :foreground "Snow3"))
+  "Face for JSP tags."
+  :group 'web-mode-faces)
+
 (defface web-mode-html-tag-face
   '((t :foreground "Snow4"))
   "Face for HTML tags."
@@ -262,6 +267,17 @@
            (not (eq ln (web-mode-current-line)))
            ))))
 
+(defun web-mode-in-jsp-block ()
+  "Detect if point is in a JSP block."
+  (let ((pt (point))
+        (ln (web-mode-current-line)))
+    (save-excursion
+      (and (search-backward "<%" 0 t)
+           (not (string-match "%>" (buffer-substring-no-properties
+                                    (point) pt)))
+           (not (eq ln (web-mode-current-line)))
+           ))))
+
 (defun web-mode-in-block (type)
   "Detect if point is in a block"
   (let ((pt (point))
@@ -302,6 +318,7 @@
         cur-line
         cur-point
         in-php-block
+        in-jsp-block
         in-script-block
         in-style-block
         line-number
@@ -322,11 +339,13 @@
         (setq in-script-block t))
        ((web-mode-in-block "style")
         (setq in-style-block t))
+       ((web-mode-in-jsp-block)
+        (setq in-jsp-block t))
        )
-;;      (message "php(%S) script(%S) style(%S)" in-php-block in-script-block in-style-block)
+;;      (message "php(%S) jsp(%S) script(%S) style(%S)" in-php-block in-jsp-block in-script-block in-style-block)
       (setq cur-line (web-mode-trim (buffer-substring-no-properties
-                                (line-beginning-position)
-                                (line-end-position))))
+                                     (line-beginning-position)
+                                     (line-end-position))))
       (setq cur-first-char (if (string= cur-line "")
                                cur-line
                              (substring cur-line 0 1)))
@@ -340,15 +359,17 @@
           
           (cond ;; switch language
            
-           ((or in-php-block in-script-block) ;; php or script block
+           ((or in-php-block 
+                in-jsp-block 
+                in-script-block) ;; php or script block
             
             (cond
              
-             ((and (string-match "<\\?php" cur-line)
-                   (string-match "\\?>" cur-line))
-              (progn
-                (message "do nothing")
-                ))
+;;             ((and (string-match "<\\?php" cur-line)
+;;                   (string-match "\\?>" cur-line))
+;;              (progn
+;;                (message "do nothing")
+;;                ))
 
              ((string= cur-first-char "}")
               (progn
@@ -387,18 +408,28 @@
                 (setq offset (+ (current-column) 1))
                 ))
 
-             ((string= prev-last-char ".")
+             ((or (string= prev-last-char ".") 
+                  (string= prev-last-char "+")
+                  (string= prev-last-char "?") 
+                  (string= prev-last-char ":"))
               (progn
                 (end-of-line)
                 (re-search-backward "[=(]")
-                (re-search-forward "[= (]")
+                (re-search-forward "[= (]+")
                 (setq offset (current-column))
                 ))
 
              ((string= prev-last-char ";")
               (progn
                 (end-of-line)
-                (re-search-backward "\\([=(]\\|^[ ]*var[ ]*\\)")
+                (if (string-match ")[ ]*;$" prev-line)
+                    (progn 
+                      (re-search-backward ")[ ]*;")
+;;                      (skip-chars-backward ");" 2)
+                      (web-mode-fetch-opening-paren))
+                  (progn
+                    (re-search-backward "\\([=(]\\|^[ ]*var[ ]*\\)"))
+                  )
                 (setq offset (current-indentation))
                 ))
 
@@ -419,9 +450,9 @@
 ;;                (message "php")
                 ))
 
-             )) ;; end case php or script bloc
+             )) ;; end case script block
 
-           (in-style-block ;; style bloc
+           (in-style-block ;; style block
             
             (cond
              
@@ -439,7 +470,6 @@
                 ))
              
              )) ;; end case style bloc
-
 
             (t ;; case html bloc
 
@@ -537,16 +567,16 @@
   (interactive)
   (unless pt 
     (setq pt (point)))
+;;  (message (web-mode-text-at-point))
   (let ((continue t) 
         (n 0))
     (while (and continue
-                (re-search-backward "[)(]"))
+                (re-search-backward "[)(]" nil t))
       (unless (web-mode-is-comment-or-string)
         (if (string= (string (char-after)) "(")
             (progn 
               (setq n (1+ n))
-              (if (> n 0) (setq continue nil))
-              )
+              (if (> n 0) (setq continue nil)))
           (setq n (1- n))))
       )
     );;let
@@ -554,14 +584,12 @@
 
 (defun web-mode-count-char-in-string (char &optional string)
   "count char in string"
-;;  (setq c (elt c 0))
   (let ((i 0) (n 0) l)
     (setq l (length string))
     (while (< i l)
       (if (char-equal (elt string i) char)
           (setq n (1+ n)))
       (setq i (1+ i)))
-;;    (message "%c %d" char n)
     n))
 
 (defun web-mode-element-at-point ()
@@ -705,9 +733,11 @@
     ) ;; let
   )
 
-(defun web-mode-text-at-point ()
+(defun web-mode-text-at-point (&optional pt)
   "Text at point."
-  (buffer-substring-no-properties (point) (line-end-position)))
+  (unless pt
+    (setq pt (point)))
+  (buffer-substring-no-properties pt (line-end-position)))
 
 (defun web-mode-current-trimmed-line ()
   "Line at point, trimmed."
@@ -757,6 +787,20 @@
        "int" "integer" "long" "mixed" "object" "real" "string")))
   "PHP types.")
 
+(defconst web-mode-jsp-keywords
+  (regexp-opt
+   (append (if (boundp 'web-mode-jsp-keywords) web-mode-jsp-keywords '())
+           '("if" "else" "for" "while" "new" "page" "include" "tag" "taglib"
+             "return")))
+  "JSP keywords.")
+
+;;(defconst web-mode-jsp-types
+;;  (eval-when-compile
+;;    (regexp-opt
+;;     '("String" "Date" "Integer" 
+;;       "byte" "short" "int" "long" "float" "double" "boolean" "char")))
+;;  "JSP types.")
+
 (defconst web-mode-js-keywords
   (eval-when-compile
     (regexp-opt
@@ -805,6 +849,17 @@
 
     ))
 
+(defun web-mode-highlight-jsp-bloc (limit)
+  "Highlight a JSP bloc."
+  (let ((font-lock-keywords web-mode-jsp-font-lock-keywords)
+        (font-lock-keywords-case-fold-search nil)
+        (font-lock-keywords-only t)
+        (font-lock-extend-region-functions nil)
+        (limit (point-max)))
+    (when (re-search-forward "<%\\(.\\|\n\\)*?%>" limit t)
+      (font-lock-fontify-region (match-beginning 0) (match-end 0))
+      )))
+
 (defun web-mode-font-lock-extend-region ()
   "Extend region."
 ;;  (message "beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
@@ -814,8 +869,7 @@
   (list
 
    ;; html tag
-   '("</?[[:alnum:]:]\\{0,10\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
-;;   '("<[[:alnum:]]\\{0,10\\}" . 'web-mode-html-tag-face)
+   '("</?[[:alnum:]:]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
    '("/?>" 0 'web-mode-html-tag-face t t)
 
    ;; html attribute name
@@ -824,15 +878,20 @@
    ;; html attribute value
    '("[[:alnum:]]=\\(\"\\(.\\|\n\\)*?\"\\)" 1 'web-mode-string-face t t)
 
+   ;; Unified Expression Language
+   '("[$#]{.*?}" 0 'web-mode-variable-name-face t t)
+
    '("<\\?[ph=]*" 0 'web-mode-preprocessor-face t t)
    '("\\?>" 0 'web-mode-preprocessor-face t t)
    '(web-mode-highlight-style-bloc)
    '(web-mode-highlight-script-bloc)
    '(web-mode-highlight-php-bloc)
+   '(web-mode-highlight-jsp-bloc)
    '("^<!D\\(.\\|\n\\)*?>" 0 'web-mode-doctype-face t t)
    '("^<\\?xml .+\\?>" 0 'web-mode-doctype-face t t)
    '("<!--\\(.\\|\n\\)*?-->" 0 'web-mode-comment-face t t)
-
+   '("</?[[:alnum:]]+\\(:[[:alpha:]]+\\)" 1 'web-mode-xml-tag-face t t)
+   
    ))
 
 (defconst web-mode-style-font-lock-keywords
@@ -885,7 +944,7 @@
 
    ;; Class::
    '("\\<\\(\\sw+\\)[ ]?::" 1 'web-mode-type-face)
-   ;; instanceof Class
+ 
    '("instanceof[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-type-face)
 
    ;; $var
@@ -898,6 +957,28 @@
    '("[^:\"]//.+" 0 'web-mode-comment-face t t)
 
    ))
+
+(defconst web-mode-jsp-font-lock-keywords
+  (list
+
+   '(".*" 0 nil t t)
+
+   '("\\(<%[!@=]?\\|%>\\)" 0 'web-mode-preprocessor-face t t)
+   '("\\<\\([[:alnum:].]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
+
+
+   (cons (concat "\\<\\(" web-mode-jsp-keywords "\\)\\>") 
+         '(0 'web-mode-keyword-face t t))
+
+;;   (cons (concat "\\<\\(" web-mode-jsp-types "\\)\\>") 
+;;         '(1 'web-mode-type-face t t))
+
+   '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
+   '("[^:\"]//.+" 0 'web-mode-comment-face t t)
+   '("<%--\\(.\\|\n\\)*?--%>" 0 'web-mode-comment-face t t)
+
+))
 
 (defvar web-mode-snippets
   (list
