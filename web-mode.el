@@ -35,7 +35,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing PHP templates."
-  :version "0.99"
+  :version "1.00"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -676,7 +676,7 @@
             is-closing-tag (string= (substring tag 0 1) "/"))
       (if is-closing-tag (setq tag (substring tag 1)))
       (setq n (gethash tag h 0))
-      (if (not (web-mode-is-void-html-element tag))
+      (if (not (web-mode-is-void-element tag))
           (if is-closing-tag
               (if (> n 0) (puthash tag (1- n) h))
             (puthash tag (1+ n) h))
@@ -714,7 +714,7 @@
         (setq tag (buffer-substring-no-properties (- (point) nb) (point)))
         (setq n (gethash tag h 0))
 ;;        (message "%s %d %d" tag n (point))
-        (when (not (web-mode-is-void-html-element tag))
+        (when (not (web-mode-is-void-element tag))
           (search-backward "<")
           (if (eq is-closing-tag t)
               (puthash tag (1- n) h)
@@ -752,9 +752,11 @@
    (replace-regexp-in-string
     "[ \t\n]*\\'" "" string)))
 
-(defun web-mode-is-void-html-element (tag)
+(defun web-mode-is-void-element (&optional tag)
   "Test if tag is a void HTML tag."
-  (find tag web-mode-void-html-elements :test 'equal))
+  (if tag
+      (find tag web-mode-void-html-elements :test 'equal)
+    (looking-at-p "<.*?/>")))
 
 (defconst web-mode-void-html-elements
   '("hr" "br" "col" "input" "link" "meta" "img")
@@ -863,7 +865,15 @@
 (defun web-mode-font-lock-extend-region ()
   "Extend region."
 ;;  (message "beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
-  (setq font-lock-end (point-max)))
+  (save-excursion
+    (when (re-search-backward "<[[:alpha:]%?]" nil t)
+      (beginning-of-line)
+      (setq font-lock-beg (point))
+;;      (message "beg(%d) %s" font-lock-beg (web-mode-text-at-point))
+      )
+    (setq font-lock-end (point-max))
+    )
+)
 
 (defconst web-mode-font-lock-keywords
   (list
@@ -1099,7 +1109,7 @@
         (forward-char))
     (setq nb (skip-chars-forward "a-zA-Z"))
     (setq tag (buffer-substring-no-properties (- (point) nb) (point)))
-    (if (web-mode-is-void-html-element tag)
+    (if (web-mode-is-void-element tag)
         (message "void tag")
       (if (eq closing-tag t)
           (web-mode-match-html-opening-tag tag pt)
@@ -1246,12 +1256,13 @@
         (setq continue t
               counter 1)
         (while (and continue 
-                    (re-search-backward "<\\(/?[[:alnum:]]+\\)" 0 t))
+                    (re-search-backward "<\\(/?[[:alnum:]:]+\\)" 0 t))
           (when (not (web-mode-is-comment-or-string))
             (setq tag (substring (match-string-no-properties 0) 1))
             (if (string= (substring tag 0 1) "/")
                 (setq counter (1+ counter))
-              (if (not (web-mode-is-void-html-element tag)) 
+              (if (not (or (web-mode-is-void-element tag) 
+                           (web-mode-is-void-element))) 
                   (setq counter (1- counter))
                 ))
             (if (eq counter 0)
