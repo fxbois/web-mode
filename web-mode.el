@@ -966,7 +966,7 @@
 
    ;; Class::
    '("\\<\\(\\sw+\\)[ ]?::" 1 'web-mode-type-face)
- 
+
    '("instanceof[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-type-face)
 
    ;; $var
