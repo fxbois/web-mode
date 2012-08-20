@@ -136,10 +136,10 @@
   "Face for HTML doctype."
   :group 'web-mode-faces)
 
-(defface web-mode-xml-tag-face
-  '((t :foreground "Snow3"))
-  "Face for JSP tags."
-  :group 'web-mode-faces)
+;;(defface web-mode-xml-tag-face
+;;  '((t :foreground "Snow3"))
+;;  "Face for JSP tags."
+;;  :group 'web-mode-faces)
 
 (defface web-mode-html-tag-face
   '((t :foreground "Snow4"))
@@ -756,10 +756,10 @@
   "Test if tag is a void HTML tag."
   (if tag
       (find tag web-mode-void-html-elements :test 'equal)
-    (looking-at-p "<.*?/>")))
+    (looking-at-p "<.+?/>")))
 
 (defconst web-mode-void-html-elements
-  '("hr" "br" "col" "input" "link" "meta" "img")
+  '("hr" "br" "col" "input" "link" "meta" "img" "TMPL_VAR")
   "Void (self-closing) HTML tags.")
 
 (defconst web-mode-php-constants
@@ -879,17 +879,25 @@
   (list
 
    ;; html tag
-   '("</?[[:alnum:]:]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
+   '("</?[[:alnum:]:_]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
    '("/?>" 0 'web-mode-html-tag-face t t)
 
    ;; html attribute name
-   '("\\<[[:alnum:]-]+=" 0 'web-mode-html-attr-face t t)
+;;   '("\\<[[:alnum:]-]+=" 0 'web-mode-html-attr-face t t)
    
    ;; html attribute value
-   '("[[:alnum:]]=\\(\"\\(.\\|\n\\)*?\"\\)" 1 'web-mode-string-face t t)
+;;   '("[[:alnum:]]=\\(\"\\(.\\|\n\\)*?\"\\)" 1 'web-mode-string-face t t)
+
+   ;; html attribute
+   '("[ ^>]\\([[:alnum:]_-]+=\\)\\(\"\\(.\\|\n\\)*?\"\\)?" 
+     (1 'web-mode-html-attr-face t t)
+     (2 'web-mode-string-face t t))
 
    ;; Unified Expression Language
-   '("[$#]{.*?}" 0 'web-mode-variable-name-face t t)
+   '("\\([$#]{\\)\\(.*?\\)\\(}\\)" 
+     (1 'web-mode-preprocessor-face t t)
+     (2 'web-mode-variable-name-face t t)
+     (3 'web-mode-preprocessor-face t t))
 
    '("<\\?[ph=]*" 0 'web-mode-preprocessor-face t t)
    '("\\?>" 0 'web-mode-preprocessor-face t t)
@@ -900,7 +908,11 @@
    '("^<!D\\(.\\|\n\\)*?>" 0 'web-mode-doctype-face t t)
    '("^<\\?xml .+\\?>" 0 'web-mode-doctype-face t t)
    '("<!--\\(.\\|\n\\)*?-->" 0 'web-mode-comment-face t t)
-   '("</?[[:alnum:]]+\\(:[[:alpha:]]+\\)" 1 'web-mode-xml-tag-face t t)
+
+   ;;http://search.cpan.org/~wonko/HTML-Template-2.91/lib/HTML/Template.pm
+   '("</?\\(TMPL\\|jsp\\|sql\\|fmt\\|tlt\\|acme\\|tt\\|c\\|h\\|x\\)\\([:_][[:alpha:]]+\\)" 
+     (1 'web-mode-preprocessor-face t t)
+     (2 'web-mode-preprocessor-face t t))
    
    ))
 
@@ -1256,7 +1268,7 @@
         (setq continue t
               counter 1)
         (while (and continue 
-                    (re-search-backward "<\\(/?[[:alnum:]:]+\\)" 0 t))
+                    (re-search-backward "<\\(/?[[:alnum:]:_]+\\)" 0 t))
           (when (not (web-mode-is-comment-or-string))
             (setq tag (substring (match-string-no-properties 0) 1))
             (if (string= (substring tag 0 1) "/")
