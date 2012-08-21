@@ -760,11 +760,11 @@
   (if tag
       (progn
 ;;        (message tag)
-        (find tag web-mode-void-html-elements :test 'equal))
+        (find (downcase tag) web-mode-void-html-elements :test 'equal))
     (looking-at-p "<.+?/>")))
 
 (defconst web-mode-void-html-elements
-  '("hr" "br" "col" "input" "link" "meta" "img" "TMPL_VAR")
+  '("hr" "br" "col" "input" "link" "meta" "img" "tmpl_var")
   "Void (self-closing) HTML tags.")
 
 (defconst web-mode-php-constants
