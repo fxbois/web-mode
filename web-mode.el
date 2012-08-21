@@ -670,7 +670,8 @@
         ;;      (if (% (web-mode-count-char-in-string ?>)) ())
         ))
 ;;    (message "line=%s" line)
-    (while (string-match "<\\(/?[[:alpha:]]+\\)" line deb)
+;;    (while (string-match "<\\(/?[[:alpha:]:_]+\\)" line deb)
+    (while (string-match web-mode-tag-regexp line deb)
       (setq deb (match-end 0)
             tag (match-string 1 line)
             is-closing-tag (string= (substring tag 0 1) "/"))
@@ -752,10 +753,14 @@
    (replace-regexp-in-string
     "[ \t\n]*\\'" "" string)))
 
+;; todo : const pour les tags : alpha suivi de alnum
+;; + ci-dessous : la comparaison doit être case incensiitive
 (defun web-mode-is-void-element (&optional tag)
   "Test if tag is a void HTML tag."
   (if tag
-      (find tag web-mode-void-html-elements :test 'equal)
+      (progn
+;;        (message tag)
+        (find tag web-mode-void-html-elements :test 'equal))
     (looking-at-p "<.+?/>")))
 
 (defconst web-mode-void-html-elements
@@ -879,7 +884,7 @@
   (list
 
    ;; html tag
-   '("</?[[:alnum:]:_]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
+   '("</?[[:alpha:]][[:alnum:]:_]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
    '("/?>" 0 'web-mode-html-tag-face t t)
 
    ;; html attribute name
@@ -1237,10 +1242,15 @@
    '("<!-" "-  -->" "--" 2))
   "Autocompletes")
 
+(defvar web-mode-tag-regexp "<\\(/?[[:alpha:]][[:alnum:]:_]*\\)"
+  "Regular expression for HTML/XML regexp.")
+
+
 (defun web-mode-on-after-change (beg end len)
   "Autocomplete"
 ;;  (message "beg=%d, end=%d, len=%d, cur=%d" beg end len (current-column))
   (let ((chunk "") 
+;;        (case-fold-search t)
         (pt (point))
         (cur-col (current-column))
         tag
@@ -1267,8 +1277,9 @@
                  (string= "</" (buffer-substring-no-properties (- beg 1) end)))
         (setq continue t
               counter 1)
+        (message "hello")
         (while (and continue 
-                    (re-search-backward "<\\(/?[[:alnum:]:_]+\\)" 0 t))
+                    (re-search-backward web-mode-tag-regexp 0 t))
           (when (not (web-mode-is-comment-or-string))
             (setq tag (substring (match-string-no-properties 0) 1))
             (if (string= (substring tag 0 1) "/")
