@@ -753,15 +753,12 @@
    (replace-regexp-in-string
     "[ \t\n]*\\'" "" string)))
 
-;; todo : const pour les tags : alpha suivi de alnum
-;; + ci-dessous : la comparaison doit être case incensiitive
 (defun web-mode-is-void-element (&optional tag)
   "Test if tag is a void HTML tag."
   (if tag
       (progn
-;;        (message tag)
         (find (downcase tag) web-mode-void-html-elements :test 'equal))
-    (looking-at-p "<.+?/>")))
+    (looking-at-p "<[^>]+/>")))
 
 (defconst web-mode-void-html-elements
   '("hr" "br" "col" "input" "link" "meta" "img" "tmpl_var")
@@ -874,18 +871,23 @@
     (when (re-search-backward "<[[:alpha:]%?]" nil t)
       (beginning-of-line)
       (setq font-lock-beg (point))
-;;      (message "beg(%d) %s" font-lock-beg (web-mode-text-at-point))
+      ;;      (message "beg(%d) %s" font-lock-beg (web-mode-text-at-point))
       )
+;;    (goto-char font-lock-end)
+;;    (if (re-search-forward "[[:alpha:]/]>" nil t)
+;;        (setq font-lock-end (point))
+;;      (setq font-lock-end (point-max))
+;;      ) 
     (setq font-lock-end (point-max))
-    )
-)
+    ) ;; sr
+  )
 
 (defconst web-mode-font-lock-keywords
   (list
 
    ;; html tag
    '("</?[[:alpha:]][[:alnum:]:_]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
-   '("/?>" 0 'web-mode-html-tag-face t t)
+   '("\\(</?\\|/?>\\)" 0 'web-mode-html-tag-face t t)
 
    ;; html attribute name
 ;;   '("\\<[[:alnum:]-]+=" 0 'web-mode-html-attr-face t t)
@@ -1277,7 +1279,6 @@
                  (string= "</" (buffer-substring-no-properties (- beg 1) end)))
         (setq continue t
               counter 1)
-        (message "hello")
         (while (and continue 
                     (re-search-backward web-mode-tag-regexp 0 t))
           (when (not (web-mode-is-comment-or-string))
@@ -1286,7 +1287,9 @@
                 (setq counter (1+ counter))
               (if (not (or (web-mode-is-void-element tag) 
                            (web-mode-is-void-element))) 
-                  (setq counter (1- counter))
+                  (progn
+                    (setq counter (1- counter)))
+                (message "tag %s is void" tag)
                 ))
             (if (eq counter 0)
                 (progn
