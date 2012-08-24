@@ -79,7 +79,7 @@
   ;;                                                  (("_" . "w"))
   ;;                                                  nil))
 
-  (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords))
+  (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords t))
   (set (make-local-variable 'font-lock-keywords-only) t)
   (set (make-local-variable 'font-lock-keywords-case-fold-search) t)
   (set (make-local-variable 'font-lock-syntax-table) nil)
@@ -104,7 +104,7 @@
   (define-key web-mode-map (kbd "C-c C-i") 'web-mode-insert)
   (define-key web-mode-map (kbd "C-c C-j") 'web-mode-duplicate-element)
   (define-key web-mode-map (kbd "C-c C-n") 'web-mode-match-tag)
-  (define-key web-mode-map (kbd "C-c C-p") 'web-mode-parent-element)
+  (define-key web-mode-map (kbd "C-c C-p") 'web-mode-parent-html-element)
   (define-key web-mode-map (kbd "C-c C-r") 'web-mode-reload)
   (define-key web-mode-map (kbd "C-c C-s") 'web-mode-select-element)
   (define-key web-mode-map (kbd "C-c C-t") 'web-mode-insert-table)
@@ -692,7 +692,7 @@
     )
   )
 
-(defun web-mode-parent-element ()
+(defun web-mode-parent-html-element ()
   "Fetch parent element."
   (interactive)
   (let (pt 
@@ -702,16 +702,17 @@
         (continue t)
         (h (make-hash-table :test 'equal)))
     (save-excursion
-      (unless (string= (string (char-after)) "<")
-        (progn
-          (forward-char)
-          (re-search-backward "<[[:alpha:]]" nil t)))
+;;      (unless (string= (string (char-after)) "<")
+;;        (progn
+;;          (forward-char)
+;;;;          (search-forward ">") ;; todo : verifier que l'on est pas dans une string
+;;          (re-search-backward "<[[:alnum:]]+[ ><$]" nil t)))
       (while (and continue
-                  (re-search-backward "</?[[:alpha:]]" nil t))
+                  (re-search-backward "</?[[:alnum:]]+[/ ><$]" nil t))
         (forward-char)
         (setq is-closing-tag (string= (string (char-after)) "/"))
         (if (eq is-closing-tag t) (forward-char))
-        (setq nb (skip-chars-forward "a-zA-Z"))
+        (setq nb (skip-chars-forward "[:alnum:]"))
         (setq tag (buffer-substring-no-properties (- (point) nb) (point)))
         (setq n (gethash tag h 0))
 ;;        (message "%s %d %d" tag n (point))
@@ -754,15 +755,18 @@
     "[ \t\n]*\\'" "" string)))
 
 (defun web-mode-is-void-element (&optional tag)
-  "Test if tag is a void HTML tag."
+  "Test if tag is a void tag."
   (if tag
       (progn
-        (find (downcase tag) web-mode-void-html-elements :test 'equal))
+        (find (downcase tag) web-mode-void-elements :test 'equal))
     (looking-at-p "<[^>]+/>")))
 
-(defconst web-mode-void-html-elements
-  '("hr" "br" "col" "input" "link" "meta" "img" "tmpl_var")
-  "Void (self-closing) HTML tags.")
+(defconst web-mode-void-elements
+  '("hr" "br" "col" "input" "link" "meta" "img" 
+    "tmpl_var" 
+    "h:inputtext" 
+    "#include" "#assign" "#import" "#else")
+  "Void (self-closing) tags.")
 
 (defconst web-mode-php-constants
   (regexp-opt
@@ -794,16 +798,11 @@
 (defconst web-mode-jsp-keywords
   (regexp-opt
    (append (if (boundp 'web-mode-jsp-keywords) web-mode-jsp-keywords '())
-           '("if" "else" "for" "while" "new" "page" "include" "tag" "taglib"
+           '("if" "else" "for" "while" "do" "case" "function"
+             "new" "page" "include" "tag" "taglib" "package" "try" "catch"
+             "throw" "throws"
              "return")))
   "JSP keywords.")
-
-;;(defconst web-mode-jsp-types
-;;  (eval-when-compile
-;;    (regexp-opt
-;;     '("String" "Date" "Integer" 
-;;       "byte" "short" "int" "long" "float" "double" "boolean" "char")))
-;;  "JSP types.")
 
 (defconst web-mode-js-keywords
   (eval-when-compile
@@ -889,38 +888,34 @@
    '("</?[[:alpha:]][[:alnum:]:_]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
    '("\\(</?\\|/?>\\)" 0 'web-mode-html-tag-face t t)
 
-   ;; html attribute name
-;;   '("\\<[[:alnum:]-]+=" 0 'web-mode-html-attr-face t t)
-   
-   ;; html attribute value
-;;   '("[[:alnum:]]=\\(\"\\(.\\|\n\\)*?\"\\)" 1 'web-mode-string-face t t)
-
    ;; html attribute
-   '("[ ^>]\\([[:alnum:]_-]+=\\)\\(\"\\(.\\|\n\\)*?\"\\)?" 
+;;   '("[ ^>]\\([[:alnum:]_-]+=\\)\\(\"\\(.\\|\n\\)*?\"\\)?" 
+   '("[ ^>]\\([[:alnum:]_-]+=\\)\\(\"[^\"]*\"\\)?" 
      (1 'web-mode-html-attr-face t t)
      (2 'web-mode-string-face t t))
 
    ;; Unified Expression Language
-   '("\\([$#]{\\)\\(.*?\\)\\(}\\)" 
+;;   '("\\([$#]{\\)\\(.*?\\)\\(}\\)" 
+   '("\\([$#]{\\)\\([^}]+\\)\\(}\\)" 
      (1 'web-mode-preprocessor-face t t)
      (2 'web-mode-variable-name-face t t)
      (3 'web-mode-preprocessor-face t t))
 
-   '("<\\?[ph=]*" 0 'web-mode-preprocessor-face t t)
-   '("\\?>" 0 'web-mode-preprocessor-face t t)
+   '("\\(<\\?[ph=]*\\|\\?>\\)" 0 'web-mode-preprocessor-face t t)
    '(web-mode-highlight-style-bloc)
    '(web-mode-highlight-script-bloc)
    '(web-mode-highlight-php-bloc)
    '(web-mode-highlight-jsp-bloc)
-   '("^<!D\\(.\\|\n\\)*?>" 0 'web-mode-doctype-face t t)
-   '("^<\\?xml .+\\?>" 0 'web-mode-doctype-face t t)
-   '("<!--\\(.\\|\n\\)*?-->" 0 'web-mode-comment-face t t)
+;;   '("^<!D\\(.\\|\n\\)*?>" 0 'web-mode-doctype-face t t)
+;;   '("^<!D[^>]*>" 0 'web-mode-doctype-face t t)
+;;   '("^<\\?xml .+\\?>" 0 'web-mode-doctype-face t t)
+   '("\\`\\(<!D\\|<\\?x\\)[^>]*>" 0 'web-mode-doctype-face t t)
+   '("<[!#]--\\(.\\|\n\\)*?-->" 0 'web-mode-comment-face t t)
 
-   ;;http://search.cpan.org/~wonko/HTML-Template-2.91/lib/HTML/Template.pm
-   '("</?\\(TMPL\\|jsp\\|sql\\|fmt\\|tlt\\|acme\\|tt\\|c\\|h\\|x\\)\\([:_][[:alpha:]]+\\)" 
-     (1 'web-mode-preprocessor-face t t)
-     (2 'web-mode-preprocessor-face t t))
    
+   '("</?\\([#@][[:alpha:]._]+\\|[[:alpha:]]+[:_][[:alpha:]]+\\)"
+     (1 'web-mode-preprocessor-face t t))
+
    ))
 
 (defconst web-mode-style-font-lock-keywords
@@ -929,7 +924,8 @@
    '("</?style>" 0 'web-mode-html-tag-face t t)
    '("^\\(.+?\\)\\({\\|,\\)" 1 'web-mode-css-rule-face)
    '("[[:alpha:]-]*?:" 0 'web-mode-css-prop-face)
-   '("\\(\".*?\"\\|'.*?'\\)" 0 'web-mode-string-face t t)
+   '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
+;;   '("\\(\".*?\"\\|'.*?'\\)" 0 'web-mode-string-face t t)
    ))
 
 (defconst web-mode-script-font-lock-keywords
@@ -940,7 +936,8 @@
    '("\\<\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-js-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face))
-   '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
+   '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
+;;   '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
    '("[^:\"]//.+" 0 'web-mode-comment-face t t)
    '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
    ))
@@ -950,8 +947,8 @@
 
    '(".*" 0 nil t t)
 
-   '("<\\?\\(php\\|=\\)?" 0 'web-mode-preprocessor-face t t)
-   '("\\?>" 0 'web-mode-preprocessor-face t t)
+   '("\\(<\\?php\\|<\\?=\\|\\?>\\)?" 0 'web-mode-preprocessor-face t t)
+;;   '("" 0 'web-mode-preprocessor-face t t)
 
    (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face))
@@ -980,7 +977,8 @@
 ;;   '("\\<$\\([[:alnum:]_]*\\)" 1 'web-mode-variable-name-face)
    '("\\<$\\(\\sw*\\)" 1 'web-mode-variable-name-face)
 
-   '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
+;;   '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
+   '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
 
    '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
    '("[^:\"]//.+" 0 'web-mode-comment-face t t)
@@ -996,14 +994,16 @@
    '("\\<\\([[:alnum:].]+\\)[ ]?(" 1 'web-mode-function-name-face)
    '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
 
-
    (cons (concat "\\<\\(" web-mode-jsp-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face t t))
 
 ;;   (cons (concat "\\<\\(" web-mode-jsp-types "\\)\\>") 
 ;;         '(1 'web-mode-type-face t t))
 
-   '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
+   '("[ ]+\\([[:alpha:]]+=\"\\)" 0 'web-mode-html-attr-face  t t)
+
+;;   '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
+   '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
    '("[^:\"]//.+" 0 'web-mode-comment-face t t)
    '("<%--\\(.\\|\n\\)*?--%>" 0 'web-mode-comment-face t t)
 
@@ -1244,7 +1244,7 @@
    '("<!-" "-  -->" "--" 2))
   "Autocompletes")
 
-(defvar web-mode-tag-regexp "<\\(/?[[:alpha:]][[:alnum:]:_]*\\)"
+(defvar web-mode-tag-regexp "<\\(/?[[:alpha:]@#][[:alnum:]:_]*\\)"
   "Regular expression for HTML/XML regexp.")
 
 
