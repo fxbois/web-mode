@@ -6,7 +6,7 @@
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
 
-;; Version: 1.00
+;; Version: 1.01
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -70,14 +70,11 @@
 (define-derived-mode web-mode prog-mode "Web"
   "Major mode for editing mixed HTML Templates."
 
-  ;; let syntax-table above
+  ;; syntax-table must be defined above
   (set-syntax-table web-mode-syntax-table)
 
   ;; (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords
-  ;;                                                 t
-  ;;                                                  t
-  ;;                                                  (("_" . "w"))
-  ;;                                                  nil))
+  ;;                                                 t t (("_" . "w")) nil))
 
   (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords t))
   (set (make-local-variable 'font-lock-keywords-only) t)
@@ -92,7 +89,6 @@
   (set (make-local-variable 'indent-line-function) 'web-mode-indent-line)
   (set (make-local-variable 'indent-tabs-mode) nil)
   
-;;  (set (make-local-variable 'redisplay-preemption-period) 2)
   (set (make-local-variable 'require-final-newline) nil)
 
   (add-hook 'after-change-functions 'web-mode-on-after-change t t)
@@ -109,6 +105,13 @@
   (define-key web-mode-map (kbd "C-c C-s") 'web-mode-select-element)
   (define-key web-mode-map (kbd "C-c C-t") 'web-mode-insert-table)
 
+  (define-key web-mode-map (kbd "C-$") 
+    '(lambda ()
+       (interactive)
+       (if (web-mode-is-comment-or-string-line) (message "comment or string : yes") (message "comment or string : no"))
+;;       (message (web-mode-previous-usable-line))
+       ))
+  
   (define-key web-mode-map [menu-bar]
     (make-sparse-keymap))
   (define-key web-mode-map [menu-bar web]
@@ -136,19 +139,19 @@
   "Face for HTML doctype."
   :group 'web-mode-faces)
 
-;;(defface web-mode-xml-tag-face
-;;  '((t :foreground "Snow3"))
-;;  "Face for JSP tags."
-;;  :group 'web-mode-faces)
-
 (defface web-mode-html-tag-face
   '((t :foreground "Snow4"))
   "Face for HTML tags."
   :group 'web-mode-faces)
 
-(defface web-mode-html-attr-face
+(defface web-mode-html-attr-name-face
   '((t :foreground "Snow3"))
-  "Face for HTML attributes."
+  "Face for HTML attribute names."
+  :group 'web-mode-faces)
+
+(defface web-mode-html-attr-value-face
+  '((t :inherit font-lock-string-face))
+  "Face for HTML attribute values."
   :group 'web-mode-faces)
 
 (defface web-mode-css-rule-face
@@ -219,79 +222,111 @@
       )
     ))
 
+(defun web-mode-previous-usable-line ()
+  "Move cursor to previous non blank/comment/string line and return this line (trimmed).
+point is at the beginning of the line."
+  (interactive)
+  (let ((continue t) 
+        (line "")
+        (pt (point)))
+    (beginning-of-line)
+    (while (and continue
+                (not (bobp))
+                (forward-line -1))
+      (if (not (web-mode-is-comment-or-string-line))
+          (setq line (web-mode-trim (buffer-substring-no-properties
+                                     (point) (line-end-position)))))
+      (when (not (string= line "")) (setq continue nil))
+      )
+    (if (string= line "") 
+        (progn
+          (goto-char pt)
+          nil) 
+      line)
+    ))
+
 (defun web-mode-is-comment-or-string (&optional pt)
-  "Check if point is in a comment or in a string."
+  "Detect if point is in a comment or in a string."
   (interactive)
   (unless pt
     (setq pt (point)))
   (let ((face (get-text-property pt 'face))) 
-    (or (eq 'web-mode-comment-face face)
-        (eq 'web-mode-string-face face))))
+    (or (eq face 'web-mode-string-face)
+        (eq face 'web-mode-comment-face))))
 
-;; TODO : - check every chars of the line
-;;        - skip line with only PHP code => avoir une prop pour toute la zone php
-(defun web-mode-previous-usable-line ()
-  "Move cursor to previous non blank line."
-  (interactive)
-  (beginning-of-line)
-  (if (bobp)
-      nil
-    (progn
-      (let ((continue 't) 
-            line)
-        (while (and continue
-                    (forward-line -1))
-          (setq line (web-mode-trim (buffer-substring-no-properties
-                                (line-beginning-position)
-                                (line-end-position))))
-          (if (or (bobp)
-                  (not (string= line "")))
-              (unless (and (web-mode-is-comment-or-string)
-                           (web-mode-is-comment-or-string (1- (line-end-position))))
-                (setq continue nil))
-            ))
-        ;;    (message (concat "previous:" line))
-        (if (string= line "")
-            nil
-          line)))))
+(defun web-mode-is-comment-or-string-line ()
+  "Detect if current line is in a comment or in a string."
+  (let ((continue t)
+        (counter 0))  
+    (save-excursion
+      (beginning-of-line)
+      (while (and continue (not (eolp)))
+        (if (web-mode-is-comment-or-string)
+            (setq counter (+ counter 1))
+          (when (not (char-equal (following-char) ?\s))
+;;          (when (not (string= (string (following-char)) " "))
+            (setq continue nil
+                  counter 0))
+          );;if
+        (forward-char)
+        );;while
+      (> counter 0)
+      )))
 
 (defun web-mode-in-php-block ()
   "Detect if point is in a PHP block."
-  (let ((pt (point))
-        (ln (web-mode-current-line)))
+  (let (line-current line-open line-close)
     (save-excursion
-      (and (search-backward "<?" 0 t)
-           (not (string-match "\\?>" (buffer-substring-no-properties
-                                      (point) pt)))
-           ;;           (progn (message "lines: %d %d" ln (web-mode-current-line)) 't)
-           (not (eq ln (web-mode-current-line)))
+;;      (message "current(%d)" (web-mode-current-line))
+;;      (end-of-line)
+      (setq line-current (web-mode-current-line))
+      (and (re-search-backward "<\\?[p=]" nil t)
+           (setq line-open (web-mode-current-line))
+           (search-forward "?>" nil t)
+           (setq line-close (web-mode-current-line))
+;;           (progn (message "current(%d) from(%d) to(%d)" line-current line-from line-to) 't)
+           (not (eq line-open line-close))
+           (>= line-close line-current)
            ))))
+
+;; (defun web-mode-in-jsp-block2 ()
+;;   "Detect if point is in a JSP block."
+;;   (let ((pt (point))
+;;         (ln (web-mode-current-line)))
+;;     (save-excursion
+;;       (and (search-backward "<%" 0 t)
+;;            (not (string-match "%>" (buffer-substring-no-properties
+;;                                     (point) pt)))
+;;            (not (eq ln (web-mode-current-line)))
+;;            ))))
 
 (defun web-mode-in-jsp-block ()
   "Detect if point is in a JSP block."
-  (let ((pt (point))
-        (ln (web-mode-current-line)))
+  (let (line-current line-open line-close)
     (save-excursion
-      (and (search-backward "<%" 0 t)
-           (not (string-match "%>" (buffer-substring-no-properties
-                                    (point) pt)))
-           (not (eq ln (web-mode-current-line)))
+      (setq line-current (web-mode-current-line))
+      (and (search-backward "<%" nil t)
+           (setq line-open (web-mode-current-line))
+           (search-forward "%>" nil t)
+           (setq line-close (web-mode-current-line))
+           (not (eq line-open line-close))
+           (>= line-close line-current)
            ))))
 
 (defun web-mode-in-block (type)
   "Detect if point is in a block"
   (let ((pt (point))
-        (line-pt (web-mode-current-line))
+        (line-current (web-mode-current-line))
         line-open line-close)
     (save-excursion
       (and (search-backward (concat "<" type) 0 t)
            (setq line-open (web-mode-current-line))
-           (> line-pt line-open)
+;;           (> line-current line-open)
            (search-forward (concat "</" type ">") nil t)
            (< pt (point))
            (setq line-close (web-mode-current-line))
            (not (eq line-open line-close))
-           (<= line-pt line-close)
+           (<= line-current line-close)
            (progn (goto-char pt) (beginning-of-line) t)
            ;;           (message "-> %s" type)
            (not (looking-at (concat "[ \t]*</" type)))
@@ -302,9 +337,11 @@
   "Return line number at point."
   (unless pt
     (setq pt (point)))
-  (+ (count-lines (window-start) pt)
-     (if (= (current-column) 0) 1 0))
-  )
+  (let (ret)
+    (setq ret (+ (count-lines 1 pt)
+                 (if (= (current-column) 0) 1 0)))
+    ;;    (message "%d [%d] %s" pt out (web-mode-text-at-point))
+    ret))
 
 (defun web-mode-indent-line ()
   "Indent current line according to language."
@@ -332,6 +369,7 @@
             cur-line-number (web-mode-current-line)
             cur-indentation (current-indentation)
             cur-point (point))
+      (end-of-line)
       (cond
        ((web-mode-in-php-block)
         (setq in-php-block t))
@@ -353,201 +391,181 @@
       (setq prev-last-char (if (null prev-line)
                                prev-line
                              (substring prev-line -1)))
-      (if (null prev-line)
-          (setq offset 0)
-        (progn ;; not null prev-line
+      (end-of-line)
+
+;;          (message "prev-line(%s)" prev-line)
           
-          (cond ;; switch language
-           
-           ((or in-php-block 
-                in-jsp-block 
-                in-script-block) ;; php or script block
+      (cond ;; switch language
+       
+       ((null prev-line)
+        (progn
+;;          (message "nothing to check")
+          (setq offset 0)))
+       
+       ((or in-php-block 
+            in-jsp-block 
+            in-script-block) 
+        
+        (cond
+         
+         ((string-match-p "^\\(<\\?php\\|<%\\|[?%]>\\)" cur-line)
+          (progn
+            (setq offset 0)
+            ))
+
+         ((string= cur-first-char "}")
+          (progn
+            (web-mode-fetch-opening-paren "{")
+            (setq offset (current-indentation))
+            ))
+         
+         ((string= cur-first-char "?")
+          (progn
+            (rsb "[=(]")
+            (setq offset (current-column))
+            ))
+         
+         ((string= cur-first-char ":")
+          (progn
+            (setq offset (current-indentation))
+            ))
+         
+         ((string= prev-last-char ",")
+          (progn
+            (web-mode-fetch-opening-paren "(" cur-point)
+            (setq offset (+ (current-column) 1))
+            ))
+         
+         ((or (string= prev-last-char ".") 
+              (string= prev-last-char "+")
+              (string= prev-last-char "?") 
+              (string= prev-last-char ":"))
+          (progn
+            (rsb "[=(]")
+            (skip-chars-forward "= (")
+;;            (message (web-mode-text-at-point))
+            (setq offset (current-column))
+            ))
+         
+         ((string= prev-last-char ";")
+          (progn
+;;            (end-of-line)
+            (if (string-match-p ")[ ]*;$" prev-line)
+                (progn 
+                  (re-search-backward ")[ ]*;")
+                  (web-mode-fetch-opening-paren))
+              (progn
+                (re-search-backward "\\([=(]\\|^[[:blank:]]*var[ ]*\\)"))
+              )
+            (setq offset (current-indentation))
+            ))
+         
+         ((string= prev-last-char "{")
+          (progn
+            (setq offset (+ (current-indentation) web-mode-script-offset))
+            ))
+         
+         ((and in-php-block
+               (string-match-p "\\(->[ ]?[[:alnum:]_]+\\|)\\)$" prev-line))
+          (progn
+;;            (end-of-line)
+            (search-backward ">")
+            (setq offset (- (current-column) 1))
+            ))
+         
+         (t
+          (progn
+            ()
+;;            (message "script block : unknown")
+            ))
+         
+         )) ;; end case script block
+       
+       (in-style-block ;; style block
+        
+        (cond
+         
+         ((string-match-p "[{,]" cur-line)
+          (progn
+            (setq offset 0)
+            ))
+         
+         ((string= prev-last-char ";")
+          (progn
+;;            (end-of-line)
+            (re-search-backward "{")
+            (skip-chars-forward "{ ")
+            (setq offset (current-column))
+            ))
+         
+         )) ;; end case style bloc
+       
+       (t ;; case html bloc
+        
+        (cond
+         
+         ((and (not (string= cur-first-char "<"))
+               (string-match-p "\\<[[:alpha:]-]+=\".*?\"$" prev-line))
+          (progn
+            (re-search-backward "<[[:alpha:]]")
+            (re-search-forward "<[[:alpha:]]+")
+            (skip-chars-forward " ")
+            (setq offset (current-column))
+            ))
+         
+         ((and (string-match-p "^\\<[[:alpha:]-]+=\"" cur-line)
+               (re-search-backward "\\<[[:alpha:]-]+=\"[^\"]*\"$" nil t))
+          (progn 
+            (setq offset (current-column))
+            ))
+         
+         ((or (string-match-p "^</?\\(head\\|body\\|meta\\|link\\|title\\|style\\|script\\)" cur-line)
+              (string-match-p "^<\\?php \\(if\\|else\\|for\\|while\\|end\\)" cur-line))
+          (progn
+            (setq offset 0)
+            ))
+         
+         ((string-match-p "^</" cur-line)
+          (progn
+            (goto-char cur-point)
+            (beginning-of-line)
+            (re-search-forward "</")
+            (web-mode-match-tag)
+            (setq offset (current-indentation))
+            ))
+         
+         ((or (string= "" cur-line)
+              (string-match-p "^<[[:alpha:]]" cur-line))
+          (progn
+            (setq continue t)
+            (while (and continue
+                        (re-search-backward "^[[:blank:]]*</?[[:alpha:]]" nil t))
+              (when (and (not (web-mode-is-comment-or-string))
+                         (not (looking-at-p "[[:blank:]]*</?\\(script\\|style\\)")))
+                (setq continue nil)
+                (unless (char-equal (following-char) ?<)
+;;                (unless (string= (string (following-char)) "<")
+                  (re-search-forward "<"))
+                (setq offset (+ (current-indentation) 
+                                (if (and (web-mode-is-opened-element (web-mode-element-at-point))
+                                         (not (looking-at-p "[[:blank:]]*<body")))
+                                    web-mode-html-offset
+                                  0)
+                                ))
+                ))
             
-            (cond
-             
-;;             ((and (string-match "<\\?php" cur-line)
-;;                   (string-match "\\?>" cur-line))
-;;              (progn
-;;                (message "do nothing")
-;;                ))
+            ))
 
-             ((string= cur-first-char "}")
-              (progn
-                (end-of-line)
-                (let (counter regexp)
-                  (setq counter 1)
-                  (setq regexp "[{}]")
-                  (while (and (> counter 0)
-                              (re-search-backward regexp nil t))
-                    (progn
-                      (if (string= (substring (match-string-no-properties 0) 0 1) "{")
-                          (setq counter (- counter 1))
-                        (setq counter (+ counter 1)))
-                      )
-                    ))
-                (setq offset (current-indentation))
-                ))
+         (t
+          (progn
+            ()
+            ))
+         
+         )) ;; end case html bloc
 
-             ((and (string= cur-first-char "?")
-                   (not (string= (substring cur-line 0 2) "?>")))
-              (progn
-                (end-of-line)
-                (re-search-backward "[=(]")
-                (setq offset (current-column))
-                ))
+       ) ;; end switch language bloc
 
-             ((string= cur-first-char ":")
-              (progn
-                (setq offset (current-indentation))
-                ))
-
-             ((string= prev-last-char ",")
-              (progn
-                (end-of-line)
-                (web-mode-fetch-opening-paren cur-point)
-                (setq offset (+ (current-column) 1))
-                ))
-
-             ((or (string= prev-last-char ".") 
-                  (string= prev-last-char "+")
-                  (string= prev-last-char "?") 
-                  (string= prev-last-char ":"))
-              (progn
-                (end-of-line)
-                (re-search-backward "[=(]")
-                (re-search-forward "[= (]+")
-                (setq offset (current-column))
-                ))
-
-             ((string= prev-last-char ";")
-              (progn
-                (end-of-line)
-                (if (string-match ")[ ]*;$" prev-line)
-                    (progn 
-                      (re-search-backward ")[ ]*;")
-;;                      (skip-chars-backward ");" 2)
-                      (web-mode-fetch-opening-paren))
-                  (progn
-                    (re-search-backward "\\([=(]\\|^[ ]*var[ ]*\\)"))
-                  )
-                (setq offset (current-indentation))
-                ))
-
-             ((string= prev-last-char "{")
-              (progn
-                (setq offset (+ (current-indentation) web-mode-script-offset))
-                ))
-
-             ((string-match "\\(->[ ]?[[:alnum:]_]+\\|)\\)$" prev-line)
-              (progn
-                (end-of-line)
-                (search-backward ">")
-                (setq offset (- (current-column) 1))
-                ))
-
-             (t
-              (progn
-;;                (message "php")
-                ))
-
-             )) ;; end case script block
-
-           (in-style-block ;; style block
-            
-            (cond
-             
-             ((string-match "[{,]" cur-line)
-              (progn
-                (setq offset 0)
-                ))
-             
-             ((string= prev-last-char ";")
-              (progn
-                (end-of-line)
-                (re-search-backward "{")
-                (skip-chars-forward "{ ")
-                (setq offset (current-column))
-                ))
-             
-             )) ;; end case style bloc
-
-            (t ;; case html bloc
-
-             (cond
-              
-              ((and (not (string= cur-first-char "<"))
-                    (string-match "\\<[[:alpha:]-]+=\".*\"$" prev-line))
-               (progn
-                 (end-of-line)
-                 (re-search-backward "<[[:alpha:]]")
-                 (re-search-forward "<[[:alpha:]]+")
-                 (skip-chars-forward " ")
-                 (setq offset (current-column))
-                 ))
-
-              ((string-match "^<\\?php[ ]+\\(if\\|for\\|while\\|else\\|end\\)" cur-line)
-               (progn
-                 (setq offset 0)
-                 ))
-
-              ((and (string-match "^\\<[[:alpha:]-]+=\"" cur-line)
-                    (re-search-backward "\\<[[:alpha:]-]+=\".*\"$" nil t))
-               (progn 
-                 (setq offset (current-column))
-                 ))
-
-              ((string-match "^</?\\(head\\|body\\|meta\\|link\\|title\\|style\\|script\\)" 
-                             cur-line) 
-               (progn
-                 (setq offset 0)
-                 ))
-
-              ((string-match "^</" cur-line)
-               (progn
-                 (goto-char cur-point)
-                 (beginning-of-line)
-                 (re-search-forward "</")
-                 (web-mode-match-tag)
-                 (setq offset (current-indentation))
-                 ))
-
-              ((or (string= "" cur-line)
-                   (string-match "^<[[:alpha:]]" cur-line))
-               (progn
-                 (end-of-line)
-;;                 (message "%s" (web-mode-current-trimmed-line))
-                 (setq continue t)
-                 (while (and continue
-                             (re-search-backward "^[ \t]*<\\([[:alpha:]]\\|/\\)" nil t))
-;;                   (message "current-trimmed-line: %s" (web-mode-current-trimmed-line))
-                   (when (and (not (web-mode-is-comment-or-string))
-                              (not (looking-at "[ \t]*</?\\(script\\|style\\)")))
-                     (setq continue nil)
-                     (unless (string= (string (following-char)) "<")
-                       (re-search-forward "<"))
-;;                     (message "%s" (string (following-char)))
-                     (setq offset (+ (current-indentation) 
-;;                                     (if (and (web-mode-is-opened-element (web-mode-current-trimmed-line))
-                                     (if (and (web-mode-is-opened-element (web-mode-element-at-point))
-                                              (not (looking-at "<body")))
-                                         web-mode-html-offset
-                                       0)
-                                     ))
-                     ))
-                 
-                 ))
-
-              (t
-               (progn
-                 ()
-;;                 (message "..")
-                 ))
-
-              )) ;; end case html bloc
-
-            ) ;; end switch language bloc
-
-          )) ;; not null prev-line
+      ;;          )) ;; not null prev-line
 
       ) ;; save-excursion
 
@@ -562,28 +580,78 @@
     ) ;; let
   )
 
-(defun web-mode-fetch-opening-paren (&optional pt)
-  "Fetch opening paren"
+(defun rsf (regexp &optional limit noerror)
+  "re-search-forward not in comment or string."
+  (unless limit (setq limit nil))
+  (unless noerror (setq noerror t))
+  (let ((continue t) ret)
+    (while continue
+      (progn 
+        (setq ret (re-search-forward regexp limit noerror))
+        (if (or (null ret)
+                (not (web-mode-is-comment-or-string)))
+            (setq continue nil))
+        )
+;;      (message (web-mode-current-trimmed-line))
+      )
+    ret);;let
+  )
+
+(defun rsb (regexp &optional limit noerror)
+  "re-search-backward not in comment or string."
+  (unless limit (setq limit nil))
+  (unless noerror (setq noerror t))
+  (let ((continue t) ret)
+    (while continue
+      (progn 
+        (setq ret (re-search-backward regexp limit noerror))
+        (if (or (null ret)
+                (not (web-mode-is-comment-or-string)))
+            (setq continue nil))
+        )
+;;      (message (web-mode-current-trimmed-line))
+      )
+    ret);;let
+  )
+
+(defun web-mode-fetch-opening-paren (&optional paren pt)
+  "Fetch opening paren."
   (interactive)
-  (unless pt 
-    (setq pt (point)))
+  (unless paren (setq paren "("))
+  (unless pt (setq pt (point)))
 ;;  (message (web-mode-text-at-point))
   (let ((continue t) 
-        (n 0))
+        (n 0)
+        regexp)
+
+    (cond
+
+     ((string= paren "(")
+      (setq regexp "[)(]"))
+
+     ((string= paren "{")
+      (setq regexp "[}{]"))
+
+     ((string= paren "{")
+      (setq regexp "[\]\[]"))
+
+     );;cond
+
     (while (and continue
-                (re-search-backward "[)(]" nil t))
+                (re-search-backward regexp nil t))
       (unless (web-mode-is-comment-or-string)
-        (if (string= (string (char-after)) "(")
+        (if (string= (string (char-after)) paren)
             (progn 
               (setq n (1+ n))
               (if (> n 0) (setq continue nil)))
           (setq n (1- n))))
       )
     );;let
+;;  (message (web-mode-current-trimmed-line))
   )
 
 (defun web-mode-count-char-in-string (char &optional string)
-  "count char in string"
+  "Count char in string."
   (let ((i 0) (n 0) l)
     (setq l (length string))
     (while (< i l)
@@ -593,7 +661,7 @@
     n))
 
 (defun web-mode-element-at-point ()
-  "Return element at point"
+  "Return element at point."
   (interactive)
   (save-excursion
     (beginning-of-line)
@@ -623,11 +691,11 @@
       )))
 
 (defun web-mode-select-element ()
-  "Select the current HTML element"
+  "Select the current HTML element."
   (interactive)
   (when (or (looking-at-p "<[[:alpha:]]") 
             (and (goto-char (+ 1 (point)))
-                 (re-search-backward "<[[:alpha:]]" nil t)))
+                 (rsb "<[[:alpha:]]")))
     (set-mark (point))
     (web-mode-match-tag)
     (search-forward ">")))
@@ -640,7 +708,7 @@
     (delete-region (region-beginning) (region-end))))
 
 (defun web-mode-duplicate-element ()
-  "Duplicate the current HTML element"
+  "Duplicate the current HTML element."
   (interactive)
   (let ((offset 0))
     (web-mode-select-element)
@@ -704,13 +772,16 @@
     (save-excursion
 ;;      (unless (string= (string (char-after)) "<")
 ;;        (progn
-;;          (forward-char)
+      ;;          (forward-char)
 ;;;;          (search-forward ">") ;; todo : verifier que l'on est pas dans une string
-;;          (re-search-backward "<[[:alnum:]]+[ ><$]" nil t)))
+      ;;          (re-search-backward "<[[:alnum:]]+[ ><$]" nil t)))
       (while (and continue
-                  (re-search-backward "</?[[:alnum:]]+[/ ><$]" nil t))
+;;                  (re-search-backward "</?[[:alnum:]]+[/ ><$]" nil t))
+                  (rsb "</?[[:alnum:]]+[/ ><$]"))
+        (message "ici")
         (forward-char)
-        (setq is-closing-tag (string= (string (char-after)) "/"))
+;;        (setq is-closing-tag (string= (string (char-after)) "/"))
+        (setq is-closing-tag (char-equal (char-after) ?/))
         (if (eq is-closing-tag t) (forward-char))
         (setq nb (skip-chars-forward "[:alnum:]"))
         (setq tag (buffer-substring-no-properties (- (point) nb) (point)))
@@ -801,7 +872,10 @@
            '("if" "else" "for" "while" "do" "case" "function"
              "new" "page" "include" "tag" "taglib" "package" "try" "catch"
              "throw" "throws"
-             "return")))
+             "return"
+             ;;erb
+             "in" "end"
+             )))
   "JSP keywords.")
 
 (defconst web-mode-js-keywords
@@ -816,11 +890,23 @@
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
-        (limit (point-max)))
-    (when (re-search-forward
-           "<style>\\(.\\|\n\\)*?</style>"
-           limit t)
-      (font-lock-fontify-region (match-beginning 0) (match-end 0)))))
+        (limit (point-max))
+        open close)
+    
+    (when (re-search-forward "<style[^>]*>" limit t)
+      (setq open (point))
+      (when (search-forward "</style>" limit t)
+        (setq close (match-beginning 0))
+        (font-lock-fontify-region open close)
+        ))
+
+    ;; (when (re-search-forward
+    ;;        "<style>\\(\\(:.\\|\n\\)+\\)</style>"
+    ;;        limit t)
+    ;;   (message "%d %d" (match-beginning 1) (match-end 1))
+    ;;   (font-lock-fontify-region (match-beginning 0) (match-end 0)))
+    
+    ))
 
 (defun web-mode-highlight-script-bloc (limit)
   "Highlight a <script> bloc."
@@ -828,11 +914,24 @@
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
-        (limit (point-max)))
-    (when (re-search-forward
-           "<script.*?>\\(.\\|\n\\)*?</script>"
-           limit t)
-      (font-lock-fontify-region (match-beginning 0) (match-end 0)))))
+        (limit (point-max))
+        open close)
+
+    (when (re-search-forward "<script[^>]*>" limit t)
+      (setq open (point))
+      (when (search-forward "</script>" limit t)
+        (setq close (match-beginning 0))
+;;        (message "%d %d" open close)
+        (font-lock-fontify-region open close)
+        )
+      )
+    
+    ;; (when (re-search-forward
+    ;;        "<script.*?>\\(.\\|\n\\)*?</script>"
+    ;;        limit t)
+    ;;   (font-lock-fontify-region (match-beginning 0) (match-end 0)))
+    
+))
 
 (defun web-mode-highlight-php-bloc (limit)
   "Highlight a PHP bloc."
@@ -840,15 +939,21 @@
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
-        (limit (point-max)))
-;;    (message "%d %d" (point) limit)
-    (when (re-search-forward
-           "\\(<\\?php\\|<\\?=\\)\\(.\\|\n\\)*?\\?>"
-           limit t)
-;;      (message "%s" (buffer-substring-no-properties (match-beginning 0) (match-end 0)))
-      (font-lock-fontify-region (match-beginning 0) (match-end 0))
-;;      (message "after %d" (point))
-      ) ;; when
+        (limit (point-max))
+        open close)
+
+    (when (re-search-forward "\\(<\\?php\\|<\\?=\\)" limit t)
+      (setq open (point))
+      (when (search-forward "?>" limit t)
+        (setq close (match-beginning 0))
+        (font-lock-fontify-region open close)
+        ))
+
+    
+    ;; (when (re-search-forward
+    ;;        "\\(<\\?php\\|<\\?=\\)\\(.\\|\n\\)*?\\?>"
+    ;;        limit t)
+    ;;   (font-lock-fontify-region (match-beginning 0) (match-end 0)))
 
     ))
 
@@ -858,16 +963,26 @@
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
-        (limit (point-max)))
-    (when (re-search-forward "<%\\(.\\|\n\\)*?%>" limit t)
-      (font-lock-fontify-region (match-beginning 0) (match-end 0))
-      )))
+        (limit (point-max))
+        open close)
+
+    (when (re-search-forward "<%[ \n!@=]" limit t)
+      (setq open (point))
+      (when (search-forward "%>" limit t)
+        (setq close (match-beginning 0))
+        (font-lock-fontify-region open close)
+        ))
+
+;;    (when (re-search-forward "<%\\(.\\|\n\\)*?%>" limit t)
+;;      (font-lock-fontify-region (match-beginning 0) (match-end 0)))
+
+    ))
 
 (defun web-mode-font-lock-extend-region ()
   "Extend region."
 ;;  (message "beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
   (save-excursion
-    (when (re-search-backward "<[[:alpha:]%?]" nil t)
+    (when (re-search-backward "<[[:alpha:]%?]"   nil    t)
       (beginning-of-line)
       (setq font-lock-beg (point))
       ;;      (message "beg(%d) %s" font-lock-beg (web-mode-text-at-point))
@@ -883,63 +998,66 @@
 
 (defconst web-mode-font-lock-keywords
   (list
-
-   ;; html tag
-   '("</?[[:alpha:]][[:alnum:]:_]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)" 0 'web-mode-html-tag-face t t)
-   '("\\(</?\\|/?>\\)" 0 'web-mode-html-tag-face t t)
-
-   ;; html attribute
-;;   '("[ ^>]\\([[:alnum:]_-]+=\\)\\(\"\\(.\\|\n\\)*?\"\\)?" 
-   '("[ ^>]\\([[:alnum:]_-]+=\\)\\(\"[^\"]*\"\\)?" 
-     (1 'web-mode-html-attr-face t t)
-     (2 'web-mode-string-face t t))
-
+   '("</?[[:alpha:]][[:alnum:]:_]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)"
+     0 'web-mode-html-tag-face t t)
+   '("\\(</?\\|/?>\\)"
+     0 'web-mode-html-tag-face t t)
+   '("[[:blank:]^>]\\([[:alnum:]_-]+=\\)\\(\"[^\"]*\"\\)?" 
+     (1 'web-mode-html-attr-name-face t t)
+     (2 'web-mode-html-attr-value-face t t))
    ;; Unified Expression Language
-;;   '("\\([$#]{\\)\\(.*?\\)\\(}\\)" 
    '("\\([$#]{\\)\\([^}]+\\)\\(}\\)" 
      (1 'web-mode-preprocessor-face t t)
      (2 'web-mode-variable-name-face t t)
      (3 'web-mode-preprocessor-face t t))
-
-   '("\\(<\\?[ph=]*\\|\\?>\\)" 0 'web-mode-preprocessor-face t t)
+   '("\\(<\\?[ph=]*\\|<%[!@=]?\\|[%?]>\\)" 
+     0 'web-mode-preprocessor-face t t)
+;;   '("\\(<%[!@=]?\\|%>\\)" 0 'web-mode-preprocessor-face t t)
    '(web-mode-highlight-style-bloc)
    '(web-mode-highlight-script-bloc)
    '(web-mode-highlight-php-bloc)
    '(web-mode-highlight-jsp-bloc)
-;;   '("^<!D\\(.\\|\n\\)*?>" 0 'web-mode-doctype-face t t)
-;;   '("^<!D[^>]*>" 0 'web-mode-doctype-face t t)
-;;   '("^<\\?xml .+\\?>" 0 'web-mode-doctype-face t t)
-   '("\\`\\(<!D\\|<\\?x\\)[^>]*>" 0 'web-mode-doctype-face t t)
+   '("\\`<\\(!D\\|\\?x\\)[^>]*>" 0 'web-mode-doctype-face t t)
    '("<[!#]--\\(.\\|\n\\)*?-->" 0 'web-mode-comment-face t t)
-
-   
+   '("<%--\\(.\\|\n\\)*?--%>" 0 'web-mode-comment-face t t)
+   '("<%#\\(.\\|\n\\)*?%>" 0 'web-mode-comment-face t t)
    '("</?\\([#@][[:alpha:]._]+\\|[[:alpha:]]+[:_][[:alpha:]]+\\)"
      (1 'web-mode-preprocessor-face t t))
-
    ))
 
 (defconst web-mode-style-font-lock-keywords
   (list
    '(".*" 0 nil t t)
-   '("</?style>" 0 'web-mode-html-tag-face t t)
+;;   '("</?style>" 0 'web-mode-html-tag-face t t)
    '("^\\(.+?\\)\\({\\|,\\)" 1 'web-mode-css-rule-face)
    '("[[:alpha:]-]*?:" 0 'web-mode-css-prop-face)
    '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
-;;   '("\\(\".*?\"\\|'.*?'\\)" 0 'web-mode-string-face t t)
    ))
 
 (defconst web-mode-script-font-lock-keywords
   (list
    '(".*" 0 nil t t)
-   '("</?script.*?>" 0 'web-mode-html-tag-face t t)
-   '(" \\(type\\)=" 0 'web-mode-html-attr-face t t)
+;;   '("</?script[^>]*>" 0 'web-mode-html-tag-face)
+;;   '(" type=" 0 'web-mode-html-attr-face t t)
    '("\\<\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-js-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face))
    '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
-;;   '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
    '("[^:\"]//.+" 0 'web-mode-comment-face t t)
    '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
+   ))
+
+(defconst web-mode-jsp-font-lock-keywords
+  (list
+   '(".*" 0 nil t t)
+   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face t t)
+   '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
+   (cons (concat "\\<\\(" web-mode-jsp-keywords "\\)\\>") 
+         '(0 'web-mode-keyword-face t t))
+   '("[[:blank:]]+\\([[:alpha:]]+=\"\\)" 0 'web-mode-html-attr-name-face  t t)
+   '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
+   '("[^:\"]//.+" 0 'web-mode-comment-face t t)
    ))
 
 (defconst web-mode-php-font-lock-keywords
@@ -947,7 +1065,7 @@
 
    '(".*" 0 nil t t)
 
-   '("\\(<\\?php\\|<\\?=\\|\\?>\\)?" 0 'web-mode-preprocessor-face t t)
+;;   '("\\(<\\?php\\|<\\?=\\|\\?>\\)?" 0 'web-mode-preprocessor-face t t)
 ;;   '("" 0 'web-mode-preprocessor-face t t)
 
    (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") 
@@ -974,40 +1092,14 @@
    '("instanceof[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-type-face)
 
    ;; $var
-;;   '("\\<$\\([[:alnum:]_]*\\)" 1 'web-mode-variable-name-face)
    '("\\<$\\(\\sw*\\)" 1 'web-mode-variable-name-face)
 
-;;   '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
    '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
 
    '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
    '("[^:\"]//.+" 0 'web-mode-comment-face t t)
 
    ))
-
-(defconst web-mode-jsp-font-lock-keywords
-  (list
-
-   '(".*" 0 nil t t)
-
-   '("\\(<%[!@=]?\\|%>\\)" 0 'web-mode-preprocessor-face t t)
-   '("\\<\\([[:alnum:].]+\\)[ ]?(" 1 'web-mode-function-name-face)
-   '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
-
-   (cons (concat "\\<\\(" web-mode-jsp-keywords "\\)\\>") 
-         '(0 'web-mode-keyword-face t t))
-
-;;   (cons (concat "\\<\\(" web-mode-jsp-types "\\)\\>") 
-;;         '(1 'web-mode-type-face t t))
-
-   '("[ ]+\\([[:alpha:]]+=\"\\)" 0 'web-mode-html-attr-face  t t)
-
-;;   '("\\(\"\\(.\\|\n\\)*?\"\\|'\\(.\\|\n\\)*?'\\)" 0 'web-mode-string-face t t)
-   '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
-   '("[^:\"]//.+" 0 'web-mode-comment-face t t)
-   '("<%--\\(.\\|\n\\)*?--%>" 0 'web-mode-comment-face t t)
-
-))
 
 (defvar web-mode-snippets
   (list
@@ -1107,23 +1199,53 @@
 (defun web-mode-match-tag ()
   "Match tag."
   (interactive)
-  (let ((pt (point)))
+  (let ((pt (point))
+        tag)
     (when (not (web-mode-is-comment-or-string))
       (when (and (= (current-column) 0)
                (not (string= (string (char-after)) "<")))
         (search-forward "<" nil t)
         (backward-char))
-      (if (or (string= (string (char-after)) "<")
-              (search-backward "<" 1 t))
-          (if (string= (string (char-after (1+ (point)))) "?")
-              (web-mode-match-php-tag)
-            (web-mode-match-html-tag pt))))))
+;;      (if (or (string= (string (char-after)) "<")
+      (when (or (char-equal (char-after) ?<)
+                (search-backward "<" 1 t))
+        ;;          (if (string= (string (char-after (1+ (point)))) "?")
+        
+        (setq tag (buffer-substring-no-properties (+ 1 (point)) (+ 3 (point))))
+;;        (message tag)
+
+        (cond
+         
+         ((string= tag "?p")
+          (progn
+            (web-mode-match-php-tag)
+            ))
+         
+         ((string= tag "c:")
+          (progn
+            (web-mode-match-jsp-tag)
+            ))
+
+         (t
+          (progn
+            (web-mode-match-html-tag pt)
+            ))
+         )
+        
+        ;;          (if (char-equal (char-after (1+ (point))) ??)
+        ;;              (web-mode-match-php-tag)
+        ;;            (web-mode-match-html-tag pt))
+;        
+        );; when
+
+      )))
 
 (defun web-mode-match-html-tag (pt)
   "Match HTML tag."
   (let (closing-tag nb tag)
     (forward-char)
-    (setq closing-tag (string= (string (char-after)) "/"))
+;;    (setq closing-tag (string= (string (char-after)) "/"))
+    (setq closing-tag (char-equal (char-after) ?/))
     (if (eq closing-tag t)
         (forward-char))
     (setq nb (skip-chars-forward "a-zA-Z"))
@@ -1175,17 +1297,24 @@
       (goto-char pt))
     ))
 
+(defun web-mode-match-jsp-tag ()
+  "Match JSP tag."
+  (let (beg end code regexp type)
+    (message "jsp")
+    )
+  )
+
 (defun web-mode-match-php-tag ()
-  "Match HTML tag."
+  "Match PHP tag."
   (let (beg end code regexp type)
     (forward-char)
     (setq beg (+ (point) 4))
     (search-forward ">")
     (setq end (- (point) 2))
     (setq code (buffer-substring-no-properties beg end))
-    (if (string-match "for" code)
+    (if (string-match-p "for" code)
         (progn
-          (if (string-match "foreach" code)
+          (if (string-match-p "foreach" code)
               (progn
                 (setq regexp "<\\?php \\(foreach\\|endforeach\\)")
                 (setq type   "foreach"))
@@ -1195,7 +1324,7 @@
       (progn
         (setq regexp "<\\?php \\(if\\|else\\|elseif\\|endif\\)")
         (setq type   "if")))
-    (if (string-match " end" code)
+    (if (string-match-p " end" code)
         (web-mode-match-opening-php-tag regexp type)
       (web-mode-match-closing-php-tag regexp type))))
 
@@ -1206,12 +1335,12 @@
     (while (and (> counter 0)
                 (re-search-backward regexp nil t))
       (setq match (match-string-no-properties 0))
-      (if (string-match " \\(if\\|for\\)" match)
+      (if (string-match-p " \\(if\\|for\\)" match)
           (progn 
             (setq counter (1- counter))
             )
         (progn
-          (if (string-match " end\\(if\\|for\\)" match)
+          (if (string-match-p " end\\(if\\|for\\)" match)
             (setq counter (1+ counter))))
         );; if
 ;;      (message "%s %d" (web-mode-current-trimmed-line) counter)
@@ -1220,15 +1349,16 @@
 
 (defun web-mode-match-closing-php-tag (regexp type)
   "Match PHP closing tag."
-  (let ((counter 1) match)
+  (let ((counter 1) 
+        match)
     (while (and (> counter 0)
                 (re-search-forward regexp nil t))
       (setq match (match-string-no-properties 0))
-      (if (string-match "<\\?php \\(if\\|for\\)" match)
+      (if (string-match-p "<\\?php \\(if\\|for\\)" match)
           (setq counter (1+ counter))
         (progn
           (unless (and (> counter 1)
-                       (string-match "else" match))
+                       (string-match-p "else" match))
             (setq counter (1- counter)))
           )))
     (search-backward "<")))
@@ -1317,7 +1447,7 @@
           (setq expr (elt web-mode-autocompletes i))
 ;;          (message "%S" expr)
           (if (string= (elt expr 0) chunk)
-              (unless (string-match (elt expr 2) after)
+              (unless (string-match-p (elt expr 2) after)
                 (progn 
                    (insert (elt expr 1))
                    (goto-char (+ pt (elt expr 3)))
@@ -1328,7 +1458,6 @@
     )
 
     ))
-
 
 (defun web-mode-reload ()
   "Reload web-mode."
