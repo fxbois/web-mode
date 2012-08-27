@@ -1206,24 +1206,17 @@ point is at the beginning of the line."
                (not (string= (string (char-after)) "<")))
         (search-forward "<" nil t)
         (backward-char))
-;;      (if (or (string= (string (char-after)) "<")
+
       (when (or (char-equal (char-after) ?<)
                 (search-backward "<" 1 t))
-        ;;          (if (string= (string (char-after (1+ (point)))) "?")
         
         (setq tag (buffer-substring-no-properties (+ 1 (point)) (+ 3 (point))))
-;;        (message tag)
 
         (cond
          
          ((string= tag "?p")
           (progn
             (web-mode-match-php-tag)
-            ))
-         
-         ((string= tag "c:")
-          (progn
-            (web-mode-match-jsp-tag)
             ))
 
          (t
@@ -1232,10 +1225,6 @@ point is at the beginning of the line."
             ))
          )
         
-        ;;          (if (char-equal (char-after (1+ (point))) ??)
-        ;;              (web-mode-match-php-tag)
-        ;;            (web-mode-match-html-tag pt))
-;        
         );; when
 
       )))
@@ -1248,7 +1237,7 @@ point is at the beginning of the line."
     (setq closing-tag (char-equal (char-after) ?/))
     (if (eq closing-tag t)
         (forward-char))
-    (setq nb (skip-chars-forward "a-zA-Z"))
+    (setq nb (skip-chars-forward "a-z:A-Z"))
     (setq tag (buffer-substring-no-properties (- (point) nb) (point)))
     (if (web-mode-is-void-element tag)
         (message "void tag")
@@ -1297,6 +1286,8 @@ point is at the beginning of the line."
       (goto-char pt))
     ))
 
+
+;; c:forEach c:forTokens c:if
 (defun web-mode-match-jsp-tag ()
   "Match JSP tag."
   (let (beg end code regexp type)
