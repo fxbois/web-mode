@@ -358,6 +358,7 @@ point is at the beginning of the line."
         in-jsp-block
         in-script-block
         in-style-block
+        is-xml
         line-number
         offset
         prev-last-char 
@@ -368,7 +369,8 @@ point is at the beginning of the line."
       (setq cur-column (current-column)
             cur-line-number (web-mode-current-line)
             cur-indentation (current-indentation)
-            cur-point (point))
+            cur-point (point)
+            is-xml (string-match-p "\\.xml$" (buffer-file-name)))
       (end-of-line)
       (cond
        ((web-mode-in-php-block)
@@ -519,8 +521,9 @@ point is at the beginning of the line."
             (setq offset (current-column))
             ))
          
-         ((or (string-match-p "^</?\\(head\\|body\\|meta\\|link\\|title\\|style\\|script\\)" cur-line)
-              (string-match-p "^<\\?php \\(if\\|else\\|for\\|while\\|end\\)" cur-line))
+         ((and (not is-xml)
+               (or (string-match-p "^</?\\(head\\|body\\|meta\\|link\\|title\\|style\\|script\\)" cur-line)
+                   (string-match-p "^<\\?php \\(if\\|else\\|for\\|while\\|end\\)" cur-line)))
           (progn
             (setq offset 0)
             ))
@@ -595,6 +598,19 @@ point is at the beginning of the line."
 ;;      (message (web-mode-current-trimmed-line))
       )
     ret);;let
+  )
+
+(defun sf (expr &optional limit noerror)
+  "search-forward not in comment or string."
+  (unless limit (setq limit nil))
+  (unless noerror (setq noerror t))
+  (let ((continue t) ret)
+    (while continue
+      (setq ret (search-forward expr limit noerror))
+      (if (or (null ret)
+              (not (web-mode-is-comment-or-string)))
+          (setq continue nil)))
+    ret)
   )
 
 (defun rsb (regexp &optional limit noerror)
@@ -727,6 +743,7 @@ point is at the beginning of the line."
   (interactive)
   (let ((deb 0)
         is-closing-tag
+        is-void-elemnt
         tag
         n
         ret
@@ -744,18 +761,26 @@ point is at the beginning of the line."
             tag (match-string 1 line)
             is-closing-tag (string= (substring tag 0 1) "/"))
       (if is-closing-tag (setq tag (substring tag 1)))
-      (setq n (gethash tag h 0))
-      (if (not (web-mode-is-void-element tag))
+      (setq n (gethash tag h 0))      
+      (setq deb (string-match "/?>" line deb))
+      (setq is-void-element (string= (substring (match-string 0 line) 0 1) "/"))
+      
+      (if (or is-void-element (web-mode-is-void-element tag))
+          (progn
+;;            (message "void tag: %s" tag)
+            )
+        (progn
           (if is-closing-tag
               (if (> n 0) (puthash tag (1- n) h))
             (puthash tag (1+ n) h))
-        ;;        (message (concat "void tag: " tag))
-        )
-      )
+          ))
+
+      );; while
+        
     ;;(message (number-to-string (gethash "strong" h)))
     ;;(message (number-to-string (hash-table-count h)))
     (maphash '(lambda (k v) (if (> v 0) (setq ret 't))) h)
-;;    (if ret (message "line=%s: opened" line) (message "line=%s: closed" line))
+    ;;    (if ret (message "line=%s: opened" line) (message "line=%s: closed" line))
     ret
     )
   )
@@ -884,99 +909,84 @@ point is at the beginning of the line."
      '("function" "for" "if" "var" "while" "new" "try" "catch")))
   "JavaScript keywords.")
 
-(defun web-mode-highlight-style-bloc (limit)
-  "Highlight a <style> bloc."
-  (let ((font-lock-keywords web-mode-style-font-lock-keywords)
+(defun web-mode-highlight-client-blocks (limit)
+  "Highlight code blocks."
+  (let (font-lock-keywords
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
         (limit (point-max))
-        open close)
-    
-    (when (re-search-forward "<style[^>]*>" limit t)
-      (setq open (point))
-      (when (search-forward "</style>" limit t)
-        (setq close (match-beginning 0))
-        (font-lock-fontify-region open close)
-        ))
+        open close closing-string ms)
 
-    ;; (when (re-search-forward
-    ;;        "<style>\\(\\(:.\\|\n\\)+\\)</style>"
-    ;;        limit t)
-    ;;   (message "%d %d" (match-beginning 1) (match-end 1))
-    ;;   (font-lock-fontify-region (match-beginning 0) (match-end 0)))
-    
-    ))
+    (when (re-search-forward 
+           "<\\(style\\|script[^>]*\\)>" limit t)
+      (setq open (point)
+            ms (match-string 0))
 
-(defun web-mode-highlight-script-bloc (limit)
-  "Highlight a <script> bloc."
-  (let ((font-lock-keywords web-mode-script-font-lock-keywords)
-        (font-lock-keywords-case-fold-search nil)
-        (font-lock-keywords-only t)
-        (font-lock-extend-region-functions nil)
-        (limit (point-max))
-        open close)
+      (cond
 
-    (when (re-search-forward "<script[^>]*>" limit t)
-      (setq open (point))
-      (when (search-forward "</script>" limit t)
+       ((string-match-p "<sc" ms) 
+        (progn 
+          (setq font-lock-keywords web-mode-script-font-lock-keywords
+                closing-string "</script>")
+          ))
+       
+       ((string-match-p "<st" ms) 
+        (progn 
+          (setq font-lock-keywords web-mode-style-font-lock-keywords
+                closing-string "</style>")
+          ))
+       
+       );;cond
+
+;;      (message "%s - %s" ms closing-string)
+
+      (when (search-forward closing-string limit t)
         (setq close (match-beginning 0))
 ;;        (message "%d %d" open close)
         (font-lock-fontify-region open close)
-        )
-      )
-    
-    ;; (when (re-search-forward
-    ;;        "<script.*?>\\(.\\|\n\\)*?</script>"
-    ;;        limit t)
-    ;;   (font-lock-fontify-region (match-beginning 0) (match-end 0)))
-    
-))
+        ))
 
-(defun web-mode-highlight-php-bloc (limit)
-  "Highlight a PHP bloc."
-  (let ((font-lock-keywords web-mode-php-font-lock-keywords)
+    ))
+
+(defun web-mode-highlight-server-blocks (limit)
+  "Highlight code blocks."
+  (let (font-lock-keywords
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
         (limit (point-max))
-        open close)
+        open close closing-string ms)
 
-    (when (re-search-forward "\\(<\\?php\\|<\\?=\\)" limit t)
-      (setq open (point))
-      (when (search-forward "?>" limit t)
+    (when (re-search-forward 
+           "\\(<\\?php\\|<\\?=\\|<%[ \n!@=]\\)" limit t)
+      (setq open (point)
+            ms (match-string 0))
+
+      (cond
+       
+       ((string-match-p "<\\?" ms) 
+        (progn
+          (setq font-lock-keywords web-mode-php-font-lock-keywords
+                closing-string "?>")
+          ))
+       
+       ((string-match-p "<" ms) 
+        (progn 
+          (setq font-lock-keywords web-mode-jsp-font-lock-keywords
+                closing-string "%>")
+
+          ))
+
+       );;cond
+
+      (when (search-forward closing-string limit t)
         (setq close (match-beginning 0))
         (font-lock-fontify-region open close)
         ))
 
-    
-    ;; (when (re-search-forward
-    ;;        "\\(<\\?php\\|<\\?=\\)\\(.\\|\n\\)*?\\?>"
-    ;;        limit t)
-    ;;   (font-lock-fontify-region (match-beginning 0) (match-end 0)))
-
     ))
 
-(defun web-mode-highlight-jsp-bloc (limit)
-  "Highlight a JSP bloc."
-  (let ((font-lock-keywords web-mode-jsp-font-lock-keywords)
-        (font-lock-keywords-case-fold-search nil)
-        (font-lock-keywords-only t)
-        (font-lock-extend-region-functions nil)
-        (limit (point-max))
-        open close)
-
-    (when (re-search-forward "<%[ \n!@=]" limit t)
-      (setq open (point))
-      (when (search-forward "%>" limit t)
-        (setq close (match-beginning 0))
-        (font-lock-fontify-region open close)
-        ))
-
-;;    (when (re-search-forward "<%\\(.\\|\n\\)*?%>" limit t)
-;;      (font-lock-fontify-region (match-beginning 0) (match-end 0)))
-
-    ))
 
 (defun web-mode-font-lock-extend-region ()
   "Extend region."
@@ -1010,13 +1020,17 @@ point is at the beginning of the line."
      (1 'web-mode-preprocessor-face t t)
      (2 'web-mode-variable-name-face t t)
      (3 'web-mode-preprocessor-face t t))
+   
+   '(web-mode-highlight-client-blocks)
+   '(web-mode-highlight-server-blocks)
+
    '("\\(<\\?[ph=]*\\|<%[!@=]?\\|[%?]>\\)" 
      0 'web-mode-preprocessor-face t t)
-;;   '("\\(<%[!@=]?\\|%>\\)" 0 'web-mode-preprocessor-face t t)
-   '(web-mode-highlight-style-bloc)
-   '(web-mode-highlight-script-bloc)
-   '(web-mode-highlight-php-bloc)
-   '(web-mode-highlight-jsp-bloc)
+
+;;   '(web-mode-highlight-style-block)
+;;   '(web-mode-highlight-script-block)
+;;   '(web-mode-highlight-php-block)
+;;   '(web-mode-highlight-jsp-block)
    '("\\`<\\(!D\\|\\?x\\)[^>]*>" 0 'web-mode-doctype-face t t)
    '("<[!#]--\\(.\\|\n\\)*?-->" 0 'web-mode-comment-face t t)
    '("<%--\\(.\\|\n\\)*?--%>" 0 'web-mode-comment-face t t)
@@ -1055,7 +1069,7 @@ point is at the beginning of the line."
    '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
    (cons (concat "\\<\\(" web-mode-jsp-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face t t))
-   '("[[:blank:]]+\\([[:alpha:]]+=\"\\)" 0 'web-mode-html-attr-name-face  t t)
+;;   '("[[:blank:]]+\\([[:alpha:]]+=\"\\)" 0 'web-mode-html-attr-name-face  t t)
    '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
    '("[^:\"]//.+" 0 'web-mode-comment-face t t)
    ))
@@ -1462,4 +1476,102 @@ point is at the beginning of the line."
 (provide 'web-mode)
 
 ;;; web-mode.el ends here
+
+
+
+
+
+;; (defun web-mode-highlight-style-block (limit)
+;;   "Highlight a <style> bloc."
+;;   (let ((font-lock-keywords web-mode-style-font-lock-keywords)
+;;         (font-lock-keywords-case-fold-search nil)
+;;         (font-lock-keywords-only t)
+;;         (font-lock-extend-region-functions nil)
+;;         (limit (point-max))
+;;         open close)
+    
+;;     (when (re-search-forward "<style[^>]*>" limit t)
+;;       (setq open (point))
+;;       (when (search-forward "</style>" limit t)
+;;         (setq close (match-beginning 0))
+;;         (font-lock-fontify-region open close)
+;;         ))
+
+;;     ;; (when (re-search-forward
+;;     ;;        "<style>\\(\\(:.\\|\n\\)+\\)</style>"
+;;     ;;        limit t)
+;;     ;;   (message "%d %d" (match-beginning 1) (match-end 1))
+;;     ;;   (font-lock-fontify-region (match-beginning 0) (match-end 0)))
+    
+;;     ))
+
+;; (defun web-mode-highlight-script-block (limit)
+;;   "Highlight a <script> bloc."
+;;   (let ((font-lock-keywords web-mode-script-font-lock-keywords)
+;;         (font-lock-keywords-case-fold-search nil)
+;;         (font-lock-keywords-only t)
+;;         (font-lock-extend-region-functions nil)
+;;         (limit (point-max))
+;;         open close)
+
+;;     (when (re-search-forward "<script[^>]*>" limit t)
+;;       (setq open (point))
+;;       (when (search-forward "</script>" limit t)
+;;         (setq close (match-beginning 0))
+;; ;;        (message "%d %d" open close)
+;;         (font-lock-fontify-region open close)
+;;         )
+;;       )
+    
+;;     ;; (when (re-search-forward
+;;     ;;        "<script.*?>\\(.\\|\n\\)*?</script>"
+;;     ;;        limit t)
+;;     ;;   (font-lock-fontify-region (match-beginning 0) (match-end 0)))
+    
+;; ))
+
+;; (defun web-mode-highlight-php-block (limit)
+;;   "Highlight a PHP bloc."
+;;   (let ((font-lock-keywords web-mode-php-font-lock-keywords)
+;;         (font-lock-keywords-case-fold-search nil)
+;;         (font-lock-keywords-only t)
+;;         (font-lock-extend-region-functions nil)
+;;         (limit (point-max))
+;;         open close)
+
+;;     (when (re-search-forward "\\(<\\?php\\|<\\?=\\)" limit t)
+;;       (setq open (point))
+;;       (when (search-forward "?>" limit t)
+;;         (setq close (match-beginning 0))
+;;         (font-lock-fontify-region open close)
+;;         ))
+
+    
+;;     ;; (when (re-search-forward
+;;     ;;        "\\(<\\?php\\|<\\?=\\)\\(.\\|\n\\)*?\\?>"
+;;     ;;        limit t)
+;;     ;;   (font-lock-fontify-region (match-beginning 0) (match-end 0)))
+
+;;     ))
+
+;; (defun web-mode-highlight-jsp-block (limit)
+;;   "Highlight a JSP bloc."
+;;   (let ((font-lock-keywords web-mode-jsp-font-lock-keywords)
+;;         (font-lock-keywords-case-fold-search nil)
+;;         (font-lock-keywords-only t)
+;;         (font-lock-extend-region-functions nil)
+;;         (limit (point-max))
+;;         open close)
+
+;;     (when (re-search-forward "<%[ \n!@=]" limit t)
+;;       (setq open (point))
+;;       (when (search-forward "%>" limit t)
+;;         (setq close (match-beginning 0))
+;;         (font-lock-fontify-region open close)
+;;         ))
+
+;; ;;    (when (re-search-forward "<%\\(.\\|\n\\)*?%>" limit t)
+;; ;;      (font-lock-fontify-region (match-beginning 0) (match-end 0)))
+
+;;     ))
 
