@@ -1455,7 +1455,9 @@ point is at the beginning of the line."
   (interactive)
   (unload-feature 'web-mode)
   (web-mode)
-  (web-mode-hook))
+  (if (fboundp 'web-mode-hook)
+      (web-mode-hook))
+  )
 
 (provide 'web-mode)
 
