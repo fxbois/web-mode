@@ -916,7 +916,7 @@ point is at the beginning of the line."
   "JavaScript keywords.")
 
 (defun web-mode-highlight-client-blocks (limit)
-  "Highlight client code blocks."
+  "Highlight client blocks."
   (let ((font-lock-keywords nil)
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
@@ -956,7 +956,7 @@ point is at the beginning of the line."
     ))
 
 (defun web-mode-highlight-server-blocks (limit)
-  "Highlight server code blocks."
+  "Highlight server blocks."
   (let ((font-lock-keywords nil)
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
@@ -1040,6 +1040,7 @@ point is at the beginning of the line."
    '("^\\(.+?\\)\\({\\|,\\)" 1 'web-mode-css-rule-face)
    '("[[:alpha:]-]*?:" 0 'web-mode-css-prop-face)
    '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
+   '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
    ))
 
 (defconst web-mode-script-font-lock-keywords
