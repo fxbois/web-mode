@@ -56,7 +56,7 @@
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-autocompletes-flag t
+(defcustom web-mode-autocompletes-flag (display-graphic-p)
   "Handle autocompletes."
   :type 'bool
   :group 'web-mode)
@@ -73,23 +73,29 @@
   ;; syntax-table must be defined above
   (set-syntax-table web-mode-syntax-table)
 
-  ;; (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords
-  ;;                                                 t t (("_" . "w")) nil))
+  (make-local-variable 'font-lock-keywords)
+  (setq font-lock-defaults '(web-mode-font-lock-keywords t t nil nil))
 
-  (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords t))
-  (set (make-local-variable 'font-lock-keywords-only) t)
-  (set (make-local-variable 'font-lock-keywords-case-fold-search) t)
-  (set (make-local-variable 'font-lock-syntax-table) nil)
-  (set (make-local-variable 'font-lock-beginning-of-syntax-function) nil)
-  (set (make-local-variable 'font-lock-multiline) t)
+;;  (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords))
+;;  (set (make-local-variable 'font-lock-keywords-only) t)
+;;  (set (make-local-variable 'font-lock-keywords-case-fold-search) t)
+;;  (set (make-local-variable 'font-lock-syntax-table) nil)
+;;  (set (make-local-variable 'font-lock-beginning-of-syntax-function) nil)
 
-  (add-to-list (make-local-variable 'font-lock-extend-region-functions) 
-               'web-mode-font-lock-extend-region)
+  (make-local-variable 'font-lock-multiline)
+  (setq font-lock-multiline t)
 
-  (set (make-local-variable 'indent-line-function) 'web-mode-indent-line)
-  (set (make-local-variable 'indent-tabs-mode) nil)
-  
-  (set (make-local-variable 'require-final-newline) nil)
+  (make-local-variable 'font-lock-extend-region-functions)
+  (add-to-list 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region)
+
+  (make-local-variable 'indent-line-function)
+  (setq indent-line-function 'web-mode-indent-line)
+
+  (make-local-variable 'indent-tabs-mode)  
+  (setq indent-tabs-mode nil)
+
+  (make-local-variable 'require-final-newline)
+  (setq require-final-newline nil)
 
   (add-hook 'after-change-functions 'web-mode-on-after-change t t)
 
@@ -910,28 +916,27 @@ point is at the beginning of the line."
   "JavaScript keywords.")
 
 (defun web-mode-highlight-client-blocks (limit)
-  "Highlight code blocks."
-  (let (font-lock-keywords
+  "Highlight client code blocks."
+  (let ((font-lock-keywords nil)
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
         (limit (point-max))
-        open close closing-string ms)
+        open close closing-string chunk)
 
-    (when (re-search-forward 
-           "<\\(style\\|script[^>]*\\)>" limit t)
+    (when (re-search-forward "<\\(style\\|script[^>]*\\)>" limit t)
       (setq open (point)
-            ms (match-string 0))
+            chunk (substring (match-string 0) 0 3))
 
       (cond
 
-       ((string-match-p "<sc" ms) 
+       ((string= "<sc" chunk) 
         (progn 
           (setq font-lock-keywords web-mode-script-font-lock-keywords
                 closing-string "</script>")
           ))
        
-       ((string-match-p "<st" ms) 
+       ((string= "<st" chunk) 
         (progn 
           (setq font-lock-keywords web-mode-style-font-lock-keywords
                 closing-string "</style>")
@@ -939,9 +944,10 @@ point is at the beginning of the line."
        
        );;cond
 
-;;      (message "%s - %s" ms closing-string)
+;;      (message "%s - %s" chunk closing-string)
 
-      (when (search-forward closing-string limit t)
+      (when (and closing-string
+                 (search-forward closing-string limit t))
         (setq close (match-beginning 0))
 ;;        (message "%d %d" open close)
         (font-lock-fontify-region open close)
@@ -950,43 +956,36 @@ point is at the beginning of the line."
     ))
 
 (defun web-mode-highlight-server-blocks (limit)
-  "Highlight code blocks."
-  (let (font-lock-keywords
+  "Highlight server code blocks."
+  (let ((font-lock-keywords nil)
         (font-lock-keywords-case-fold-search nil)
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
         (limit (point-max))
-        open close closing-string ms)
-
-    (when (re-search-forward 
-           "\\(<\\?php\\|<\\?=\\|<%[ \n!@=]\\)" limit t)
+        open close closing-string chunk)
+;;    (when (re-search-forward "\\(<\\?php\\|<\\?=\\|<%[\n !@=]\\)" limit t)
+    (when (re-search-forward "\\(<\\?php\\|<\\?=\\|<%\\)" limit t)
       (setq open (point)
-            ms (match-string 0))
-
+            chunk (substring (match-string 0) 0 2))
       (cond
-       
-       ((string-match-p "<\\?" ms) 
+       ((string= "<?" chunk) 
         (progn
           (setq font-lock-keywords web-mode-php-font-lock-keywords
                 closing-string "?>")
           ))
-       
-       ((string-match-p "<" ms) 
+       ((string= "<%" chunk) 
         (progn 
           (setq font-lock-keywords web-mode-jsp-font-lock-keywords
                 closing-string "%>")
-
           ))
-
        );;cond
-
-      (when (search-forward closing-string limit t)
+      (when (and closing-string
+                 (search-forward closing-string limit t))
         (setq close (match-beginning 0))
+;;        (message "%s %d" (buffer-substring-no-properties open close) open)
         (font-lock-fontify-region open close)
         ))
-
     ))
-
 
 (defun web-mode-font-lock-extend-region ()
   "Extend region."
@@ -1020,13 +1019,9 @@ point is at the beginning of the line."
      (1 'web-mode-preprocessor-face t t)
      (2 'web-mode-variable-name-face t t)
      (3 'web-mode-preprocessor-face t t))
-   
    '(web-mode-highlight-client-blocks)
    '(web-mode-highlight-server-blocks)
-
-   '("\\(<\\?[ph=]*\\|<%[!@=]?\\|[%?]>\\)" 
-     0 'web-mode-preprocessor-face t t)
-
+   '("\\(<\\?[ph=]*\\|<%[!@=]?\\|[%?]>\\)" 0 'web-mode-preprocessor-face t t)
 ;;   '(web-mode-highlight-style-block)
 ;;   '(web-mode-highlight-script-block)
 ;;   '(web-mode-highlight-php-block)
@@ -1042,7 +1037,6 @@ point is at the beginning of the line."
 (defconst web-mode-style-font-lock-keywords
   (list
    '(".*" 0 nil t t)
-;;   '("</?style>" 0 'web-mode-html-tag-face t t)
    '("^\\(.+?\\)\\({\\|,\\)" 1 'web-mode-css-rule-face)
    '("[[:alpha:]-]*?:" 0 'web-mode-css-prop-face)
    '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
@@ -1051,8 +1045,6 @@ point is at the beginning of the line."
 (defconst web-mode-script-font-lock-keywords
   (list
    '(".*" 0 nil t t)
-;;   '("</?script[^>]*>" 0 'web-mode-html-tag-face)
-;;   '(" type=" 0 'web-mode-html-attr-face t t)
    '("\\<\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-js-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face))
@@ -1069,7 +1061,6 @@ point is at the beginning of the line."
    '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
    (cons (concat "\\<\\(" web-mode-jsp-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face t t))
-;;   '("[[:blank:]]+\\([[:alpha:]]+=\"\\)" 0 'web-mode-html-attr-name-face  t t)
    '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
    '("[^:\"]//.+" 0 'web-mode-comment-face t t)
    ))
@@ -1078,9 +1069,6 @@ point is at the beginning of the line."
   (list
 
    '(".*" 0 nil t t)
-
-;;   '("\\(<\\?php\\|<\\?=\\|\\?>\\)?" 0 'web-mode-preprocessor-face t t)
-;;   '("" 0 'web-mode-preprocessor-face t t)
 
    (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face))
