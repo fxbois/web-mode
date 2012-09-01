@@ -6,7 +6,7 @@
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
 
-;; Version: 1.01
+;; Version: 1.02
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,8 +51,13 @@
   :type 'integer
   :group 'web-mode)
 
+(defcustom web-mode-css-offset 2
+  "CSS indentation offset."
+  :type 'integer
+  :group 'web-mode)
+
 (defcustom web-mode-script-offset 2
-  "PHP and JavaScript indentation offset."
+  "PHP, Java and JavaScript indentation offset."
   :type 'integer
   :group 'web-mode)
 
@@ -140,6 +145,11 @@
   "Face for preprocessor."
   :group 'web-mode-faces)
 
+(defface web-mode-builtin-face
+  '((t :inherit font-lock-builtin-face))
+  "Face for builtins."
+  :group 'web-mode-faces)
+
 (defface web-mode-doctype-face
   '((t :foreground "Grey"))
   "Face for HTML doctype."
@@ -161,12 +171,23 @@
   :group 'web-mode-faces)
 
 (defface web-mode-css-rule-face
-  '((t :foreground "Pink3"))
+  '((t :foreground "orchid3"))
   "Face for CSS rules."
   :group 'web-mode-faces)
 
+(defface web-mode-css-pseudo-class-face
+  '((t :foreground "plum2"))
+  "Face for CSS pseudo-classes."
+  :group 'web-mode-faces)
+
+(defface web-mode-css-at-rule-face
+  '((t :inherit font-lock-builtin-face))
+  "Face for CSS at-rules."
+  :group 'web-mode-faces)
+
 (defface web-mode-css-prop-face
-  '((t :foreground "Pink1"))
+  '((t :foreground "Pink3"))
+;;  '((t :foreground "Pink1"))
   "Face for CSS props."
   :group 'web-mode-faces)
 
@@ -283,13 +304,13 @@ point is at the beginning of the line."
   "Detect if point is in a PHP block."
   (let (line-current line-open line-close)
     (save-excursion
-;;      (message "current(%d)" (web-mode-current-line))
+;;      (message "current(%d)" (web-mode-current-line-number))
 ;;      (end-of-line)
-      (setq line-current (web-mode-current-line))
+      (setq line-current (web-mode-current-line-number))
       (and (re-search-backward "<\\?[p=]" nil t)
-           (setq line-open (web-mode-current-line))
+           (setq line-open (web-mode-current-line-number))
            (search-forward "?>" nil t)
-           (setq line-close (web-mode-current-line))
+           (setq line-close (web-mode-current-line-number))
 ;;           (progn (message "current(%d) from(%d) to(%d)" line-current line-from line-to) 't)
            (not (eq line-open line-close))
            (>= line-close line-current)
@@ -298,39 +319,52 @@ point is at the beginning of the line."
 ;; (defun web-mode-in-jsp-block2 ()
 ;;   "Detect if point is in a JSP block."
 ;;   (let ((pt (point))
-;;         (ln (web-mode-current-line)))
+;;         (ln (web-mode-current-line-number)))
 ;;     (save-excursion
 ;;       (and (search-backward "<%" 0 t)
 ;;            (not (string-match "%>" (buffer-substring-no-properties
 ;;                                     (point) pt)))
-;;            (not (eq ln (web-mode-current-line)))
+;;            (not (eq ln (web-mode-current-line-number)))
 ;;            ))))
 
 (defun web-mode-in-jsp-block ()
   "Detect if point is in a JSP block."
   (let (line-current line-open line-close)
     (save-excursion
-      (setq line-current (web-mode-current-line))
+      (setq line-current (web-mode-current-line-number))
       (and (search-backward "<%" nil t)
-           (setq line-open (web-mode-current-line))
+           (setq line-open (web-mode-current-line-number))
            (search-forward "%>" nil t)
-           (setq line-close (web-mode-current-line))
+           (setq line-close (web-mode-current-line-number))
            (not (eq line-open line-close))
            (>= line-close line-current)
            ))))
 
-(defun web-mode-in-block (type)
+(defun web-mode-in-block (open close)
+  "Detect if point is in a block delimited by open and close."
+  (let (line-current line-open line-close)
+    (save-excursion
+      (setq line-current (web-mode-current-line-number))
+      (and (search-backward open nil t)
+           (setq line-open (web-mode-current-line-number))
+           (search-forward close nil t)
+           (setq line-close (web-mode-current-line-number))
+           (not (eq line-open line-close))
+           (>= line-close line-current)
+           ))))
+
+(defun web-mode-in-html-block (type)
   "Detect if point is in a block"
   (let ((pt (point))
-        (line-current (web-mode-current-line))
+        (line-current (web-mode-current-line-number))
         line-open line-close)
     (save-excursion
       (and (search-backward (concat "<" type) 0 t)
-           (setq line-open (web-mode-current-line))
+           (setq line-open (web-mode-current-line-number))
 ;;           (> line-current line-open)
            (search-forward (concat "</" type ">") nil t)
            (< pt (point))
-           (setq line-close (web-mode-current-line))
+           (setq line-close (web-mode-current-line-number))
            (not (eq line-open line-close))
            (<= line-current line-close)
            (progn (goto-char pt) (beginning-of-line) t)
@@ -339,7 +373,7 @@ point is at the beginning of the line."
            ))
     ))
 
-(defun web-mode-current-line (&optional pt)
+(defun web-mode-current-line-number (&optional pt)
   "Return line number at point."
   (unless pt
     (setq pt (point)))
@@ -373,7 +407,7 @@ point is at the beginning of the line."
 ;;    (message "%S" (syntax-ppss))
     (save-excursion
       (setq cur-column (current-column)
-            cur-line-number (web-mode-current-line)
+            cur-line-number (web-mode-current-line-number)
             cur-indentation (current-indentation)
             cur-point (point)
             is-xml (string-match-p "\\.xml$" (buffer-file-name)))
@@ -381,9 +415,9 @@ point is at the beginning of the line."
       (cond
        ((web-mode-in-php-block)
         (setq in-php-block t))
-       ((web-mode-in-block "script")
+       ((web-mode-in-html-block "script")
         (setq in-script-block t))
-       ((web-mode-in-block "style")
+       ((web-mode-in-html-block "style")
         (setq in-style-block t))
        ((web-mode-in-jsp-block)
         (setq in-jsp-block t))
@@ -406,105 +440,97 @@ point is at the beginning of the line."
       (cond ;; switch language
        
        ((null prev-line)
-        (progn
-;;          (message "nothing to check")
-          (setq offset 0)))
+        ;;          (message "nothing to check")
+        (setq offset 0)
+        )
        
-       ((or in-php-block 
-            in-jsp-block 
-            in-script-block) 
+       ((or in-php-block in-jsp-block in-script-block) 
         
         (cond
          
          ((string-match-p "^\\(<\\?php\\|<%\\|[?%]>\\)" cur-line)
-          (progn
-            (setq offset 0)
-            ))
+          (setq offset 0)
+          )
 
          ((string= cur-first-char "}")
-          (progn
-            (web-mode-fetch-opening-paren "{")
-            (setq offset (current-indentation))
-            ))
+          (web-mode-fetch-opening-paren "{")
+          (setq offset (current-indentation))
+          )
          
          ((string= cur-first-char "?")
-          (progn
-            (rsb "[=(]")
-            (setq offset (current-column))
-            ))
+          (rsb "[=(]")
+          (setq offset (current-column))
+          )
          
          ((string= cur-first-char ":")
-          (progn
-            (setq offset (current-indentation))
-            ))
+          (setq offset (current-indentation))
+          )
          
          ((string= prev-last-char ",")
-          (progn
-            (web-mode-fetch-opening-paren "(" cur-point)
-            (setq offset (+ (current-column) 1))
-            ))
+          (web-mode-fetch-opening-paren "(" cur-point)
+          (setq offset (+ (current-column) 1))
+          )
          
          ((or (string= prev-last-char ".") 
               (string= prev-last-char "+")
               (string= prev-last-char "?") 
               (string= prev-last-char ":"))
-          (progn
-            (rsb "[=(]")
-            (skip-chars-forward "= (")
-;;            (message (web-mode-text-at-point))
-            (setq offset (current-column))
-            ))
+          (rsb "[=(]")
+          (skip-chars-forward "= (")
+          ;;            (message (web-mode-text-at-point))
+          (setq offset (current-column))
+          )
          
          ((string= prev-last-char ";")
-          (progn
-;;            (end-of-line)
-            (if (string-match-p ")[ ]*;$" prev-line)
-                (progn 
-                  (re-search-backward ")[ ]*;")
-                  (web-mode-fetch-opening-paren))
-              (progn
-                (re-search-backward "\\([=(]\\|^[[:blank:]]*var[ ]*\\)"))
-              )
-            (setq offset (current-indentation))
-            ))
-         
+          ;;            (end-of-line)
+          (if (string-match-p ")[ ]*;$" prev-line)
+              (progn 
+                (re-search-backward ")[ ]*;")
+                (web-mode-fetch-opening-paren))
+            (progn
+              (re-search-backward "\\([=(]\\|^[[:blank:]]*var[ ]*\\)"))
+            )
+          (setq offset (current-indentation))
+          )
+        
          ((string= prev-last-char "{")
-          (progn
-            (setq offset (+ (current-indentation) web-mode-script-offset))
-            ))
+          (setq offset (+ (current-indentation) web-mode-script-offset))
+          )
          
          ((and in-php-block
                (string-match-p "\\(->[ ]?[[:alnum:]_]+\\|)\\)$" prev-line))
-          (progn
-;;            (end-of-line)
-            (search-backward ">")
-            (setq offset (- (current-column) 1))
-            ))
+          ;;            (end-of-line)
+          (search-backward ">")
+          (setq offset (- (current-column) 1))
+          )
          
          (t
-          (progn
-            ()
-;;            (message "script block : unknown")
-            ))
+          ()
+          ;;            (message "script block : unknown")
+          )
          
          )) ;; end case script block
        
        (in-style-block ;; style block
         
+        (goto-char cur-point)
+        
         (cond
          
-         ((string-match-p "[{,]" cur-line)
-          (progn
-            (setq offset 0)
-            ))
+         ((or (string-match-p "\\(^}\\|{\\)" cur-line)
+              (not (web-mode-in-block "{" "}")))
+          (setq offset 0)
+          )
          
-         ((string= prev-last-char ";")
-          (progn
-;;            (end-of-line)
-            (re-search-backward "{")
-            (skip-chars-forward "{ ")
-            (setq offset (current-column))
-            ))
+         ((not (string-match-p "^[[:alpha:]-]+[ ]?:" cur-line))
+          (re-search-backward ":")
+          (skip-chars-forward ":  ")
+          (setq offset (current-column))            
+          )
+         
+         (t
+          (setq offset web-mode-css-offset)
+          )
          
          )) ;; end case style bloc
        
@@ -514,61 +540,55 @@ point is at the beginning of the line."
          
          ((and (not (string= cur-first-char "<"))
                (string-match-p "\\<[[:alpha:]-]+=\".*?\"$" prev-line))
-          (progn
-            (re-search-backward "<[[:alpha:]]")
-            (re-search-forward "<[[:alpha:]]+")
-            (skip-chars-forward " ")
-            (setq offset (current-column))
-            ))
+          (re-search-backward "<[[:alpha:]]")
+          (re-search-forward "<[[:alpha:]]+")
+          (skip-chars-forward " ")
+          (setq offset (current-column))
+          )
          
          ((and (string-match-p "^\\<[[:alpha:]-]+=\"" cur-line)
                (re-search-backward "\\<[[:alpha:]-]+=\"[^\"]*\"$" nil t))
-          (progn 
-            (setq offset (current-column))
-            ))
+          (setq offset (current-column))
+          )
          
          ((and (not is-xml)
                (or (string-match-p "^</?\\(head\\|body\\|meta\\|link\\|title\\|style\\|script\\)" cur-line)
                    (string-match-p "^<\\?php \\(if\\|else\\|for\\|while\\|end\\)" cur-line)))
-          (progn
-            (setq offset 0)
-            ))
+          (setq offset 0)
+          )
          
          ((string-match-p "^</" cur-line)
-          (progn
-            (goto-char cur-point)
-            (beginning-of-line)
-            (re-search-forward "</")
-            (web-mode-match-tag)
-            (setq offset (current-indentation))
-            ))
+          (goto-char cur-point)
+          (beginning-of-line)
+          (re-search-forward "</")
+          (web-mode-match-tag)
+          (setq offset (current-indentation))
+          )
          
          ((or (string= "" cur-line)
               (string-match-p "^<[[:alpha:]]" cur-line))
-          (progn
-            (setq continue t)
-            (while (and continue
-                        (re-search-backward "^[[:blank:]]*</?[[:alpha:]]" nil t))
-              (when (and (not (web-mode-is-comment-or-string))
-                         (not (looking-at-p "[[:blank:]]*</?\\(script\\|style\\)")))
-                (setq continue nil)
-                (unless (char-equal (following-char) ?<)
-;;                (unless (string= (string (following-char)) "<")
-                  (re-search-forward "<"))
-                (setq offset (+ (current-indentation) 
-                                (if (and (web-mode-is-opened-element (web-mode-element-at-point))
-                                         (not (looking-at-p "[[:blank:]]*<body")))
-                                    web-mode-html-offset
-                                  0)
-                                ))
-                ))
-            
-            ))
-
+          (setq continue t)
+          (while (and continue
+                      (re-search-backward "^[[:blank:]]*</?[[:alpha:]]" nil t))
+            (when (and (not (web-mode-is-comment-or-string))
+                       (not (looking-at-p "[[:blank:]]*</?\\(script\\|style\\)")))
+              (setq continue nil)
+              (unless (char-equal (following-char) ?<)
+                ;;                (unless (string= (string (following-char)) "<")
+                (re-search-forward "<"))
+              (setq offset (+ (current-indentation) 
+                              (if (and (web-mode-is-opened-element (web-mode-element-at-point))
+                                       (not (looking-at-p "[[:blank:]]*<body")))
+                                  web-mode-html-offset
+                                0)
+                              ))
+              );;when
+            );;while
+          )
+         
          (t
-          (progn
-            ()
-            ))
+          ()
+          )
          
          )) ;; end case html bloc
 
@@ -692,7 +712,7 @@ point is at the beginning of the line."
           line l1 l2
           (pt (point)))
       (while continue
-        (setq l1 (web-mode-current-line))
+        (setq l1 (web-mode-current-line-number))
         (end-of-line)
         (setq cont t)
         (while cont
@@ -702,7 +722,7 @@ point is at the beginning of the line."
         (while cont
           (re-search-forward "[[:alnum:] /\"']>" nil t)
           (setq cont (web-mode-is-comment-or-string)))
-        (setq l2 (web-mode-current-line))
+        (setq l2 (web-mode-current-line-number))
         (if (eq l1 l2) (setq continue nil))
         )
       (end-of-line)
@@ -897,6 +917,23 @@ point is at the beginning of the line."
        "int" "integer" "long" "mixed" "object" "real" "string")))
   "PHP types.")
 
+(defconst web-mode-css-at-rules
+  (eval-when-compile
+    (regexp-opt
+     '("charset" "import" "media" "page" "font-face" "namespace")))
+  "CSS at-rules.")
+
+(defconst web-mode-css-pseudo-classes
+  (eval-when-compile
+    (regexp-opt
+     '("active" "after" "before" "checked" "disabled" "empty" "enabled" 
+       "first" "first-child" "first-letter" "first-line" "first-of-type"
+       "focus" "hover" "lang" "last-child" "last-of-type" "left" "link"
+       "not" "nth-child" "nth-last-child" "nth-of-type"
+       "only-child" "only-of-type"
+       "right" "root" "selection" "target" "visited")))
+  "CSS pseudo-classes (and pseudo-elements).")
+
 (defconst web-mode-jsp-keywords
   (regexp-opt
    (append (if (boundp 'web-mode-jsp-keywords) web-mode-jsp-keywords '())
@@ -922,9 +959,9 @@ point is at the beginning of the line."
         (font-lock-keywords-only t)
         (font-lock-extend-region-functions nil)
         (limit (point-max))
-        open close closing-string chunk)
+        open close closing-string chunk pt)
 
-    (when (re-search-forward "<\\(style\\|script[^>]*\\)>" limit t)
+    (when (re-search-forward "<\\(style\\|script\\)[^>]*>" limit t)
       (setq open (point)
             chunk (substring (match-string 0) 0 3))
 
@@ -948,10 +985,29 @@ point is at the beginning of the line."
 
       (when (and closing-string
                  (search-forward closing-string limit t))
-        (setq close (match-beginning 0))
+        (setq close (match-beginning 0)
+              pt (point))
 ;;        (message "%d %d" open close)
         (font-lock-fontify-region open close)
-        ))
+
+
+
+        (when (string= "<st" chunk)
+;;          (message "%s" chunk)
+          (goto-char open)
+          (while (and (re-search-forward "{\\([^}]+\\)}" limit t)
+                      (< (point) pt))
+;;            (message "%s %d %d" (match-string 1) (match-beginning 1) (match-end 1))
+            (setq font-lock-keywords web-mode-css-props-font-lock-keywords)
+            (font-lock-fontify-region (match-beginning 1) (match-end 1))
+            );;while
+          (goto-char pt)
+          )
+
+        pt
+        )
+
+      );; when
 
     ))
 
@@ -986,6 +1042,7 @@ point is at the beginning of the line."
         (font-lock-fontify-region open close)
         ))
     ))
+
 
 (defun web-mode-font-lock-extend-region ()
   "Extend region."
@@ -1022,14 +1079,9 @@ point is at the beginning of the line."
    '(web-mode-highlight-client-blocks)
    '(web-mode-highlight-server-blocks)
    '("\\(<\\?[ph=]*\\|<%[!@=]?\\|[%?]>\\)" 0 'web-mode-preprocessor-face t t)
-;;   '(web-mode-highlight-style-block)
-;;   '(web-mode-highlight-script-block)
-;;   '(web-mode-highlight-php-block)
-;;   '(web-mode-highlight-jsp-block)
    '("\\`<\\(!D\\|\\?x\\)[^>]*>" 0 'web-mode-doctype-face t t)
    '("<[!#]--\\(.\\|\n\\)*?-->" 0 'web-mode-comment-face t t)
-   '("<%--\\(.\\|\n\\)*?--%>" 0 'web-mode-comment-face t t)
-   '("<%#\\(.\\|\n\\)*?%>" 0 'web-mode-comment-face t t)
+   '("<%\\(#\\|--\\)\\(.\\|\n\\)*?%>" 0 'web-mode-comment-face t t)
    '("</?\\([#@][[:alpha:]._]+\\|[[:alpha:]]+[:_][[:alpha:]]+\\)"
      (1 'web-mode-preprocessor-face t t))
    ))
@@ -1037,9 +1089,29 @@ point is at the beginning of the line."
 (defconst web-mode-style-font-lock-keywords
   (list
    '(".*" 0 nil t t)
-   '("^\\(.+?\\)\\({\\|,\\)" 1 'web-mode-css-rule-face)
-   '("[[:alpha:]-]*?:" 0 'web-mode-css-prop-face)
+   '("[^][#*~)(>,+{}@.:]" 0 'web-mode-css-rule-face)
+;;   '("^\\(.+?\\)\\({\\|,\\)" 1 'web-mode-css-rule-face)
+   (cons (concat ":\\(" web-mode-css-pseudo-classes "\\)\\>") 
+         '(1 'web-mode-css-pseudo-class-face t t))
+   (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>") 
+         '(1 'web-mode-css-at-rule-face t t))   
+;;   '("[[:alpha:]-]*?:" 0 'web-mode-css-prop-face)
+   '("\\[\\(.+\\)\\]" (1 nil t t))
+   '("(\\(.+\\))" (1 nil t t))
    '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
+;;   '("![ ]?important" 0 font-lock-builtin-face t t)
+
+   '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
+   ))
+
+(defconst web-mode-css-props-font-lock-keywords
+  (list
+   '(".*" 0 nil t t)
+   '("[[:alpha:]-]\\{3,\\}[ ]?:" 0 'web-mode-css-prop-face)
+   '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
+;;   '("(\\([^)]+\\))" (1 'web-mode-string-face t t))
+   '("![ ]?important" 0 font-lock-builtin-face t t)
+   '("#[[:alnum:]]\\{3,6\\}" 0 font-lock-builtin-face t t)
    '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
    ))
 
