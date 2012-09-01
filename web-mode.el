@@ -35,7 +35,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing PHP templates."
-  :version "1.00"
+  :version "1.02"
   :group 'languages)
 
 (defgroup web-mode-faces nil
