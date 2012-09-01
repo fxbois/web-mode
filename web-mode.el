@@ -645,13 +645,12 @@ point is at the beginning of the line."
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
-      (progn 
-        (setq ret (re-search-backward regexp limit noerror))
-        (if (or (null ret)
-                (not (web-mode-is-comment-or-string)))
-            (setq continue nil))
-        )
-;;      (message (web-mode-current-trimmed-line))
+      (setq ret (re-search-backward regexp limit noerror))
+      (if (or (null ret)
+              (not (web-mode-is-comment-or-string)))
+          (setq continue nil))
+      
+      ;;      (message (web-mode-current-trimmed-line))
       )
     ret);;let
   )
@@ -968,16 +967,14 @@ point is at the beginning of the line."
       (cond
 
        ((string= "<sc" chunk) 
-        (progn 
-          (setq font-lock-keywords web-mode-script-font-lock-keywords
-                closing-string "</script>")
-          ))
+        (setq font-lock-keywords web-mode-script-font-lock-keywords
+              closing-string "</script>")
+        )
        
        ((string= "<st" chunk) 
-        (progn 
-          (setq font-lock-keywords web-mode-style-font-lock-keywords
-                closing-string "</style>")
-          ))
+        (setq font-lock-keywords web-mode-style-font-lock-keywords
+              closing-string "</style>")
+        )
        
        );;cond
 
@@ -1024,16 +1021,15 @@ point is at the beginning of the line."
       (setq open (point)
             chunk (substring (match-string 0) 0 2))
       (cond
+
        ((string= "<?" chunk) 
-        (progn
-          (setq font-lock-keywords web-mode-php-font-lock-keywords
-                closing-string "?>")
-          ))
+        (setq font-lock-keywords web-mode-php-font-lock-keywords
+              closing-string "?>"))
+
        ((string= "<%" chunk) 
-        (progn 
-          (setq font-lock-keywords web-mode-jsp-font-lock-keywords
-                closing-string "%>")
-          ))
+        (setq font-lock-keywords web-mode-jsp-font-lock-keywords
+              closing-string "%>"))
+
        );;cond
       (when (and closing-string
                  (search-forward closing-string limit t))
@@ -1290,15 +1286,14 @@ point is at the beginning of the line."
         (cond
          
          ((string= tag "?p")
-          (progn
-            (web-mode-match-php-tag)
-            ))
+          (web-mode-match-php-tag)
+          )
 
          (t
-          (progn
-            (web-mode-match-html-tag pt)
-            ))
-         )
+          (web-mode-match-html-tag pt)
+          )
+         
+         );;cond
         
         );; when
 
