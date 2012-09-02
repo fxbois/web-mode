@@ -6,7 +6,7 @@
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
 
-;; Version: 1.02
+;; Version: 1.03
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -35,7 +35,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing PHP templates."
-  :version "1.02"
+  :version "1.03"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -57,7 +57,22 @@
   :group 'web-mode)
 
 (defcustom web-mode-script-offset 2
-  "PHP, Java and JavaScript indentation offset."
+  "General script indentation offset."
+  :type 'integer
+  :group 'web-mode)
+
+(defcustom web-mode-php-offset web-mode-script-offset
+  "PHP indentation offset."
+  :type 'integer
+  :group 'web-mode)
+
+(defcustom web-mode-javascript-offset web-mode-script-offset
+  "JavaScript indentation offset."
+  :type 'integer
+  :group 'web-mode)
+
+(defcustom web-mode-java-offset web-mode-script-offset
+  "Java indentation offset."
   :type 'integer
   :group 'web-mode)
 
@@ -65,6 +80,9 @@
   "Handle autocompletes."
   :type 'bool
   :group 'web-mode)
+
+(defvar web-mode-file-type "html"
+  "Buffer file type.")
 
 (defvar web-mode-syntax-table
   (let ((table (make-syntax-table)))
@@ -78,31 +96,44 @@
   ;; syntax-table must be defined above
   (set-syntax-table web-mode-syntax-table)
 
-  (make-local-variable 'font-lock-keywords)
-  (setq font-lock-defaults '(web-mode-font-lock-keywords t t nil nil))
-
-;;  (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords))
-;;  (set (make-local-variable 'font-lock-keywords-only) t)
-;;  (set (make-local-variable 'font-lock-keywords-case-fold-search) t)
-;;  (set (make-local-variable 'font-lock-syntax-table) nil)
-;;  (set (make-local-variable 'font-lock-beginning-of-syntax-function) nil)
-
-  (make-local-variable 'font-lock-multiline)
-  (setq font-lock-multiline t)
-
   (make-local-variable 'font-lock-extend-region-functions)
-  (add-to-list 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region)
-
+  (make-local-variable 'font-lock-keywords)  
+  (make-local-variable 'font-lock-multiline)
   (make-local-variable 'indent-line-function)
-  (setq indent-line-function 'web-mode-indent-line)
-
   (make-local-variable 'indent-tabs-mode)  
-  (setq indent-tabs-mode nil)
-
   (make-local-variable 'require-final-newline)
+
+  (cond
+
+   ((string-match-p "\\.xml$" (buffer-file-name))
+    (setq web-mode-file-type "xml")
+    (setq font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil))
+    (add-to-list 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region)
+    )
+
+   ((string-match-p "\\.css$" (buffer-file-name))
+    (setq web-mode-file-type "css")
+    (setq web-mode-autocompletes-flag nil)
+    (setq font-lock-defaults '(web-mode-css-font-lock-keywords t t nil nil))
+;;    (add-to-list 'font-lock-extend-region-functions 'web-mode-font-lock-extend-css-region)
+    )
+   
+   (t
+    (setq web-mode-file-type "html")
+    (setq font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil))
+    (add-to-list 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region)
+    )
+
+   )
+
+  (setq font-lock-multiline t)
+  (setq indent-line-function 'web-mode-indent-line)
+  (setq indent-tabs-mode nil)
   (setq require-final-newline nil)
 
-  (add-hook 'after-change-functions 'web-mode-on-after-change t t)
+  (if (not (string= web-mode-file-type "css"))
+      (add-hook 'after-change-functions 'web-mode-on-after-change t t)
+    )
 
   (define-key web-mode-map (kbd "C-c C-(") 'web-mode-fetch-opening-paren)
   (define-key web-mode-map (kbd "C-c C-a") 'web-mode-indent-buffer)
@@ -114,7 +145,6 @@
   (define-key web-mode-map (kbd "C-c C-p") 'web-mode-parent-html-element)
   (define-key web-mode-map (kbd "C-c C-r") 'web-mode-reload)
   (define-key web-mode-map (kbd "C-c C-s") 'web-mode-select-element)
-  (define-key web-mode-map (kbd "C-c C-t") 'web-mode-insert-table)
 
   (define-key web-mode-map (kbd "C-$") 
     '(lambda ()
@@ -123,18 +153,25 @@
 ;;       (message (web-mode-previous-usable-line))
        ))
   
-  (define-key web-mode-map [menu-bar]
-    (make-sparse-keymap))
-  (define-key web-mode-map [menu-bar web]
-    (cons "Web" (make-sparse-keymap)))
-  (define-key web-mode-map [menu-bar web html]
-    (cons "HTML" (make-sparse-keymap)))
-  (define-key web-mode-map [menu-bar web html insert-table]
-    '("Insert TABLE" . web-mode-insert-table))
-  (define-key web-mode-map [menu-bar web sep1]
-    '("--"))
-  (define-key web-mode-map [menu-bar web debug]
-    '("debug" . web-mode-debug-point))
+  ;; (define-key web-mode-map [menu-bar]
+  ;;   (make-sparse-keymap))
+  ;; (define-key web-mode-map [menu-bar web]
+  ;;   (cons "Web" (make-sparse-keymap)))
+  ;; (define-key web-mode-map [menu-bar web html]
+  ;;   (cons "HTML" (make-sparse-keymap)))
+  ;; (define-key web-mode-map [menu-bar web html insert-table]
+  ;;   '("Insert TABLE" . web-mode-insert-table))
+  ;; (define-key web-mode-map [menu-bar web sep1]
+  ;;   '("--"))
+  ;; (define-key web-mode-map [menu-bar web debug]
+  ;;   '("debug" . web-mode-debug-point))
+
+;;  (message "%S" (cdr web-mode-style-font-lock-keywords))
+;;  (message "%S" (cdr web-mode-css-font-lock-keywords))
+
+;;  (message "%S" (append 'web-mode-highlight-css-props web-mode-style-font-lock-keywords))
+;;  (message "%S" (append (cdr web-mode-style-font-lock-keywords) '(web-mode-highlight-css-props)))
+
 )
 
 (defvar web-mode-hook nil
@@ -246,8 +283,7 @@
     (while continue
       (re-search-backward "<[[:alpha:]]" nil t)
       (if (not (web-mode-is-comment-or-string)) (setq continue nil))
-      )
-    ))
+      )))
 
 (defun web-mode-previous-usable-line ()
   "Move cursor to previous non blank/comment/string line and return this line (trimmed).
@@ -291,7 +327,6 @@ point is at the beginning of the line."
         (if (web-mode-is-comment-or-string)
             (setq counter (+ counter 1))
           (when (not (char-equal (following-char) ?\s))
-;;          (when (not (string= (string (following-char)) " "))
             (setq continue nil
                   counter 0))
           );;if
@@ -312,30 +347,6 @@ point is at the beginning of the line."
            (search-forward "?>" nil t)
            (setq line-close (web-mode-current-line-number))
 ;;           (progn (message "current(%d) from(%d) to(%d)" line-current line-from line-to) 't)
-           (not (eq line-open line-close))
-           (>= line-close line-current)
-           ))))
-
-;; (defun web-mode-in-jsp-block2 ()
-;;   "Detect if point is in a JSP block."
-;;   (let ((pt (point))
-;;         (ln (web-mode-current-line-number)))
-;;     (save-excursion
-;;       (and (search-backward "<%" 0 t)
-;;            (not (string-match "%>" (buffer-substring-no-properties
-;;                                     (point) pt)))
-;;            (not (eq ln (web-mode-current-line-number)))
-;;            ))))
-
-(defun web-mode-in-jsp-block ()
-  "Detect if point is in a JSP block."
-  (let (line-current line-open line-close)
-    (save-excursion
-      (setq line-current (web-mode-current-line-number))
-      (and (search-backward "<%" nil t)
-           (setq line-open (web-mode-current-line-number))
-           (search-forward "%>" nil t)
-           (setq line-close (web-mode-current-line-number))
            (not (eq line-open line-close))
            (>= line-close line-current)
            ))))
@@ -398,8 +409,8 @@ point is at the beginning of the line."
         in-jsp-block
         in-script-block
         in-style-block
-        is-xml
         line-number
+        local-offset
         offset
         prev-last-char 
         prev-line 
@@ -409,19 +420,37 @@ point is at the beginning of the line."
       (setq cur-column (current-column)
             cur-line-number (web-mode-current-line-number)
             cur-indentation (current-indentation)
-            cur-point (point)
-            is-xml (string-match-p "\\.xml$" (buffer-file-name)))
+            cur-point (point))
       (end-of-line)
-      (cond
-       ((web-mode-in-php-block)
-        (setq in-php-block t))
-       ((web-mode-in-html-block "script")
-        (setq in-script-block t))
-       ((web-mode-in-html-block "style")
-        (setq in-style-block t))
-       ((web-mode-in-jsp-block)
-        (setq in-jsp-block t))
-       )
+      (if (string= web-mode-file-type "css")
+          (progn
+            (setq in-style-block t)
+            (setq local-offset web-mode-css-offset)
+            )
+        (cond
+
+         ((web-mode-in-php-block)
+          (setq in-php-block t)
+          (setq local-offset web-mode-php-offset))
+
+         ((web-mode-in-html-block "script")
+          (setq in-script-block t)
+          (setq local-offset web-mode-javascript-offset))
+
+         ((web-mode-in-html-block "style")
+          (setq in-style-block t)
+          (setq local-offset web-mode-css-offset))
+
+         ((web-mode-in-block "<%" "%>")
+          (setq in-jsp-block t)
+          (setq local-offset web-mode-java-offset))
+
+         (t
+          (setq local-offset web-mode-html-offset))
+
+         )
+        );;if
+
 ;;      (message "php(%S) jsp(%S) script(%S) style(%S)" in-php-block in-jsp-block in-script-block in-style-block)
       (setq cur-line (web-mode-trim (buffer-substring-no-properties
                                      (line-beginning-position)
@@ -477,7 +506,6 @@ point is at the beginning of the line."
               (string= prev-last-char ":"))
           (rsb "[=(]")
           (skip-chars-forward "= (")
-          ;;            (message (web-mode-text-at-point))
           (setq offset (current-column))
           )
          
@@ -494,7 +522,8 @@ point is at the beginning of the line."
           )
         
          ((string= prev-last-char "{")
-          (setq offset (+ (current-indentation) web-mode-script-offset))
+;;          (setq offset (+ (current-indentation) web-mode-script-offset))
+          (setq offset (+ (current-indentation) local-offset))
           )
          
          ((and in-php-block
@@ -522,14 +551,15 @@ point is at the beginning of the line."
           (setq offset 0)
           )
          
-         ((not (string-match-p "^[[:alpha:]-]+[ ]?:" cur-line))
+         ((and (not (string= "" cur-line))
+               (not (string-match-p "^[[:alpha:]-]+[ ]?:" cur-line)))
           (re-search-backward ":")
           (skip-chars-forward ":  ")
           (setq offset (current-column))            
           )
          
          (t
-          (setq offset web-mode-css-offset)
+          (setq offset local-offset)
           )
          
          )) ;; end case style bloc
@@ -551,7 +581,7 @@ point is at the beginning of the line."
           (setq offset (current-column))
           )
          
-         ((and (not is-xml)
+         ((and (string= web-mode-file-type "xml")
                (or (string-match-p "^</?\\(head\\|body\\|meta\\|link\\|title\\|style\\|script\\)" cur-line)
                    (string-match-p "^<\\?php \\(if\\|else\\|for\\|while\\|end\\)" cur-line)))
           (setq offset 0)
@@ -579,7 +609,7 @@ point is at the beginning of the line."
               (setq offset (+ (current-indentation) 
                               (if (and (web-mode-is-opened-element (web-mode-element-at-point))
                                        (not (looking-at-p "[[:blank:]]*<body")))
-                                  web-mode-html-offset
+                                  local-offset
                                 0)
                               ))
               );;when
@@ -615,13 +645,10 @@ point is at the beginning of the line."
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
-      (progn 
-        (setq ret (re-search-forward regexp limit noerror))
-        (if (or (null ret)
-                (not (web-mode-is-comment-or-string)))
-            (setq continue nil))
-        )
-;;      (message (web-mode-current-trimmed-line))
+      (setq ret (re-search-forward regexp limit noerror))
+      (if (or (null ret)
+              (not (web-mode-is-comment-or-string)))
+          (setq continue nil))
       )
     ret);;let
   )
@@ -951,6 +978,25 @@ point is at the beginning of the line."
      '("function" "for" "if" "var" "while" "new" "try" "catch")))
   "JavaScript keywords.")
 
+(defun web-mode-highlight-css-props (limit)
+  "Highlight css props."
+  (let ((font-lock-keywords web-mode-css-props-font-lock-keywords)
+        (font-lock-keywords-case-fold-search nil)
+        (font-lock-keywords-only t)
+        (font-lock-extend-region-functions nil)
+        (limit (point-max))
+        open close)
+
+;;    (message "limit=%s" limit)
+    (when (search-forward "{" limit t)
+      (setq open (point))
+      (search-forward "}" limit t)
+      (setq close (- (point) 1))
+      (font-lock-fontify-region open close)
+      )
+
+    ))
+
 (defun web-mode-highlight-client-blocks (limit)
   "Highlight client blocks."
   (let ((font-lock-keywords nil)
@@ -1016,7 +1062,6 @@ point is at the beginning of the line."
         (font-lock-extend-region-functions nil)
         (limit (point-max))
         open close closing-string chunk)
-;;    (when (re-search-forward "\\(<\\?php\\|<\\?=\\|<%[\n !@=]\\)" limit t)
     (when (re-search-forward "\\(<\\?php\\|<\\?=\\|<%\\)" limit t)
       (setq open (point)
             chunk (substring (match-string 0) 0 2))
@@ -1039,28 +1084,49 @@ point is at the beginning of the line."
         ))
     ))
 
+(defun web-mode-font-lock-extend-css-region ()
+ "Extend CSS region."
+ (message "CSS beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
+ (save-excursion
+;;   (when (search-backward "{" nil t)
+;;     (beginning-of-line)
+;;     (setq font-lock-beg (point))
+;;     )
+;;   (setq font-lock-end (point-max))
+   )
+ )
 
 (defun web-mode-font-lock-extend-region ()
-  "Extend region."
-;;  (message "beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
+  "Extend HTML region."
+  (message "beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
   (save-excursion
-    (when (re-search-backward "<[[:alpha:]%?]"   nil    t)
-      (beginning-of-line)
-      (setq font-lock-beg (point))
-      ;;      (message "beg(%d) %s" font-lock-beg (web-mode-text-at-point))
+    (goto-char font-lock-beg)
+    (unless (looking-at-p "[ \t]*<")
+      (when (re-search-backward "<[[:alpha:]%?]" nil t)
+        (beginning-of-line)
+        (setq font-lock-beg (point))
+;;        (message "beg(%d) %s" font-lock-beg (web-mode-current-trimmed-line))
+        )
       )
-;;    (goto-char font-lock-end)
-;;    (if (re-search-forward "[[:alpha:]/]>" nil t)
-;;        (setq font-lock-end (point))
-;;      (setq font-lock-end (point-max))
-;;      ) 
+
+    ;; (goto-char font-lock-end)
+    ;; (if (re-search-forward "[[:alpha:]]>[ ]*$" nil t)
+    ;;     (progn
+    ;;       (setq font-lock-end (point))
+    ;;       )
+    ;;   (setq font-lock-end (point-max))
+    ;;   ) 
+    ;; (message "end(%d) %s" font-lock-end (web-mode-current-trimmed-line))
+
     (setq font-lock-end (point-max))
-    ) ;; sr
+
+    ) ;; save-rec
   )
 
-(defconst web-mode-font-lock-keywords
+(defconst web-mode-html-font-lock-keywords
   (list
-   '("</?[[:alpha:]][[:alnum:]:_]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)"
+;;   '("</?[[:alpha:]][[:alnum:]:_]\\{0,16\\}?\\(>\\|<\\|[ ]\\|/\\|$\\)"
+   '("</?[[:alpha:]][[:alnum:]:_]*?\\(>\\|<\\|[ ]\\|/\\|$\\)"
      0 'web-mode-html-tag-face t t)
    '("\\(</?\\|/?>\\)"
      0 'web-mode-html-tag-face t t)
@@ -1086,19 +1152,19 @@ point is at the beginning of the line."
   (list
    '(".*" 0 nil t t)
    '("[^][#*~)(>,+{}@.:]" 0 'web-mode-css-rule-face)
-;;   '("^\\(.+?\\)\\({\\|,\\)" 1 'web-mode-css-rule-face)
    (cons (concat ":\\(" web-mode-css-pseudo-classes "\\)\\>") 
          '(1 'web-mode-css-pseudo-class-face t t))
    (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>") 
          '(1 'web-mode-css-at-rule-face t t))   
-;;   '("[[:alpha:]-]*?:" 0 'web-mode-css-prop-face)
    '("\\[\\(.+\\)\\]" (1 nil t t))
    '("(\\(.+\\))" (1 nil t t))
    '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
-;;   '("![ ]?important" 0 font-lock-builtin-face t t)
-
    '("/\\*\\(.\\|\n\\)*?\\*/" 0 'web-mode-comment-face t t)
    ))
+
+(defvar web-mode-css-font-lock-keywords
+  (append (cdr web-mode-style-font-lock-keywords) '(web-mode-highlight-css-props))
+  )
 
 (defconst web-mode-css-props-font-lock-keywords
   (list
@@ -1631,3 +1697,25 @@ point is at the beginning of the line."
 
 ;;     ))
 
+
+
+;;  (set (make-local-variable 'font-lock-defaults) '(web-mode-font-lock-keywords))
+;;  (set (make-local-variable 'font-lock-keywords-only) t)
+;;  (set (make-local-variable 'font-lock-keywords-case-fold-search) t)
+;;  (set (make-local-variable 'font-lock-syntax-table) nil)
+;;  (set (make-local-variable 'font-lock-beginning-of-syntax-function) nil)
+
+
+
+;; (defun web-mode-in-jsp-block ()
+;;   "Detect if point is in a JSP block."
+;;   (let (line-current line-open line-close)
+;;     (save-excursion
+;;       (setq line-current (web-mode-current-line-number))
+;;       (and (search-backward "<%" nil t)
+;;            (setq line-open (web-mode-current-line-number))
+;;            (search-forward "%>" nil t)
+;;            (setq line-close (web-mode-current-line-number))
+;;            (not (eq line-open line-close))
+;;            (>= line-close line-current)
+;;            ))))
