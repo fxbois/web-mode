@@ -166,12 +166,6 @@
   ;; (define-key web-mode-map [menu-bar web debug]
   ;;   '("debug" . web-mode-debug-point))
 
-;;  (message "%S" (cdr web-mode-style-font-lock-keywords))
-;;  (message "%S" (cdr web-mode-css-font-lock-keywords))
-
-;;  (message "%S" (append 'web-mode-highlight-css-props web-mode-style-font-lock-keywords))
-;;  (message "%S" (append (cdr web-mode-style-font-lock-keywords) '(web-mode-highlight-css-props)))
-
 )
 
 (defvar web-mode-hook nil
@@ -224,7 +218,6 @@
 
 (defface web-mode-css-prop-face
   '((t :foreground "Pink3"))
-;;  '((t :foreground "Pink1"))
   "Face for CSS props."
   :group 'web-mode-faces)
 
@@ -1084,21 +1077,9 @@ point is at the beginning of the line."
         ))
     ))
 
-(defun web-mode-font-lock-extend-css-region ()
- "Extend CSS region."
- (message "CSS beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
- (save-excursion
-;;   (when (search-backward "{" nil t)
-;;     (beginning-of-line)
-;;     (setq font-lock-beg (point))
-;;     )
-;;   (setq font-lock-end (point-max))
-   )
- )
-
 (defun web-mode-font-lock-extend-region ()
   "Extend HTML region."
-  (message "beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
+;;  (message "beg(%d) end(%d) max(%d)" font-lock-beg font-lock-end (point-max))
   (save-excursion
     (goto-char font-lock-beg)
     (unless (looking-at-p "[ \t]*<")
