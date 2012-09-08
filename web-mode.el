@@ -6,7 +6,7 @@
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
 
-;; Version: 1.04
+;; Version: 1.05
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -35,7 +35,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing PHP templates."
-  :version "1.04"
+  :version "1.05"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -141,6 +141,7 @@
       (add-hook 'after-change-functions 'web-mode-on-after-change t t)
     )
 
+  (define-key web-mode-map (kbd "C-c C-;") 'web-mode-comment-uncomment)
   (define-key web-mode-map (kbd "C-c C-(") 'web-mode-fetch-opening-paren)
   (define-key web-mode-map (kbd "C-c C-a") 'web-mode-indent-buffer)
   (define-key web-mode-map (kbd "C-c C-b") 'web-mode-beginning-of-element)
@@ -155,7 +156,8 @@
   (define-key web-mode-map (kbd "C-$") 
     '(lambda ()
        (interactive)
-       (if (web-mode-is-comment-or-string-line) (message "comment or string : yes") (message "comment or string : no"))
+       (web-mode-select-comment-uncomment)
+;;       (if (web-mode-is-comment-or-string-line) (message "comment or string : yes") (message "comment or string : no"))
 ;;       (message (web-mode-previous-usable-line))
        ))
   
@@ -315,6 +317,14 @@ point is at the beginning of the line."
   (let ((face (get-text-property pt 'face))) 
     (or (eq face 'web-mode-string-face)
         (eq face 'web-mode-comment-face))))
+
+(defun web-mode-is-comment (&optional pt)
+  "Detect if point is in a comment."
+  (interactive)
+  (unless pt (setq pt (point)))
+  (let ((face (get-text-property pt 'face))) 
+    (eq face 'web-mode-comment-face)))
+
 
 (defun web-mode-is-comment-or-string-line ()
   "Detect if current line is in a comment or in a string."
@@ -526,7 +536,7 @@ point is at the beginning of the line."
                 (re-search-backward ")[ ]*;" web-mode-block-limit)
                 (web-mode-fetch-opening-paren "(" (point) web-mode-block-limit))
             (progn
-              (re-search-backward "\\([=(]\\|^[[:blank:]]*var[ ]*\\)" web-mode-block-limit))
+              (re-search-backward "\\([=(]\\|^[[:blank:]]*var[ ]*\\)" web-mode-block-limit t))
             )
           (setq offset (current-indentation))
           )
@@ -1248,7 +1258,12 @@ point is at the beginning of the line."
    '("instanceof[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-type-face)
 
    ;; $var
-   '("\\<$\\(\\sw*\\)" 1 'web-mode-variable-name-face)
+;;   '("\\<$\\(\\sw*\\)" 1 'web-mode-variable-name-face)
+
+;;   ;; $var
+   '("\\<\\([$]\\)\\(\\sw*\\)"
+     (1 nil t t)
+     (2 'web-mode-variable-name-face t t))
 
    '("\\(\"[^\"]*\"\\|'[^']*'\\)" 0 'web-mode-string-face t t)
 
@@ -1303,6 +1318,129 @@ point is at the beginning of the line."
       (add-to-list 'codes (list (nth 0 snippet) counter)))
 ;;    (message "%S" codes)
     codes))
+
+(defun web-mode-line-type (&optional pt)
+  "Line type"
+  (let (type)
+    (unless pt (setq pt (point)))
+    (save-excursion
+      (beginning-of-line)
+      (cond
+       
+       ((web-mode-in-php-block)
+        (setq type "php"))
+       
+       ((web-mode-in-html-block "script")
+        (setq type "script"))
+       
+       ((web-mode-in-html-block "style")
+        (setq type "style"))
+
+       ((web-mode-in-block "<%" "%>")
+        (setq type "java"))
+
+       (t
+        (setq type "html"))
+       
+       );; cond
+
+      type
+
+      )))
+
+(defun web-mode-comment-uncomment (&optional pt)
+  "Comment or uncomment line(s) at point."
+  (interactive)
+  (unless pt (setq pt (point)))
+  (if (web-mode-is-comment)
+      (web-mode-uncomment pt)
+    (web-mode-comment pt)))
+
+(defun web-mode-comment (&optional pt)
+  "Comment line(s) at point."
+  (interactive)
+  (unless pt (setq pt (point)))
+  (save-excursion
+    (let (type sel)
+      
+      (if mark-active
+          (progn
+            (setq type (web-mode-line-type (region-beginning))))
+        (progn
+          (setq type (web-mode-line-type (line-beginning-position)))
+          (end-of-line)
+          (set-mark (line-beginning-position)))
+        )
+      
+;;      (message "type=%s" type)
+      
+      (setq sel (web-mode-trim (buffer-substring-no-properties (region-beginning) (region-end))))
+      (delete-region (region-beginning) (region-end))
+      (deactivate-mark)
+      (buffer-substring-no-properties (region-beginning) (region-end))
+      
+      (cond
+       
+       ((string= type "html")
+        (web-mode-insert-and-indent (concat "<!-- " sel " -->"))
+        )
+       
+       ((or (string= type "php") (string= type "script") (string= type "style"))
+        (web-mode-insert-and-indent (concat "/* " sel " */"))
+        )
+       
+       ))))
+
+(defun web-mode-uncomment (&optional pt)
+  "Uncomment line(s) at point."
+  (interactive)
+  (unless pt (setq pt (point)))
+  (let (beg end comment continue)
+
+    (setq type (web-mode-line-type (region-beginning)))
+    
+    (goto-char pt)
+    (setq continue t)
+    (while continue
+      (if (web-mode-is-comment) 
+          (backward-char)
+        (setq continue nil))
+      );;while
+    (setq deb (+ (point) 1))
+    (goto-char pt)
+    (setq continue t)
+    (while continue
+      (if (web-mode-is-comment) 
+          (forward-char)
+        (setq continue nil))
+      );;while
+    (setq end (point))
+    (setq comment (buffer-substring-no-properties deb end))
+;;    (message "deb(%d) end(%d) type=[%s] content[%s]" deb end type comment)
+    
+    (cond
+     
+     ((string= type "html")
+      (setq comment (replace-regexp-in-string "\\(^<[!%]--[ ]?\\|[ ]?--[%]?>$\\)" "" comment))
+      )
+     
+     ((or (string= type "php")
+          (string= type "script")
+          (string= type "style")
+          (string= type "java"))
+      (setq comment (replace-regexp-in-string "\\(^/\\*[ ]?\\|[ ]?\\*/$\\|^//\\)" "" comment))
+      )
+     
+     )
+    
+;;    (message "after[%s]" comment)
+    
+    (delete-region deb end)
+    (web-mode-insert-and-indent comment)
+    (goto-char deb)
+    (back-to-indentation)
+        
+    ))
 
 (defun web-mode-insert-snippet (code)
   "Insert snippet."
