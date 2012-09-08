@@ -1368,13 +1368,33 @@ point is at the beginning of the line."
             (setq type (web-mode-line-type (region-beginning))))
         (progn
           (setq type (web-mode-line-type (line-beginning-position)))
-          (end-of-line)
-          (set-mark (line-beginning-position)))
-        )
+          (if (string= type "html")
+              (progn
+                (back-to-indentation)
+                (web-mode-select-element))
+            (progn
+              (end-of-line)
+              (set-mark (line-beginning-position))
+              )
+            );; if
+
+;;          (goto-char pt)
+
+          ;; (if (char-equal (char-after) ?<)
+          ;;     (progn
+          ;;       (web-mode-select-element)
+          ;;       (goto-char pt))
+          ;;   (progn
+          ;;     (end-of-line)
+          ;;     (set-mark (line-beginning-position))))
+
+
+          ))
       
-;;      (message "type=%s" type)
+      ;;      (message "type=%s" type)
       
       (setq sel (web-mode-trim (buffer-substring-no-properties (region-beginning) (region-end))))
+;;      (message "%s" sel)
       (delete-region (region-beginning) (region-end))
       (deactivate-mark)
       (buffer-substring-no-properties (region-beginning) (region-end))
@@ -1388,6 +1408,9 @@ point is at the beginning of the line."
        ((or (string= type "php") (string= type "script") (string= type "style"))
         (web-mode-insert-and-indent (concat "/* " sel " */"))
         )
+       
+       (t
+        (web-mode-insert-and-indent (concat "/* " sel " */")))
        
        ))))
 
