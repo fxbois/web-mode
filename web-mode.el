@@ -366,14 +366,14 @@ point is at the beginning of the line."
 ;;      (end-of-line)
       (setq line-current (web-mode-current-line-number))
       (and (re-search-backward "<\\?[p=]" nil t)
-;;           (progn (message "%c" (char-after (+ (point) 2))) t)
            (setq web-mode-block-limit (+ (point) 
                                          (if (char-equal (char-after (+ (point) 2)) ?p) 5 3)
                                          ))
            (setq line-open (web-mode-current-line-number))
-           (search-forward "?>" nil t)
+           (if (search-forward "?>" nil t) t (goto-char (point-max)))
+;;           (progn (message "ici") 't)
            (setq line-close (web-mode-current-line-number))
-;;           (progn (message "current(%d) from(%d) to(%d)" line-current line-from line-to) 't)
+;;           (progn (message "current(%d) from(%d) to(%d)" line-current line-open line-close) 't)
            (not (eq line-open line-close))
            (>= line-close line-current)
            ))))
@@ -529,6 +529,10 @@ point is at the beginning of the line."
           (setq offset (current-column))
           )
          
+         ((string= prev-last-char "}")
+          (setq offset (current-indentation))
+          )
+
          ((string= prev-last-char ";")
           ;;            (end-of-line)
           (if (string-match-p ")[ ]*;$" prev-line)
@@ -935,7 +939,7 @@ point is at the beginning of the line."
 (defconst web-mode-void-elements
   '("hr" "br" "col" "input" "link" "meta" "img" 
     "tmpl_var" 
-    "h:inputtext" 
+    "h:inputtext"
     "#include" "#assign" "#import" "#else")
   "Void (self-closing) tags.")
 
@@ -949,21 +953,22 @@ point is at the beginning of the line."
 (defconst web-mode-php-keywords
   (regexp-opt
    (append (if (boundp 'web-mode-php-keywords) web-mode-php-keywords '())
-           '("array" "as" "break" "catch" "continue"
+           '("array" "as" "break" "callable" "catch" "class" "const" "continue"
              "default" "die" "do"
-             "echo" "else" "elseif"
-             "endfor" "endforeach" "endif" "endswitch" "endwhile" "exit"
+             "echo" "else" "elseif" "empty"
+             "endfor" "endforeach" "endif" "endswitch" "endwhile" "exit" "extends"
              "for" "foreach"
-             "if" "include" "instanceof"
-             "next" "or" "require" "return" "switch"
-             "when" "while")))
+             "if" "include" "interface" "instanceof" "isset" "list"
+             "next" "or" "print" "require" "return" "switch" "try" "unset"
+             "var" "when" "while")))
   "PHP keywords.")
 
 (defconst web-mode-php-types
   (eval-when-compile
     (regexp-opt
      '("array" "bool" "boolean" "char" "const" "double" "float"
-       "int" "integer" "long" "mixed" "object" "real" "string")))
+       "int" "integer" "long" "mixed" "object" "real" "string"
+       "Exception")))
   "PHP types.")
 
 (defconst web-mode-css-at-rules
@@ -1100,12 +1105,24 @@ point is at the beginning of the line."
               closing-string "%>"))
 
        );;cond
-      (when (and closing-string
-                 (search-forward closing-string limit t))
-        (setq close (match-beginning 0))
-;;        (message "%s %d" (buffer-substring-no-properties open close) open)
-        (font-lock-fontify-region open close)
-        ))
+
+
+
+      (if (and closing-string
+               (search-forward closing-string limit t))
+          (progn
+            (setq close (match-beginning 0))
+            ;;        (message "%s %d" (buffer-substring-no-properties open close) open)
+            (font-lock-fontify-region open close)
+            )
+        (progn
+          (if (string= closing-string "?>")
+              (font-lock-fontify-region open (point-max))
+            )
+          ))
+
+      );;when
+
     ))
 
 (defun web-mode-font-lock-extend-css-region ()
@@ -1237,7 +1254,8 @@ point is at the beginning of the line."
    (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") 
          '(0 'web-mode-keyword-face))
 
-   (cons (concat "(\\s-*\\(" web-mode-php-types "\\)\\s-*)") 
+;;   (cons (concat "(\\s-*\\(" web-mode-php-types "\\)\\s-*)") 
+   (cons (concat "(\\<\\(" web-mode-php-types "\\)\\>") 
          '(1 'web-mode-type-face))
 
    (cons (concat "\\<\\(" web-mode-php-constants "\\)\\>") 
@@ -1255,7 +1273,7 @@ point is at the beginning of the line."
    ;; Class::
    '("\\<\\(\\sw+\\)[ ]?::" 1 'web-mode-type-face)
 
-   '("instanceof[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-type-face)
+   '("\\<\\(instanceof\\|class\\|new\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
 
    ;; $var
 ;;   '("\\<$\\(\\sw*\\)" 1 'web-mode-variable-name-face)
