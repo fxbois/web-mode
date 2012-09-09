@@ -6,7 +6,7 @@
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
 
-;; Version: 1.05
+;; Version: 1.06
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -35,7 +35,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing PHP templates."
-  :version "1.05"
+  :version "1.06"
   :group 'languages)
 
 (defgroup web-mode-faces nil
