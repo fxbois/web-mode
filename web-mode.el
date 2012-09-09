@@ -35,7 +35,7 @@
 
 ;;;###autoload
 (defgroup web-mode nil
-  "Major mode for editing PHP templates."
+  "Major mode for editing mixed HTML templates (PHP/JSP/JS/CSS)."
   :version "1.06"
   :group 'languages)
 
