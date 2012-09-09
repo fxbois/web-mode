@@ -542,9 +542,7 @@ point is at the beginning of the line."
               (progn 
                 (re-search-backward ")[ ]*;" web-mode-block-limit)
                 (web-mode-fetch-opening-paren "(" (point) web-mode-block-limit))
-            (progn
-              (re-search-backward "\\([=(]\\|^[[:blank:]]*var[ ]*\\)" web-mode-block-limit t))
-            )
+            (re-search-backward "\\([=(]\\|^[[:blank:]]*var[ ]*\\)" web-mode-block-limit t))
           (setq offset (current-indentation))
           )
         
@@ -831,11 +829,10 @@ point is at the beginning of the line."
         ret
         (h (make-hash-table :test 'equal)))
     (unless line
-      (progn 
-        (setq line (web-mode-element-at-point))
-        ;;      (setq line (web-mode-current-trimmed-line))
-        ;;      (if (% (web-mode-count-char-in-string ?>)) ())
-        ))
+      (setq line (web-mode-element-at-point))
+      ;;      (setq line (web-mode-current-trimmed-line))
+      ;;      (if (% (web-mode-count-char-in-string ?>)) ())
+      )
 ;;    (message "line=%s" line)
 ;;    (while (string-match "<\\(/?[[:alpha:]:_]+\\)" line deb)
     (while (string-match web-mode-tag-regexp line deb)
@@ -851,11 +848,10 @@ point is at the beginning of the line."
           (progn
 ;;            (message "void tag: %s" tag)
             )
-        (progn
-          (if is-closing-tag
-              (if (> n 0) (puthash tag (1- n) h))
-            (puthash tag (1+ n) h))
-          ))
+        (if is-closing-tag
+            (if (> n 0) (puthash tag (1- n) h))
+          (puthash tag (1+ n) h))
+        )
 
       );; while
         
@@ -1118,11 +1114,10 @@ point is at the beginning of the line."
             ;;        (message "%s %d" (buffer-substring-no-properties open close) open)
             (font-lock-fontify-region open close)
             )
-        (progn
-          (if (string= closing-string "?>")
-              (font-lock-fontify-region open (point-max))
-            )
-          ))
+        (if (string= closing-string "?>")
+            (font-lock-fontify-region open (point-max))
+          )
+        )
 
       );;when
 
@@ -1387,30 +1382,27 @@ point is at the beginning of the line."
       (if mark-active
           (progn
             (setq type (web-mode-line-type (region-beginning))))
-        (progn
-          (setq type (web-mode-line-type (line-beginning-position)))
-          (if (string= type "html")
-              (progn
-                (back-to-indentation)
-                (web-mode-select-element))
+        (setq type (web-mode-line-type (line-beginning-position)))
+        (if (string= type "html")
             (progn
-              (end-of-line)
-              (set-mark (line-beginning-position))
-              )
-            );; if
-
-;;          (goto-char pt)
-
-          ;; (if (char-equal (char-after) ?<)
-          ;;     (progn
-          ;;       (web-mode-select-element)
-          ;;       (goto-char pt))
-          ;;   (progn
-          ;;     (end-of-line)
-          ;;     (set-mark (line-beginning-position))))
-
-
-          ))
+              (back-to-indentation)
+              (web-mode-select-element))
+          (end-of-line)
+          (set-mark (line-beginning-position))
+          )
+        
+        ;;          (goto-char pt)
+        
+        ;; (if (char-equal (char-after) ?<)
+        ;;     (progn
+        ;;       (web-mode-select-element)
+        ;;       (goto-char pt))
+        ;;   (progn
+        ;;     (end-of-line)
+        ;;     (set-mark (line-beginning-position))))
+        
+        
+        );; if
       
       ;;      (message "type=%s" type)
       
@@ -1627,17 +1619,13 @@ point is at the beginning of the line."
     (setq end (- (point) 2))
     (setq code (buffer-substring-no-properties beg end))
     (if (string-match-p "for" code)
-        (progn
-          (if (string-match-p "foreach" code)
-              (progn
-                (setq regexp "<\\?php \\(foreach\\|endforeach\\)")
-                (setq type   "foreach"))
-            (progn
-              (setq regexp "<\\?php \\(for\\|endfor\\)")
-              (setq type   "for"))))
-      (progn
-        (setq regexp "<\\?php \\(if\\|else\\|elseif\\|endif\\)")
-        (setq type   "if")))
+        (if (string-match-p "foreach" code)
+            (setq regexp "<\\?php \\(foreach\\|endforeach\\)"
+                  type   "foreach")
+          (setq regexp "<\\?php \\(for\\|endfor\\)"
+                type   "for"))
+      (setq regexp "<\\?php \\(if\\|else\\|elseif\\|endif\\)"
+            type   "if"))
     (if (string-match-p " end" code)
         (web-mode-match-opening-php-tag regexp type)
       (web-mode-match-closing-php-tag regexp type))))
@@ -1650,12 +1638,9 @@ point is at the beginning of the line."
                 (re-search-backward regexp nil t))
       (setq match (match-string-no-properties 0))
       (if (string-match-p " \\(if\\|for\\)" match)
-          (progn 
-            (setq counter (1- counter))
-            )
-        (progn
-          (if (string-match-p " end\\(if\\|for\\)" match)
-            (setq counter (1+ counter))))
+          (setq counter (1- counter))
+        (if (string-match-p " end\\(if\\|for\\)" match)
+            (setq counter (1+ counter)))
         );; if
 ;;      (message "%s %d" (web-mode-current-trimmed-line) counter)
       );; while
@@ -1670,11 +1655,10 @@ point is at the beginning of the line."
       (setq match (match-string-no-properties 0))
       (if (string-match-p "<\\?php \\(if\\|for\\)" match)
           (setq counter (1+ counter))
-        (progn
-          (unless (and (> counter 1)
-                       (string-match-p "else" match))
-            (setq counter (1- counter)))
-          )))
+        (unless (and (> counter 1)
+                     (string-match-p "else" match))
+          (setq counter (1- counter)))
+        ))
     (search-backward "<")))
 
 (defun web-mode-debug-point ()
@@ -1762,15 +1746,14 @@ point is at the beginning of the line."
 ;;          (message "%S" expr)
           (if (string= (elt expr 0) chunk)
               (unless (string-match-p (elt expr 2) after)
-                (progn 
-                   (insert (elt expr 1))
-                   (goto-char (+ pt (elt expr 3)))
-                   (setq found t))))
+                (insert (elt expr 1))
+                (goto-char (+ pt (elt expr 3)))
+                (setq found t)))
           (setq i (1+ i)))        
         ) ;; when
-
-    )
-
+      
+      )
+    
     ))
 
 (defun web-mode-reload ()
