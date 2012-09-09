@@ -33,11 +33,13 @@
 
 (eval-when-compile (require 'cl))
 
+;;;###autoload
 (defgroup web-mode nil
   "Major mode for editing PHP templates."
   :version "1.06"
   :group 'languages)
 
+;;;###autoload
 (defgroup web-mode-faces nil
   "Faces for syntax highlighting."
   :group 'web-mode
@@ -93,6 +95,7 @@
     table)
   "Syntax table in use in web-mode buffers.")
 
+;;;###autoload
 (define-derived-mode web-mode prog-mode "Web"
   "Major mode for editing mixed HTML Templates."
 
