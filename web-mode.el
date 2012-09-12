@@ -301,7 +301,8 @@ point is at the beginning of the line."
                 (not (bobp))
                 (forward-line -1))
       (if (not (web-mode-is-comment-or-string-line))
-          (setq line (web-mode-trim (buffer-substring-no-properties
+;;          (setq line (web-mode-trim (buffer-substring-no-properties
+          (setq line (web-mode-trim (buffer-substring
                                      (point) (line-end-position)))))
       (when (not (string= line "")) (setq continue nil))
       )
@@ -412,6 +413,19 @@ point is at the beginning of the line."
     ;;    (message "%d [%d] %s" pt out (web-mode-text-at-point))
     ret))
 
+(defun web-mode-remove-prop (prop value input)
+  "Remove text with face."
+  (let ((i 0) 
+        (out "") 
+        (n (length input)))
+    (while (< i n)
+      (unless (string= (get-text-property i prop input) value)
+        (setq out (concat out (substring-no-properties input i (+ i 1))))
+        )
+      (setq i (1+ i)))
+    out)
+)
+
 (defun web-mode-indent-line ()
   "Indent current line according to language."
   (interactive)
@@ -442,49 +456,51 @@ point is at the beginning of the line."
             cur-point (point)
             web-mode-block-limit nil)
       (end-of-line)
-      (if (string= web-mode-file-type "css")
-          (progn
-            (setq in-style-block t)
-            (setq local-offset web-mode-css-offset)
-            )
-        (cond
+;;      (if (string= web-mode-file-type "css")
+;;          (setq in-style-block t
+;;                local-offset web-mode-css-offset)
+      (cond
+       
+       ((string= web-mode-file-type "css")
+        (setq in-style-block t)
+        (setq local-offset web-mode-css-offset))
+       
+       ((web-mode-in-php-block)
+        (setq in-php-block t)
+        (setq local-offset web-mode-php-offset))
+       
+       ((web-mode-in-html-block "script")
+        (setq in-script-block t)
+        (setq local-offset web-mode-javascript-offset))
+       
+       ((web-mode-in-html-block "style")
+        (setq in-style-block t)
+        (setq local-offset web-mode-css-offset))
+       
+       ((web-mode-in-block "<%" "%>")
+        (setq in-jsp-block t)
+        (setq local-offset web-mode-java-offset))
+       
+       (t
+        (setq local-offset web-mode-html-offset))
+       
+       ) ;;cond
 
-         ((web-mode-in-php-block)
-          (setq in-php-block t)
-          (setq local-offset web-mode-php-offset))
-
-         ((web-mode-in-html-block "script")
-          (setq in-script-block t)
-          (setq local-offset web-mode-javascript-offset))
-
-         ((web-mode-in-html-block "style")
-          (setq in-style-block t)
-          (setq local-offset web-mode-css-offset))
-
-         ((web-mode-in-block "<%" "%>")
-          (setq in-jsp-block t)
-          (setq local-offset web-mode-java-offset))
-
-         (t
-          (setq local-offset web-mode-html-offset))
-
-         )
-        );;if
+      ;;        );;if
 
 ;;      (message "php(%S) jsp(%S) script(%S) style(%S)" in-php-block in-jsp-block in-script-block in-style-block)
+
+
       (setq cur-line (web-mode-trim (buffer-substring-no-properties
                                      (line-beginning-position)
                                      (line-end-position))))
-      (setq cur-first-char (if (string= cur-line "")
-                               cur-line
-                             (substring cur-line 0 1)))
+      (setq cur-first-char (if (string= cur-line "") cur-line (substring cur-line 0 1)))
       (setq prev-line (web-mode-previous-usable-line))
-      (setq prev-last-char (if (null prev-line)
-                               prev-line
-                             (substring prev-line -1)))
-      (end-of-line)
+      (unless (null prev-line)
+        (setq prev-line (web-mode-remove-prop 'face "web-mode-comment-face" prev-line))
+        (setq prev-last-char (substring prev-line -1)))
 
-;;          (message "prev-line(%s)" prev-line)
+      (end-of-line)
           
 ;;      (message "block-limit:%d" web-mode-block-limit)
 
