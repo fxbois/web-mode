@@ -1,4 +1,4 @@
-;;; web-mode.el --- major mode for editing HTML templates (PHP/JSP/JS/CSS)
+;;; web-mode.el --- major mode for editing HTML templates (PHP/JSP/ASP/JS/CSS)
 
 ;; Copyright (C) 2011, 2012 François-Xavier Bois
 
@@ -6,7 +6,7 @@
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
 
-;; Version: 2.00
+;; Version: 2.01
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -38,7 +38,7 @@
 ;;;###autoload
 (defgroup web-mode nil
   "Major mode for editing mixed HTML templates (PHP/JSP/JS/CSS)."
-  :version "2.00"
+  :version "2.01"
   :group 'languages)
 
 ;;;###autoload
@@ -420,16 +420,18 @@ point is at the beginning of the line."
 
 (defun web-mode-in-php-block ()
   "Detect if point is in a PHP block."
-  (let ((pos (line-beginning-position)))
+  ;;  (let ((pos (line-beginning-position)))
+  (let ((pos (point)))
     (and (string= "php" (get-text-property pos 'block-type))
          (progn
            (setq web-mode-block-limit (previous-single-property-change pos 'block-type))
            t))
-      ))
+    ))
   
 (defun web-mode-in-jsp-block ()
   "Detect if point is in a JSP block."
-  (let ((pos (line-beginning-position)))
+;;  (let ((pos (line-beginning-position)))
+  (let ((pos (point)))
     (save-excursion
       (and (string= "jsp" (get-text-property pos 'block-type))
            (progn
@@ -440,7 +442,8 @@ point is at the beginning of the line."
 
 (defun web-mode-in-directive-block ()
   "Detect if point is in a DIRECTIVE block."
-  (let ((pos (line-beginning-position)))
+;;  (let ((pos (line-beginning-position)))
+  (let ((pos (point)))
     (save-excursion
       (and (string= "directive" (get-text-property pos 'block-type))
            (progn
@@ -451,7 +454,8 @@ point is at the beginning of the line."
 
 (defun web-mode-in-asp-block ()
   "Detect if point is in a ASP block."
-  (let ((pos (line-beginning-position)))
+;;  (let ((pos (line-beginning-position)))
+  (let ((pos (point)))
     (save-excursion
       (and (string= "asp" (get-text-property pos 'block-type))
            (progn
@@ -462,7 +466,8 @@ point is at the beginning of the line."
 
 (defun web-mode-in-client-block (type)
   "Detect if point is in a CSS/JS block."
-  (let ((pos (line-beginning-position)))
+;;  (let ((pos (line-beginning-position)))
+  (let ((pos (point)))
     (string= type (get-text-property pos 'block-type))
     ))
 
@@ -622,7 +627,7 @@ point is at the beginning of the line."
               (and in-php-block
                    (or (string-match-p "<\\?php$" prev-line)
                        (string-match-p "^\\?>" prev-line)
-                       (string-match-p "^<\\?php[ ]+}[ ]+\\?>" cur-line)))
+                       (string-match-p "^<\\?php[ ]+\\(if\\|else\\|for\\|while\\|end\\|\\}\\)" cur-line)))
               (and in-jsp-block 
                    (string-match-p "<%[!]?$" prev-line))
               (and in-asp-block 
@@ -752,9 +757,10 @@ point is at the beginning of the line."
          
          ((and (not (string= web-mode-file-type "xml"))
                (or (string-match-p "^</?\\(head\\|body\\|meta\\|link\\|title\\|style\\|script\\)" cur-line)
-                   (string-match-p "^<\\?php[ ]+\\(if\\|else\\|for\\|while\\|end\\|\\}\\)" cur-line)
+;;                   (string-match-p "^<\\?php[ ]+\\(if\\|else\\|for\\|while\\|end\\|\\}\\)" cur-line)
 ;;                   (string= "<?php" cur-line)
-                   (string-match-p "^\\(<\\?php\\|<%\\|[?%]>\\)" cur-line)))
+;;                   (string-match-p "^\\(<\\?php\\|<%\\|[?%]>\\)" cur-line)
+                   ))
           (setq offset 0)
           )
          
@@ -1198,9 +1204,11 @@ point is at the beginning of the line."
   "Directives.")
 
 (defconst web-mode-js-keywords
-  (eval-when-compile
-    (regexp-opt
-     '("function" "for" "if" "var" "while" "new" "try" "catch")))
+  (regexp-opt
+   (append (if (boundp 'web-mode-extra-js-keywords) 
+               web-mode-extra-js-keywords '())
+           '("function" "for" "if" "var" "while" "new" "try" "catch"
+             )))
   "JavaScript keywords.")
 
 (defun web-mode-highlight-css-props (limit)
@@ -1689,12 +1697,12 @@ point is at the beginning of the line."
     )
   )
 
-(defun web-mode-line-type (&optional pt)
+(defun web-mode-line-type (&optional pos)
   "Line type"
   (let (type)
-    (unless pt (setq pt (point)))
+    (if pos (goto-char pos))
     (save-excursion
-      (beginning-of-line)
+      (back-to-indentation)
       (cond
        
        ((web-mode-in-php-block)
@@ -1705,16 +1713,16 @@ point is at the beginning of the line."
        
        ((web-mode-in-client-block "style")
         (setq type "style"))
-
+       
        ((web-mode-in-jsp-block)
         (setq type "java"))
-
+       
        ((web-mode-in-directice-block)
         (setq type "html"))
-
+       
        ((web-mode-in-asp-block)
         (setq type "asp"))
-
+       
        (t
         (setq type "html"))
        
