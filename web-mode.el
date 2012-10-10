@@ -6,7 +6,7 @@
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
 
-;; Version: 2.01
+;; Version: 2.02
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -37,8 +37,8 @@
 
 ;;;###autoload
 (defgroup web-mode nil
-  "Major mode for editing mixed HTML templates (PHP/JSP/JS/CSS)."
-  :version "2.01"
+  "Major mode for editing mixed HTML templates (PHP/JSP/ASPX/JS/CSS)."
+  :version "2.02"
   :group 'languages)
 
 ;;;###autoload
@@ -1207,7 +1207,8 @@ point is at the beginning of the line."
   (regexp-opt
    (append (if (boundp 'web-mode-extra-js-keywords) 
                web-mode-extra-js-keywords '())
-           '("function" "for" "if" "var" "while" "new" "try" "catch"
+           '("function" "for" "if" "var" "while" "new" "try" "catch" 
+             "return" "true" "false"
              )))
   "JavaScript keywords.")
 
@@ -1346,8 +1347,12 @@ point is at the beginning of the line."
             close-out
             )
         (when (string= closing-string "?>")
+;;          (message "php block is open")
+          (setq close (point-max))
           (font-lock-default-unfontify-region open close)
-          (font-lock-fontify-region open (point-max))
+          (font-lock-fontify-region open close)
+          (put-text-property open-out close 'server-script 't)
+          (put-text-property open-out close 'block-type type)
           (point-max)
           )
         )
