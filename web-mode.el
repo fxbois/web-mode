@@ -1722,7 +1722,7 @@ point is at the beginning of the line."
        ((web-mode-in-jsp-block)
         (setq type "java"))
        
-       ((web-mode-in-directice-block)
+       ((web-mode-in-directive-block)
         (setq type "html"))
        
        ((web-mode-in-asp-block)
