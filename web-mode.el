@@ -2521,11 +2521,7 @@ point is at the beginning of the line."
        ((web-mode-in-server-block 'jsp)
         (setq type "java"))
        
-<<<<<<< HEAD
-       ((web-mode-in-directive-block)
-=======
        ((web-mode-in-server-block 'directive)
->>>>>>> version 3.00
         (setq type "html"))
        
        ((web-mode-in-server-block 'asp)
