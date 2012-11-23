@@ -262,6 +262,7 @@
   (make-local-variable 'font-lock-keywords-case-fold-search)  
   (make-local-variable 'font-lock-keywords-only)  
   (make-local-variable 'font-lock-multiline)
+  (make-local-variable 'font-lock-fontify-buffer-function)
 
   (make-local-variable 'indent-line-function)
   (make-local-variable 'indent-tabs-mode)  
@@ -330,6 +331,7 @@
 ;;  (setq font-lock-extra-managed-props '(server-script block-kind)
   (setq indent-line-function 'web-mode-indent-line
         indent-tabs-mode nil
+        font-lock-keywords-only t
         require-final-newline nil)
 
   (when (not (string= web-mode-file-type "css"))
@@ -337,7 +339,9 @@
 
 ;;  (add-hook 'deactivate-mark-hook 'web-mode-on-deactivate-mark)
 
-  (web-mode-scan (point-min) (point-max))
+  (setq font-lock-fontify-buffer-function 'web-mode-scan-buffer)
+
+  (web-mode-scan-buffer)
 
   )
 
@@ -366,6 +370,12 @@
           (setq continue nil))
       )
     ret))
+
+(defun web-mode-scan-buffer ()
+  "scan buffer."
+  (interactive)
+  (web-mode-scan (point-min) (point-max))
+  )
 
 (defun web-mode-scan (beg end)
   "Identify blocks (JS/CSS/PHP/ASP/JSP/string/comment)."
