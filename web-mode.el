@@ -263,6 +263,7 @@
   (make-local-variable 'font-lock-keywords-only)  
   (make-local-variable 'font-lock-multiline)
   (make-local-variable 'font-lock-fontify-buffer-function)
+  (make-local-variable 'font-lock-fontify-region-function)
 
   (make-local-variable 'indent-line-function)
   (make-local-variable 'indent-tabs-mode)  
@@ -340,6 +341,7 @@
 ;;  (add-hook 'deactivate-mark-hook 'web-mode-on-deactivate-mark)
 
   (setq font-lock-fontify-buffer-function 'web-mode-scan-buffer)
+;;  (setq font-lock-fontify-region-function 'web-mode-scan-region)
 
   (web-mode-scan-buffer)
 
@@ -374,10 +376,11 @@
 (defun web-mode-scan-buffer ()
   "scan buffer."
   (interactive)
-  (web-mode-scan (point-min) (point-max))
+  (message "scan buffer")
+  (web-mode-scan-region (point-min) (point-max))
   )
 
-(defun web-mode-scan (beg end)
+(defun web-mode-scan-region (beg end &optional verbose)
   "Identify blocks (JS/CSS/PHP/ASP/JSP/string/comment)."
   (interactive)
 ;;  (message "scanning buffer from %d to %d" beg end)
@@ -2559,7 +2562,7 @@ point is at the beginning of the line."
   (if (web-mode-is-comment)
       (web-mode-uncomment pos)
     (web-mode-comment pos))
-  (web-mode-scan (point-min) (point-max)))
+  (web-mode-scan-region (point-min) (point-max)))
 
 (defun web-mode-comment (&optional pos)
   "Comment line(s) at point."
@@ -3066,7 +3069,7 @@ point is at the beginning of the line."
            (t
             (setq scan-beg 1))
            );;cond
-          (web-mode-scan scan-beg scan-end)
+          (web-mode-scan-region scan-beg scan-end)
           ))
       
       ))))
