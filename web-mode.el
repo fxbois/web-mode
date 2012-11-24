@@ -35,7 +35,7 @@
   (require 'cl))
 
 (defgroup web-mode nil
-  "Major mode for editing mixed HTML templates (PHP/JSP/ASPX/JS/CSS)."
+  "Major mode for editing mixed HTML templates (PHP/JSP/ASPX/TWIG/JS/CSS)."
   :version "3.00"
   :group 'languages)
 
@@ -284,29 +284,36 @@
 ;;  (make-local-variable 'font-lock-extend-after-change-region-function)
 ;;  (setq font-lock-extend-after-change-region-function 'web-mode-extend-after-change-region)
 
+  ;; todo: rhtml : ruby template
   (cond
 
    ((string-match-p "\\.xml\\'" (buffer-file-name))
     (setq web-mode-file-type "xml"
 ;;          font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil)
           )
-;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
+    ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
     )
-
+   
    ((string-match-p "\\.htm[l]\\'" (buffer-file-name))
     (setq web-mode-file-type "html"
 ;;          font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil)
           )
-;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
+    ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
     )
-
+   
    ((string-match-p "\\.css\\'" (buffer-file-name))
     (setq web-mode-file-type "css"
-;;          web-mode-disable-autocompletion t
-;;          font-lock-defaults '(web-mode-css-font-lock-keywords t t nil nil)
+          ;;          web-mode-disable-autocompletion t
+          ;;          font-lock-defaults '(web-mode-css-font-lock-keywords t t nil nil)
           )
-;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-css-region nil t)
+    ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-css-region nil t)
     )
+   
+   ((string-match-p "\\.as[cp]x\\'" (buffer-file-name))
+    (setq web-mode-server-language "asp"))
+   
+   ((string-match-p "\\.erb\\'" (buffer-file-name))
+    (setq web-mode-server-language "ruby"))
    
    (t
 ;;    (setq font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil))
@@ -314,34 +321,15 @@
     )
    
    )
-  
-
-  ;; todo: rhtml : ruby template
-  (cond
-   
-   ((string-match-p "\\.as[cp]x\\'" (buffer-file-name))
-    (setq web-mode-server-language "asp"))
-
-   ((string-match-p "\\.erb\\'" (buffer-file-name))
-    (setq web-mode-server-language "ruby")
-;;    (font-lock-add-keywords 'web-mode-html-font-lock-keywords
-;;                            '("<%\\(#\\|--\\)\\(.\\|\n\\)*?%>" 0 'web-mode-comment-face t t))
-    )
-   )
 
 ;;  (setq font-lock-extra-managed-props '(server-script block-kind)
   (setq indent-line-function 'web-mode-indent-line
         indent-tabs-mode nil
         font-lock-keywords-only t
-        require-final-newline nil)
+        require-final-newline nil
+        font-lock-fontify-buffer-function 'web-mode-scan-buffer)
 
-  (when (not (string= web-mode-file-type "css"))
-    (add-hook 'after-change-functions 'web-mode-on-after-change t t))
-
-;;  (add-hook 'deactivate-mark-hook 'web-mode-on-deactivate-mark)
-
-  (setq font-lock-fontify-buffer-function 'web-mode-scan-buffer)
-;;  (setq font-lock-fontify-region-function 'web-mode-scan-region)
+  (add-hook 'after-change-functions 'web-mode-on-after-change t t)
 
   (web-mode-scan-buffer)
 
@@ -374,7 +362,7 @@
     ret))
 
 (defun web-mode-scan-buffer ()
-  "scan buffer."
+  "Scan entine buffer."
   (interactive)
   (message "scan buffer")
   (web-mode-scan-region (point-min) (point-max))
@@ -2271,8 +2259,8 @@ point is at the beginning of the line."
      '("as" "autoescape" "block" "break" "cache" "call" "context" "continue"
        "do" "embed" "else" "elseif" "elif"
        "endautoescape" "endblock" "endcache" "endcall" "endembed" "endfilter"
-       "endfor" "endif" "endmacro" "endrandom" "endraw" "endsandbox" "endspaceless"
-       "endtrans" "endwith"
+       "endfor" "endif" "endmacro" "endrandom" "endraw" 
+       "endsandbox" "endspaceless" "endtrans" "endwith"
        "extends" "false" "filter" "flush" "for" "from" 
        "if" "ignore" "import" "in" "include" "is"
        "macro" "missing" "none" "not" "pluralize" "random" "raw" "trans" "true"
@@ -2432,8 +2420,7 @@ point is at the beginning of the line."
 ;;    (message "%S" codes)
     codes))
 
-;; <?php ?>
-;; {% for %} {% endfor %}
+;; todo: <?php ?>
 (defun web-mode-toggle-folding ()
   "Toggle folding on a block."
   (interactive)
