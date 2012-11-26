@@ -217,6 +217,7 @@
     (define-key keymap (kbd "C-c C-a") 'web-mode-indent-buffer)
     (define-key keymap (kbd "C-c C-b") 'web-mode-beginning-of-element)
     (define-key keymap (kbd "C-c C-d") 'web-mode-delete-element)
+    (define-key keymap (kbd "C-c C-e") 'web-mode-select-inner-element)
     (define-key keymap (kbd "C-c C-f") 'web-mode-toggle-folding)
     (define-key keymap (kbd "C-c C-i") 'web-mode-insert)
     (define-key keymap (kbd "C-c C-j") 'web-mode-duplicate-element)
@@ -225,7 +226,7 @@
     (define-key keymap (kbd "C-c C-p") 'web-mode-parent-element)
     (define-key keymap (kbd "C-c C-r") 'web-mode-rename-element)
     (define-key keymap (kbd "C-c C-s") 'web-mode-select-element)
-    
+
     (define-key keymap (kbd "C-^") 
       (lambda ()
         (interactive)
@@ -1944,6 +1945,49 @@ point is at the beginning of the line."
 
     ))
 
+(defun web-mode-tag-beg ()
+  "Fetch tag beg."
+  (interactive)
+  (let ((continue t) ret)
+    (while continue
+      (setq ret t)
+      (if (not (looking-at-p "</?[[:alpha:]]"))
+          (setq ret (re-search-backward "</?[[:alpha:]]" nil t)))
+      (if (or (null ret)
+              (member (get-text-property (point) 'markup-type) '(start end)))
+          (setq continue nil)))
+    ret))
+
+(defun web-mode-tag-end ()
+  "Fetch tag end."
+  (interactive)
+  (let ((continue t) ret)
+    (while continue
+      (setq ret (search-forward ">" nil t))
+      (if (or (null ret)
+              (eq (get-text-property (- (point) 1) 'markup-type) 'close))
+          (setq continue nil)))
+    ret))
+
+(defun web-mode-select-inner-element ()
+  "Select the current HTML element."
+  (interactive)
+  (let (pos beg end)
+    (web-mode-select-element)
+    (when mark-active
+      (setq pos (point))
+      (message "pos(%S)" pos)
+      (deactivate-mark)
+      (web-mode-match-tag)
+      (setq end (point))
+      (goto-char pos)
+      (web-mode-tag-end)
+      (set-mark (point))
+      (goto-char end)
+      (exchange-point-and-mark)
+      )
+    ))
+
 (defun web-mode-select-element ()
   "Select the current HTML element."
   (interactive)
@@ -2176,7 +2220,6 @@ point is at the beginning of the line."
        "macro" "missing" "none" "not" "pluralize" "random" "raw" "trans" "true"
        "sandbox" "set" "spaceless" "use" "var" "with")))
   "Engine keywords.")
-
 
 (defconst web-mode-directives
   (eval-when-compile
@@ -3053,6 +3096,7 @@ point is at the beginning of the line."
               (not (web-mode-is-csss)))
           (setq continue nil)))
     ret))
+
 
 (defun web-mode-reload ()
   "Reload web-mode."
