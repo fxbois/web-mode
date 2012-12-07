@@ -376,7 +376,7 @@
       
       (goto-char beg)
 
-      (while (re-search-forward "<\\?php\\|<\\?=\\|<%#\\|<%[-!@]?\\|<#-\\|[$#]{\\|{[#{%]\\|^%." end t)
+      (while (re-search-forward "<\\?\\(php\\)?\\|<\\?=\\|<%#\\|<%[-!@]?\\|<#-\\|[$#]{\\|{[#{%]\\|^%." end t)
 
         (setq close nil
               tagopen (match-string 0)
@@ -1507,6 +1507,12 @@ point is at the beginning of the line."
           (setq offset (current-column))   
           )
          
+         ((and in-php-block
+               (string-match-p "<\\?" prev-line))
+          (web-mode-sb "<?")
+          (setq offset (current-column))   
+          )
+         
          (t
           ()
           )
@@ -2310,7 +2316,7 @@ point is at the beginning of the line."
 
 (defconst web-mode-php-font-lock-keywords
   (list
-   '("<\\?php\\|<\\?=\\|\\?>" 0 'web-mode-preprocessor-face)
+   '("<\\?\\(php\\)?\\|<\\?=\\|\\?>" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") '(0 'web-mode-keyword-face))
    (cons (concat "(\\<\\(" web-mode-php-types "\\)\\>") '(1 'web-mode-type-face))
    (cons (concat "\\<\\(" web-mode-php-constants "\\)\\>") '(0 'web-mode-constant-face))
@@ -2339,6 +2345,15 @@ point is at the beginning of the line."
    '("foreach" 
      "<?php foreach ( as ): ?>\n" 
      "\n<?php endforeach; ?>")
+   '("if" 
+     "<?if():?>\n" 
+     "\n<?endif?>")
+   '("for" 
+     "<?for( ; ; ):?>\n" 
+     "\n<?endfor?>")
+   '("foreach" 
+     "<?foreach( as )?>\n" 
+     "\n<?endforeach?>")
    '("doctype" 
      "<!DOCTYPE html>\n")
    '("html5"
@@ -2876,6 +2891,17 @@ point is at the beginning of the line."
    '("{% " " %}" "%}" 0))
   "Autocompletes")
 
+(setq web-mode-autocompletes
+  (list
+   ;;'("<?p" "hp  ?>" "\\?>" 3) ; Not sure how to handle the other php tags...
+   ;; '("<?=" "?>" "\\?>" 0)
+   '("<?" "?>" "\\?>" 0)
+   '("<!-" "-  -->" "--" 2)
+   '("<%-" "-  --%>" "--" 2)
+   '("<%@" "  %>" "%>" 1)
+   '("{{" "}}" "}}" 0)
+   '("{%" "%}" "%}" 0)))
+
 (defun web-mode-on-after-change (beg end len)
   "Autocomplete"
 ;;  (message "beg=%d, end=%d, len=%d, cur=%d" beg end len (current-column))
@@ -2978,21 +3004,19 @@ point is at the beginning of the line."
           
           (when (and (>= cur-col 3)
                    (not found))
-          (setq chunk (buffer-substring-no-properties (- beg 2) end))
-          
-          (while (and (< i l)
-                      (not found))
-            (setq expr (elt web-mode-autocompletes i))
-            ;;          (message "%S" expr)
-            (if (string= (elt expr 0) chunk)
-                (unless (string-match-p (elt expr 2) after)
-                  (insert (elt expr 1))
-                  (goto-char (+ pos (elt expr 3)))
-                  (setq found t)))
-            (setq i (1+ i)))        
-          ) ;; when
-        
-        )
+            (while (and (< i l)
+                        (not found))
+              (setq expr (elt web-mode-autocompletes i))
+              (setq chunk (buffer-substring-no-properties (- beg (- (length (elt expr 0)) 1)) end))
+              ;; (message "'%s' '%d' '%s'" chunk (length (elt expr 0)) after)
+              (if (string= (elt expr 0) chunk)
+                  (unless (string-match-p (elt expr 2) after)
+                    (insert (elt expr 1))
+                    (goto-char (+ pos (elt expr 3)))
+                    (setq found t)))
+              (setq i (1+ i)))        
+            ) ;; when
+          )
       
       (save-excursion
         (when (not (= len (- end beg)))
