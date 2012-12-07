@@ -376,7 +376,7 @@
       
       (goto-char beg)
 
-      (while (re-search-forward "<\\?php\\|<\\?=\\|<%#\\|<%[-!@]?\\|<#-\\|[$#]{\\|{[#{%]\\|^%." end t)
+      (while (re-search-forward "<\\?\\(php\\)?\\|<\\?=\\|<%#\\|<%[-!@]?\\|<#-\\|[$#]{\\|{[#{%]\\|^%." end t)
 
         (setq close nil
               tagopen (match-string 0)
@@ -2339,6 +2339,15 @@ point is at the beginning of the line."
    '("foreach" 
      "<?php foreach ( as ): ?>\n" 
      "\n<?php endforeach; ?>")
+   '("if" 
+     "<?if():?>\n" 
+     "\n<?endif?>")
+   '("for" 
+     "<?for( ; ; ):?>\n" 
+     "\n<?endfor?>")
+   '("foreach" 
+     "<?foreach( as )?>\n" 
+     "\n<?endforeach?>")
    '("doctype" 
      "<!DOCTYPE html>\n")
    '("html5"
