@@ -1229,6 +1229,7 @@ point is at the beginning of the line."
   "Detect if point is in a server (PHP/JSP/ASP/directive) block."
   ;;(web-mode-scan-init)  
   (save-excursion
+;;    (progn (message "language=%S" language) t)
     (let ((pos (point)))
       (and (not (bobp))
            (eq (get-text-property pos 'server-language) language)
@@ -1357,8 +1358,7 @@ point is at the beginning of the line."
               web-mode-block-beg (point-min)
               local-indent-offset web-mode-css-indent-offset))
  
-       ((or (string= web-mode-file-type "xml") 
-            (string= web-mode-file-type "html"))
+       ((or (string= web-mode-file-type "xml"))
         (setq in-html-block t
               local-indent-offset web-mode-markup-indent-offset))
       
@@ -1395,7 +1395,7 @@ point is at the beginning of the line."
        
        ) ;;cond
 
-;;     (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) engine(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-engine-block in-asp-block in-html-block in-comment-block)
+;;      (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) engine(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-engine-block in-asp-block in-html-block in-comment-block)
 
 ;;      (message "block limit = %S" web-mode-block-beg)
 
