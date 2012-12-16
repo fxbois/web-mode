@@ -1172,6 +1172,7 @@ point is at the beginning of the line."
   "Detect if point is in a comment, a string or in server script."
   (unless pos (setq pos (point)))
   (or (get-text-property pos 'server-side)
+      (get-text-property pos 'server-tag-name)
       (not (null (member (get-text-property pos 'client-type) '(string comment))))))
 
 (defun web-mode-is-comment-or-string (&optional pos)
