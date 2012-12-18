@@ -376,7 +376,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 
 ;;      (message "%S: %Sx%S" (point) beg end)
       (while (and (> end (point))
-                  (re-search-forward "<\\?\\|<%[#-!@]?\\|</?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%." end t))
+                  (re-search-forward "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%." end t))
 
         (setq close nil
               tagopen (match-string 0)
@@ -399,8 +399,14 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
          ((string= "<%#" tagopen) 
           (setq closing-string "%>"))
 
+         ((string= "[#-" tagopen) 
+          (setq closing-string "--]"))
+
          ((string= "<#-" tagopen) 
           (setq closing-string "-->"))
+
+         ((or (string= "[#" sub2) (string= "[@" sub2) (string= "[/" sub2))
+          (setq closing-string "]"))
 
          ((or (string= "<#" sub2) (string= "<@" sub2) (string= "</" sub2))
           (setq closing-string ">"))
@@ -502,14 +508,16 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
             props '(server-language php face nil)
             keywords web-mode-php-font-lock-keywords))
      
-     ((or (string= "<%-" sub3) (string= "<#-" sub3) (string= "<%#" sub3))
+     ((or (string= "<%-" sub3) (string= "<#-" sub3) 
+          (string= "[#-" sub3) (string= "<%#" sub3))
       (setq props '(server-type comment face web-mode-comment-face)))
      
-     ((or (string= "<#" sub2) (string= "<@" sub2) (string= "</" sub2)) 
+     ((or (string= "<#" sub2) (string= "<@" sub2) (string= "</" sub2)
+          (string= "[#" sub2) (string= "[@" sub2) (string= "[/" sub2)) 
       (setq regexp "\"\\|'"
             keywords web-mode-freemarker-font-lock-keywords
             props '(server-language freemarker face nil))
-      (looking-at "</?\\([#@][[:alnum:]._]+\\)")
+      (looking-at "[<[]/?\\([#@][[:alnum:]._]+\\)")
       (setq tag (match-string-no-properties 1))
       (setq props (plist-put props 'server-tag-name tag))
       (cond
@@ -713,6 +721,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
               (setq attrs-end (match-beginning 0)
                     tag-end (point)
                     close-found t)
+;;              (message "attrs-end=%S" attrs-end)
               ;;              (message "close found , tag=%S (%d > %d)" tag-name tag-beg tag-end)
 
               (when (char-equal (string-to-char (match-string 0)) ?/)
@@ -878,6 +887,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 ;;    (message "beg(%S) end(%S)" beg end)
     (let (name-beg name-end val-beg val-end (state "nil") c pos prev)
       (goto-char (- beg 1))
+;;      (setq end (1- end))
       (while (< (point) end)
         (forward-char)
         (setq pos (point))
@@ -886,6 +896,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
         (cond
          
          ((= (point) end)
+;;          (message "ici")
           (web-mode-propertize-attr state c name-beg name-end val-beg)
           (setq state "nil"
                 name-beg nil
@@ -980,7 +991,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
          
          );;cond
 
-;;        (message "point(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) val-end(%S)" pos state c name-beg name-end val-beg val-end)
+;;        (message "point(%S) end(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) val-end(%S)" pos end state c name-beg name-end val-beg val-end)
 
          (setq prev c)
 
@@ -991,7 +1002,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 (defun web-mode-propertize-attr (state c name-beg name-end val-beg &optional val-end)
   "propertize attr."
   (unless val-end (setq val-end (point)))
-;;  (message "state(%S) name-beg(%S)" state name-beg)
+;;  (message "point(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) val-end(%S)" (point) state c name-beg name-end val-beg val-end)
   (cond
 
    ((and (string= state "value-dq") 
@@ -1009,7 +1020,8 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
     )
 
    (t
-    (add-text-properties name-beg (+ (point) 1) '(client-type attr face web-mode-html-attr-name-face))
+;;    (add-text-properties name-beg (+ (point) 1) '(client-type attr face web-mode-html-attr-name-face))
+    (add-text-properties name-beg (point) '(client-type attr face web-mode-html-attr-name-face))
     (when (and val-beg val-end)
       (setq val-end (if (string= c ">") val-end (+ val-end 1)))
       (add-text-properties val-beg val-end '(face web-mode-html-attr-value-face)))
@@ -2272,7 +2284,7 @@ point is at the beginning of the line."
 
 (defconst web-mode-freemarker-font-lock-keywords
   (list
-   '("</?[#@][[:alpha:]_.]*\\|/?>" 0 'web-mode-preprocessor-face)
+   '("[<[]/?[#@][[:alpha:]_.]*\\|/?>\\|/?]" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-freemarker-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
    '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
    ))
