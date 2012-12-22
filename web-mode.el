@@ -1469,8 +1469,15 @@ point is at the beginning of the line."
           (setq offset (current-column)) 
           )
          
-         ((string= cur-first-char "}")
-          (web-mode-fetch-opening-paren "{" (point) web-mode-block-beg)
+         ((member cur-first-char '("}" ")" "]"))
+          (cond 
+           ((string= cur-first-char "}")
+            (web-mode-fetch-opening-paren "{" (point) web-mode-block-beg))
+           ((string= cur-first-char "]")
+            (web-mode-fetch-opening-paren "[" (point) web-mode-block-beg))
+           ((string= cur-first-char ")")
+            (web-mode-fetch-opening-paren "(" (point) web-mode-block-beg))
+           )
           (setq offset (current-indentation))
           )
          
@@ -1484,8 +1491,16 @@ point is at the beginning of the line."
           )
          
          ((string= prev-last-char ",")
-          (web-mode-fetch-opening-paren "(" pos web-mode-block-beg)
-          (setq offset (+ (current-column) 1))
+          (goto-char pos)
+          (if (not (string-match-p "[({\[]" prev-line))
+              (progn 
+
+                (setq offset prev-indentation)
+                )
+            (when (web-mode-rsb "[({\[]" web-mode-block-beg)
+              (web-mode-fetch-opening-paren (string (char-after)) pos web-mode-block-beg)
+              (setq offset (+ (current-column) 1)))
+            )
           )
          
          ((member prev-last-char '("." "+" "?" ":"))
@@ -1507,7 +1522,7 @@ point is at the beginning of the line."
           (setq offset (current-indentation))
           )
         
-         ((string= prev-last-char "{")
+         ((member prev-last-char '("{" "[" "("))
           (setq offset (+ (current-indentation) local-indent-offset))
           )
          
@@ -1517,8 +1532,7 @@ point is at the beginning of the line."
           (setq offset (- (current-column) 1))
           )
          
-         ((and in-js-block
-               (string-match-p "<script" prev-line))
+         ((and in-js-block (string-match-p "<script" prev-line))
           (web-mode-sb "<script")
           (setq offset (current-column))   
           )
@@ -1725,13 +1739,12 @@ point is at the beginning of the line."
      ((string= paren "{")
       (setq regexp "[}{]"))
 
-     ((string= paren "{")
+     ((string= paren "[")
       (setq regexp "[\]\[]"))
 
      );;cond
 
-    (while (and continue
-                (re-search-backward regexp limit t))
+    (while (and continue (re-search-backward regexp limit t))
       (unless (web-mode-is-comment-or-string)
         (if (string= (string (char-after)) paren)
             (progn 
