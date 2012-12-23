@@ -896,7 +896,6 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
         (cond
          
          ((= (point) end)
-;;          (message "ici")
           (web-mode-propertize-attr state c name-beg name-end val-beg)
           (setq state "nil"
                 name-beg nil
@@ -914,9 +913,11 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
           )
          
          ((and (string= " " c)
-               (or (string= state "space-before")
-                   (string= state "space-after")
-                   (string= state "space")))
+               (member state '("space-before" "space-after" "space"))
+               ;;               (or (string= state "space-before")
+               ;;                   (string= state "space-after")
+               ;;                   (string= state "space"))
+               )
          )
 
          ((and (string= " " c)
@@ -928,10 +929,9 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
                (string= state "equal"))
           (setq state "space-after")
          )
-
+         
          ((and (string= "\n" c) 
-               (not (or (string= state "value-sq") 
-                        (string= state "value-dq"))))
+               (not (member state '("value-sq" "value-dq"))))
           (web-mode-propertize-attr state c name-beg name-end val-beg)
           (setq state "space"
                 name-beg nil
@@ -957,30 +957,26 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
           (setq state "name")
           (setq name-beg (point))
           )
-
+         
          ((and (string= "=" c) 
-               (or (string= state "space-before")
-                   (string= state "name")))
+               (member state '("space-before" "name")))
           (setq name-end (point))
           (setq state "equal")
           )
-
+         
          ((and (string= "\"" c) 
-               (or (string= state "space-after")
-                   (string= state "equal")))
+               (member state '("space-after" "equal")))
           (setq val-beg (point))
           (setq state "value-dq")
           )
-
-         ((and (string= "'" c) 
-               (or (string= state "space-after")
-                   (string= state "equal")))
+         
+         ((and (string= "'" c)
+               (member state '("space-after" "equal")))
           (setq val-beg (point))
           (setq state "value-sq")
           )
 
-         ((or (string= state "space-after")
-              (string= state "equal"))
+         ((member state '("space-after" "equal"))
           (setq val-beg (point))
           (setq state "value-uq")
           )
@@ -1020,8 +1016,15 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
     )
 
    (t
-;;    (add-text-properties name-beg (+ (point) 1) '(client-type attr face web-mode-html-attr-name-face))
-    (add-text-properties name-beg (point) '(client-type attr face web-mode-html-attr-name-face))
+
+    (if (or (and (string= state "value-dq") (string= c "\""))
+            (and (string= state "value-sq") (string= c "'")))
+        (add-text-properties name-beg (+ (point) 1) '(client-type attr face web-mode-html-attr-name-face))
+      (add-text-properties name-beg (point) '(client-type attr face web-mode-html-attr-name-face))
+      )
+
+
+;;    (add-text-properties name-beg (point) '(client-type attr face web-mode-html-attr-name-face))
     (when (and val-beg val-end)
       (setq val-end (if (string= c ">") val-end (+ val-end 1)))
       (add-text-properties val-beg val-end '(face web-mode-html-attr-value-face)))
@@ -1336,7 +1339,6 @@ point is at the beginning of the line."
         cur-indentation
         cur-line-number
         cur-line
-        pos
         in-comment-block
         in-directive-block
         in-engine-block
@@ -1348,10 +1350,12 @@ point is at the beginning of the line."
         in-html-block
         line-number
         (local-indent-offset web-mode-code-indent-offset)
+        n
         offset
+        pos
+        prev-indentation
         prev-last-char 
         prev-line 
-        prev-indentation
         props)
 
     (save-excursion
@@ -1492,13 +1496,16 @@ point is at the beginning of the line."
          
          ((string= prev-last-char ",")
           (goto-char pos)
+          (back-to-indentation)
+;;          (message "prev-line=%S" prev-line)
+          ;; todo : ne pas regarder dans des strings ou comment
           (if (not (string-match-p "[({\[]" prev-line))
               (progn 
-
                 (setq offset prev-indentation)
                 )
             (when (web-mode-rsb "[({\[]" web-mode-block-beg)
-              (web-mode-fetch-opening-paren (string (char-after)) pos web-mode-block-beg)
+;;              (message "%S" (point))
+;;              (web-mode-fetch-opening-paren (string (char-after)) pos web-mode-block-beg)
               (setq offset (+ (current-column) 1)))
             )
           )
@@ -1514,12 +1521,19 @@ point is at the beginning of the line."
           )
 
          ((string= prev-last-char ";")
-          (if (string-match-p ")[ ]*;$" prev-line)
-              (progn 
-                (re-search-backward ")[ ]*;" web-mode-block-beg)
-                (web-mode-fetch-opening-paren "(" (point) web-mode-block-beg))
-            (re-search-backward "\\([=(]\\|^[[:blank:]]*var[ ]*\\)" web-mode-block-beg t))
+          (setq n (web-mode-opened-blocks web-mode-block-beg))
+;;          (message "n=%S block-beg=%S" n web-mode-block-beg)
+          (goto-char web-mode-block-beg)
+          (if in-js-block (search-backward "<"))
           (setq offset (current-indentation))
+          (if (> n 0) (setq offset (+ offset local-indent-offset)))
+
+          ;; (if (string-match-p ")[ ]*;$" prev-line)
+          ;;     (progn 
+          ;;       (re-search-backward ")[ ]*;" web-mode-block-beg)
+          ;;       (web-mode-fetch-opening-paren "(" (point) web-mode-block-beg))
+          ;;   (re-search-backward "\\([=(]\\|^[[:blank:]]*var[ ]*\\)" web-mode-block-beg t))
+          ;; (setq offset (current-indentation))
           )
         
          ((member prev-last-char '("{" "[" "("))
@@ -1621,7 +1635,7 @@ point is at the beginning of the line."
         );; end comment block
 
        (t ;; case html block
-
+        
         (cond
 
 ;;         ((and (not (string= cur-first-char "<"))
@@ -1697,6 +1711,7 @@ point is at the beginning of the line."
           )
          
          (t
+;;          (message "nothing")
           ()
           )
          
@@ -1719,6 +1734,21 @@ point is at the beginning of the line."
   "Is point a the beginning of an html tag."
   (member (get-text-property (point) 'client-tag-type) '(start end void))
   )
+
+
+(defun web-mode-opened-blocks (limit)
+  "Fetch opening paren."
+  (interactive)
+  (unless limit (setq limit nil))
+  (let ((continue t) (n 0) (regexp "[{}]"))
+    (while (and continue (re-search-backward regexp limit t))
+      (unless (web-mode-is-comment-or-string)
+        (if (string= (string (char-after)) "{")
+            (setq n (1+ n))
+          (setq n (1- n))))
+      );while
+;;    (message "opened-blocks(%S)" n)
+    n))
 
 (defun web-mode-fetch-opening-paren (&optional paren pos limit)
   "Fetch opening paren."
