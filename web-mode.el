@@ -637,12 +637,11 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 ;;        (message "elt=%S" (buffer-substring start (point)))
         (add-text-properties start (point) props)
         
-        );;while
+        );while
       
-      );; when
+      );when
     
     ))
-
 
 ;; start-tag, end-tag, tag-name, element (<a>xsx</a>, an element is delimited by tags), void-element
 ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
@@ -1497,17 +1496,28 @@ point is at the beginning of the line."
          ((string= prev-last-char ",")
           (goto-char pos)
           (back-to-indentation)
-;;          (message "prev-line=%S" prev-line)
+          ;;          (message "prev-line=%s" prev-line)
           ;; todo : ne pas regarder dans des strings ou comment
-          (if (not (string-match-p "[({\[]" prev-line))
-              (progn 
-                (setq offset prev-indentation)
-                )
-            (when (web-mode-rsb "[({\[]" web-mode-block-beg)
-;;              (message "%S" (point))
-;;              (web-mode-fetch-opening-paren (string (char-after)) pos web-mode-block-beg)
-              (setq offset (+ (current-column) 1)))
+          (cond
+           ((string-match-p "[({\[]" prev-line)
+            ;;              (message "%S" (point))
+            ;;              (web-mode-fetch-opening-paren (string (char-after)) pos web-mode-block-beg)
+            (web-mode-rsb "[({\[]" web-mode-block-beg)
+            (setq offset (+ (current-column) 1))
             )
+           ((and in-js-block (string-match-p "var " prev-line))
+            (web-mode-sb "var " web-mode-block-beg)
+            (setq offset (+ (current-column) 4))
+            )
+           ((not (string-match-p "[({\[]" prev-line))
+            (setq offset prev-indentation)
+            )
+;;           (t
+;;            (when (web-mode-rsb "[({\[]" web-mode-block-beg)
+;;              ;;              (message "%S" (point))
+;;              ;;              (web-mode-fetch-opening-paren (string (char-after)) pos web-mode-block-beg)
+;;              (setq offset (+ (current-column) 1))))
+            );cond
           )
          
          ((member prev-last-char '("." "+" "?" ":"))
@@ -1521,12 +1531,12 @@ point is at the beginning of the line."
           )
 
          ((string= prev-last-char ";")
-          (setq n (web-mode-opened-blocks web-mode-block-beg))
+          (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
 ;;          (message "n=%S block-beg=%S" n web-mode-block-beg)
           (goto-char web-mode-block-beg)
           (if in-js-block (search-backward "<"))
           (setq offset (current-indentation))
-          (if (> n 0) (setq offset (+ offset local-indent-offset)))
+          (if (> n 0) (setq offset (+ offset (* n local-indent-offset))))
 
           ;; (if (string-match-p ")[ ]*;$" prev-line)
           ;;     (progn 
@@ -1540,8 +1550,7 @@ point is at the beginning of the line."
           (setq offset (+ (current-indentation) local-indent-offset))
           )
          
-         ((and in-php-block
-               (string-match-p "\\(->[ ]?[[:alnum:]_]+\\|)\\)$" prev-line))
+         ((and in-php-block (string-match-p "\\(->[ ]?[[:alnum:]_]+\\|)\\)$" prev-line))
           (web-mode-sb ">" web-mode-block-beg)
           (setq offset (- (current-column) 1))
           )
@@ -1551,9 +1560,8 @@ point is at the beginning of the line."
           (setq offset (current-column))   
           )
          
-         ((and in-php-block
-               (string-match-p "<\\?php" prev-line))
-          (web-mode-sb "<?php")
+         ((and in-php-block (string-match-p "<\\?" prev-line))
+          (web-mode-sb "<?")
           (setq offset (current-column))   
           )
          
@@ -1736,11 +1744,11 @@ point is at the beginning of the line."
   )
 
 
-(defun web-mode-opened-blocks (limit)
-  "Fetch opening paren."
+(defun web-mode-count-opened-blocks-at-point (&optional limit)
+  "Is it an open block."
   (interactive)
   (unless limit (setq limit nil))
-  (let ((continue t) (n 0) (regexp "[{}]"))
+  (let ((continue t) (n 0) (regexp "[}{]"))
     (while (and continue (re-search-backward regexp limit t))
       (unless (web-mode-is-comment-or-string)
         (if (string= (string (char-after)) "{")
