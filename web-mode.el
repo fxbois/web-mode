@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 3.5
+;; Version: 3.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -33,6 +33,8 @@
 
 ;;todo: reconnaissance .ftl
 
+;;todo: premier caractère d'un fichier .css n'est pas colorisé
+
 (eval-when-compile 
   (require 'cl))
 
@@ -40,7 +42,7 @@
   "Major mode for editing web templates.
 `web-mode' is compatible with many template engines: php, jsp, aspx, erb, twig/jinja2.
 HTML files can embed various kinds of blocks: javascript / css / code."
-  :version "3.5"
+  :version "3.6"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -200,6 +202,12 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 (defvar web-mode-tag-regexp "<\\(/?[[:alpha:]@#][[:alnum:]:_]*\\)"
   "Regular expression for HTML/XML tag.")
 
+(defvar web-mode-server-blocks-regexp nil
+  "Regular expression for identifying server blocks.")
+
+(defvar web-mode-engine nil
+  "Template engine")
+
 (defvar web-mode-file-type ""
   "Buffer file type.")
 
@@ -269,12 +277,14 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
   (make-local-variable 'web-mode-buffer-highlighted)
   (make-local-variable 'web-mode-disable-autocompletion)
   (make-local-variable 'web-mode-disable-css-colorization)
+  (make-local-variable 'web-mode-engine)
   (make-local-variable 'web-mode-expand-first-pos)
   (make-local-variable 'web-mode-expand-last-type)
   (make-local-variable 'web-mode-file-type)
   (make-local-variable 'web-mode-indent-context)
   (make-local-variable 'web-mode-indent-style)
   (make-local-variable 'web-mode-is-narrowed)
+  (make-local-variable 'web-mode-server-blocks-regexp)
   (make-local-variable 'web-mode-server-language)
 
 ;;  (make-local-variable 'font-lock-extend-after-change-region-function)
@@ -316,6 +326,23 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
     )
    
+   )
+
+  (cond
+   ((string-match-p "\\.psp\\'" (buffer-file-name))
+    (setq web-mode-engine "php"))
+   ((or (string-match-p "\\.vtl\\'" (buffer-file-name))
+        (string-match-p "\\.vm\\'" (buffer-file-name)))
+    (setq web-mode-engine "velocity")) 
+   )
+  
+  (cond
+   ((string= web-mode-engine "php")
+    (setq web-mode-server-blocks-regexp "<\\?"))
+   ((member web-mode-engine '("velocity" "cheetah"))
+    (setq web-mode-server-blocks-regexp "^[ \t]*#.\\|$[[:alpha:]!{]"))
+   (t
+    (setq web-mode-server-blocks-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%."))
    )
 
   (setq font-lock-fontify-buffer-function 'web-mode-scan-buffer
@@ -366,25 +393,43 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
   "Identifies server blocks."
   (save-excursion
 
-    (let (open close closing-string start sub2 sub3 pos tagopen)
+    (let (open close closing-string continue start sub2 sub3 pos tagopen l)
       
       (goto-char beg)
-;;      (beginning-of-line)
-
-;;      (while (re-search-forward "<\\?php\\|<\\?=\\|<%#\\|<%[-!@]?\\|</?[#@][[:alpha:]-]\\|[$#]{\\|{[#{%]\\|^%." end t)
-;;      (while (re-search-forward "<\\?php\\|<\\?=\\|<%[#-!@]?\\|</?[#@]\\|[$#]{\\|{[#{%]\\|^%." end t)
 
 ;;      (message "%S: %Sx%S" (point) beg end)
+;;      (message "regexp=%S" web-mode-server-blocks-regexp)
       (while (and (> end (point))
-                  (re-search-forward "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%." end t))
+                  (re-search-forward web-mode-server-blocks-regexp end t))
 
         (setq close nil
               tagopen (match-string 0)
-              pos nil
-              sub2 (substring (match-string 0) 0 2))
+              open (match-beginning 0)
+              pos nil)
+
+;;        (message "sub2=%S" tagopen)
+        
+        (when (or (char-equal ?\s (string-to-char tagopen)) 
+                  (char-equal ?\t (string-to-char tagopen)))
+          (setq l (length tagopen))
+          (setq tagopen (replace-regexp-in-string "\\`[ \t]*" "" tagopen))
+          (setq open (+ open (- l (length tagopen))))
+          )
+
+        (setq sub2 (substring tagopen 0 2)) 
+;;        (message "sub2=%S" sub2)
 
         (cond
          
+         ((string= "#*" sub2)
+          (setq closing-string "*#"))
+         
+         ((char-equal ?\# (string-to-char sub2))
+          (setq closing-string "EOL"))
+
+         ((char-equal ?$ (string-to-char sub2))
+          (setq closing-string "EOV"))
+
          ((char-equal ?% (string-to-char sub2)) 
           (setq closing-string "EOL"))
          
@@ -428,24 +473,65 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
          
          ((string= "{#" sub2)
           (setq closing-string "#}"))
+
          
          );cond
         
         (when closing-string
-          
-          (setq open (match-beginning 0))
-          
-          (if (string= closing-string "EOL")
-              (progn
-                (end-of-line)
-                (setq close (point)
-                      pos (point)))
-            (if (search-forward closing-string end t)
-                (setq close (match-end 0)
-                      pos (point))
-              (if (string= "<?" sub2)
-                  (setq close (point-max)
-                        pos (point-max)))))
+
+          (cond
+           
+           ((string= closing-string "EOL")
+            (end-of-line)
+            (setq close (point)
+                  pos (point)))
+
+           ((string= closing-string "EOV")
+            (goto-char open)
+;;            (message "pt=%S %c" (point) (char-after))
+            (when (char-equal ?$ (char-after))
+;;              (message "pt=%S" (point))
+              (forward-char))
+            (when (char-equal ?! (char-after))
+              (message "pt=%S" (point))
+              (forward-char))
+            (if (char-equal ?{ (char-after))
+                (search-forward "}")
+              (setq continue t)
+              (while continue
+                (skip-chars-forward "a-zA-Z0-9_-")
+                (when (char-equal ?\( (char-after))
+                  (search-forward ")")
+                  )
+                (if (char-equal ?\. (char-after))
+                    (forward-char)
+                  (setq continue nil))
+                );while
+              );if
+            (setq close (point)
+                  pos (point)))
+           
+           ((search-forward closing-string end t)
+            (setq close (match-end 0)
+                  pos (point)))
+           
+           ((string= "<?" sub2)
+            (setq close (point-max)
+                  pos (point-max)))
+           
+           )
+
+          ;; (if (string= closing-string "EOL")
+          ;;     (progn
+          ;;       (end-of-line)
+          ;;       (setq close (point)
+          ;;             pos (point)))
+          ;;   (if (search-forward closing-string end t)
+          ;;       (setq close (match-end 0)
+          ;;             pos (point))
+          ;;     (if (string= "<?" sub2)
+          ;;         (setq close (point-max)
+          ;;               pos (point-max)))))
           
           (when close
             ;;          (message "open(%S) close(%S)" open close)
@@ -565,6 +651,13 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
        )
       )
      
+     ((and (string= sub1 "$") (string= web-mode-engine "velocity"))
+      (setq regexp "\"\\|'"
+            props '(server-language velocity face nil)
+            keywords web-mode-velocity-font-lock-keywords)
+      )
+
+
      ((member sub2 '("${" "#{"))
       (setq regexp "\"\\|'"
             props '(server-language jsp face nil)
@@ -585,6 +678,17 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
      
      ((string= "{#" sub2)
       (setq props '(server-type comment face web-mode-comment-face))
+      )
+
+     ((member sub2 '("##" "#*"))
+      (setq props '(server-type comment face web-mode-comment-face))
+      )
+     
+     
+     ((string= sub1 "#")
+      (setq regexp "\"\\|'"
+            props '(server-language velocity face nil)
+            keywords web-mode-velocity-font-lock-keywords)
       )
      
      );cond
@@ -2288,6 +2392,12 @@ point is at the beginning of the line."
              "tag" "throw" "throws" "try" "while")))
   "ASP keywords.")
 
+(defconst web-mode-velocity-directives
+  (eval-when-compile
+    (regexp-opt
+     '("else" "elseif" "end" "foreach" "if" "in" "include" "macro" "parse" "set" "stop")))
+  "Velocity directives.")
+
 (defconst web-mode-freemarker-keywords
   (eval-when-compile
     (regexp-opt
@@ -2340,6 +2450,16 @@ point is at the beginning of the line."
    '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
    ))
 
+(defconst web-mode-velocity-font-lock-keywords
+  (list
+   '("#" 0 'web-mode-preprocessor-face)
+   (cons (concat "\\<\\(" web-mode-velocity-directives "\\)\\>") '(1 'web-mode-keyword-face))
+   '("[.]\\([[:alnum:]_-]+\\)[ ]?("
+     (1 'web-mode-function-name-face))
+   '("[.]\\([[:alnum:]_-]+\\)"
+     (1 'web-mode-variable-name-face))
+   '("\\<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
+   ))
 
 (defconst web-mode-engine-font-lock-keywords
   (list
