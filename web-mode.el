@@ -35,8 +35,7 @@
 
 ;;todo: premier caractère d'un fichier .css n'est pas colorisé
 
-(eval-when-compile 
-  (require 'cl))
+(eval-when-compile (require 'cl))
 
 (defgroup web-mode nil
   "Major mode for editing web templates.
@@ -208,6 +207,11 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 (defvar web-mode-engine nil
   "Template engine")
 
+(defvar web-mode-engine-families 
+  '(("django"   . '("twig" "jinja" "jinja2"))
+    ("velocity" . '("cheetah")))
+  "Engine name aliases")
+
 (defvar web-mode-file-type ""
   "Buffer file type.")
 
@@ -260,105 +264,140 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 (define-derived-mode web-mode prog-mode "Web"
   "Major mode for editing mixed HTML Templates."
 
-  (make-local-variable 'font-lock-extend-region-functions)  
-  (make-local-variable 'font-lock-fontify-buffer-function)
-  (make-local-variable 'font-lock-keywords)  
-  (make-local-variable 'font-lock-keywords-case-fold-search)  
-  (make-local-variable 'font-lock-keywords-only)
-  (make-local-variable 'font-lock-multiline)
-  (make-local-variable 'font-lock-unfontify-buffer-function)
-
-  (make-local-variable 'after-change-functions)
-  (make-local-variable 'indent-line-function)
-  (make-local-variable 'indent-tabs-mode)  
-  (make-local-variable 'require-final-newline)
-
-  (make-local-variable 'web-mode-block-beg)
-  (make-local-variable 'web-mode-buffer-highlighted)
-  (make-local-variable 'web-mode-disable-autocompletion)
-  (make-local-variable 'web-mode-disable-css-colorization)
-  (make-local-variable 'web-mode-engine)
-  (make-local-variable 'web-mode-expand-first-pos)
-  (make-local-variable 'web-mode-expand-last-type)
-  (make-local-variable 'web-mode-file-type)
-  (make-local-variable 'web-mode-indent-context)
-  (make-local-variable 'web-mode-indent-style)
-  (make-local-variable 'web-mode-is-narrowed)
-  (make-local-variable 'web-mode-server-blocks-regexp)
-  (make-local-variable 'web-mode-server-language)
-
-;;  (make-local-variable 'font-lock-extend-after-change-region-function)
-;;  (setq font-lock-extend-after-change-region-function 'web-mode-extend-after-change-region)
-
-  ;; todo: rhtml : ruby template
-  (cond
-
-   ((string-match-p "\\.xml\\'" (buffer-file-name))
-    (setq web-mode-file-type "xml"
-;;          font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil)
+  (let ((bfn (buffer-file-name)) elt l i)
+    
+    (make-local-variable 'font-lock-extend-region-functions)  
+    (make-local-variable 'font-lock-fontify-buffer-function)
+    (make-local-variable 'font-lock-keywords)  
+    (make-local-variable 'font-lock-keywords-case-fold-search)  
+    (make-local-variable 'font-lock-keywords-only)
+    (make-local-variable 'font-lock-multiline)
+    (make-local-variable 'font-lock-unfontify-buffer-function)
+    
+    (make-local-variable 'after-change-functions)
+    (make-local-variable 'indent-line-function)
+    (make-local-variable 'indent-tabs-mode)  
+    (make-local-variable 'require-final-newline)
+    
+    (make-local-variable 'web-mode-block-beg)
+    (make-local-variable 'web-mode-buffer-highlighted)
+    (make-local-variable 'web-mode-disable-autocompletion)
+    (make-local-variable 'web-mode-disable-css-colorization)
+    (make-local-variable 'web-mode-engine)
+    (make-local-variable 'web-mode-engine-families)
+    (make-local-variable 'web-mode-expand-first-pos)
+    (make-local-variable 'web-mode-expand-last-type)
+    (make-local-variable 'web-mode-file-type)
+    (make-local-variable 'web-mode-indent-context)
+    (make-local-variable 'web-mode-indent-style)
+    (make-local-variable 'web-mode-is-narrowed)
+    (make-local-variable 'web-mode-server-blocks-regexp)
+    (make-local-variable 'web-mode-server-language)
+    
+    ;;  (make-local-variable 'font-lock-extend-after-change-region-function)
+    ;;  (setq font-lock-extend-after-change-region-function 'web-mode-extend-after-change-region)
+    
+    ;; todo: rhtml : ruby template
+    (cond
+     
+     ((string-match-p "\\.xml\\'" bfn)
+      (setq web-mode-file-type "xml"
+            ;;          font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil)
+            )
+      ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
+      )
+     
+     ((string-match-p "\\.htm[l]\\'" bfn)
+      (setq web-mode-file-type "html"
+            ;;          font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil)
+            )
+      ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
+      )
+     
+     ((string-match-p "\\.css\\'" bfn)
+      (setq web-mode-file-type "css"
+            ;;          web-mode-disable-autocompletion t
+            ;;          font-lock-defaults '(web-mode-css-font-lock-keywords t t nil nil)
           )
-    ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
-    )
-   
-   ((string-match-p "\\.htm[l]\\'" (buffer-file-name))
-    (setq web-mode-file-type "html"
-;;          font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil)
-          )
-    ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
-    )
-   
-   ((string-match-p "\\.css\\'" (buffer-file-name))
-    (setq web-mode-file-type "css"
-          ;;          web-mode-disable-autocompletion t
-          ;;          font-lock-defaults '(web-mode-css-font-lock-keywords t t nil nil)
-          )
-    ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-css-region nil t)
-    )
-   
-   ((string-match-p "\\.as[cp]x\\'" (buffer-file-name))
-    (setq web-mode-server-language "asp"))
-   
-   ((string-match-p "\\.erb\\'" (buffer-file-name))
-    (setq web-mode-server-language "ruby"))
-   
-   (t
-;;    (setq font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil))
-;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
-    )
-   
-   )
+      ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-css-region nil t)
+      )
+     
+     ((string-match-p "\\.as[cp]x\\'" bfn)
+      (setq web-mode-server-language "asp"))
+     
+     ((string-match-p "\\.erb\\'" bfn)
+      (setq web-mode-server-language "ruby"))
+     
+     (t
+      ;;    (setq font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil))
+      ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
+      )
+     
+     )
+    
+    (when (boundp 'web-mode-engines-alist)
+      (setq i 0
+            l (length web-mode-engines-alist))
+      (while (< i l)
+        (setq elt (nth i web-mode-engines-alist)
+              i (1+ i))
+        (when (string-match-p (car elt) bfn)
+          (setq web-mode-engine (cdr elt)))
+        );while
+      );when
+    
+    (when (null web-mode-engine)
+      (cond
+       ((string-match-p "\\.jsp\\'" bfn)
+        (setq web-mode-engine "jsp"))
+       ((string-match-p "\\.as[cp]x?\\'" bfn)
+        (setq web-mode-engine "asp"))
+       ((string-match-p "\\.djhtml\\'" bfn)
+        (setq web-mode-engine "django"))
+       ((or (string-match-p "\\.vsl\\'" bfn)
+            (string-match-p "\\.vm\\'" bfn))
+        (setq web-mode-engine "velocity")) 
+       );cond
+      );when
+    
+    (when (not (null web-mode-engine))
+      (setq i 0
+            l (length web-mode-engine-families))
+      (while (< i l)
+        (setq elt (nth i web-mode-engine-families)
+              i (1+ i))
+        (when (member web-mode-engine (cdr elt))
+          (setq web-mode-engine (car elt)))
+        );while
+      );when
 
-  (cond
-   ((string-match-p "\\.psp\\'" (buffer-file-name))
-    (setq web-mode-engine "php"))
-   ((or (string-match-p "\\.vtl\\'" (buffer-file-name))
-        (string-match-p "\\.vm\\'" (buffer-file-name)))
-    (setq web-mode-engine "velocity")) 
-   )
-  
-  (cond
-   ((string= web-mode-engine "php")
-    (setq web-mode-server-blocks-regexp "<\\?"))
-   ((member web-mode-engine '("velocity" "cheetah"))
-    (setq web-mode-server-blocks-regexp "^[ \t]*#.\\|$[[:alpha:]!{]"))
-   (t
-    (setq web-mode-server-blocks-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%."))
-   )
+    (cond
+     ((string= web-mode-engine "php")
+      (setq web-mode-server-blocks-regexp "<\\?"))
+     ((string= web-mode-engine "velocity")
+      (setq web-mode-server-blocks-regexp "^[ \t]*#.\\|$[[:alpha:]!{]"))
+     ((string= web-mode-engine "django")
+      (setq web-mode-server-blocks-regexp "{[#{%]"))
+     (t
+      (setq web-mode-server-blocks-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%."))
+     )
+    
+;;    (message "regexp=%S" web-mode-server-blocks-regexp)
 
-  (setq font-lock-fontify-buffer-function 'web-mode-scan-buffer
-        font-lock-keywords-only t
-        font-lock-unfontify-buffer-function 'web-mode-scan-buffer
-        indent-line-function 'web-mode-indent-line
-        indent-tabs-mode nil
-        require-final-newline nil)
+    (setq font-lock-fontify-buffer-function 'web-mode-scan-buffer
+          font-lock-keywords-only t
+          font-lock-unfontify-buffer-function 'web-mode-scan-buffer
+          indent-line-function 'web-mode-indent-line
+          indent-tabs-mode nil
+          require-final-newline nil)
+    
+    (remove-hook 'after-change-functions 'font-lock-after-change-function t)
+    
+    (add-hook 'after-change-functions 'web-mode-on-after-change t t)
 
-  (remove-hook 'after-change-functions 'font-lock-after-change-function t)
-  
-  (add-hook 'after-change-functions 'web-mode-on-after-change t t)
-
-  (web-mode-scan-buffer)
-
-  )
+    (web-mode-scan-buffer)
+    
+    ))
 
 (defun web-mode-scan-buffer ()
   "Scan entine buffer."
@@ -493,7 +532,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 ;;              (message "pt=%S" (point))
               (forward-char))
             (when (char-equal ?! (char-after))
-              (message "pt=%S" (point))
+;;              (message "pt=%S" (point))
               (forward-char))
             (if (char-equal ?{ (char-after))
                 (search-forward "}")
