@@ -9,8 +9,8 @@
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
-;; Keywords: Web Template HTML PHP JavaScript CSS JS JSP ASP ERB Twig Jinja2
-;;           Freemarker
+;; Keywords: Web Template HTML PHP JavaScript CSS JS JSP ASP ERB Twig Jinja
+;;           FreeMarker Django Velocity Cheetah
 ;; URL: http://github.com/fxbois/web-mode
 ;;      http://web-mode.org
 
@@ -208,8 +208,8 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
   "Template engine")
 
 (defvar web-mode-engine-families 
-  '(("django"   . '("twig" "jinja" "jinja2"))
-    ("velocity" . '("cheetah")))
+  '(("django"   . ("twig" "jinja" "jinja2"))
+    ("velocity" . ("cheetah")))
   "Engine name aliases")
 
 (defvar web-mode-file-type ""
@@ -353,7 +353,9 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
        ((string-match-p "\\.as[cp]x?\\'" bfn)
         (setq web-mode-engine "asp"))
        ((string-match-p "\\.djhtml\\'" bfn)
-        (setq web-mode-engine "django"))
+        (setq web-mode-engine "twig"))
+       ((string-match-p "\\.ftl\\'" bfn)
+        (setq web-mode-engine "freemarker"))
        ((or (string-match-p "\\.vsl\\'" bfn)
             (string-match-p "\\.vm\\'" bfn))
         (setq web-mode-engine "velocity")) 
@@ -366,6 +368,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
       (while (< i l)
         (setq elt (nth i web-mode-engine-families)
               i (1+ i))
+;;        (message "%S %S" web-mode-engine (cdr elt))
         (when (member web-mode-engine (cdr elt))
           (setq web-mode-engine (car elt)))
         );while
@@ -378,11 +381,13 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
       (setq web-mode-server-blocks-regexp "^[ \t]*#.\\|$[[:alpha:]!{]"))
      ((string= web-mode-engine "django")
       (setq web-mode-server-blocks-regexp "{[#{%]"))
+     ((string= web-mode-engine "freemarker")
+      (setq web-mode-server-blocks-regexp "[<[]/?[#@][-]?\\|${"))
      (t
       (setq web-mode-server-blocks-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%."))
      )
     
-;;    (message "regexp=%S" web-mode-server-blocks-regexp)
+;;    (message "engine=%S regexp=%S" web-mode-engine web-mode-server-blocks-regexp)
 
     (setq font-lock-fontify-buffer-function 'web-mode-scan-buffer
           font-lock-keywords-only t
