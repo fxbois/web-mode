@@ -1,7 +1,9 @@
 web-mode
 ========
 
-web-mode.el is an emacs major mode for editing mixed HTML templates (HTML embedding PHP / JavaScript / CSS / JSP / ASPX / Twig / Jinja2 / ERB).
+web-mode.el is an emacs major mode for editing web templates aka HTML files embedding CSS / JavaScript and Server Code blocks.
+
+Template engines compatibility: PHP, JSP, ASP, Django, Twig, Jinja, ERB, FreeMarker, Velocity, Cheetah, Smarty
 
 More infos on http://web-mode.org/
 
