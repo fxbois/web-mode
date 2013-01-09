@@ -5,12 +5,12 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 3.9
+;; Version: 4.0
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
 ;; Keywords: Web Template HTML PHP JavaScript CSS JS JSP ASP ERB Twig Jinja
-;;           FreeMarker Django Velocity Cheetah
+;;           FreeMarker Django Velocity Cheetah Smarty
 ;; URL: http://github.com/fxbois/web-mode
 ;;      http://web-mode.org
 
@@ -31,17 +31,13 @@
 ;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
-;;todo: reconnaissance .ftl
-
-;;todo: premier caractère d'un fichier .css n'est pas colorisé
-
 (eval-when-compile (require 'cl))
 
 (defgroup web-mode nil
   "Major mode for editing web templates.
 `web-mode' is compatible with many template engines: php, jsp, aspx, erb, django/twig/jinja2.
 HTML files can embed various kinds of blocks: javascript / css / code."
-  :version "3.9"
+  :version "4.0"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -77,9 +73,9 @@ HTML files can embed various kinds of blocks: javascript / css / code."
   :type 'bool
   :group 'web-mode)
 
-(defcustom web-mode-indent-style 2
-  "Indentation style (1=leftish, 2=standard). 
-With the value 1 blocks like <?php for (): ?> stay on the left (no indentation)."
+(defcustom web-mode-indent-style 1
+  "Indentation style (1=standard, 2=leftish). 
+With the value 2 blocks like <?php for (): ?> stay on the left (no indentation)."
   :type 'integer
   :group 'web-mode)
 
@@ -176,7 +172,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
   "Face for language keywords."
   :group 'web-mode-faces)
 
-(defface web-mode-server-attr-name-face
+(defface web-mode-param-name-face
   '((t :foreground "Snow3"))
   "Face for server attribute names."
   :group 'web-mode-faces)
@@ -189,7 +185,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
   "Void (self-closing) tags.")
 
 (defconst web-mode-text-properties
-  '(client-tag-name nil client-tag-type nil server-tag-name nil server-tag-type nil client-language nil server-language nil client-side nil server-side nil client-type nil server-type nil face nil)
+  '(client-tag-name nil client-tag-type nil server-tag-name nil server-tag-type nil client-language nil server-engine nil client-side nil server-side nil client-type nil server-type nil face nil)
   "Text properties used for fontification and indentation.")
 
 (defvar web-mode-expand-first-pos nil
@@ -214,6 +210,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 
 (defvar web-mode-engine-families 
   '(("django"   . ("twig" "jinja" "jinja2"))
+    ("erb"      . ("eruby" "ember" "erubis"))
     ("velocity" . ("cheetah")))
   "Engine name aliases")
 
@@ -232,9 +229,6 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 (defvar web-mode-hook nil
   "List of functions to be executed with web-mode.")
 
-(defvar web-mode-server-language "php"
-  "Server script language.")
-
 (defvar web-mode-buffer-highlighted nil
   "Is buffer highlighted.")
 
@@ -248,7 +242,6 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
   (let ((keymap (make-sparse-keymap)))
     (define-key keymap (kbd "C-c C-;") 'web-mode-comment-uncomment)
     (define-key keymap (kbd "C-;")     'web-mode-comment-uncomment)
-    (define-key keymap (kbd "C-c C-(") 'web-mode-fetch-opening-paren)
     (define-key keymap (kbd "C-c C-a") 'web-mode-indent-buffer)
     (define-key keymap (kbd "C-c C-b") 'web-mode-beginning-of-element)
     (define-key keymap (kbd "C-c C-d") 'web-mode-delete-element)
@@ -297,45 +290,18 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
     (make-local-variable 'web-mode-indent-style)
     (make-local-variable 'web-mode-is-narrowed)
     (make-local-variable 'web-mode-server-blocks-regexp)
-    (make-local-variable 'web-mode-server-language)
     
     ;;  (make-local-variable 'font-lock-extend-after-change-region-function)
     ;;  (setq font-lock-extend-after-change-region-function 'web-mode-extend-after-change-region)
     
-    ;; todo: rhtml : ruby template
     (cond
      
      ((string-match-p "\\.xml\\'" bfn)
-      (setq web-mode-file-type "xml"
-            ;;          font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil)
-            )
-      ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
+      (setq web-mode-file-type "xml")
       )
-     
-     ((string-match-p "\\.htm[l]\\'" bfn)
-      (setq web-mode-file-type "html"
-            ;;          font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil)
-            )
-      ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
-      )
-     
+          
      ((string-match-p "\\.css\\'" bfn)
-      (setq web-mode-file-type "css"
-            ;;          web-mode-disable-autocompletion t
-            ;;          font-lock-defaults '(web-mode-css-font-lock-keywords t t nil nil)
-          )
-      ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-css-region nil t)
-      )
-     
-     ((string-match-p "\\.as[cp]x\\'" bfn)
-      (setq web-mode-server-language "asp"))
-     
-     ((string-match-p "\\.erb\\'" bfn)
-      (setq web-mode-server-language "ruby"))
-     
-     (t
-      ;;    (setq font-lock-defaults '(web-mode-html-font-lock-keywords t t nil nil))
-      ;;    (add-hook 'font-lock-extend-region-functions 'web-mode-font-lock-extend-region nil t)
+      (setq web-mode-file-type "css")
       )
      
      )
@@ -353,6 +319,9 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
     
     (when (null web-mode-engine)
       (cond
+       ((or (string-match-p "\\.erb\\'" bfn) 
+            (string-match-p "\\.rhtml\\'" bfn))
+        (setq web-mode-engine "erb"))
        ((string-match-p "\\.tpl\\'" bfn)
         (setq web-mode-engine "smarty"))
        ((string-match-p "\\.jsp\\'" bfn)
@@ -387,13 +356,16 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
      ((string= web-mode-engine "php")
       (setq web-mode-server-blocks-regexp "<\\?"))
      ((string= web-mode-engine "velocity")
-      (setq web-mode-server-blocks-regexp "^[ \t]*#.\\|$[[:alpha:]!{]"))
+      (setq web-mode-server-blocks-regexp "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]"))
      ((string= web-mode-engine "django")
       (setq web-mode-server-blocks-regexp "{[#{%]"))
      ((string= web-mode-engine "freemarker")
       (setq web-mode-server-blocks-regexp "[<[]/?[#@][-]?\\|${"))
      ((string= web-mode-engine "smarty")
-      (setq web-mode-server-blocks-regexp "{[^ ]"))
+;;      (setq web-mode-server-blocks-regexp "{[^ ]"))
+      (setq web-mode-server-blocks-regexp "{[[:alpha:]#$/*\"]"))
+     ((string= web-mode-engine "asp")
+      (setq web-mode-server-blocks-regexp "<%."))
 ;;      (setq web-mode-server-blocks-regexp "{[[:alpha:]*$#]"))
      (t
       (setq web-mode-server-blocks-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%."))
@@ -443,13 +415,11 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
           )
          )))))
 
-;; todo : <%# : same tag for aspx data binding expression et erb comments
-;; todo : les attributs sont settes dans cette boucle <c:set var="ageTotal" value="${0}" />
 (defun web-mode-mark-server-boundaries (beg end)
   "Identifies server blocks."
   (save-excursion
 
-    (let (open close closing-string continue start sub2 sub3 pos tagopen l)
+    (let (open close closing-string continue start sub2 sub3 pos tagopen l tmp)
       
       (goto-char beg)
       
@@ -558,7 +528,12 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
            
            ((and (string= web-mode-engine "smarty")
                  (string= closing-string "}"))
-            (web-mode-fetch-closing-paren "}" (point) (line-end-position))
+            (goto-char open)
+            (setq tmp (web-mode-fetch-closing-paren-pos (point) (line-end-position)))
+            (if tmp
+                (setq tmp (1+ tmp))
+              (setq tmp (line-end-position)))
+            (goto-char tmp)
             (setq close (point)
                   pos (point))
             )
@@ -603,18 +578,6 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
            
            )
           
-          ;; (if (string= closing-string "EOL")
-          ;;     (progn
-          ;;       (end-of-line)
-          ;;       (setq close (point)
-          ;;             pos (point)))
-          ;;   (if (search-forward closing-string end t)
-          ;;       (setq close (match-end 0)
-          ;;             pos (point))
-          ;;     (if (string= "<?" sub2)
-          ;;         (setq close (point-max)
-          ;;               pos (point-max)))))
-          
           (when close
             ;;          (message "open(%S) close(%S)" open close)
             (add-text-properties open close '(server-side t))
@@ -656,7 +619,6 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
       
       )))
 
-;; todo : renommer server-language en server-engine
 ;; todo : move props from server-boundaries to here
 (defun web-mode-scan-server-block (beg end)
   "Scan server block."
@@ -676,18 +638,17 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
      
      ((string= "<?" sub2) 
       (setq regexp "//\\|/\\*\\|\"\\|'\\|<<<['\"]?\\([[:alnum:]]+\\)['\"]?"
-            props '(server-language php face nil)
+            props '(server-engine php face nil)
             keywords web-mode-php-font-lock-keywords))
      
-     ((or (string= "<%-" sub3) (string= "<#-" sub3) 
-          (string= "[#-" sub3) (string= "<%#" sub3))
+     ((or (string= "<%-" sub3) (string= "<#-" sub3) (string= "[#-" sub3))
       (setq props '(server-type comment face web-mode-comment-face)))
      
      ((or (string= "<#" sub2) (string= "<@" sub2) (string= "</" sub2)
           (string= "[#" sub2) (string= "[@" sub2) (string= "[/" sub2)) 
       (setq regexp "\"\\|'"
             keywords web-mode-freemarker-font-lock-keywords
-            props '(server-language freemarker face nil))
+            props '(server-engine freemarker face nil))
       (looking-at "[<[]/?\\([#@][[:alnum:]._]+\\)")
       (setq tag (match-string-no-properties 1))
       (setq props (plist-put props 'server-tag-name tag))
@@ -709,7 +670,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
      
      ((string= "<%@" sub3) 
       (setq regexp "/\\*"
-            props '(server-language directive face nil)
+            props '(server-engine directive face nil)
             keywords web-mode-directive-font-lock-keywords))
      
      ((string= "<%$" sub3)
@@ -717,19 +678,24 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
             props '(face nil)           
             keywords web-mode-expression-font-lock-keywords))
      
+     ((and (string= sub3 "<%#")
+           (not (string= web-mode-engine "asp")))
+      (setq props '(server-type comment face web-mode-comment-face))
+      )
+
      ((or (string= "<%" sub2) (string= "%" sub1))
       (setq regexp "//\\|/\\*\\|\"\\|'")
       (cond
-       ((or (string= "%" sub1) (string= web-mode-server-language "ruby"))
-        (setq props '(server-language ruby face nil)
+       ((or (string= "%" sub1) (string= web-mode-engine "erb"))
+        (setq props '(server-engine erb face nil)
               keywords web-mode-jsp-font-lock-keywords)
         )
-       ((string= web-mode-server-language "asp")
-        (setq props '(server-language asp face nil)
+       ((string= web-mode-engine "asp")
+        (setq props '(server-engine asp face nil)
               keywords web-mode-asp-font-lock-keywords)
         )
        (t
-        (setq props '(server-language jsp face nil)
+        (setq props '(server-engine jsp face nil)
               keywords web-mode-jsp-font-lock-keywords)
         )
        )
@@ -741,32 +707,32 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
      
      ((and (string= sub1 "{") (string= web-mode-engine "smarty"))
       (setq regexp "\"\\|'"
-            props '(server-language smarty face nil)
+            props '(server-engine smarty face nil)
             keywords web-mode-smarty-font-lock-keywords)
       )
 
      ((and (string= sub1 "$") (string= web-mode-engine "velocity"))
       (setq regexp "\"\\|'"
-            props '(server-language velocity face nil)
+            props '(server-engine velocity face nil)
             keywords web-mode-velocity-font-lock-keywords)
       )
 
 
      ((member sub2 '("${" "#{"))
       (setq regexp "\"\\|'"
-            props '(server-language jsp face nil)
+            props '(server-engine jsp face nil)
             keywords web-mode-uel-font-lock-keywords)
       )
      
      ((string= "{{" sub2)
       (setq regexp "\"\\|'"
-            props '(server-language django face nil)
+            props '(server-engine django face nil)
             keywords web-mode-uel-font-lock-keywords)
       )
      
      ((string= "{%" sub2)
       (setq regexp "//\\|/\\*\\|\"\\|'"
-            props '(server-language django face nil)
+            props '(server-engine django face nil)
             keywords web-mode-django-font-lock-keywords)
       )
      
@@ -781,7 +747,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
      
      ((string= sub1 "#")
       (setq regexp "\"\\|'"
-            props '(server-language velocity face nil)
+            props '(server-engine velocity face nil)
             keywords web-mode-velocity-font-lock-keywords)
       )
      
@@ -980,8 +946,6 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
   (save-excursion
     (let (regexp props fc start continue ms keywords rules-beg rules-end props-beg props-end)
       
-      (goto-char beg)
-      
       (cond
        
        ((string= "script" tag-name) 
@@ -1001,7 +965,7 @@ With the value 1 blocks like <?php for (): ?> stay on the left (no indentation).
 
       (when (string= "style" tag-name)
         (goto-char beg)
-        (setq rules-beg (+ beg 1))
+        (setq rules-beg (if (= beg 1) 1 (+ beg 1)))
         (while (and rules-beg
                     (search-forward "{" end t) 
                     (< (point) end))
@@ -1439,17 +1403,17 @@ point is at the beginning of the line."
       )))
 
 (defun web-mode-in-server-block (language)
-  "Detect if point is in a server (PHP/JSP/ASP/directive) block."
+  "Detect if point is in a server block."
   ;;(web-mode-scan-init)  
   (save-excursion
 ;;    (progn (message "language=%S" language) t)
     (let ((pos (point)))
       (and (not (bobp))
-           (eq (get-text-property pos 'server-language) language)
-           (eq (get-text-property (- pos 1) 'server-language) language)
+           (eq (get-text-property pos 'server-engine) language)
+           (eq (get-text-property (- pos 1) 'server-engine) language)
            (not (looking-at-p "\\?>\\|%>"))
            (progn
-             (setq web-mode-block-beg (or (previous-single-property-change pos 'server-language)
+             (setq web-mode-block-beg (or (previous-single-property-change pos 'server-engine)
                                           (point-min)))
              t)
            )
@@ -1552,8 +1516,9 @@ point is at the beginning of the line."
         pos
         prev-indentation
         prev-last-char 
-        prev-line 
-        props)
+        prev-line
+        props
+        tmp)
 
     (save-excursion
       (setq cur-line-beg-pos (line-beginning-position)
@@ -1595,7 +1560,7 @@ point is at the beginning of the line."
         (setq in-style-block t
               local-indent-offset web-mode-css-indent-offset))
 
-       ((eq (get-text-property (point) 'server-language) 'django)
+       ((eq (get-text-property (point) 'server-engine) 'django)
         (setq in-django-block t)
         )
        
@@ -1670,17 +1635,24 @@ point is at the beginning of the line."
           (setq offset (current-column)) 
           )
          
-         ((member cur-first-char '("}" ")" "]"))
-          (cond 
-           ((string= cur-first-char "}")
-            (web-mode-fetch-opening-paren "{" (point) web-mode-block-beg))
-           ((string= cur-first-char "]")
-            (web-mode-fetch-opening-paren "[" (point) web-mode-block-beg))
-           ((string= cur-first-char ")")
-            (web-mode-fetch-opening-paren "(" (point) web-mode-block-beg))
-           )
-          (setq offset (current-indentation))
+         ((member cur-first-char '("}" ")"))
+          (goto-char pos)
+          (back-to-indentation)
+          (setq tmp (web-mode-fetch-opening-paren-pos (point) web-mode-block-beg))
+          (when tmp 
+            (goto-char tmp)
+            (setq offset (current-indentation)))
           )
+
+         ((member cur-first-char '("]"))
+          (goto-char pos)
+          (back-to-indentation)
+          (setq tmp (web-mode-fetch-opening-paren-pos (point) web-mode-block-beg))
+          (when tmp 
+            (goto-char tmp)
+            (setq offset (current-column)))
+          )
+
          
          ((string= cur-first-char "?")
           (web-mode-rsb "[=(]" web-mode-block-beg)
@@ -1694,14 +1666,16 @@ point is at the beginning of the line."
          ((string= prev-last-char ",")
           (goto-char pos)
           (back-to-indentation)
-          ;;          (message "prev-line=%s" prev-line)
+;;          (message "prev-line=%s" prev-line)
           ;; todo : ne pas regarder dans des strings ou comment
           (cond
            ((string-match-p "[({\[]" prev-line)
-            ;;              (message "%S" (point))
-            ;;              (web-mode-fetch-opening-paren (string (char-after)) pos web-mode-block-beg)
-            (web-mode-rsb "[({\[]" web-mode-block-beg)
-            (setq offset (+ (current-column) 1))
+            (setq tmp (web-mode-fetch-opening-paren-block-pos (point) web-mode-block-beg))
+;;            (message "tmp=%S" tmp)
+;;            (web-mode-rsb "[({\[]" web-mode-block-beg)
+            (when tmp 
+              (goto-char tmp)
+              (setq offset (+ (current-column) 1)))
             )
            ((and in-js-block (string-match-p "var " prev-line))
             (web-mode-sb "var " web-mode-block-beg)
@@ -1790,7 +1764,7 @@ point is at the beginning of the line."
          
          ((or (string-match-p "\\(^}\\|{\\)" cur-line)
               (not (web-mode-is-line-in-block "{" "}")))
-          (if (or (= web-mode-indent-style 1) 
+          (if (or (= web-mode-indent-style 2) 
                   (string= web-mode-file-type "css"))
               (setq offset 0)
             (web-mode-sb "<style")
@@ -1806,7 +1780,7 @@ point is at the beginning of the line."
           )
          
          (t
-          (if (or (= web-mode-indent-style 1) 
+          (if (or (= web-mode-indent-style 2) 
                   (string= web-mode-file-type "css"))
               (setq offset local-indent-offset)
             (web-mode-sb "<style" nil t)
@@ -1855,7 +1829,7 @@ point is at the beginning of the line."
           (setq offset (current-column))
           )
                   
-         ((and (= web-mode-indent-style 1)
+         ((and (= web-mode-indent-style 2)
                ;;               (or (string-match-p "^</?\\(head\\|body\\|meta\\|link\\|title\\|style\\|script\\)" cur-line)
                (string-match-p "^\\(<\\?php\\|</?[@#]\\|<%\\|[?%]>\\)" cur-line)
                ;;                   )
@@ -1863,7 +1837,7 @@ point is at the beginning of the line."
           (setq offset 0)
           )
 
-         ((and (> web-mode-indent-style 1)
+         ((and (> web-mode-indent-style 2)
                (string-match-p "^\\(\\?>\\|%>\\)" cur-line))
           (goto-char pos)
           (web-mode-rsb "<[%?]")
@@ -1887,6 +1861,17 @@ point is at the beginning of the line."
          ((and (string= web-mode-engine "smarty")
                (char-equal (string-to-char cur-line) ?{))
           (if (string-match-p "^{/" cur-line)
+              (progn
+                (goto-char pos)
+                (back-to-indentation)
+                (web-mode-match-tag)
+                (setq offset (current-indentation)))
+            (setq offset prev-indentation))
+          )
+
+         ((and (string= web-mode-engine "velocity")
+               (char-equal (string-to-char cur-line) ?#))
+          (if (string-match-p "^#end" cur-line)
               (progn
                 (goto-char pos)
                 (back-to-indentation)
@@ -1966,78 +1951,145 @@ point is at the beginning of the line."
 ;;    (message "opened-blocks(%S)" n)
     n))
 
-(defun web-mode-fetch-closing-paren (&optional paren pos limit)
+(defun web-mode-fetch-opening-paren-pos (&optional pos limit)
   "Fetch opening paren."
   (interactive)
-  (unless paren (setq paren ")"))
-  (unless pos (setq pos (point)))
-  (unless limit (setq limit nil))
-;;  (message (web-mode-text-at-point))
-  (let ((continue t) 
-        (n 0)
-        regexp)
-
-    (cond
-
-     ((string= paren ")")
-      (setq regexp "[)(]"))
-
-     ((string= paren "}")
-      (setq regexp "[}{]"))
-
-     ((string= paren "]")
-      (setq regexp "[\]\[]"))
-
-     );;cond
-
-    (while (and continue (re-search-forward regexp limit t))
-      (unless (web-mode-is-comment-or-string)
-        (if (string= (string (char-before)) paren)
-            (progn 
-              (setq n (1- n))
-              (if (< n 0) (setq continue nil)))
-          (setq n (1+ n)))
-;;        (message "pt=%S char=%S n=%S" (point) (string (char-before)) n)
+  (save-restriction
+;;    (unless paren (setq paren "("))
+    (unless pos (setq pos (point)))
+    (unless limit (setq limit nil))
+    (goto-char pos)
+    (let ((continue t) 
+          (n -1)
+          paren
+          (pairs '((")" . "[)(]")
+                   ("]" . "[\]\[]")
+                   ("}" . "[}{]")))
+          pt
+          regexp)
+      
+      (setq paren (string (char-after)))
+;;      (message "parent=%S" paren)
+      (setq regexp (cdr (assoc paren pairs)))
+      (if (null regexp) (setq continue nil))
+      
+      ;; (cond
+       
+      ;;  ((string= paren "(")
+      ;;   (setq regexp "[)(]"))
+       
+      ;;  ((string= paren "{")
+      ;;   (setq regexp "[}{]"))
+       
+      ;;  ((string= paren "[")
+      ;;   (setq regexp "[\]\[]"))
+       
+      ;;  );cond
+      
+      (while (and continue (re-search-backward regexp limit t))
+        (unless (web-mode-is-comment-or-string)
+;;          (message "pos=%S pt=%S" pos (point))
+          (if (not (string= (string (char-after)) paren))
+              (progn 
+                (setq n (1+ n))
+                (if (= n 0) 
+                    (setq continue nil
+                          pt (point))))
+            (setq n (1- n)))
+;;          (message "n=%S" n)
+          );unless
         )
-      )
-    );;let
-  )
+      pt
+      )))
 
-(defun web-mode-fetch-opening-paren (&optional paren pos limit)
+(defun web-mode-fetch-closing-paren-pos (&optional pos limit)
   "Fetch opening paren."
   (interactive)
-  (unless paren (setq paren "("))
-  (unless pos (setq pos (point)))
-  (unless limit (setq limit nil))
+;;  (unless paren (setq paren ")"))
 ;;  (message (web-mode-text-at-point))
-  (let ((continue t) 
-        (n 0)
-        regexp)
+  (save-excursion
+    (unless pos (setq pos (point)))
+    (unless limit (setq limit nil))
+    (goto-char pos)
+    (let ((continue t) 
+          paren
+          (n 0)
+          (pairs '(("(" . "[)(]")
+                   ("[" . "[\]\[]")
+                   ("{" . "[}{]")))
+          pt
+          regexp)
+      
+      (setq paren (string (char-after)))
+      (setq regexp (cdr (assoc paren pairs)))
+      (if (null regexp) (setq continue nil))
+;;      (message "paren=%S regexp=%S" paren regexp)
 
-    (cond
-
-     ((string= paren "(")
-      (setq regexp "[)(]"))
-
-     ((string= paren "{")
-      (setq regexp "[}{]"))
-
-     ((string= paren "[")
-      (setq regexp "[\]\[]"))
-
-     );;cond
-
-    (while (and continue (re-search-backward regexp limit t))
-      (unless (web-mode-is-comment-or-string)
-        (if (string= (string (char-after)) paren)
-            (progn 
+      ;; (cond
+       
+      ;;  ((string= paren ")")
+      ;;   (setq regexp "[)(]"))
+       
+      ;;  ((string= paren "}")
+      ;;   (setq regexp "[}{]"))
+       
+      ;;  ((string= paren "]")
+      ;;   (setq regexp "[\]\[]"))
+       
+      ;;  );;cond
+      
+      (while (and continue (re-search-forward regexp limit t))
+        (unless (web-mode-is-comment-or-string)
+;;          (message "char-before=%S pt=%S" (string (char-before)) (point))
+          (if (string= (string (char-before)) paren)
               (setq n (1+ n))
-              (if (> n 0) (setq continue nil)))
-          (setq n (1- n))))
-      )
-    );;let
-;;  (message (web-mode-current-trimmed-line))
-  )
+            (setq n (1- n))
+            (when (= n 0) 
+              (setq continue nil
+                    pt (1- (point))))
+            )
+          ;;        (message "pt=%S char=%S n=%S" (point) (string (char-before)) n)
+          )
+        )
+;;      (message "n=%S pt=%S" n pt)
+      pt
+      )))
+
+(defun web-mode-fetch-opening-paren-block-pos (pos limit)
+  "Is opened code line."
+  (save-excursion
+    (goto-char pos)
+    (let (c 
+          n
+          pt
+          (continue t) 
+          (pairs '((")" . "(")
+                   ("]" . "[")
+                   ("}" . "{")))
+          (h (make-hash-table :test 'equal))
+          (regexp "[\]\[)(}{]"))
+      (while (and continue (re-search-backward regexp limit t))
+        (unless (web-mode-is-comment-or-string)
+          (setq c (string (char-after)))
+          (cond
+           ((member c '("(" "{" "["))
+            (setq n (gethash c h 0))
+            (if (= n 0)
+                (setq continue nil
+                      pt (point))
+              (puthash c (1+ n) h)
+              ))
+           (t
+            (setq c (cdr (assoc c pairs)))
+            (setq n (gethash c h 0))
+            (puthash c (1- n) h))
+           );cond
+          );unless
+        );while
+;;      (message "h=%S pt=%S" h pt)
+      pt
+      )))
+
 
 (defun web-mode-count-char-in-string (char &optional string)
   "Count char in string."
@@ -2157,7 +2209,7 @@ point is at the beginning of the line."
       (setq web-mode-expand-last-type "server-string"))
 
      ((and (eq (get-text-property pos 'server-side) t)
-           (not (eq (get-text-property pos 'server-language) 'django))
+           (not (eq (get-text-property pos 'server-engine) 'django))
            (setq boundaries (web-mode-in-code-block "{" "}" 'server-side))
            (not (string= web-mode-expand-last-type "server-block")))
 
@@ -2605,19 +2657,22 @@ point is at the beginning of the line."
    '("{\\(/?[[:alpha:]_]+\\)" (1 'web-mode-keyword-face))
    '("\\<\\([$]\\)\\([[:alnum:]_]+\\)" (1 nil) (2 'web-mode-variable-name-face))
    '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
-   '(" \\(\\sw+\\)[= }]" 1 'web-mode-server-attr-name-face)
+   '(" \\(\\sw+[ ]?=\\)" 1 'web-mode-param-name-face)
+   '(" \\(\\sw+\\)[ }]" 1 'web-mode-param-name-face)
    '("|\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
    '("\\(->\\)\\(\\sw+\\)" (1 nil) (2 'web-mode-variable-name-face))
    '("[.]\\([[:alnum:]_-]+\\)[ ]?(" (1 'web-mode-function-name-face))
    '("[.]\\([[:alnum:]_]+\\)" (1 'web-mode-variable-name-face))
    '("#\\([[:alnum:]_]+\\)#" 1 'web-mode-variable-name-face)
-
    ))
 
 (defconst web-mode-velocity-font-lock-keywords
   (list
-   '("#" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-velocity-directives "\\)\\>") '(1 'web-mode-keyword-face))
+;;   '("#" 0 'web-mode-preprocessor-face)
+;;   (cons (concat "\\<\\(" web-mode-velocity-directives "\\)\\>") '(1 'web-mode-keyword-face))
+   (cons (concat "\\([#]\\)\\(" web-mode-velocity-directives "\\)\\>") 
+         '((1 'web-mode-preprocessor-face)
+           (2 'web-mode-keyword-face)))
    '("[.]\\([[:alnum:]_-]+\\)[ ]?("
      (1 'web-mode-function-name-face))
    '("[.]\\([[:alnum:]_-]+\\)"
@@ -2673,7 +2728,7 @@ point is at the beginning of the line."
    (cons (concat "\\<\\(" web-mode-asp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
    ))
 
-;; todo : specific keywords for ruby/erb
+;; todo : specific keywords for erb
 (defconst web-mode-jsp-font-lock-keywords
   (list
    '("%>\\|^%\\|<%\\(!\\|=\\|#=\\)?" 0 'web-mode-preprocessor-face)
@@ -2765,13 +2820,16 @@ point is at the beginning of the line."
           ;; *** folding
           (when (or (web-mode-is-start-tag)
                     (looking-at-p "<\\?php[ ]+\\(if\\|while\\|for\\)")
-                    (looking-at-p "{%[-]?[ ]+\\(if\\|while\\|for\\)"))
+                    (looking-at-p "{%[-]?[ ]+\\(if\\|while\\|for\\)")
+                    (looking-at-p "#\\(define\\|if\\|for\\|macro\\)"))
             (setq beg-outside (point))
             (cond 
              ((looking-at-p "<\\?")
               (setq regexp "\\?>"))
              ((looking-at-p "{%")
               (setq regexp "%}"))
+             ((looking-at-p "#")
+              (setq regexp "$"))
              (t
               (setq regexp ">"))
              )
@@ -2796,9 +2854,9 @@ point is at the beginning of the line."
   (interactive)
   (unless pos (setq pos (point)))
   (unless (bobp)
-    (when (string= (get-text-property pos 'server-language)
-                   (get-text-property (- pos 1) 'server-language))
-      (setq pos (or (previous-single-property-change pos 'server-language) (point-min)))
+    (when (string= (get-text-property pos 'server-engine)
+                   (get-text-property (- pos 1) 'server-engine))
+      (setq pos (or (previous-single-property-change pos 'server-engine) (point-min)))
       (goto-char pos))
     );unless
   t)
@@ -2827,7 +2885,7 @@ point is at the beginning of the line."
             )
           )
         )
-      );;let
+      );let
     )
   )
 
@@ -2898,10 +2956,10 @@ point is at the beginning of the line."
               (web-mode-select-element))
           (end-of-line)
           (set-mark (line-beginning-position))
-          );;if
+          );if
         (setq beg (region-beginning) 
               end (region-end))
-        );; if
+        ); if
       
 ;;      (message "type=%s" type)
       
@@ -3041,28 +3099,34 @@ point is at the beginning of the line."
     (cond 
      
      ((or (web-mode-is-comment-or-string) 
-          (eq (get-text-property pos 'server-language) 'directive))
+          (eq (get-text-property pos 'server-engine) 'directive))
       (goto-char init)
       )
      
-     ((and (eq (get-text-property pos 'server-language) 'php)
+     ((and (eq (get-text-property pos 'server-engine) 'php)
            (web-mode-goto-block-beg)
            (looking-at-p "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\)?\\(for\\|if\\|else\\|while\\)"))
       (web-mode-match-php-tag))
 
-     ((and (eq (get-text-property pos 'server-language) 'smarty)
+     ((and (eq (get-text-property pos 'server-engine) 'smarty)
            (web-mode-goto-block-beg)
            (looking-at-p (concat "{/?" (regexp-opt web-mode-smarty-controls))))
       (web-mode-match-smarty-tag))
 
-     ((and (eq (get-text-property pos 'server-language) 'django)
+     ((and (eq (get-text-property pos 'server-engine) 'velocity)
+           (web-mode-goto-block-beg)
+;;           (progn (message "regexp=%S" (concat "#" (regexp-opt web-mode-velocity-directives))) t)
+           (looking-at-p (concat "#" (regexp-opt web-mode-velocity-controls))))
+      (web-mode-match-velocity-tag))
+
+     ((and (eq (get-text-property pos 'server-engine) 'django)
            (web-mode-goto-block-beg)
 ;;           (looking-at-p "{%[-]?[ ]+\\(end\\)?\\(autoescape\\|block\\|cache\\|call\\|embed\\|filter\\|for\\|foreach\\|if\\|macro\\|draw\\|sandbox\\|spaceless\\|trans\\|with\\)"))
            (looking-at-p (concat "{%[-]?[ ]+\\(end\\)?" (regexp-opt web-mode-django-controls))))
 ;;      (message "pos=%S" (point))
       (web-mode-match-django-tag))
 
-     ;; ((eq (get-text-property pos 'server-language) 'freemarker)
+     ;; ((eq (get-text-property pos 'server-engine) 'freemarker)
      ;;  (cond 
      ;;   ((eq (get-text-property pos 'markup-type) 'start)
      ;;    (web-mode-match-closing-freemarker-tag regexp)
@@ -3302,6 +3366,43 @@ point is at the beginning of the line."
         (setq counter (1+ counter)))
       )
     (search-backward "{")
+    ))
+
+(defconst web-mode-velocity-controls
+  '("define" "foreach" "for" "if" "macro" 
+    "end")
+  "Velocity controls.")
+
+(defun web-mode-match-velocity-tag ()
+  "Match velocity tag."
+  (let (regexp)
+    (setq regexp (concat "#" (regexp-opt web-mode-velocity-controls)))
+    (if (looking-at-p "#end")
+        (web-mode-match-opening-velocity-tag regexp)
+      (web-mode-match-closing-velocity-tag regexp))))
+
+(defun web-mode-match-opening-velocity-tag (regexp)
+  "Match velocity opening tag."
+  (let ((counter 1) match)
+    (while (and (> counter 0) (web-mode-rsb regexp nil t))
+      (setq match (match-string-no-properties 0))
+      (if (string-match-p "end" match)
+          (setq counter (1+ counter))
+        (setq counter (1- counter)))
+      )
+    ))
+
+(defun web-mode-match-closing-velocity-tag (regexp)
+  "Match velocity closing tag."
+  (let ((counter 1) match)
+    (forward-char)
+    (while (and (> counter 0) (web-mode-rsf regexp nil t))
+      (setq match (match-string-no-properties 0))
+      (if (string-match-p "end" match)
+          (setq counter (1- counter))
+        (setq counter (1+ counter)))
+      )
+    (search-backward "#")
     ))
 
 (defun web-mode-debug-point ()
