@@ -1574,7 +1574,7 @@ point is at the beginning of the line."
        
        ) ;;cond
 
-;;      (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) engine(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-django-block in-asp-block in-html-block in-comment-block)
+;;      (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) django(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-django-block in-asp-block in-html-block in-comment-block)
 
 ;;      (message "block limit = %S" web-mode-block-beg)
 
@@ -1635,6 +1635,12 @@ point is at the beginning of the line."
           (setq offset (current-column)) 
           )
          
+         ((and in-js-block
+               (string= cur-first-char "."))
+;;          (web-mode-rsb "\\." web-mode-block-beg)
+;;          (setq offset prev-indentation)
+          )
+
          ((member cur-first-char '("}" ")"))
           (goto-char pos)
           (back-to-indentation)
@@ -1653,7 +1659,6 @@ point is at the beginning of the line."
             (setq offset (current-column)))
           )
 
-         
          ((string= cur-first-char "?")
           (web-mode-rsb "[=(]" web-mode-block-beg)
           (setq offset (current-column))
@@ -1669,6 +1674,10 @@ point is at the beginning of the line."
 ;;          (message "prev-line=%s" prev-line)
           ;; todo : ne pas regarder dans des strings ou comment
           (cond
+           ((and in-js-block (string-match-p "var " prev-line))
+            (web-mode-sb "var " web-mode-block-beg)
+            (setq offset (+ (current-column) 4))
+            )
            ((string-match-p "[({\[]" prev-line)
             (setq tmp (web-mode-fetch-opening-paren-block-pos (point) web-mode-block-beg))
 ;;            (message "tmp=%S" tmp)
@@ -1676,10 +1685,6 @@ point is at the beginning of the line."
             (when tmp 
               (goto-char tmp)
               (setq offset (+ (current-column) 1)))
-            )
-           ((and in-js-block (string-match-p "var " prev-line))
-            (web-mode-sb "var " web-mode-block-beg)
-            (setq offset (+ (current-column) 4))
             )
            ((not (string-match-p "[({\[]" prev-line))
             (setq offset prev-indentation)
@@ -1701,6 +1706,11 @@ point is at the beginning of the line."
          ((string= prev-last-char "}")
           (setq offset (current-indentation))
           )
+
+         ((string= prev-last-char ")")
+          (setq offset (current-indentation))
+          )
+
 
          ((string= prev-last-char ";")
           (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
@@ -1795,8 +1805,11 @@ point is at the beginning of the line."
 
         (cond 
          
-         ((and prev-indentation (string-match-p "^{% end" cur-line))
+         ((and prev-indentation (string-match-p "^{%[-]?[ ]*end" cur-line))
+          (goto-char pos)
+;;          (message "ici")
           (web-mode-match-tag)
+;;          (message "pt=%S" (point))
           (setq offset (current-indentation))
           )
          
@@ -2683,7 +2696,7 @@ point is at the beginning of the line."
 (defconst web-mode-django-font-lock-keywords
   (list
    '("{%\\|%}" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-django-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
+   (cons (concat "[% ]\\(" web-mode-django-keywords "\\)[ %]") '(1 'web-mode-keyword-face t t))
    '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
    ))
 
@@ -2716,7 +2729,7 @@ point is at the beginning of the line."
 (defconst web-mode-script-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-js-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   '("\\<\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    '("\\([[:alnum:]]+\\):" 1 'web-mode-variable-name-face)
    ))
 
@@ -3122,7 +3135,7 @@ point is at the beginning of the line."
      ((and (eq (get-text-property pos 'server-engine) 'django)
            (web-mode-goto-block-beg)
 ;;           (looking-at-p "{%[-]?[ ]+\\(end\\)?\\(autoescape\\|block\\|cache\\|call\\|embed\\|filter\\|for\\|foreach\\|if\\|macro\\|draw\\|sandbox\\|spaceless\\|trans\\|with\\)"))
-           (looking-at-p (concat "{%[-]?[ ]+\\(end\\)?" (regexp-opt web-mode-django-controls))))
+           (looking-at-p (concat "{%[-]?[ ]*\\(end\\)?" (regexp-opt web-mode-django-controls))))
 ;;      (message "pos=%S" (point))
       (web-mode-match-django-tag))
 
@@ -3277,10 +3290,11 @@ point is at the beginning of the line."
     (search-forward "%}")
     (setq end (- (point) 2))
     (setq chunk (buffer-substring-no-properties beg end))
+;;    (message "chunk=%S" chunk)
     (while (< i l)
       (setq control (elt web-mode-django-controls i))
       (when (string-match-p control chunk) 
-        (setq regexp (concat "{%[-]?[ ]+\\(" control "\\|end" control "\\)"))
+        (setq regexp (concat "{%[-]?[ ]*\\(" control "\\|end" control "\\)"))
 ;;        (message "regexp=%S" regexp)
         )
       (setq i (1+ i))
@@ -3295,18 +3309,20 @@ point is at the beginning of the line."
     ;;  ((string-match-p "block" chunk)
     ;;   (setq regexp "{%[-]?[ ]+\\(block\\|endblock\\)"))    
     ;;  )
-    (if (string-match-p " end" chunk)
+    (if (string-match-p "end" chunk)
         (web-mode-match-opening-django-tag regexp)
       (web-mode-match-closing-django-tag regexp))))
 
 (defun web-mode-match-opening-django-tag (regexp)
   "Match django opening tag."
+;;  (message "opening : regexp=%S" regexp)
   (let ((counter 1) match)
     (search-backward "{%")
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
       (setq match (match-string-no-properties 0))
 ;;      (if (string-match-p "[ ]\\(autoescape\\|block\\|cache\\|call\\|embed\\|filter\\|for\\|foreach\\|if\\|macro\\|draw\\|sandbox\\|spaceless\\|trans\\|with\\)" match)
-      (if (string-match-p (concat "[ ]" (regexp-opt web-mode-django-controls)) match)
+;;      (if (string-match-p (concat (regexp-opt web-mode-django-controls)) match)
+      (if (not (string-match-p "end" match))
           (setq counter (1- counter))
         (setq counter (1+ counter)))
       )
@@ -3314,10 +3330,12 @@ point is at the beginning of the line."
 
 (defun web-mode-match-closing-django-tag (regexp)
   "Match django closing tag."
+;;  (message "closing : pt=%S regexp=%S" (point) regexp)
   (let ((counter 1) match)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
       (setq match (match-string-no-properties 0))
-      (if (string-match-p (concat "[ ]" (regexp-opt web-mode-django-controls)) match)
+;;      (if (string-match-p (concat (regexp-opt web-mode-django-controls)) match)
+      (if (not (string-match-p "end" match))
           (setq counter (1+ counter))
         (setq counter (1- counter)))
       )
