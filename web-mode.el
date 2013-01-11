@@ -2469,14 +2469,14 @@ point is at the beginning of the line."
           (setq continue nil)))
     ret))
 
-;; todo : attention cela ne va plus fonctionner
 (defun web-mode-tag-end ()
   "Fetch html tag end."
   (interactive)
-  (let ((continue t) ret)
+  (let ((continue t) ret prop)
+    (setq prop (if (get-text-property (point) 'server-tag-type) 'server-tag-type 'client-tag-type))
     (while continue
       (setq ret (web-mode-sf-client ">" nil t))
-      (if (or (null ret) (get-text-property (- (point) 1) 'client-tag-type))
+      (if (or (null ret) (get-text-property (- (point) 1) prop))
           (setq continue nil)))
     ret))
 
@@ -3134,21 +3134,8 @@ point is at the beginning of the line."
 
      ((and (eq (get-text-property pos 'server-engine) 'django)
            (web-mode-goto-block-beg)
-;;           (looking-at-p "{%[-]?[ ]+\\(end\\)?\\(autoescape\\|block\\|cache\\|call\\|embed\\|filter\\|for\\|foreach\\|if\\|macro\\|draw\\|sandbox\\|spaceless\\|trans\\|with\\)"))
            (looking-at-p (concat "{%[-]?[ ]*\\(end\\)?" (regexp-opt web-mode-django-controls))))
-;;      (message "pos=%S" (point))
       (web-mode-match-django-tag))
-
-     ;; ((eq (get-text-property pos 'server-engine) 'freemarker)
-     ;;  (cond 
-     ;;   ((eq (get-text-property pos 'markup-type) 'start)
-     ;;    (web-mode-match-closing-freemarker-tag regexp)
-     ;;    (message "find end"))
-     ;;   ((eq (get-text-property pos 'markup-type) 'end)
-     ;;    (web-mode-match-closing-freemarker-tag regexp)
-     ;;    (message "find start"))
-     ;;   )
-     ;;  )
 
      ((and (search-forward ">")
            (web-mode-rsb web-mode-tag-regexp nil t))
@@ -3162,19 +3149,24 @@ point is at the beginning of the line."
     
     ))
 
-;; todo : user prop 'tag-name
 (defun web-mode-match-html-tag (&optional pos)
   "Match HTML tag."
   (unless pos (setq pos (point)))
-  (let (closing-tag nb tag)
-    (forward-char)
-;;    (setq closing-tag (string= (string (char-after)) "/"))
-    (setq closing-tag (char-equal (char-after) ?/))
-    (if (eq closing-tag t)
-        (forward-char))
-    (setq nb (skip-chars-forward "a-zA-Z0-9:@#_."))
-    (setq tag (buffer-substring-no-properties (- (point) nb) (point)))
-;;    (message "tag=%s" tag)
+  (let (closing-tag
+;;        nb 
+        tag)
+;;    (forward-char)
+;;    (setq closing-tag (char-equal (char-after) ?/))
+;;    (if (eq closing-tag t)
+;;        (forward-char))
+;;    (setq nb (skip-chars-forward "a-zA-Z0-9:@#_."))
+;;    (setq tag (buffer-substring-no-properties (- (point) nb) (point)))
+
+    (setq tag (or (get-text-property pos 'server-tag-name) 
+                  (get-text-property pos 'client-tag-name)))
+    (setq closing-tag (or (eq (get-text-property pos 'server-tag-type) 'end)
+                          (eq (get-text-property pos 'client-tag-type) 'end)))
+;;    (message "pos=%S tag=%S closing-tag=%S" pos tag closing-tag)
     (if (eq closing-tag t)
         (web-mode-match-html-opening-tag tag pos)
       (web-mode-match-html-closing-tag tag pos))))
@@ -3184,10 +3176,10 @@ point is at the beginning of the line."
   (let (counter n regexp)
     (setq counter 1)
     (setq n 0)
-    (search-forward ">")
+;;    (search-forward ">")
+    (web-mode-tag-end)
     (setq regexp (concat "</?" tag))
-    (while (and (> counter 0)
-                (re-search-forward regexp nil t))
+    (while (and (> counter 0) (re-search-forward regexp nil t))
       ;;      (when (not (web-mode-is-comment-or-string))
       (when (not (web-mode-is-comment-or-string))
         (setq n (1+ n))
@@ -3210,7 +3202,7 @@ point is at the beginning of the line."
   (let (counter n regexp)
     (setq counter 1)
     (setq n 0)
-    (search-backward "<")
+;;    (search-backward "<")
     (setq regexp (concat "</?" tag))
     (while (and (> counter 0)
                 (re-search-backward regexp nil t))
@@ -3707,73 +3699,3 @@ point is at the beginning of the line."
 (provide 'web-mode)
 
 ;;; web-mode.el ends here
-
-
-;; (defun web-mode-parent-element2 ()
-;;   "Fetch parent element."
-;;   (interactive)
-;;   (let (pos 
-;;         is-closing-tag
-;;         tag
-;;         n
-;;         (continue t)
-;;         (h (make-hash-table :test 'equal)))
-;;     (save-excursion
-;; ;;      (unless (string= (string (char-after)) "<")
-;; ;;        (progn
-;;       ;;          (forward-char)
-;; ;;;;          (search-forward ">") ;; todo : verifier que l'on est pas dans une string
-;;       ;;          (re-search-backward "<[[:alnum:]]+[ ><$]" nil t)))
-;;       (while (and continue
-;; ;;                  (re-search-backward "</?[[:alnum:]]+[/ ><$]" nil t))
-;;                   (web-mode-rsb-html "</?[[:alnum:]]+[/ ><$]"))
-;; ;;        (message "ici")
-;;         (forward-char)
-;; ;;        (setq is-closing-tag (string= (string (char-after)) "/"))
-;;         (setq is-closing-tag (char-equal (char-after) ?/))
-;;         (if (eq is-closing-tag t) (forward-char))
-;;         (setq nb (skip-chars-forward "[:alnum:]"))
-;;         (setq tag (buffer-substring-no-properties (- (point) nb) (point)))
-;;         (setq n (gethash tag h 0))
-;; ;;        (message "%s %d %d" tag n (point))
-;;         (when (not (web-mode-is-void-element tag))
-;;           (search-backward "<")
-;;           (if (eq is-closing-tag t)
-;;               (puthash tag (1- n) h)
-;;             (progn
-;;               (puthash tag (1+ n) h)
-;;               (if (eq n 0)
-;;                   (progn
-;;                     (setq pos (point))
-;;                     (setq continue nil)))
-;;               )
-;;             )
-;;           ) ;; when
-;;         ) ;; while
-;;       ) ;; save-excursion
-;;     (if (null continue) (goto-char pos))
-;;     ) ;; let
-;;   )
-
-(defun web-mode-clean-client-line2 (input)
-  "Remove comments and server scripts."
-  (let ((i 0) 
-        (out "") 
-        (n (length input)))
-;;    (message "[%s] > [%s]" input out)
-    (web-mode-clean-client-line2 input)
-    (while (< i n)
-      (unless (or (get-text-property i 'server-side input)
-                  (get-text-property i 'server-tag-name input)
-                  (eq (get-text-property i 'client-type input) 'comment))
-        (setq out (concat out (substring input i (1+ i))))
-;;        (store-substring out i (substring input i (1+ i)))
-        ;;        (aset out i ?.)
-        );unless
-      (setq i (1+ i))
-      );while
-;;    (message "[%s] > [%s]" input out)
-;;    (message "---- %s" out)
-    (web-mode-trim out)
-    ))
-
