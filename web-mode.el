@@ -264,8 +264,8 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
   (let ((bfn (buffer-file-name)) elt l i)
     
-    (when (boundp 'rainbow-mode)
-      (rainbow-mode -1))
+    (when (boundp 'rainbow-mode) (rainbow-mode -1))
+    (when (boundp 'whitespace-mode) (whitespace-mode -1))
 
     (make-local-variable 'font-lock-extend-region-functions)  
     (make-local-variable 'font-lock-fontify-buffer-function)
