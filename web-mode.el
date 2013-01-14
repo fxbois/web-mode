@@ -264,6 +264,9 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
   (let ((bfn (buffer-file-name)) elt l i)
     
+    (when (boundp 'rainbow-mode)
+      (rainbow-mode -1))
+
     (make-local-variable 'font-lock-extend-region-functions)  
     (make-local-variable 'font-lock-fontify-buffer-function)
     (make-local-variable 'font-lock-keywords)  
@@ -330,7 +333,8 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (setq web-mode-engine "php"))
        ((string-match-p "\\.as[cp]x?\\'" bfn)
         (setq web-mode-engine "asp"))
-       ((string-match-p "\\.djhtml\\'" bfn)
+       ((or (string-match-p "\\.djhtml\\'" bfn)
+            (string-match-p "\\.html\\.twig\\'" bfn))
         (setq web-mode-engine "django"))
        ((string-match-p "\\.ftl\\'" bfn)
         (setq web-mode-engine "freemarker"))
