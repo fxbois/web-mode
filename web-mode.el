@@ -1,6 +1,6 @@
 ;;; web-mode.el --- major mode for editing HTML templates
 
-;; Copyright (C) 2011, 2012 François-Xavier Bois
+;; Copyright (C) 2011, 2012, 2013 François-Xavier Bois
 
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
@@ -264,9 +264,6 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
   (let ((bfn (buffer-file-name)) elt l i)
     
-    (when (boundp 'rainbow-mode) (rainbow-mode -1))
-    (when (boundp 'whitespace-mode) (whitespace-mode -1))
-
     (make-local-variable 'font-lock-extend-region-functions)  
     (make-local-variable 'font-lock-fontify-buffer-function)
     (make-local-variable 'font-lock-keywords)  
@@ -329,11 +326,13 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (setq web-mode-engine "smarty"))
        ((string-match-p "\\.jsp\\'" bfn)
         (setq web-mode-engine "jsp"))
-       ((string-match-p "\\.php\\'" bfn)
+       ((or (string-match-p "\\.php\\'" bfn) 
+            (string-match-p "\\.ctp\\'" bfn))
         (setq web-mode-engine "php"))
        ((string-match-p "\\.as[cp]x?\\'" bfn)
         (setq web-mode-engine "asp"))
        ((or (string-match-p "\\.djhtml\\'" bfn)
+            (string-match-p "\\.tmpl\\'" bfn)
             (string-match-p "\\.html\\.twig\\'" bfn))
         (setq web-mode-engine "django"))
        ((string-match-p "\\.ftl\\'" bfn)
