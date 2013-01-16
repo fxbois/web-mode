@@ -258,8 +258,10 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     keymap)
   "Keymap for `web-mode'.")
 
+(defalias 'web-mode-prog-mode (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
+
 ;;;###autoload
-(define-derived-mode web-mode prog-mode "Web"
+(define-derived-mode web-mode web-mode-prog-mode "Web"
   "Major mode for editing mixed HTML Templates."
 
   (let ((bfn (buffer-file-name)) elt l i)
@@ -479,7 +481,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
             (setq closing-string "EOL"))
            
            ((string= "<?" sub2) 
-            (unless (looking-at "xml ")
+            (unless (looking-at-p "xml ")
               (setq closing-string "?>")
               ))
            
@@ -3156,20 +3158,11 @@ point is at the beginning of the line."
   "Match HTML tag."
   (unless pos (setq pos (point)))
   (let (closing-tag
-;;        nb 
         tag)
-;;    (forward-char)
-;;    (setq closing-tag (char-equal (char-after) ?/))
-;;    (if (eq closing-tag t)
-;;        (forward-char))
-;;    (setq nb (skip-chars-forward "a-zA-Z0-9:@#_."))
-;;    (setq tag (buffer-substring-no-properties (- (point) nb) (point)))
-
     (setq tag (or (get-text-property pos 'server-tag-name) 
                   (get-text-property pos 'client-tag-name)))
     (setq closing-tag (or (eq (get-text-property pos 'server-tag-type) 'end)
                           (eq (get-text-property pos 'client-tag-type) 'end)))
-;;    (message "pos=%S tag=%S closing-tag=%S" pos tag closing-tag)
     (if (eq closing-tag t)
         (web-mode-match-html-opening-tag tag pos)
       (web-mode-match-html-closing-tag tag pos))))
