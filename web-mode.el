@@ -258,7 +258,23 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     keymap)
   "Keymap for `web-mode'.")
 
-(defalias 'web-mode-prog-mode (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
+(eval-and-compile
+
+  (defalias 'web-mode-prog-mode (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
+  
+  (if (fboundp 'with-silent-modifications)
+      (defalias 'web-mode-with-silent-modifications 'with-silent-modifications)
+    (defmacro web-mode-with-silent-modifications (&rest body)
+      "Compatibility with pre 23.3"
+      `(let ((old-modified-p (buffer-modified-p))
+             (inhibit-modification-hooks t)
+             (buffer-undo-list t))
+         (unwind-protect
+             ,@body
+           (set-buffer-modified-p old-modified-p)))))
+  
+  )
+
 
 ;;;###autoload
 (define-derived-mode web-mode web-mode-prog-mode "Web"
@@ -402,7 +418,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
   "Identify code blocks (client/server) and syntactic symbols (strings/comments)."
   (interactive)
 ;;  (message "scanning buffer from %d to %d" beg end)
-  (with-silent-modifications
+  (web-mode-with-silent-modifications
    (save-excursion
      (save-match-data
        (let ((inhibit-modification-hooks t)
@@ -2822,7 +2838,7 @@ point is at the beginning of the line."
 (defun web-mode-toggle-folding ()
   "Toggle folding on a block."
   (interactive)
-  (with-silent-modifications
+  (web-mode-with-silent-modifications
     (save-excursion
       (let (beg-inside beg-outside end-inside end-outside overlay overlays regexp)
         (back-to-indentation)
