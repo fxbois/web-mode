@@ -275,7 +275,6 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
   
   )
 
-
 ;;;###autoload
 (define-derived-mode web-mode web-mode-prog-mode "Web"
   "Major mode for editing mixed HTML Templates."
@@ -287,6 +286,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (make-local-variable 'font-lock-keywords)  
     (make-local-variable 'font-lock-keywords-case-fold-search)  
     (make-local-variable 'font-lock-keywords-only)
+    (make-local-variable 'font-lock-lock-defaults)
     (make-local-variable 'font-lock-multiline)
     (make-local-variable 'font-lock-unfontify-buffer-function)
     
@@ -395,7 +395,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 ;;    (message "engine=%S regexp=%S" web-mode-engine web-mode-server-blocks-regexp)
 
     (setq font-lock-fontify-buffer-function 'web-mode-scan-buffer
-          font-lock-keywords-only t
+;;          font-lock-keywords-only t
           font-lock-unfontify-buffer-function 'web-mode-scan-buffer
           indent-line-function 'web-mode-indent-line
           indent-tabs-mode nil
@@ -432,7 +432,8 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
           (t
            (web-mode-mark-server-boundaries beg end)
            (web-mode-scan-client beg end)
-           (web-mode-scan-server beg end))
+           (web-mode-scan-server beg end)
+           )
           )
          )))))
 
@@ -1244,7 +1245,8 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
           (font-lock-multiline nil)
           (font-lock-keywords-case-fold-search nil)
           (font-lock-keywords-only t)
-          (font-lock-extend-region-functions nil))
+          (font-lock-extend-region-functions nil)
+)
       (font-lock-fontify-region beg end)
       ))
   ;; workaround
