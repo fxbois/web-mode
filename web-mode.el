@@ -281,16 +281,16 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
   (let ((bfn (buffer-file-name)) elt l i)
     
-    (make-local-variable 'font-lock-extend-region-functions)  
-    (make-local-variable 'font-lock-fontify-buffer-function)
+;;    (make-local-variable 'font-lock-extend-region-functions)  
     (make-local-variable 'font-lock-keywords)  
-    (make-local-variable 'font-lock-keywords-case-fold-search)  
-    (make-local-variable 'font-lock-keywords-only)
-    (make-local-variable 'font-lock-lock-defaults)
+;;    (make-local-variable 'font-lock-keywords-case-fold-search)  
+;;    (make-local-variable 'font-lock-keywords-only)
+;;    (make-local-variable 'font-lock-lock-defaults)
     (make-local-variable 'font-lock-multiline)
-    (make-local-variable 'font-lock-unfontify-buffer-function)
-    
+
     (make-local-variable 'after-change-functions)
+    (make-local-variable 'font-lock-fontify-buffer-function)
+    (make-local-variable 'font-lock-unfontify-buffer-function)
     (make-local-variable 'indent-line-function)
     (make-local-variable 'indent-tabs-mode)  
     (make-local-variable 'require-final-newline)
@@ -322,6 +322,9 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
       (setq web-mode-file-type "css")
       )
      
+     (t
+      (setq web-mode-file-type "html"))
+
      )
     
     (when (boundp 'web-mode-engines-alist)
@@ -351,7 +354,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (setq web-mode-engine "asp"))
        ((or (string-match-p "\\.djhtml\\'" bfn)
             (string-match-p "\\.tmpl\\'" bfn)
-            (string-match-p "\\.html\\.twig\\'" bfn))
+            (string-match-p "\\.twig\\'" bfn))
         (setq web-mode-engine "django"))
        ((string-match-p "\\.ftl\\'" bfn)
         (setq web-mode-engine "freemarker"))
@@ -658,16 +661,18 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
     (cond
      
-     ((string= "<?" sub2) 
+     ((string= sub2 "<?") 
       (setq regexp "//\\|/\\*\\|\"\\|'\\|<<<['\"]?\\([[:alnum:]]+\\)['\"]?"
             props '(server-engine php face nil)
             keywords web-mode-php-font-lock-keywords))
      
-     ((or (string= "<%-" sub3) (string= "<#-" sub3) (string= "[#-" sub3))
+     ((member sub3 '("<%-" "<#-" "[#-"))
+;;     ((or (string= "<%-" sub3) (string= "<#-" sub3) (string= "[#-" sub3))
       (setq props '(server-type comment face web-mode-comment-face)))
      
-     ((or (string= "<#" sub2) (string= "<@" sub2) (string= "</" sub2)
-          (string= "[#" sub2) (string= "[@" sub2) (string= "[/" sub2)) 
+     ((member sub2 '("<#" "<@" "</" "[#" "[@" "[/"))
+;;     ((or (string= "<#" sub2) (string= "<@" sub2) (string= "</" sub2)
+;;          (string= "[#" sub2) (string= "[@" sub2) (string= "[/" sub2)) 
       (setq regexp "\"\\|'"
             keywords web-mode-freemarker-font-lock-keywords
             props '(server-engine freemarker face nil))
@@ -690,12 +695,12 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
        );cond
       );or
      
-     ((string= "<%@" sub3) 
+     ((string= sub3 "<%@") 
       (setq regexp "/\\*"
             props '(server-engine directive face nil)
             keywords web-mode-directive-font-lock-keywords))
      
-     ((string= "<%$" sub3)
+     ((string= sub3 "<%$")
       (setq regexp "\"\\|'"
             props '(face nil)           
             keywords web-mode-expression-font-lock-keywords))
@@ -746,19 +751,19 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
             keywords web-mode-uel-font-lock-keywords)
       )
      
-     ((string= "{{" sub2)
+     ((string= sub2 "{{")
       (setq regexp "\"\\|'"
             props '(server-engine django face nil)
             keywords web-mode-uel-font-lock-keywords)
       )
      
-     ((string= "{%" sub2)
+     ((string= sub2 "{%")
       (setq regexp "//\\|/\\*\\|\"\\|'"
             props '(server-engine django face nil)
             keywords web-mode-django-font-lock-keywords)
       )
      
-     ((string= "{#" sub2)
+     ((string= sub2 "{#")
       (setq props '(server-type comment face web-mode-comment-face))
       )
 
@@ -943,9 +948,9 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
             (web-mode-scan-attrs tag-stop attrs-end)
             )
           (cond
-           ((string= "script" tag-name) 
+           ((string= tag-name "script") 
             (setq closing-string "</script>"))
-           ((string= "style" tag-name) 
+           ((string= tag-name "style") 
             (setq closing-string "</style>"))
            )
           (when (and closing-string (web-mode-sf-client closing-string end t))
@@ -970,12 +975,12 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
       
       (cond
        
-       ((string= "script" tag-name) 
+       ((string= tag-name "script") 
         (setq regexp "//\\|/\\*\\|\"\\|'"
               keywords web-mode-script-font-lock-keywords
               props '(client-language js client-side t)))
        
-       ((string= "style" tag-name) 
+       ((string= tag-name "style") 
         (setq regexp "/\\*\\|\"\\|'"
               props '(client-language css client-side t)))
        )
@@ -985,7 +990,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
       (when keywords
         (web-mode-fontify-region beg end keywords))
 
-      (when (string= "style" tag-name)
+      (when (string= tag-name "style")
         (goto-char beg)
         (setq rules-beg (if (= beg 1) 1 (+ beg 1)))
         (while (and rules-beg
@@ -1090,12 +1095,12 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
          ((get-text-property pos 'server-side)
           )
 
-         ((and (string= " " c) 
+         ((and (string= c " ") 
                (string= state "nil"))
           (setq state "space")
           )
          
-         ((and (string= " " c)
+         ((and (string= c " ")
                (member state '("space-before" "space-after" "space"))
                ;;               (or (string= state "space-before")
                ;;                   (string= state "space-after")
@@ -1103,17 +1108,17 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
                )
          )
 
-         ((and (string= " " c)
+         ((and (string= c " ")
                (string= state "name"))
           (setq state "space-before")
          )
 
-         ((and (string= " " c)
+         ((and (string= c " ")
                (string= state "equal"))
           (setq state "space-after")
          )
          
-         ((and (string= "\n" c) 
+         ((and (string= c "\n") 
                (not (member state '("value-sq" "value-dq"))))
           (web-mode-propertize-attr state c name-beg name-end val-beg)
           (setq state "space"
@@ -1123,9 +1128,9 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
                 val-end nil)
           )
          
-         ((or (and (string= "\"" c) (string= state "value-dq") (not (string= prev "\\")))
-              (and (string= "'" c) (string= state "value-sq") (not (string= prev "\\")))
-              (and (or (string= " " c) (string= "\n" c) (string= ">" c)) (string= state "value-uq")))
+         ((or (and (string= c "\"") (string= state "value-dq") (not (string= prev "\\")))
+              (and (string= c "'") (string= state "value-sq") (not (string= prev "\\")))
+              (and (or (string= c " ") (string= c "\n") (string= c ">")) (string= state "value-uq")))
           (web-mode-propertize-attr state c name-beg name-end val-beg)
           (setq state (if (string= state "value-uq") "space" "nil")
                 name-beg nil
@@ -1134,26 +1139,26 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
                 val-end nil)
           )
          
-         ((and (not (string= " " c)) 
+         ((and (not (string= c " ")) 
                (string= state "space"))
 ;;          (message "pos(%S)" (point))
           (setq state "name")
           (setq name-beg (point))
           )
          
-         ((and (string= "=" c) 
+         ((and (string= c "=") 
                (member state '("space-before" "name")))
           (setq name-end (point))
           (setq state "equal")
           )
          
-         ((and (string= "\"" c) 
+         ((and (string= c "\"") 
                (member state '("space-after" "equal")))
           (setq val-beg (point))
           (setq state "value-dq")
           )
          
-         ((and (string= "'" c)
+         ((and (string= c "'")
                (member state '("space-after" "equal")))
           (setq val-beg (point))
           (setq state "value-sq")
@@ -3242,15 +3247,41 @@ point is at the beginning of the line."
     (setq end (- (point) 2))
     (setq code (buffer-substring-no-properties beg end))
 ;;    (message "code %S" code)
-    (if (string-match-p "for" code)
-        (if (string-match-p "foreach" code)
-            (setq regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(foreach\\|endforeach\\)"
-                  type   "foreach")
-          (setq regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(for\\|endfor\\)"
-                type   "for"))
+
+    (cond
+
+     ((string-match-p "if\\|else" code)
       (setq regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(if\\|else\\|elseif\\|endif\\)"
-            type   "if"))
-    (if (string-match-p "end\\(if\\|for\\)" code)
+            type   "if")
+      )
+     
+     ((string-match-p "foreach" code)
+      (setq regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(foreach\\|endforeach\\)"
+            type   "foreach")
+      )
+     
+     ((string-match-p "for" code)
+      (setq regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(for\\|endfor\\)"
+            type   "foreach")
+      )
+     
+     (t
+      (setq regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(while\\|endwhile\\)"
+            type   "foreach")
+      )
+     
+     )
+
+    ;; (if (string-match-p "for" code)
+    ;;     (if (string-match-p "foreach" code)
+    ;;         (setq regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(foreach\\|endforeach\\)"
+    ;;               type   "foreach")
+    ;;       (setq regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(for\\|endfor\\)"
+    ;;             type   "for"))
+    ;;   (setq regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(if\\|else\\|elseif\\|endif\\)"
+    ;;         type   "if"))
+
+    (if (string-match-p "end\\(if\\|for\\|while\\)" code)
         (web-mode-match-opening-php-tag regexp type)
       (web-mode-match-closing-php-tag regexp type))))
 
@@ -3261,9 +3292,9 @@ point is at the beginning of the line."
     (while (and (> counter 0)
                 (re-search-backward regexp nil t))
       (setq match (match-string-no-properties 0))
-      (if (string-match-p "<\\?\\(php[ ]+\\|[ ]*\\)?\\(if\\|for\\)" match)
+      (if (string-match-p "<\\?\\(php[ ]+\\|[ ]*\\)?\\(if\\|for\\|while\\)" match)
           (setq counter (1- counter))
-        (if (string-match-p "<\\?\\(php[ ]+\\|[ ]*\\)?end\\(if\\|for\\)" match)
+        (if (string-match-p "<\\?\\(php[ ]+\\|[ ]*\\)?end\\(if\\|for\\|while\\)" match)
             (setq counter (1+ counter)))
         );; if
 ;;      (message "%s %d" (web-mode-current-trimmed-line) counter)
@@ -3276,7 +3307,7 @@ point is at the beginning of the line."
     (while (and (> counter 0)
                 (re-search-forward regexp nil t))
       (setq match (match-string-no-properties 0))
-      (if (string-match-p "<\\?\\(php[ ]+\\|[ ]*\\)?\\(if\\|for\\)" match)
+      (if (string-match-p "<\\?\\(php[ ]+\\|[ ]*\\)?\\(if\\|for\\|while\\)" match)
           (setq counter (1+ counter))
         (unless (and (> counter 1)
                      (string-match-p "else" match))
