@@ -2923,6 +2923,7 @@ point is at the beginning of the line."
           (when (or (web-mode-is-start-tag)
                     (looking-at-p "<\\?php[ ]+\\(if\\|while\\|for\\)")
                     (looking-at-p "{%[-]?[ ]+\\(if\\|while\\|for\\)")
+                    (looking-at-p "{{[#^]")
                     (looking-at-p "#\\(define\\|if\\|for\\|macro\\)"))
             (setq beg-outside (point))
             (cond 
@@ -2930,6 +2931,8 @@ point is at the beginning of the line."
               (setq regexp "\\?>"))
              ((looking-at-p "{%")
               (setq regexp "%}"))
+             ((looking-at-p "{{[#^]")
+              (setq regexp "}}"))
              ((looking-at-p "#")
               (setq regexp "$"))
              (t
