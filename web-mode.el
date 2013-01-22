@@ -1573,7 +1573,7 @@ point is at the beginning of the line."
         cur-line
         in-comment-block
         in-directive-block
-        in-django-block
+;;        in-django-block
 ;;        in-ctemplate-block
         in-php-block
         in-asp-block
@@ -1632,9 +1632,9 @@ point is at the beginning of the line."
         (setq in-style-block t
               local-indent-offset web-mode-css-indent-offset))
 
-       ((eq (get-text-property (point) 'server-engine) 'django)
-        (setq in-django-block t)
-        )
+;;       ((eq (get-text-property (point) 'server-engine) 'django)
+;;        (setq in-django-block t)
+;;        )
       
 ;;       ((eq (get-text-property (point) 'server-engine) 'ctemplate)
 ;;        (setq in-ctemplate-block t)
@@ -1650,7 +1650,7 @@ point is at the beginning of the line."
        
        ) ;;cond
 
-;;      (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) django(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-django-block in-asp-block in-html-block in-comment-block)
+;;      (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-asp-block in-html-block in-comment-block)
 
 ;;      (message "block limit = %S" web-mode-block-beg)
 
@@ -1875,29 +1875,7 @@ point is at the beginning of the line."
          
          )
 
-        ) ;; end case style block
-       
-       (in-django-block
-
-        (cond 
-         
-         ((and prev-indentation (string-match-p "^{%[-]?[ ]*end" cur-line))
-          (goto-char pos)
-;;          (message "ici")
-          (web-mode-match-tag)
-;;          (message "pt=%S" (point))
-          (setq offset (current-indentation))
-          )
-         
-         ((and prev-indentation (string-match-p "^{" cur-line))
-          (setq offset prev-indentation)
-          )
-        
-         )
-        
-        ); end django
-
-
+        ); end case style block
        
        (in-comment-block
 
@@ -1916,11 +1894,11 @@ point is at the beginning of the line."
           (setq offset (current-column)))
                   
          ((and (= web-mode-indent-style 2)
-               (string-match-p "^\\(<\\?php\\|</?[@#]\\|<%\\|[?%]>\\)" cur-line)
-               );;and
+               (string-match-p "^\\(<\\?php\\|</?[@#]\\|<%\\|[?%]>\\)" cur-line))
           (setq offset 0)
           )
 
+         ;; toto : utiliser block-beg
          ((and (> web-mode-indent-style 2)
                (string-match-p "^\\(\\?>\\|%>\\)" cur-line))
           (goto-char pos)
@@ -1928,56 +1906,60 @@ point is at the beginning of the line."
           (setq offset (current-column)) ;; prev-indent ?
           )
 
-         ((and prev-indentation
-               (string-match-p "^<\\?php[ ]+\\(end\\|else\\)" cur-line))
-          (goto-char pos)
-          (back-to-indentation)
-          (web-mode-match-tag)
-;;          (message "pos(%S)" (point))
-          (setq offset (current-indentation))
-          )
+;;          ((and prev-indentation
+;;                (string-match-p "^<\\?php[ ]+\\(end\\|else\\)" cur-line))
+;;           (goto-char pos)
+;;           (back-to-indentation)
+;;           (web-mode-match-tag)
+;; ;;          (message "pos(%S)" (point))
+;;           (setq offset (current-indentation))
+;;           )
 
-         ((and (string= web-mode-engine "smarty")
-               (char-equal (string-to-char cur-line) ?{))
-          (if (string-match-p "^{/" cur-line)
-              (progn
-                (goto-char pos)
-                (back-to-indentation)
-                (web-mode-match-tag)
-                (setq offset (current-indentation)))
-            (setq offset prev-indentation))
-          )
+         ;; ((and (string= web-mode-engine "smarty")
+         ;;       (char-equal (string-to-char cur-line) ?{))
+         ;;  (if (string-match-p "^{/" cur-line)
+         ;;      (progn
+         ;;        (goto-char pos)
+         ;;        (back-to-indentation)
+         ;;        (web-mode-match-tag)
+         ;;        (setq offset (current-indentation)))
+         ;;    (setq offset prev-indentation))
+         ;;  )
          
-         ((and (string= web-mode-engine "ctemplate")
-               (string-match-p "^{{/" cur-line)
-;;               (char-equal (string-to-char cur-line) ?{)
-               )
-;;          (if (string-match-p "^{{/" cur-line)
-;;              (progn
-          (goto-char pos)
-          (web-mode-match-tag)
-          (setq offset (current-indentation))
-;;                )
-;;            (setq offset prev-indentation))
-          )
-         
-         ((and (string= web-mode-engine "velocity")
-               (char-equal (string-to-char cur-line) ?#))
-          (if (string-match-p "^#end" cur-line)
-              (progn
-                (goto-char pos)
-                (back-to-indentation)
-                (web-mode-match-tag)
-                (setq offset (current-indentation)))
-            (setq offset prev-indentation))
-          )
-
-         ((string-match-p "^</" cur-line)
+         ((or (string-match-p "^</" cur-line)
+              (string-match-p "^<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\)" cur-line)
+              (and (string= web-mode-engine "django")
+                   (string-match-p "^{%[-]?[ ]*end" cur-line))
+              (and (string= web-mode-engine "smarty")
+                   (string-match-p "^{/" cur-line))
+              (and (string= web-mode-engine "ctemplate")
+                   (string-match-p "^{{/" cur-line))
+              (and (string= web-mode-engine "velocity")
+                   (string-match-p "^#end" cur-line))
+              )
           (goto-char pos)
           (back-to-indentation)
           (web-mode-match-tag)
           (setq offset (current-indentation))
           )
+         
+         ;; ((and (string= web-mode-engine "velocity")
+         ;;       (char-equal (string-to-char cur-line) ?#))
+         ;;  (if (string-match-p "^#end" cur-line)
+         ;;      (progn
+         ;;        (goto-char pos)
+         ;;        (back-to-indentation)
+         ;;        (web-mode-match-tag)
+         ;;        (setq offset (current-indentation)))
+         ;;    (setq offset prev-indentation))
+         ;;  )
+
+         ;; ((string-match-p "^</" cur-line)
+         ;;  (goto-char pos)
+         ;;  (back-to-indentation)
+         ;;  (web-mode-match-tag)
+         ;;  (setq offset (current-indentation))
+         ;;  )
      
 ;;todo : il faut remonter les lignes une à une jusqu'a en trouver une qui commence par <alpha
 ;;       attention il peut y avoir du "server" ou commentaire au début
@@ -1985,6 +1967,12 @@ point is at the beginning of the line."
               (char-equal (string-to-char cur-line) ?<)
               (and (string= web-mode-engine "ctemplate") 
                    (char-equal (string-to-char cur-line) ?{))
+              (and (string= web-mode-engine "smarty") 
+                   (char-equal (string-to-char cur-line) ?{))
+              (and (string= web-mode-engine "django") 
+                   (char-equal (string-to-char cur-line) ?{))
+              (and (string= web-mode-engine "velocity") 
+                   (char-equal (string-to-char cur-line) ?#))
               )
 ;;          (message "ici")
           (setq continue t
