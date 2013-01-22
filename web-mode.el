@@ -32,8 +32,6 @@
 ;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
-(eval-when-compile (require 'cl))
-
 (defgroup web-mode nil
   "Major mode for editing web templates.
 `web-mode' is compatible with many template engines: php, jsp, aspx, erb, django/twig/jinja2, CTemplate/Mustache/Hapax.
@@ -2589,7 +2587,7 @@ point is at the beginning of the line."
 (defun web-mode-is-void-element (&optional tag)
   "Test if tag is a void tag."
   (if tag
-      (find (downcase tag) web-mode-void-elements :test 'equal)
+      (car (member (downcase tag) web-mode-void-elements))
     (eq (get-text-property (point) 'client-tag-type) 'void)
     ;;    (or (looking-at-p (concat "<\\(" (regexp-opt web-mode-void-elements) "\\)"))
     ;;        (looking-at-p "<[^>]+/>"))
