@@ -257,9 +257,9 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
   "Keymap for `web-mode'.")
 
 (eval-and-compile
-  
+
   (defalias 'web-mode-prog-mode (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
-  
+
   (if (fboundp 'with-silent-modifications)
       (defalias 'web-mode-with-silent-modifications 'with-silent-modifications)
     (defmacro web-mode-with-silent-modifications (&rest body)
@@ -270,20 +270,20 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
          (unwind-protect
              ,@body
            (set-buffer-modified-p old-modified-p)))))
-  
+
   )
 
 ;;;###autoload
 (define-derived-mode web-mode web-mode-prog-mode "Web"
   "Major mode for editing mixed HTML Templates."
-  
+
   (let ((bfn (buffer-file-name)) elt l i)
-    
+
     ;;    (make-local-variable 'font-lock-extend-region-functions)
     ;;    (make-local-variable 'font-lock-keywords-case-fold-search)
     ;;    (make-local-variable 'font-lock-keywords-only)
     ;;    (make-local-variable 'font-lock-lock-defaults)
-    
+
     (make-local-variable 'after-change-functions)
     (make-local-variable 'font-lock-fontify-buffer-function)
     (make-local-variable 'font-lock-keywords)
@@ -292,7 +292,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (make-local-variable 'indent-line-function)
     (make-local-variable 'indent-tabs-mode)
     (make-local-variable 'require-final-newline)
-    
+
     (make-local-variable 'web-mode-block-beg)
     (make-local-variable 'web-mode-buffer-highlighted)
     (make-local-variable 'web-mode-disable-autocompletion)
@@ -306,10 +306,10 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (make-local-variable 'web-mode-indent-style)
     (make-local-variable 'web-mode-is-narrowed)
     (make-local-variable 'web-mode-server-blocks-regexp)
-    
+
     ;;  (make-local-variable 'font-lock-extend-after-change-region-function)
     ;;  (setq font-lock-extend-after-change-region-function 'web-mode-extend-after-change-region)
-    
+
     (cond
      ((string-match-p "\\.xml\\'" bfn)
       (setq web-mode-file-type "xml"))
@@ -318,7 +318,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
      (t
       (setq web-mode-file-type "html"))
      )
-    
+
     (when (boundp 'web-mode-engines-alist)
       (setq i 0
             l (length web-mode-engines-alist))
@@ -329,7 +329,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
           (setq web-mode-engine (cdr elt)))
         );while
       );when
-    
+
     (when (null web-mode-engine)
       (cond
        ((string-match-p "\\.\\(erb\\|rhtml\\)\\'" bfn)
@@ -352,7 +352,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (setq web-mode-engine "velocity"))
        );cond
       );when
-    
+
     (when (not (null web-mode-engine))
       (setq i 0
             l (length web-mode-engine-families))
@@ -364,7 +364,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
           (setq web-mode-engine (car elt)))
         );while
       );when
-    
+
     (cond
      ((string= web-mode-engine "php")
       (setq web-mode-server-blocks-regexp "<\\?"))
@@ -385,9 +385,9 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
      (t
       (setq web-mode-server-blocks-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%."))
      )
-    
+
     ;;    (message "engine=%S regexp=%S" web-mode-engine web-mode-server-blocks-regexp)
-    
+
     (setq font-lock-fontify-buffer-function 'web-mode-scan-buffer
           ;;          font-lock-keywords-only t
           font-lock-unfontify-buffer-function 'web-mode-scan-buffer
