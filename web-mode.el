@@ -326,7 +326,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         );dolist
       );when
 
-    (when (null web-mode-engine)
+    (unless web-mode-engine
       (cond
        ((string-match-p "\\.\\(erb\\|rhtml\\)\\'" bfn)
         (setq web-mode-engine "erb"))
@@ -349,7 +349,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
        );cond
       );when
 
-    (when (not (null web-mode-engine))
+    (when web-mode-engine
       (dolist (elt web-mode-engine-families)
         (when (member web-mode-engine (cdr elt))
           (setq web-mode-engine (car elt)))
@@ -1281,7 +1281,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
       (font-lock-fontify-region beg end)
       ))
   ;; workaround
-  (when (not web-mode-buffer-highlighted)
+  (unless web-mode-buffer-highlighted
     (setq web-mode-buffer-highlighted t)
     (web-mode-fontify-region beg end keywords))
   )
@@ -1628,7 +1628,7 @@ point is at the beginning of the line."
 
       ;;      (message "prev-line=[%s]" prev-line)
 
-      (unless (null prev-line)
+      (when prev-line
 
         (setq prev-indentation (current-indentation))
 
@@ -2049,7 +2049,7 @@ point is at the beginning of the line."
                  (web-mode-beginning-of-element)
                  (looking-at "<\\([[:alpha:]]+\\)"))
         (setq pos (point))
-        (if (not (web-mode-is-void-element))
+        (unless (web-mode-is-void-element)
             (save-match-data
               (web-mode-match-tag)
               (if (looking-at "</[ ]*\\([[:alpha:]]+\\)")
@@ -3345,7 +3345,7 @@ point is at the beginning of the line."
     (setq regexp (concat "</?" tag))
     (while (and (> counter 0) (re-search-forward regexp nil t))
       ;;      (when (not (web-mode-is-comment-or-string))
-      (when (not (web-mode-is-comment-or-string))
+      (unless (web-mode-is-comment-or-string)
         (setq n (1+ n))
         ;; (message "[%s] point=%d line=%d"
         ;;          (match-string-no-properties 0)
@@ -3370,7 +3370,7 @@ point is at the beginning of the line."
     (setq regexp (concat "</?" tag))
     (while (and (> counter 0)
                 (re-search-backward regexp nil t))
-      (when (not (web-mode-is-comment-or-string))
+      (unless (web-mode-is-comment-or-string)
         (setq n (1+ n))
         (if (string= (substring (match-string-no-properties 0) 0 2) "</")
             (setq counter (+ counter 1))
@@ -3672,9 +3672,8 @@ point is at the beginning of the line."
 
     (if (not (= (point-max) (+ (buffer-size) 1)))
         (setq web-mode-is-narrowed t)
-      (when (= (point-max) (+ (buffer-size) 1))
-
-        (when (and (not web-mode-disable-autocompletion)
+        (progn
+          (when (and (not web-mode-disable-autocompletion)
                    (> pos 2)
                    (= len 0)
                    (= 1 (- end beg)))
@@ -3791,7 +3790,6 @@ point is at the beginning of the line."
 
 (defun web-mode-rsb-client (regexp &optional limit noerror)
   "re-search-backward in client."
-  (unless limit (setq limit nil))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
@@ -3804,7 +3802,6 @@ point is at the beginning of the line."
 
 (defun web-mode-rsf-client (regexp &optional limit noerror)
   "re-search-forward in client."
-  (unless limit (setq limit nil))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
@@ -3817,7 +3814,6 @@ point is at the beginning of the line."
 
 (defun web-mode-sf-client (expr &optional limit noerror)
   "search-forward in client."
-  (unless limit (setq limit nil))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
@@ -3830,7 +3826,6 @@ point is at the beginning of the line."
 
 (defun web-mode-rsb (regexp &optional limit noerror)
   "re-search-backward not in comment or string."
-  (unless limit (setq limit nil))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
@@ -3842,7 +3837,6 @@ point is at the beginning of the line."
 
 (defun web-mode-rsf (regexp &optional limit noerror)
   "re-search-forward not in comment or string."
-  (unless limit (setq limit nil))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
@@ -3855,7 +3849,6 @@ point is at the beginning of the line."
 
 (defun web-mode-sb (expr &optional limit noerror)
   "re-search-backward not in comment or string."
-  (unless limit (setq limit nil))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
@@ -3867,7 +3860,6 @@ point is at the beginning of the line."
 
 (defun web-mode-sf (expr &optional limit noerror)
   "re-search-backward not in comment or string."
-  (unless limit (setq limit nil))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
@@ -3879,7 +3871,6 @@ point is at the beginning of the line."
 
 (defun web-mode-rsb-html (regexp &optional limit noerror)
   "re-search-backward only in html."
-  (unless limit (setq limit nil))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
@@ -3891,7 +3882,6 @@ point is at the beginning of the line."
 
 (defun web-mode-rsf-html (regexp &optional limit noerror)
   "re-search-forward only in html."
-  (unless limit (setq limit nil))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
