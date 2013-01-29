@@ -320,14 +320,10 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
      )
 
     (when (boundp 'web-mode-engines-alist)
-      (setq i 0
-            l (length web-mode-engines-alist))
-      (while (< i l)
-        (setq elt (nth i web-mode-engines-alist)
-              i (1+ i))
+      (dolist (elt web-mode-engines-alist)
         (when (string-match-p (car elt) bfn)
           (setq web-mode-engine (cdr elt)))
-        );while
+        );dolist
       );when
 
     (when (null web-mode-engine)
@@ -354,15 +350,10 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
       );when
 
     (when (not (null web-mode-engine))
-      (setq i 0
-            l (length web-mode-engine-families))
-      (while (< i l)
-        (setq elt (nth i web-mode-engine-families)
-              i (1+ i))
-        ;;        (message "%S %S" web-mode-engine (cdr elt))
+      (dolist (elt web-mode-engine-families)
         (when (member web-mode-engine (cdr elt))
           (setq web-mode-engine (car elt)))
-        );while
+        );dolist
       );when
 
     (cond
@@ -1490,25 +1481,24 @@ point is at the beginning of the line."
 
 (defun web-mode-clean-client-line (input)
   "Remove comments and server scripts."
-  (let ((i 0)
-        (out "")
+  (let ((out "")
         (beg 0)
         (keep t)
         (n (length input)))
-    (while (< i n)
+
+    (dotimes (i n)
       (if (or (get-text-property i 'server-side input)
               (get-text-property i 'server-tag-name input)
               (eq (get-text-property i 'client-type input) 'comment))
-          (when keep
-            (setq out (concat out (substring input beg i))
-                  beg 0
-                  keep nil))
-        (when (null keep)
-          (setq beg i
-                keep t))
+          (if keep
+              (setq out (concat out (substring input beg i))
+                    beg 0
+                    keep nil)
+              (setq beg i
+                    keep t))
         );if
-      (setq i (1+ i))
-      );while
+      );dotimes
+
     (if (> beg 0) (setq out (concat out (substring input beg n))))
     (setq out (if (= (length out) 0) input out))
     (web-mode-trim out)
@@ -1518,13 +1508,11 @@ point is at the beginning of the line."
 ;; todo : see web-mode-clean-client-line
 (defun web-mode-clean-server-line (input)
   "Remove comments."
-  (let ((i 0)
-        (out "")
-        (n (length input)))
-    (while (< i n)
+  (let ((out ""))
+    (dotimes (i (length input))
       (unless (eq (get-text-property i 'server-type input) 'comment)
-        (setq out (concat out (substring-no-properties input i (+ i 1)))))
-      (setq i (1+ i)))
+        (setq out (concat out (substring-no-properties input i (1+ i))))))
+
     (web-mode-trim out)
     ))
 
@@ -2010,12 +1998,10 @@ point is at the beginning of the line."
 
 (defun web-mode-count-char-in-string (char &optional string)
   "Count char in string."
-  (let ((i 0) (n 0) l)
-    (setq l (length string))
-    (while (< i l)
+  (let ((n 0))
+    (dotimes (i (length string))
       (if (char-equal (elt string i) char)
-          (setq n (1+ n)))
-      (setq i (1+ i)))
+          (setq n (1+ n))))
     n))
 
 (defun web-mode-element-at-point ()
@@ -3472,19 +3458,17 @@ point is at the beginning of the line."
 
 (defun web-mode-match-django-tag ()
   "Match django tag."
-  (let (beg end chunk regexp control (i 0) (l (length web-mode-django-controls)))
+  (let (beg end chunk regexp)
     (setq beg (+ (point) 2))
     (search-forward "%}")
     (setq end (- (point) 2))
     (setq chunk (buffer-substring-no-properties beg end))
     ;;    (message "chunk=%S" chunk)
-    (while (< i l)
-      (setq control (elt web-mode-django-controls i))
+    (dolist (control web-mode-django-controls)
       (when (string-match-p control chunk)
         (setq regexp (concat "{%[-]?[ ]*\\(" control "\\|end" control "\\)"))
         ;;        (message "regexp=%S" regexp)
         )
-      (setq i (1+ i))
       )
     ;; (cond
     ;;  ((string-match-p "foreach" chunk)
@@ -3535,16 +3519,15 @@ point is at the beginning of the line."
 
 (defun web-mode-match-smarty-tag ()
   "Match smarty tag."
-  (let (beg end chunk regexp control (i 0) (l (length web-mode-smarty-controls)))
+  (let (beg end chunk regexp)
     (setq beg (+ (point) 1))
     (search-forward "}")
     (setq end (- (point) 1))
     (setq chunk (buffer-substring-no-properties beg end))
-    (while (< i l)
-      (setq control (elt web-mode-smarty-controls i))
+    (dolist (control web-mode-smarty-controls)
       (when (string-match-p control chunk)
         (setq regexp (concat "{/?\\(" control "\\)")))
-      (setq i (1+ i)))
+      )
     (if (string-match-p "/" chunk)
         (web-mode-match-opening-smarty-tag regexp)
       (web-mode-match-closing-smarty-tag regexp))))
