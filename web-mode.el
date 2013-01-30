@@ -208,7 +208,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
   '(("django"    . ("twig" "jinja" "jinja2"))
     ("erb"       . ("eruby" "ember" "erubis"))
     ("velocity"  . ("cheetah"))
-    ("ctemplate" . ("mustache" "hapax" "ngtemplate")))
+    ("ctemplate" . ("mustache" "handlebars" "hapax" "ngtemplate")))
   "Engine name aliases")
 
 (defvar web-mode-file-type ""
@@ -344,6 +344,8 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (setq web-mode-engine "freemarker"))
        ((string-match-p "\\.mustache\\'" bfn)
         (setq web-mode-engine "mustache"))
+       ((string-match-p "\\.\\(handlebars\\|hbs\\)\\'" bfn)
+        (setq web-mode-engine "handlebars"))
        ((string-match-p "\\.\\(vsl\\|vm\\)\\'" bfn)
         (setq web-mode-engine "velocity"))
        );cond
