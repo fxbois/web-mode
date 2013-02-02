@@ -277,7 +277,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 (define-derived-mode web-mode web-mode-prog-mode "Web"
   "Major mode for editing mixed HTML Templates."
 
-  (let ((bfn (buffer-file-name)) elt l i)
+  (let (bfn elt l i)
 
     ;;    (make-local-variable 'font-lock-extend-region-functions)
     ;;    (make-local-variable 'font-lock-keywords-case-fold-search)
@@ -306,6 +306,8 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (make-local-variable 'web-mode-indent-style)
     (make-local-variable 'web-mode-is-narrowed)
     (make-local-variable 'web-mode-server-blocks-regexp)
+
+    (setq bfn (file-name-nondirectory (buffer-file-name)))
 
     ;;  (make-local-variable 'font-lock-extend-after-change-region-function)
     ;;  (setq font-lock-extend-after-change-region-function 'web-mode-extend-after-change-region)
