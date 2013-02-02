@@ -336,7 +336,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (setq web-mode-engine "smarty"))
        ((string-match-p "\\.jsp\\'" bfn)
         (setq web-mode-engine "jsp"))
-       ((string-match-p "\\.\\(php\\|ctp\\)\\'" bfn)
+       ((string-match-p "\\.\\(php\\|ctp\\|psp\\)\\'" bfn)
         (setq web-mode-engine "php"))
        ((string-match-p "\\.as[cp]x?\\'" bfn)
         (setq web-mode-engine "asp"))
@@ -443,8 +443,6 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
               open (match-beginning 0)
               pos nil)
 
-        ;;        (message "sub2=%S" tagopen)
-
         (when (or (char-equal ?\s (string-to-char tagopen))
                   (char-equal ?\t (string-to-char tagopen)))
           (setq l (length tagopen))
@@ -453,7 +451,6 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
           )
 
         (setq sub2 (substring tagopen 0 2))
-        ;;        (message "sub2=%S" sub2)
 
         (cond
 
