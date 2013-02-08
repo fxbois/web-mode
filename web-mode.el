@@ -1525,7 +1525,7 @@ point is at the beginning of the line."
 ;; todo: less vars
 (defun web-mode-indent-line ()
   "Indent current line according to language."
-  (interactive)
+;;  (interactive)
   (let ((inhibit-modification-hooks t)
         continue
         counter
@@ -1614,7 +1614,7 @@ point is at the beginning of the line."
 
        ) ;;cond
 
-      ;;      (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-asp-block in-html-block in-comment-block)
+;;           (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-asp-block in-html-block in-comment-block)
 
       ;;      (message "block limit = %S" web-mode-block-beg)
 
@@ -1638,7 +1638,8 @@ point is at the beginning of the line."
          ((or in-html-block in-js-block in-style-block)
           (setq prev-line (web-mode-clean-client-line prev-line))
           ;;          (message "prev=[%s] %S" prev-line (length prev-line))
-          (setq props (text-properties-at (1- (length prev-line)) prev-line))
+;;          (setq props (text-properties-at (1- (length prev-line)) prev-line))
+          (setq props (text-properties-at (length prev-line) prev-line))
           ;;          (message "props=%S" props)
           )
 
