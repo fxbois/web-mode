@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 4.0
+;; Version: 4.0.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -1486,7 +1486,6 @@ point is at the beginning of the line."
         (beg 0)
         (keep t)
         (n (length input)))
-
     (dotimes (i n)
       (if (or (get-text-property i 'server-side input)
               (get-text-property i 'server-tag-name input)
@@ -1494,16 +1493,17 @@ point is at the beginning of the line."
           (if keep
               (setq out (concat out (substring input beg i))
                     beg 0
-                    keep nil)
-              (setq beg i
-                    keep t))
+                    keep nil))
+        (if (null keep)
+            (setq beg i
+                  keep t))
         );if
+;;      (message "out=%s beg=%d" out beg)
       );dotimes
-
     (if (> beg 0) (setq out (concat out (substring input beg n))))
     (setq out (if (= (length out) 0) input out))
     (web-mode-trim out)
-    ;;    (message "%S [%s] > [%s]" beg input out)
+;;    (message "%S [%s] > [%s]" beg input out)
     ))
 
 ;; todo : see web-mode-clean-client-line
@@ -1636,8 +1636,9 @@ point is at the beginning of the line."
         (cond
 
          ((or in-html-block in-js-block in-style-block)
+;;          (message "prev=[%s] %S" prev-line (length prev-line))
           (setq prev-line (web-mode-clean-client-line prev-line))
-          ;;          (message "prev=[%s] %S" prev-line (length prev-line))
+;;          (message "prev=[%s] %S" prev-line (length prev-line))
 ;;          (setq props (text-properties-at (1- (length prev-line)) prev-line))
           (setq props (text-properties-at (length prev-line) prev-line))
           ;;          (message "props=%S" props)
