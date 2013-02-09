@@ -7,3 +7,4 @@ Template engines compatibility: PHP, JSP, ASP, Django, Twig, Jinja(2), ERB, Free
 
 More infos on http://web-mode.org/
 
+(http://web-mode.org/web-mode.png)
