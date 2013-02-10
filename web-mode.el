@@ -181,7 +181,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
   "Void (self-closing) tags.")
 
 (defconst web-mode-text-properties
-  '(client-tag-name nil client-tag-type nil server-tag-name nil server-tag-type nil client-language nil server-engine nil client-side nil server-side nil client-type nil server-type nil client-pos nil server-pos nil face nil)
+  '(client-tag-name nil client-tag-type nil server-tag-name nil server-tag-type nil client-language nil server-engine nil client-side nil server-side nil client-type nil server-type nil server-beg nil server-end nil face nil)
   "Text properties used for fontification and indentation.")
 
 (defvar web-mode-expand-first-pos nil
@@ -600,9 +600,10 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
           (when close
             ;;            (message "open(%S) close(%S)" open close)
-            ;;            (add-text-properties open (+ open 1) '(server-pos beg))
+            ;;            (add-text-properties open (+ open 1) '(server-end beg))
             (add-text-properties open close '(server-side t))
-            (add-text-properties (- close 1) close '(server-pos end))
+            (add-text-properties open (1+ open) '(server-beg t))
+            (add-text-properties (- close 1) close '(server-end t))
             )
 
           (if pos (goto-char pos))
@@ -632,7 +633,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         )
 
       ;; (while continue
-      ;;   (setq block-end (or (next-single-property-change block-beg 'server-pos) pm))
+      ;;   (setq block-end (or (next-single-property-change block-beg 'server-end) pm))
       ;;   (if (or (not block-end) (> block-end end) (> block-end (- pm 2)))
       ;;       (setq continue nil)
       ;;     (web-mode-scan-server-block block-beg (+ block-end 1))
@@ -646,13 +647,17 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
       (while continue
         (setq block-end (web-mode-server-block-end-pos block-beg))
-        (if (or (null block-end) (> block-end end) (> block-end (- pm 2)))
+;;        (message "end=%S" block-end)
+;;        (if (or (null block-end) (> block-end end) (> block-end (- pm 2)))
+        (if (or (null block-end) (> block-end end))
             (setq continue nil)
           (setq block-end (1+ block-end))
           (web-mode-scan-server-block block-beg block-end)
           (if (get-text-property block-end 'server-side)
               (setq block-beg block-end)
-            (setq block-beg (web-mode-next-server-block-pos block-end)))
+            (progn
+              (setq block-beg (web-mode-next-server-block-pos block-end))
+              ))
           (if (or (null block-beg) (> block-beg end))
               (setq continue nil))
           );if
@@ -1273,6 +1278,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 (defun web-mode-fontify-region (beg end keywords)
   "Highlight block."
   (save-excursion
+;;    (message "beg=%S end=%S" beg end)
     (let ((font-lock-keywords keywords)
           (font-lock-multiline nil)
           (font-lock-keywords-case-fold-search nil)
@@ -1301,8 +1307,8 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 (defun web-mode-indent-buffer ()
   "Indent all buffer."
   (interactive)
-  (indent-region (point-min) (point-max)))
-
+  (indent-region (point-min) (point-max))
+  (delete-trailing-whitespace))
 
 (defun web-mode-previous-usable-server-line ()
   "Move cursor to previous non blank/comment/string line and return this line (trimmed).
@@ -1442,13 +1448,12 @@ point is at the beginning of the line."
 
 (defun web-mode-in-server-block (language)
   "Detect if point is in a server block."
-  ;;(web-mode-scan-init)
   (save-excursion
     ;;    (progn (message "language=%S" language) t)
     (let ((pos (point)))
       (and (not (bobp))
            (eq (get-text-property pos 'server-engine) language)
-           (eq (get-text-property (- pos 1) 'server-engine) language)
+           (not (get-text-property pos 'server-beg))
            (not (looking-at-p "\\?>\\|%>"))
            (progn
              (setq web-mode-block-beg (or (previous-single-property-change pos 'server-engine)
@@ -1490,31 +1495,53 @@ point is at the beginning of the line."
       (if (or (get-text-property i 'server-side input)
               (get-text-property i 'server-tag-name input)
               (eq (get-text-property i 'client-type input) 'comment))
-          (if keep
-              (setq out (concat out (substring input beg i))
-                    beg 0
-                    keep nil))
-        (if (null keep)
-            (setq beg i
-                  keep t))
+          (when keep
+            (setq out (concat out (substring input beg i))
+                  beg 0
+                  keep nil))
+        (when (null keep)
+          (setq beg i
+                keep t))
         );if
-;;      (message "out=%s beg=%d" out beg)
+      ;;      (message "out=%s beg=%d" out beg)
       );dotimes
     (if (> beg 0) (setq out (concat out (substring input beg n))))
     (setq out (if (= (length out) 0) input out))
     (web-mode-trim out)
-;;    (message "%S [%s] > [%s]" beg input out)
+    ;;    (message "%S [%s] > [%s]" beg input out)
     ))
 
-;; todo : see web-mode-clean-client-line
-(defun web-mode-clean-server-line (input)
-  "Remove comments."
-  (let ((out ""))
-    (dotimes (i (length input))
-      (unless (eq (get-text-property i 'server-type input) 'comment)
-        (setq out (concat out (substring-no-properties input i (1+ i))))))
+;; (defun web-mode-clean-server-line (input)
+;;   "Remove comments."
+;;   (let ((out ""))
+;;     (dotimes (i (length input))
+;;       (unless (eq (get-text-property i 'server-type input) 'comment)
+;;         (setq out (concat out (substring-no-properties input i (1+ i))))))
 
+;;     (web-mode-trim out)
+;;     ))
+
+(defun web-mode-clean-server-line (input)
+  "Remove comments from server line."
+  (let ((out "")
+        (beg 0)
+        (keep t)
+        (n (length input)))
+    (dotimes (i n)
+      (if (eq (get-text-property i 'server-type input) 'comment)
+          (when keep
+            (setq out (concat out (substring input beg i))
+                  beg 0
+                  keep nil))
+        (when (null keep)
+          (setq beg i
+                keep t))
+        );if
+      );dotimes
+    (if (> beg 0) (setq out (concat out (substring input beg n))))
+    (setq out (if (= (length out) 0) input out))
     (web-mode-trim out)
+    ;;    (message "%S [%s] > [%s]" beg input out)
     ))
 
 (defvar web-mode-indent-context
@@ -1537,8 +1564,6 @@ point is at the beginning of the line."
         cur-line
         in-comment-block
         in-directive-block
-        ;;        in-django-block
-        ;;        in-ctemplate-block
         in-php-block
         in-asp-block
         in-jsp-block
@@ -1577,6 +1602,10 @@ point is at the beginning of the line."
         (setq in-html-block t
               local-indent-offset web-mode-markup-indent-offset))
 
+       ((or (eq (get-text-property (point) 'client-type) 'comment)
+            (eq (get-text-property (point) 'server-type) 'comment))
+        (setq in-comment-block t))
+
        ((web-mode-in-server-block 'php)
         (setq in-php-block t))
 
@@ -1596,25 +1625,13 @@ point is at the beginning of the line."
         (setq in-style-block t
               local-indent-offset web-mode-css-indent-offset))
 
-       ;;       ((eq (get-text-property (point) 'server-engine) 'django)
-       ;;        (setq in-django-block t)
-       ;;        )
-
-       ;;       ((eq (get-text-property (point) 'server-engine) 'ctemplate)
-       ;;        (setq in-ctemplate-block t)
-       ;;        )
-
-       ((eq (get-text-property (point) 'server-type) 'comment)
-        (setq in-comment-block t)
-        )
-
        (t
         (setq in-html-block t
               local-indent-offset web-mode-markup-indent-offset))
 
-       ) ;;cond
+       );cond
 
-;;           (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-asp-block in-html-block in-comment-block)
+      ;;(message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-asp-block in-html-block in-comment-block)
 
       ;;      (message "block limit = %S" web-mode-block-beg)
 
@@ -1636,11 +1653,11 @@ point is at the beginning of the line."
         (cond
 
          ((or in-html-block in-js-block in-style-block)
-;;          (message "prev=[%s] %S" prev-line (length prev-line))
+          ;;          (message "prev=[%s] %S" prev-line (length prev-line))
           (setq prev-line (web-mode-clean-client-line prev-line))
-;;          (message "prev=[%s] %S" prev-line (length prev-line))
-;;          (setq props (text-properties-at (1- (length prev-line)) prev-line))
-          (setq props (text-properties-at (length prev-line) prev-line))
+          ;;          (message "prev=[%s] %S" prev-line (length prev-line))
+          (setq props (text-properties-at (1- (length prev-line)) prev-line))
+          ;;          (setq props (text-properties-at (length prev-line) prev-line))
           ;;          (message "props=%S" props)
           )
 
@@ -1793,7 +1810,7 @@ point is at the beginning of the line."
           ()
           )
 
-         )) ;; end case script block
+         ));end case script block
 
        (in-directive-block
 
@@ -1806,7 +1823,7 @@ point is at the beginning of the line."
           (setq offset (current-column)))
          )
 
-        ) ;; directive
+        );directive
 
        (in-style-block
 
@@ -1820,24 +1837,21 @@ point is at the beginning of the line."
                   (string= web-mode-file-type "css"))
               (setq offset 0)
             (web-mode-sb "<style")
-            (setq offset (current-column)))
-          )
+            (setq offset (current-column))))
 
          ((and (not (string= "" cur-line))
                (not (string-match-p "^[[:alpha:]-]+[ ]?:" cur-line)))
 
           (re-search-backward ":"  web-mode-block-beg)
           (skip-chars-forward ":  ")
-          (setq offset (current-column))
-          )
+          (setq offset (current-column)))
 
          (t
           (if (or (= web-mode-indent-style 2)
                   (string= web-mode-file-type "css"))
               (setq offset local-indent-offset)
             (web-mode-sb "<style" nil t)
-            (setq offset (+ (current-column) local-indent-offset)))
-          )
+            (setq offset (+ (current-column) local-indent-offset))))
 
          )
 
@@ -1997,7 +2011,6 @@ point is at the beginning of the line."
       );while
     ;;    (message "opened-blocks(%S)" n)
     n))
-
 
 (defun web-mode-count-char-in-string (char &optional string)
   "Count char in string."
@@ -2549,23 +2562,29 @@ point is at the beginning of the line."
 (defun web-mode-server-block-beg-pos (&optional pos)
   "web-mode-server-block-beg-pos"
   (unless pos (setq pos (point)))
-  (let ((end pos)
-        start)
+  (let (
+;;        (end pos)
+;;        start
+        )
     (cond
+     ((or (and (get-text-property pos 'server-side)
+               (eq pos (point-min)))
+          ;;                  (not (get-text-property (1- pos) 'server-side)))
+          (get-text-property pos 'server-beg))
+      )
      ((get-text-property pos 'server-side)
-      (unless (or (eq pos (point-min))
-                  (not (get-text-property (1- pos) 'server-side)))
-        (setq start (or (previous-single-property-change pos 'server-side)
-                        (point-min)))
-        (setq end (text-property-any start pos 'server-pos 'end))
-        (setq pos (if end (1+ end) start))
-        ))
+      ;;        (setq start (or (previous-single-property-change pos 'server-side)
+      ;;                        (point-min)))
+      ;;        (setq end (text-property-any start pos 'server-end t))
+      ;;        (setq pos (if end (1+ end) start))
+      (setq pos (previous-single-property-change pos 'server-beg))
+      (setq pos (if pos (1- pos) (point-min)))
+      )
      (t
       (setq pos nil))
      );cond
     ;;    (message "web-mode-server-block-beg-pos=%S" pos)
-    pos
-    ))
+    pos))
 
 (defun web-mode-prev-server-block-pos (&optional pos)
   "web-mode-prev-server-block-pos"
@@ -2600,8 +2619,7 @@ point is at the beginning of the line."
     )
 
    );conf
-  pos
-  )
+  pos)
 
 (defun web-mode-prev-server-block (&optional pos)
   "web-mode-prev-server-block"
@@ -2614,10 +2632,10 @@ point is at the beginning of the line."
   "web-mode-server-block-end-pos"
   (unless pos (setq pos (point)))
   (cond
-   ((eq (get-text-property pos 'server-pos) 'end)
+   ((get-text-property pos 'server-end)
     )
    ((get-text-property pos 'server-side)
-    (setq pos (or (next-single-property-change pos 'server-pos)
+    (setq pos (or (next-single-property-change pos 'server-end)
                   (point-max))))
    (t
     (setq pos nil))
@@ -2647,7 +2665,7 @@ point is at the beginning of the line."
   (setq pos (web-mode-next-server-block-pos pos))
   (if pos (goto-char pos)))
 
-;; todo : faire attention à server-pos 'end
+;; todo : faire attention à server-end 'end
 (defun web-mode-goto-block-beg (&optional pos)
   "Block type beg"
   (interactive)
