@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 4.0.11
+;; Version: 4.0.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -60,7 +60,7 @@ HTML files can embed various kinds of blocks: javascript / css / code."
   :group 'web-mode)
 
 (defcustom web-mode-disable-css-colorization (not (display-graphic-p))
-  "In a style block, do not set background according to the color: #xxx, rgb(x,x,x)."
+  "In a CSS block, do not set background according to the color: #xxx, rgb(x,x,x)."
   :type 'boolean
   :group 'web-mode)
 
@@ -181,7 +181,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
   "Void (self-closing) tags.")
 
 (defconst web-mode-text-properties
-  '(client-tag-name nil client-tag-type nil server-tag-name nil server-tag-type nil client-language nil server-engine nil client-side nil server-side nil client-type nil server-type nil server-beg nil server-end nil face nil)
+  '(client-tag-name nil client-tag-type nil client-token-type nil client-language nil client-side nil server-tag-name nil server-tag-type nil server-engine nil server-side nil server-token-type nil server-beg nil server-end nil face nil)
   "Text properties used for fontification and indentation.")
 
 (defvar web-mode-expand-first-pos nil
@@ -684,7 +684,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
      ((string= web-mode-engine "ctemplate")
       (cond
        ((string= sub3 "{{!")
-        (setq props '(server-type comment face web-mode-comment-face)))
+        (setq props '(server-token-type comment face web-mode-comment-face)))
        ((string= sub3 "{{%")
         (setq regexp "\"\\|'"
               props '(server-engine ctemplate face nil)
@@ -702,7 +702,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
      ((member sub3 '("<%-" "<#-" "[#-"))
       ;;     ((or (string= "<%-" sub3) (string= "<#-" sub3) (string= "[#-" sub3))
-      (setq props '(server-type comment face web-mode-comment-face)))
+      (setq props '(server-token-type comment face web-mode-comment-face)))
 
      ((member sub2 '("<#" "<@" "</" "[#" "[@" "[/"))
       ;;     ((or (string= "<#" sub2) (string= "<@" sub2) (string= "</" sub2)
@@ -741,7 +741,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
      ((and (string= sub3 "<%#")
            (not (string= web-mode-engine "asp")))
-      (setq props '(server-type comment face web-mode-comment-face))
+      (setq props '(server-token-type comment face web-mode-comment-face))
       )
 
      ((or (string= sub2 "<%") (string= sub1 "%"))
@@ -763,7 +763,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
       )
 
      ((string= sub2 "{*")
-      (setq props '(server-type comment face web-mode-comment-face))
+      (setq props '(server-token-type comment face web-mode-comment-face))
       )
 
      ((and (string= sub1 "{") (string= web-mode-engine "smarty"))
@@ -798,11 +798,11 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
       )
 
      ((string= sub2 "{#")
-      (setq props '(server-type comment face web-mode-comment-face))
+      (setq props '(server-token-type comment face web-mode-comment-face))
       )
 
      ((member sub2 '("##" "#*"))
-      (setq props '(server-type comment face web-mode-comment-face))
+      (setq props '(server-token-type comment face web-mode-comment-face))
       )
 
 
@@ -828,32 +828,32 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (cond
 
          ((string= fc "'")
-          (setq props '(server-type string face web-mode-string-face))
+          (setq props '(server-token-type string face web-mode-string-face))
           (while (and continue (search-forward "'" end t))
             (setq continue (char-equal ?\\ (char-before (- (point) 1))))
             )
           )
 
          ((string= fc "\"")
-          (setq props '(server-type string face web-mode-string-face))
+          (setq props '(server-token-type string face web-mode-string-face))
           (while (and continue (search-forward "\"" end t))
             (setq continue (char-equal ?\\ (char-before (- (point) 1))))
             )
           )
 
          ((string= ms "//")
-          (setq props '(server-type comment face web-mode-comment-face))
+          (setq props '(server-token-type comment face web-mode-comment-face))
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
 
          ((string= ms "/*")
-          (setq props '(server-type comment face web-mode-comment-face))
+          (setq props '(server-token-type comment face web-mode-comment-face))
           (search-forward "*/" end t)
           )
 
          ((string= fc "<")
           ;;                (message "tag=%S" (match-string 1))
-          (setq props '(server-type string face web-mode-string-face))
+          (setq props '(server-token-type string face web-mode-string-face))
           (re-search-forward (concat "^" (match-string 1)) end t)
           )
 
@@ -872,9 +872,9 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
 ;;<#include "toto">
 (defun web-mode-scan-client (beg end)
-  "Scan client side blocks (JS / CSS / HTML Comments) and identifies strings and comments."
+  "Scan client side blocks (JavaScript / CSS / HTML Comments) and identifies strings and comments."
   (save-excursion
-    (let (open limit close ms regexp props closing-string start tag-name tag-beg tag-end tag-fc tag-stop attrs-end close-found prop-type prop-name)
+    (let (open limit close ms regexp props closing-string start tag-name tag-beg tag-end tag-fc tag-stop tag-content-type attrs-end close-found prop-type prop-name)
 
       (goto-char beg)
 
@@ -882,7 +882,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (setq tag-name (downcase (match-string 1))
               tag-beg (match-beginning 0)
               tag-end nil
-              tag-type nil
+              tag-content-type nil
               tag-stop (point)
               tag-fc (substring (match-string 0) 0 1)
               prop-name 'client-tag-name
@@ -913,7 +913,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
                   prop-type 'server-tag-type))
            (t
             (setq props '(face web-mode-html-tag-face)))
-           )
+           );cond
           (cond
            ((char-equal (string-to-char tag-name) ?/)
             (setq props (plist-put props prop-name (substring tag-name 1)))
@@ -965,6 +965,10 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
           );if
 
+        (if (and (string= tag-name "script")
+                 (string-match-p " type=\"text/html\"" (buffer-substring tag-beg tag-end)))
+            (setq tag-content-type "text/html")
+          (setq tag-content-type "text/javascript"))
 
         (add-text-properties tag-beg tag-end props)
 
@@ -974,7 +978,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
           (add-text-properties tag-beg tag-end '(face web-mode-doctype-face)))
 
          ((string= tag-name "!--")
-          (add-text-properties tag-beg tag-end '(client-side t client-type comment face web-mode-comment-face)))
+          (add-text-properties tag-beg tag-end '(client-side t client-token-type comment face web-mode-comment-face)))
 
          (close-found
           (when (and (not (string= tag-fc "/"))
@@ -982,11 +986,15 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
             (web-mode-scan-attrs tag-stop attrs-end)
             )
           (cond
-           ((string= tag-name "script")
+           ((and (string= tag-name "script")
+                 (string= tag-content-type "text/javascript"))
             (setq closing-string "</script>"))
            ((string= tag-name "style")
             (setq closing-string "</style>"))
            )
+
+          ;; si <script type="document/html"> on ne fait pas la suite
+
           (when (and closing-string (web-mode-sf-client closing-string end t))
             (setq open tag-end
                   close (match-beginning 0))
@@ -1010,8 +1018,8 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
       (cond
        ((string= tag-name "script")
         (setq regexp "//\\|/\\*\\|\"\\|'"
-              keywords web-mode-script-font-lock-keywords
-              props '(client-language js client-side t)))
+              keywords web-mode-javascript-font-lock-keywords
+              props '(client-language javascript client-side t)))
        ((string= tag-name "style")
         (setq regexp "/\\*\\|\"\\|'"
               props '(client-language css client-side t)))
@@ -1067,26 +1075,26 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (cond
 
          ((string= fc "'")
-          (setq props '(client-type string face web-mode-string-face))
+          (setq props '(client-token-type string face web-mode-string-face))
           (while (and continue (search-forward "'" end t))
             (setq continue (char-equal ?\\ (char-before (- (point) 1))))
             )
           )
 
          ((string= fc "\"")
-          (setq props '(client-type string face web-mode-string-face))
+          (setq props '(client-token-type string face web-mode-string-face))
           (while (and continue (search-forward "\"" end t))
             (setq continue (char-equal ?\\ (char-before (- (point) 1))))
             )
           )
 
          ((string= ms "//")
-          (setq props '(client-type comment face web-mode-comment-face))
+          (setq props '(client-token-type comment face web-mode-comment-face))
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
 
          ((string= ms "/*")
-          (setq props '(client-type comment face web-mode-comment-face))
+          (setq props '(client-token-type comment face web-mode-comment-face))
           (search-forward "*/" end t)
           )
 
@@ -1239,12 +1247,12 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
     (if (or (and (string= state "value-dq") (string= c "\""))
             (and (string= state "value-sq") (string= c "'")))
-        (add-text-properties name-beg (+ (point) 1) '(client-type attr face web-mode-html-attr-name-face))
-      (add-text-properties name-beg (point) '(client-type attr face web-mode-html-attr-name-face))
+        (add-text-properties name-beg (+ (point) 1) '(client-token-type attr face web-mode-html-attr-name-face))
+      (add-text-properties name-beg (point) '(client-token-type attr face web-mode-html-attr-name-face))
       )
 
 
-    ;;    (add-text-properties name-beg (point) '(client-type attr face web-mode-html-attr-name-face))
+    ;;    (add-text-properties name-beg (point) '(client-token-type attr face web-mode-html-attr-name-face))
     (when (and val-beg val-end)
       (setq val-end (if (string= c ">") val-end (+ val-end 1)))
       (add-text-properties val-beg val-end '(face web-mode-html-attr-value-face)))
@@ -1393,21 +1401,21 @@ point is at the beginning of the line."
   (unless pos (setq pos (point)))
   (or (get-text-property pos 'server-side)
       (get-text-property pos 'server-tag-name)
-      (not (null (member (get-text-property pos 'client-type) '(string comment))))))
+      (not (null (member (get-text-property pos 'client-token-type) '(string comment))))))
 
 (defun web-mode-is-comment-or-string (&optional pos)
   "Detect if point is in a comment or in a string."
   (interactive)
   (unless pos (setq pos (point)))
-  (or (memq (get-text-property pos 'server-type) '(string comment))
-      (memq (get-text-property pos 'client-type) '(string comment))))
+  (or (memq (get-text-property pos 'server-token-type) '(string comment))
+      (memq (get-text-property pos 'client-token-type) '(string comment))))
 
 (defun web-mode-is-comment (&optional pos)
   "Detect if point is in a comment."
   (interactive)
   (unless pos (setq pos (point)))
-  (or (eq (get-text-property pos 'server-type) 'comment)
-      (eq (get-text-property pos 'client-type) 'comment)))
+  (or (eq (get-text-property pos 'server-token-type) 'comment)
+      (eq (get-text-property pos 'client-token-type) 'comment)))
 
 (defun web-mode-is-line-in-block (open close)
   "Detect if point is in a block delimited by open and close."
@@ -1467,10 +1475,12 @@ point is at the beginning of the line."
   (save-excursion
     (let ((pos (point)))
       (and (not (bobp))
+           (get-text-property pos 'client-side)
            (eq (get-text-property pos 'client-language) language)
-           (eq (get-text-property (- pos 1) 'client-language) language)
+;;           (get-text-property (- pos 1) 'client-side)
+;;           (eq (get-text-property (- pos 1) 'client-language) language)
            (progn
-             (setq web-mode-block-beg (or (previous-single-property-change pos 'client-language)
+             (setq web-mode-block-beg (or (previous-single-property-change pos 'client-side)
                                           (point-min)))
              t)
            )
@@ -1494,7 +1504,7 @@ point is at the beginning of the line."
     (dotimes (i n)
       (if (or (get-text-property i 'server-side input)
               (get-text-property i 'server-tag-name input)
-              (eq (get-text-property i 'client-type input) 'comment))
+              (eq (get-text-property i 'client-token-type input) 'comment))
           (when keep
             (setq out (concat out (substring input beg i))
                   beg 0
@@ -1515,7 +1525,7 @@ point is at the beginning of the line."
 ;;   "Remove comments."
 ;;   (let ((out ""))
 ;;     (dotimes (i (length input))
-;;       (unless (eq (get-text-property i 'server-type input) 'comment)
+;;       (unless (eq (get-text-property i 'server-token-type input) 'comment)
 ;;         (setq out (concat out (substring-no-properties input i (1+ i))))))
 
 ;;     (web-mode-trim out)
@@ -1528,7 +1538,7 @@ point is at the beginning of the line."
         (keep t)
         (n (length input)))
     (dotimes (i n)
-      (if (eq (get-text-property i 'server-type input) 'comment)
+      (if (eq (get-text-property i 'server-token-type input) 'comment)
           (when keep
             (setq out (concat out (substring input beg i))
                   beg 0
@@ -1567,8 +1577,8 @@ point is at the beginning of the line."
         in-php-block
         in-asp-block
         in-jsp-block
-        in-js-block
-        in-style-block
+        in-javascript-block
+        in-css-block
         in-html-block
         line-number
         (local-indent-offset web-mode-code-indent-offset)
@@ -1594,7 +1604,7 @@ point is at the beginning of the line."
       (cond
 
        ((string= web-mode-file-type "css")
-        (setq in-style-block t
+        (setq in-css-block t
               web-mode-block-beg (point-min)
               local-indent-offset web-mode-css-indent-offset))
 
@@ -1602,8 +1612,17 @@ point is at the beginning of the line."
         (setq in-html-block t
               local-indent-offset web-mode-markup-indent-offset))
 
-       ((or (eq (get-text-property (point) 'client-type) 'comment)
-            (eq (get-text-property (point) 'server-type) 'comment))
+       ((and (not (bobp))
+             (or (and (eq (get-text-property (point) 'client-token-type) 'comment)
+                      (eq (get-text-property (1- (point)) 'client-token-type) 'comment)
+                      (progn
+                        (setq web-mode-block-beg (previous-single-property-change (point) 'client-token-type))
+                        t))
+                 (and (eq (get-text-property (point) 'server-token-type) 'comment)
+                      (eq (get-text-property (1- (point)) 'server-token-type) 'comment)
+                      (progn
+                        (setq web-mode-block-beg (previous-single-property-change (point) 'server-token-type))
+                        t))))
         (setq in-comment-block t))
 
        ((web-mode-in-server-block 'php)
@@ -1618,11 +1637,11 @@ point is at the beginning of the line."
        ((web-mode-in-server-block 'asp)
         (setq in-asp-block t))
 
-       ((web-mode-in-client-block 'js)
-        (setq in-js-block t))
+       ((web-mode-in-client-block 'javascript)
+        (setq in-javascript-block t))
 
        ((web-mode-in-client-block 'css)
-        (setq in-style-block t
+        (setq in-css-block t
               local-indent-offset web-mode-css-indent-offset))
 
        (t
@@ -1631,9 +1650,9 @@ point is at the beginning of the line."
 
        );cond
 
-      ;;(message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-js-block in-style-block in-directive-block in-asp-block in-html-block in-comment-block)
+      ;;(message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-javascript-block in-css-block in-directive-block in-asp-block in-html-block in-comment-block)
 
-      ;;      (message "block limit = %S" web-mode-block-beg)
+      ;;(message "block limit = %S" web-mode-block-beg)
 
       (setq cur-line (web-mode-trim (buffer-substring-no-properties
                                      (line-beginning-position)
@@ -1652,7 +1671,7 @@ point is at the beginning of the line."
 
         (cond
 
-         ((or in-html-block in-js-block in-style-block)
+         ((or in-html-block in-javascript-block in-css-block)
           ;;          (message "prev=[%s] %S" prev-line (length prev-line))
           (setq prev-line (web-mode-clean-client-line prev-line))
           ;;          (message "prev=[%s] %S" prev-line (length prev-line))
@@ -1683,7 +1702,7 @@ point is at the beginning of the line."
         (setq offset 0)
         )
 
-       ((or in-php-block in-jsp-block in-asp-block in-js-block)
+       ((or in-php-block in-jsp-block in-asp-block in-javascript-block)
         ;;        (message "prev=%S" prev-last-char)
         (cond
 
@@ -1694,7 +1713,7 @@ point is at the beginning of the line."
           (setq offset (current-column))
           )
 
-         ((and in-js-block
+         ((and in-javascript-block
                (string= cur-first-char "."))
           ;;          (web-mode-rsb "\\." web-mode-block-beg)
           ;;          (setq offset prev-indentation)
@@ -1733,7 +1752,7 @@ point is at the beginning of the line."
           ;;          (message "prev-line=%s" prev-line)
           ;; todo : ne pas regarder dans des strings ou comment
           (cond
-           ((and in-js-block (string-match-p "var " prev-line))
+           ((and in-javascript-block (string-match-p "var " prev-line))
             (web-mode-sb "var " web-mode-block-beg)
             (setq offset (+ (current-column) 4))
             )
@@ -1775,7 +1794,7 @@ point is at the beginning of the line."
           (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
           ;;          (message "n=%S block-beg=%S" n web-mode-block-beg)
           (goto-char web-mode-block-beg)
-          (if in-js-block (search-backward "<"))
+          (if in-javascript-block (search-backward "<"))
           (setq offset (current-indentation))
           (if (> n 0) (setq offset (+ offset (* n local-indent-offset))))
 
@@ -1796,7 +1815,7 @@ point is at the beginning of the line."
           (setq offset (- (current-column) 1))
           )
 
-         ((and in-js-block (string-match-p "<script" prev-line))
+         ((and in-javascript-block (string-match-p "<script" prev-line))
           (web-mode-sb "<script")
           (setq offset (current-column))
           )
@@ -1825,7 +1844,7 @@ point is at the beginning of the line."
 
         );directive
 
-       (in-style-block
+       (in-css-block
 
         (goto-char pos)
 
@@ -1858,8 +1877,9 @@ point is at the beginning of the line."
         ); end case style block
 
        (in-comment-block
-
-        (setq offset prev-indentation)
+        (goto-char web-mode-block-beg)
+        (setq offset (current-column))
+;;        (setq offset prev-indentation)
 
         ); end comment block
 
@@ -1867,7 +1887,7 @@ point is at the beginning of the line."
 
         (cond
 
-         ((and props (eq (plist-get props 'client-type) 'attr))
+         ((and props (eq (plist-get props 'client-token-type) 'attr))
           (web-mode-tag-beg)
           (re-search-forward "<[[:alpha:]_:]+")
           (skip-chars-forward " ")
@@ -1960,7 +1980,9 @@ point is at the beginning of the line."
           (while (and continue (re-search-backward "^[[:blank:]]*</?[[:alpha:]]" nil t))
             (back-to-indentation)
             (when (and (web-mode-is-html-tag)
-                       (not (member (get-text-property (point) 'client-tag-name) '("style" "script"))))
+                       t
+                       ;;(not (member (get-text-property (point) 'client-tag-name) '("style" "script")))
+                       )
               (setq counter (1+ counter)
                     continue nil
                     offset (+ (current-indentation)
@@ -2103,25 +2125,25 @@ point is at the beginning of the line."
       (recenter)
       )
 
-     ((and (eq (get-text-property pos 'server-type) 'comment)
+     ((and (eq (get-text-property pos 'server-token-type) 'comment)
            (not (string= web-mode-expand-last-type "server-comment")))
 
-      (when (eq (get-text-property pos 'server-type) (get-text-property (- pos 1) 'server-type))
-        (setq beg (or (previous-single-property-change pos 'server-type) (point-min))))
-      (when (eq (get-text-property pos 'server-type) (get-text-property (+ pos 1) 'server-type))
-        (setq end (next-single-property-change pos 'server-type)))
+      (when (eq (get-text-property pos 'server-token-type) (get-text-property (- pos 1) 'server-token-type))
+        (setq beg (or (previous-single-property-change pos 'server-token-type) (point-min))))
+      (when (eq (get-text-property pos 'server-token-type) (get-text-property (+ pos 1) 'server-token-type))
+        (setq end (next-single-property-change pos 'server-token-type)))
       (set-mark beg)
       (goto-char end)
       (exchange-point-and-mark)
       (setq web-mode-expand-last-type "server-comment"))
 
-     ((and (eq (get-text-property pos 'server-type) 'string)
+     ((and (eq (get-text-property pos 'server-token-type) 'string)
            (not (string= web-mode-expand-last-type "server-string")))
 
-      (when (eq (get-text-property pos 'server-type) (get-text-property (- pos 1) 'server-type))
-        (setq beg (or (previous-single-property-change pos 'server-type) (point-min))))
-      (when (eq (get-text-property pos 'server-type) (get-text-property (+ pos 1) 'server-type))
-        (setq end (next-single-property-change pos 'server-type)))
+      (when (eq (get-text-property pos 'server-token-type) (get-text-property (- pos 1) 'server-token-type))
+        (setq beg (or (previous-single-property-change pos 'server-token-type) (point-min))))
+      (when (eq (get-text-property pos 'server-token-type) (get-text-property (+ pos 1) 'server-token-type))
+        (setq end (next-single-property-change pos 'server-token-type)))
       (set-mark beg)
       (goto-char end)
       (exchange-point-and-mark)
@@ -2153,25 +2175,25 @@ point is at the beginning of the line."
       (exchange-point-and-mark)
       (setq web-mode-expand-last-type "server-side"))
 
-     ((and (eq (get-text-property pos 'client-type) 'comment)
+     ((and (eq (get-text-property pos 'client-token-type) 'comment)
            (not (string= web-mode-expand-last-type "client-comment")))
 
-      (when (eq (get-text-property pos 'client-type) (get-text-property (- pos 1) 'client-type))
-        (setq beg (previous-single-property-change pos 'client-type)))
-      (when (eq (get-text-property pos 'client-type) (get-text-property (+ pos 1) 'client-type))
-        (setq end (next-single-property-change pos 'client-type)))
+      (when (eq (get-text-property pos 'client-token-type) (get-text-property (- pos 1) 'client-token-type))
+        (setq beg (previous-single-property-change pos 'client-token-type)))
+      (when (eq (get-text-property pos 'client-token-type) (get-text-property (+ pos 1) 'client-token-type))
+        (setq end (next-single-property-change pos 'client-token-type)))
       (set-mark beg)
       (goto-char end)
       (exchange-point-and-mark)
       (setq web-mode-expand-last-type "client-comment"))
 
-     ((and (eq (get-text-property pos 'client-type) 'string)
+     ((and (eq (get-text-property pos 'client-token-type) 'string)
            (not (string= web-mode-expand-last-type "client-string")))
 
-      (when (eq (get-text-property pos 'client-type) (get-text-property (- pos 1) 'client-type))
-        (setq beg (previous-single-property-change pos 'client-type)))
-      (when (eq (get-text-property pos 'client-type) (get-text-property (+ pos 1) 'client-type))
-        (setq end (next-single-property-change pos 'client-type)))
+      (when (eq (get-text-property pos 'client-token-type) (get-text-property (- pos 1) 'client-token-type))
+        (setq beg (previous-single-property-change pos 'client-token-type)))
+      (when (eq (get-text-property pos 'client-token-type) (get-text-property (+ pos 1) 'client-token-type))
+        (setq end (next-single-property-change pos 'client-token-type)))
       (set-mark beg)
       (goto-char end)
       (exchange-point-and-mark)
@@ -2199,14 +2221,14 @@ point is at the beginning of the line."
       (setq web-mode-expand-last-type "client-side"))
 
      ;;     ((and (eq (get-text-property pos 'markup-type) 'attr)
-     ((and (eq (get-text-property pos 'client-type) 'attr)
+     ((and (eq (get-text-property pos 'client-token-type) 'attr)
            (not (string= web-mode-expand-last-type "html-attr")))
 
       ;; todo: tester que le car précédent n'est pas un
-      (when (eq (get-text-property pos 'client-type) (get-text-property (- pos 1) 'client-type))
-        (setq beg (previous-single-property-change pos 'client-type)))
-      (when (eq (get-text-property pos 'client-type) (get-text-property (+ pos 1) 'client-type))
-        (setq end (next-single-property-change pos 'client-type)))
+      (when (eq (get-text-property pos 'client-token-type) (get-text-property (- pos 1) 'client-token-type))
+        (setq beg (previous-single-property-change pos 'client-token-type)))
+      (when (eq (get-text-property pos 'client-token-type) (get-text-property (+ pos 1) 'client-token-type))
+        (setq end (next-single-property-change pos 'client-token-type)))
       (set-mark beg)
       (goto-char end)
       (exchange-point-and-mark)
@@ -2226,7 +2248,7 @@ point is at the beginning of the line."
       ;;(mark-whole-buffer)
       )
 
-     ) ;;cond
+     ) ; cond
 
     ;;    (message "after=%S" web-mode-expand-last-type)
 
@@ -2331,7 +2353,7 @@ point is at the beginning of the line."
           (puthash tag (1+ n) h))
         )
 
-      );; while
+      );while
 
     ;;(message (number-to-string (hash-table-count h)))
     (maphash (lambda (k v) (if (> v 0) (setq ret 't))) h)
@@ -2534,10 +2556,10 @@ point is at the beginning of the line."
               (puthash tag-name (1- n) h)
             (puthash tag-name (1+ n) h)
             (if (eq n 0) (setq continue nil))
-            ) ; if
-          ) ; when
-        ) ; while
-      ) ; save-excursion
+            );if
+          );when
+        );while
+      );save-excursion
     (if (null continue) (goto-char pos))
     ))
 
@@ -2827,13 +2849,13 @@ point is at the beginning of the line."
        "Master" "OutputCache" "Page" "Reference" "Register")))
   "Directives.")
 
-(defconst web-mode-js-keywords
+(defconst web-mode-javascript-keywords
   (regexp-opt
-   (append (if (boundp 'web-mode-extra-js-keywords)
-               web-mode-extra-js-keywords '())
-           '("catch" "false" "for" "function" "if" "in" "instanceof"
-             "new" "null" "return"
-             "this" "typeof" "true" "try" "undefined" "var" "while")))
+   (append (if (boundp 'web-mode-extra-javascript-keywords)
+               web-mode-extra-javascript-keywords '())
+           '("catch" "else" "false" "for" "function" "if" "in" "instanceof"
+             "new" "null" "return" "this" "true" "try" "typeof"
+             "undefined" "var" "while")))
   "JavaScript keywords.")
 
 (defconst web-mode-directive-font-lock-keywords
@@ -2925,9 +2947,9 @@ point is at the beginning of the line."
    '("#[[:alnum:]]\\{3,6\\}\\|![ ]?important" 0 font-lock-builtin-face t t)
    ))
 
-(defconst web-mode-script-font-lock-keywords
+(defconst web-mode-javascript-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-js-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>") '(0 'web-mode-keyword-face))
    '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    '("\\([[:alnum:]]+\\):" 1 'web-mode-variable-name-face)
    ))
@@ -3114,7 +3136,7 @@ point is at the beginning of the line."
        ((web-mode-in-server-block 'asp)
         (setq type "asp"))
 
-       ((web-mode-in-client-block 'js)
+       ((web-mode-in-client-block 'javascript)
         (setq type "script"))
 
        ((web-mode-in-client-block 'css)
@@ -3175,11 +3197,11 @@ point is at the beginning of the line."
       (cond
 
        ((string= type "html")
-
         (web-mode-insert-and-indent (concat "<!-- " sel " -->"))
         )
 
-       ((or (string= type "php") (string= type "script") (string= type "style"))
+;;       ((or (string= type "php") (string= type "script") (string= type "style"))
+       ((member type '("php" "script" "style"))
         (web-mode-insert-and-indent (concat "/* " sel " */"))
         )
 
@@ -3198,9 +3220,9 @@ point is at the beginning of the line."
         (sub2 "")
         comment prop)
 
-    (if (eq (get-text-property pos 'server-type) 'comment)
-        (setq prop 'server-type)
-      (setq prop 'client-type))
+    (if (eq (get-text-property pos 'server-token-type) 'comment)
+        (setq prop 'server-token-type)
+      (setq prop 'client-token-type))
 
     (if (and (not (bobp))
              (eq (get-text-property pos prop) (get-text-property (- pos 1) prop)))
@@ -3729,7 +3751,7 @@ point is at the beginning of the line."
                      (not (get-text-property pos 'client-side))
                      (>= cur-col 2)
                      (string= "</" sub2))
-            ;;            (message "%d %S %S" pos (get-text-property pos 'server-type) (get-text-property pos 'client-type))
+            ;;            (message "%d %S %S" pos (get-text-property pos 'server-token-type) (get-text-property pos 'client-token-type))
             (when (string= "></" (buffer-substring-no-properties (- beg 2) end))
               (setq jump-pos (- beg 1)))
 
