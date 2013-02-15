@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 4.0.12
+;; Version: 4.0.14
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -788,13 +788,13 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
      ((string= sub2 "{{")
       (setq regexp "\"\\|'"
             props '(server-engine django face nil)
-            keywords web-mode-uel-font-lock-keywords)
+            keywords web-mode-django-expr-font-lock-keywords)
       )
 
      ((string= sub2 "{%")
       (setq regexp "//\\|/\\*\\|\"\\|'"
             props '(server-engine django face nil)
-            keywords web-mode-django-font-lock-keywords)
+            keywords web-mode-django-code-font-lock-keywords)
       )
 
      ((string= sub2 "{#")
@@ -1880,7 +1880,6 @@ point is at the beginning of the line."
         (goto-char web-mode-block-beg)
         (setq offset (current-column))
 ;;        (setq offset prev-indentation)
-
         ); end comment block
 
        (t ; case html block
@@ -2905,11 +2904,17 @@ point is at the beginning of the line."
    '("\\<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
-(defconst web-mode-django-font-lock-keywords
+(defconst web-mode-django-code-font-lock-keywords
   (list
    '("{%\\|%}" 0 'web-mode-preprocessor-face)
    (cons (concat "[% ]\\(" web-mode-django-keywords "\\)[ %]") '(1 'web-mode-keyword-face t t))
    '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
+   ))
+
+(defconst web-mode-django-expr-font-lock-keywords
+  (list
+   '("{{\\|}}" 0 'web-mode-preprocessor-face)
+   '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
    ))
 
 (defconst web-mode-ctemplate-font-lock-keywords
