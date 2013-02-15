@@ -788,7 +788,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
      ((string= sub2 "{{")
       (setq regexp "\"\\|'"
             props '(server-engine django face nil)
-            keywords web-mode-uel-font-lock-keywords)
+            keywords web-mode-twig-font-lock-keywords)
       )
 
      ((string= sub2 "{%")
@@ -2911,6 +2911,14 @@ point is at the beginning of the line."
    (cons (concat "[% ]\\(" web-mode-django-keywords "\\)[ %]") '(1 'web-mode-keyword-face t t))
    '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
    ))
+
+(defconst web-mode-twig-font-lock-keywords
+  (append 
+   web-mode-django-font-lock-keywords
+   (list
+    '("{{\\|}}" 0 'web-mode-preprocessor-face)
+    '("[[:alpha:]_]" 0 'web-mode-variable-name-face)   
+    )))
 
 (defconst web-mode-ctemplate-font-lock-keywords
   (list
