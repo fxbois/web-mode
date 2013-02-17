@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 4.0.14
+;; Version: 4.0.15
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -66,6 +66,11 @@ HTML files can embed various kinds of blocks: javascript / css / code."
 
 (defcustom web-mode-disable-autocompletion (not (display-graphic-p))
   "Disable autocompletion."
+  :type 'bool
+  :group 'web-mode)
+
+(defcustom web-mode-enable-whitespaces nil
+  "Enable whitespaces."
   :type 'bool
   :group 'web-mode)
 
@@ -173,6 +178,11 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
   "Face for server attribute names."
   :group 'web-mode-faces)
 
+(defface web-mode-whitespaces-face
+  '((t :background "DarkOrchid4"))
+  "Face for whitespaces."
+  :group 'web-mode-faces)
+
 (defconst web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
     "link" "meta" "param" "source" "track" "wbr"
@@ -198,6 +208,9 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 (defvar web-mode-tag-regexp "<\\(/?[[:alpha:]@#][[:alnum:]:_]*\\)"
   "Regular expression for HTML/XML tag.")
 
+(defvar web-mode-whitespaces-regexp "^[ \t]\\{2,\\}$\\| \t\\|\t \\|[ \t]+$\\|^[ \n\t]+\\'\\|^[ \t]?[\n]\\{2,\\}"
+  "Regular expression for whitespaces.")
+
 (defvar web-mode-server-blocks-regexp nil
   "Regular expression for identifying server blocks.")
 
@@ -208,6 +221,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
   '(("django"    . ("twig" "jinja" "jinja2"))
     ("erb"       . ("eruby" "ember" "erubis"))
     ("velocity"  . ("cheetah"))
+    ("blade"     . ())
     ("ctemplate" . ("mustache" "handlebars" "hapax" "ngtemplate")))
   "Engine name aliases")
 
@@ -235,12 +249,17 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     table)
   "Syntax table in use in web-mode buffers.")
 
+(defvar web-mode-display-table nil
+  "Display table.")
+
+(defvar web-mode-hl-line-mode-flag nil
+  "Is hl-line-mode enabled ?")
+
 (defvar web-mode-map
   (let ((keymap (make-sparse-keymap)))
     (define-key keymap (kbd "C-c C-;") 'web-mode-comment-uncomment)
     (define-key keymap (kbd "C-;")     'web-mode-comment-uncomment)
     (define-key keymap (kbd "C-c C-a") 'web-mode-indent-buffer)
-    (define-key keymap (kbd "C-c C-b") 'web-mode-beginning-of-element)
     (define-key keymap (kbd "C-c C-b") 'web-mode-beginning-of-element)
     (define-key keymap (kbd "C-c C-c") 'web-mode-next-server-block)
     (define-key keymap (kbd "C-c C-e") 'web-mode-select-element-content)
@@ -253,13 +272,12 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (define-key keymap (kbd "C-c C-p") 'web-mode-parent-element)
     (define-key keymap (kbd "C-c C-r") 'web-mode-rename-element)
     (define-key keymap (kbd "C-c C-s") 'web-mode-select-element)
+    (define-key keymap (kbd "C-c C-w") 'web-mode-toggle-whitespaces)
     keymap)
   "Keymap for `web-mode'.")
 
 (eval-and-compile
-
   (defalias 'web-mode-prog-mode (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
-
   (if (fboundp 'with-silent-modifications)
       (defalias 'web-mode-with-silent-modifications 'with-silent-modifications)
     (defmacro web-mode-with-silent-modifications (&rest body)
@@ -270,7 +288,6 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
          (unwind-protect
              ,@body
            (set-buffer-modified-p old-modified-p)))))
-
   )
 
 ;;;###autoload
@@ -283,6 +300,10 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     ;;    (make-local-variable 'font-lock-keywords-case-fold-search)
     ;;    (make-local-variable 'font-lock-keywords-only)
     ;;    (make-local-variable 'font-lock-lock-defaults)
+    ;;    (make-local-variable 'web-mode-engine-families)
+
+    ;;  (make-local-variable 'font-lock-extend-after-change-region-function)
+    ;;  (setq font-lock-extend-after-change-region-function 'web-mode-extend-after-change-region)
 
     (make-local-variable 'after-change-functions)
     (make-local-variable 'font-lock-fontify-buffer-function)
@@ -297,11 +318,12 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (make-local-variable 'web-mode-buffer-highlighted)
     (make-local-variable 'web-mode-disable-autocompletion)
     (make-local-variable 'web-mode-disable-css-colorization)
+    (make-local-variable 'web-mode-display-table)
     (make-local-variable 'web-mode-engine)
-    ;;    (make-local-variable 'web-mode-engine-families)
     (make-local-variable 'web-mode-expand-first-pos)
     (make-local-variable 'web-mode-expand-last-type)
     (make-local-variable 'web-mode-file-type)
+    (make-local-variable 'web-mode-hl-line-mode-flag)
     (make-local-variable 'web-mode-indent-context)
     (make-local-variable 'web-mode-indent-style)
     (make-local-variable 'web-mode-is-narrowed)
@@ -309,8 +331,10 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
     (setq bfn (file-name-nondirectory (buffer-file-name)))
 
-    ;;  (make-local-variable 'font-lock-extend-after-change-region-function)
-    ;;  (setq font-lock-extend-after-change-region-function 'web-mode-extend-after-change-region)
+    (if (and (fboundp 'global-hl-line-mode)
+             global-hl-line-mode)
+      (setq web-mode-hl-line-mode-flag t))
+
 
     (cond
      ((string-match-p "\\.xml\\'" bfn)
@@ -334,6 +358,8 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (setq web-mode-engine "erb"))
        ((string-match-p "\\.tpl\\'" bfn)
         (setq web-mode-engine "smarty"))
+       ((string-match-p "\\.blade\\.php" bfn)
+        (setq web-mode-engine "blade"))
        ((string-match-p "\\.jsp\\'" bfn)
         (setq web-mode-engine "jsp"))
        ((string-match-p "\\.\\(php\\|ctp\\|psp\\)\\'" bfn)
@@ -363,10 +389,12 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (cond
      ((string= web-mode-engine "php")
       (setq web-mode-server-blocks-regexp "<\\?"))
-     ((string= web-mode-engine "velocity")
-      (setq web-mode-server-blocks-regexp "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]"))
      ((string= web-mode-engine "django")
       (setq web-mode-server-blocks-regexp "{[#{%]"))
+     ((string= web-mode-engine "blade")
+      (setq web-mode-server-blocks-regexp "{{\\|^[ \t]*@[[:alpha:]]"))
+     ((string= web-mode-engine "velocity")
+      (setq web-mode-server-blocks-regexp "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]"))
      ((string= web-mode-engine "ctemplate")
       (setq web-mode-server-blocks-regexp "{{."))
      ((string= web-mode-engine "freemarker")
@@ -381,7 +409,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
       (setq web-mode-server-blocks-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%."))
      )
 
-    ;;    (message "engine=%S regexp=%S" web-mode-engine web-mode-server-blocks-regexp)
+;;    (message "engine=%S regexp=%S" web-mode-engine web-mode-server-blocks-regexp)
 
     (setq font-lock-fontify-buffer-function 'web-mode-scan-buffer
           ;;          font-lock-keywords-only t
@@ -393,6 +421,9 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (remove-hook 'after-change-functions 'font-lock-after-change-function t)
 
     (add-hook 'after-change-functions 'web-mode-on-after-change t t)
+
+    (when web-mode-enable-whitespaces
+      (web-mode-whitespaces-on))
 
     (web-mode-scan-buffer)
 
@@ -423,6 +454,8 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
            (web-mode-scan-client beg end)
            (web-mode-scan-server beg end))
           );cond
+         (if web-mode-enable-whitespaces
+             (web-mode-scan-whitespaces beg end))
          )))))
 
 (defun web-mode-mark-server-boundaries (beg end)
@@ -453,6 +486,18 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
         (setq sub2 (substring tagopen 0 2))
 
         (cond
+
+         ((string= web-mode-engine "blade")
+
+          (cond
+           ((string= sub2 "{{")
+            (setq closing-string "}}"))
+
+           ((char-equal ?@ (string-to-char sub2))
+            (setq closing-string "EOL"))
+           )
+
+          );blade
 
          ((string= web-mode-engine "smarty")
 
@@ -694,6 +739,17 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
               keywords web-mode-ctemplate-font-lock-keywords))
        )
       );ctemplate
+
+     ((string= web-mode-engine "blade")
+      (cond
+       ((string= sub3 "{{-")
+        (setq props '(server-token-type comment face web-mode-comment-face)))
+       (t
+        (setq regexp "\"\\|'"
+              props '(server-engine blade face nil)
+              keywords web-mode-blade-font-lock-keywords))
+       )
+      );blade
 
      ((string= sub2 "<?")
       (setq regexp "//\\|/\\*\\|\"\\|'\\|<<<['\"]?\\([[:alnum:]]+\\)['\"]?"
@@ -1301,6 +1357,53 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (web-mode-fontify-region beg end keywords))
   )
 
+(defun web-mode-scan-whitespaces (beg end)
+  "Scan whitespaces."
+  (save-excursion
+    (let (mbeg mend)
+      (goto-char beg)
+      ;;      (setq regexp web-mode-whitespace-regexp)
+      (while (re-search-forward web-mode-whitespaces-regexp end t)
+        (setq mbeg (match-beginning 0)
+              mend (match-end 0))
+        ;;        (message "mbeg(%d) mend(%d)" mbeg mend)
+        (add-text-properties mbeg mend '(face web-mode-whitespaces-face))
+        );while
+      )))
+
+(defun web-mode-toggle-whitespaces ()
+  "Toggle whitespaces."
+  (interactive)
+  (if web-mode-enable-whitespaces
+      (web-mode-whitespaces-off)
+    (web-mode-whitespaces-on))
+  (web-mode-scan-buffer))
+
+(defun web-mode-whitespaces-on ()
+  "Show whitespaces."
+  (interactive)
+  (when (null web-mode-display-table)
+    ;;    http://webdesign.about.com/od/localization/l/blhtmlcodes-ascii.htm
+    (setq web-mode-display-table (make-display-table))
+    (aset web-mode-display-table 9  (vector ?\xBB ?\t)) ;tab
+    (aset web-mode-display-table 10 (vector ?\xB6 ?\n)) ;line feed
+    (aset web-mode-display-table 32 (vector ?\xB7)) ;space
+    );when
+  ;;http://www.emacswiki.org/emacs/PageBreaks
+  (when web-mode-hl-line-mode-flag
+    (global-hl-line-mode -1))
+  (setq buffer-display-table web-mode-display-table)
+;;  (set-window-display-table nil web-mode-display-table)
+  (setq web-mode-enable-whitespaces t))
+
+(defun web-mode-whitespaces-off ()
+  "Hide whitespaces."
+  (when web-mode-hl-line-mode-flag
+    (global-hl-line-mode 1))
+  (setq buffer-display-table nil)
+;;  (set-window-display-table nil nil)
+  (setq web-mode-enable-whitespaces nil))
+
 (defun web-mode-replace-apos ()
   "Replace ' with ’."
   (interactive)
@@ -1572,6 +1675,7 @@ point is at the beginning of the line."
         cur-indentation
         cur-line-number
         cur-line
+        cur-char
         in-comment-block
         in-directive-block
         in-php-block
@@ -1658,6 +1762,7 @@ point is at the beginning of the line."
                                      (line-beginning-position)
                                      (line-end-position))))
       (setq cur-first-char (if (string= cur-line "") cur-line (substring cur-line 0 1)))
+      (setq cur-char (if (string= cur-line "") cur-line (string-to-char cur-line)))
 
       (if (or in-php-block in-asp-block in-jsp-block in-directive-block)
           (setq prev-line (web-mode-previous-usable-server-line))
@@ -1933,6 +2038,8 @@ point is at the beginning of the line."
                    (string-match-p "^{/" cur-line))
               (and (string= web-mode-engine "ctemplate")
                    (string-match-p "^{{/" cur-line))
+              (and (string= web-mode-engine "blade")
+                   (string-match-p "^@end" cur-line))
               (and (string= web-mode-engine "velocity")
                    (string-match-p "^#end" cur-line))
               )
@@ -1963,15 +2070,17 @@ point is at the beginning of the line."
          ;;todo : il faut remonter les lignes une à une jusqu'a en trouver une qui commence par <alpha
          ;;       attention il peut y avoir du "server" ou commentaire au début
          ((or (eq (length cur-line) 0)
-              (char-equal (string-to-char cur-line) ?<)
+              (char-equal cur-char ?<)
               (and (string= web-mode-engine "ctemplate")
-                   (char-equal (string-to-char cur-line) ?{))
+                   (char-equal cur-char ?{))
               (and (string= web-mode-engine "smarty")
-                   (char-equal (string-to-char cur-line) ?{))
+                   (char-equal cur-char ?{))
               (and (string= web-mode-engine "django")
-                   (char-equal (string-to-char cur-line) ?{))
+                   (char-equal cur-char ?{))
+              (and (string= web-mode-engine "blade")
+                   (memq cur-char '(?{ ?@)))
               (and (string= web-mode-engine "velocity")
-                   (char-equal (string-to-char cur-line) ?#))
+                   (char-equal cur-char ?#))
               )
           ;;          (message "ici")
           (setq continue t
@@ -2540,11 +2649,16 @@ point is at the beginning of the line."
   (if (web-mode-rsf-html "</?[[:alpha:]]")
       (search-backward "<")))
 
-(defun web-mode-parent-element ()
-  "Fetch parent element."
+(defun web-mode-parent-element-pos (&optional pos)
+  "Parent element pos."
   (interactive)
-  (let (pos tag-type tag-name n (continue t) (h (make-hash-table :test 'equal)))
+  (let (tag-type
+        tag-name
+        n
+        (continue t)
+        (h (make-hash-table :test 'equal)))
     (save-excursion
+      (if pos (goto-char pos))
       (while (and continue (web-mode-previous-element))
         (setq pos (point))
         (setq tag-type (get-text-property pos 'client-tag-type)
@@ -2559,53 +2673,106 @@ point is at the beginning of the line."
           );when
         );while
       );save-excursion
-    (if (null continue) (goto-char pos))
+
+;;    (if (null continue) (goto-char pos))
+
+    (if (null continue) pos nil)
+
     ))
 
-(defun web-mode-beginning-of-element ()
+(defun web-mode-parent-element (&optional pos)
+  "Fetch parent element."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (let (pep)
+    (setq pep (web-mode-parent-element-pos pos))
+;;    (message "pep=%S" pep)
+    (when pep
+      (goto-char pep))
+    ))
+
+;; (defun web-mode-beginning-of-element2 ()
+;;   "Fetch beginning of element."
+;;   (interactive)
+;;   (message "boep=%S" (web-mode-beginning-of-element-pos))
+;;   (let ((continue t)
+;;         (pos nil))
+;;     (save-excursion
+;;       (if (char-equal (char-before) ?<) (backward-char))
+;;       (if (and (looking-at-p "<[[:alpha:]]")
+;;                (not (web-mode-is-csss)))
+;;           (setq pos (point))
+;;         (while continue
+;;           (when (re-search-backward "<[[:alpha:]]" nil t)
+;;             (setq continue (web-mode-is-csss))
+;;             (unless continue (setq pos (point))))
+;;           )))
+;;     (if pos (goto-char pos))
+;;     ))
+
+(defun web-mode-beginning-of-element (&optional pos)
   "Fetch beginning of element."
   (interactive)
-  (let ((continue t)
-        (pos nil))
-    (save-excursion
-      (if (char-equal (char-before) ?<) (backward-char))
-      (if (and (looking-at-p "<[[:alpha:]]")
-               (not (web-mode-is-csss)))
-          (setq pos (point))
-        (while continue
-          (when (re-search-backward "<[[:alpha:]]" nil t)
-            (setq continue (web-mode-is-csss))
-            (unless continue (setq pos (point))))
-          )))
-    (if pos (goto-char pos))
+  (unless pos (setq pos (point)))
+  (let (boep)
+    (setq boep (web-mode-beginning-of-element-pos pos))
+;;    (message "boep=%S" boep)
+    (when boep
+      (goto-char boep))
     ))
+
+;; todo: retourner null qd (web-mode-parent-element-pos) retourne null
+(defun web-mode-beginning-of-element-pos (&optional pos)
+  "Fetch beginning of element pos."
+  (unless pos (setq pos (point)))
+  (let (ret tmp)
+    (save-excursion
+
+      (cond
+
+       ((null (get-text-property pos 'client-tag-type))
+        (setq tmp (web-mode-parent-element-pos))
+        (when tmp (goto-char tmp))
+        )
+
+       ((eq (get-text-property pos 'client-tag-type) 'end)
+        (web-mode-match-tag))
+
+       ((member (get-text-property pos 'client-tag-type) '(start void))
+        (unless (looking-at-p "<[[:alpha:]]")
+          (re-search-backward "<[[:alpha:]]" nil t))
+        )
+
+       );cond
+
+      (setq ret (point))
+
+      ret
+
+      )))
 
 (defun web-mode-server-block-beg-pos (&optional pos)
   "web-mode-server-block-beg-pos"
   (unless pos (setq pos (point)))
-  (let (
-;;        (end pos)
-;;        start
-        )
-    (cond
-     ((or (and (get-text-property pos 'server-side)
-               (eq pos (point-min)))
-          ;;                  (not (get-text-property (1- pos) 'server-side)))
-          (get-text-property pos 'server-beg))
-      )
-     ((get-text-property pos 'server-side)
-      ;;        (setq start (or (previous-single-property-change pos 'server-side)
-      ;;                        (point-min)))
-      ;;        (setq end (text-property-any start pos 'server-end t))
-      ;;        (setq pos (if end (1+ end) start))
-      (setq pos (previous-single-property-change pos 'server-beg))
-      (setq pos (if pos (1- pos) (point-min)))
-      )
-     (t
-      (setq pos nil))
-     );cond
-    ;;    (message "web-mode-server-block-beg-pos=%S" pos)
-    pos))
+  (cond
+   ((or (and (get-text-property pos 'server-side)
+             (eq pos (point-min)))
+        ;;                  (not (get-text-property (1- pos) 'server-side)))
+        (get-text-property pos 'server-beg))
+    )
+   ((get-text-property pos 'server-side)
+    ;;        (setq start (or (previous-single-property-change pos 'server-side)
+    ;;                        (point-min)))
+    ;;        (setq end (text-property-any start pos 'server-end t))
+    ;;        (setq pos (if end (1+ end) start))
+    (setq pos (previous-single-property-change pos 'server-beg))
+    (setq pos (if pos (1- pos) (point-min)))
+    )
+   (t
+    (setq pos nil))
+   );cond
+  ;;    (message "web-mode-server-block-beg-pos=%S" pos)
+  pos)
 
 (defun web-mode-prev-server-block-pos (&optional pos)
   "web-mode-prev-server-block-pos"
@@ -2992,6 +3159,22 @@ point is at the beginning of the line."
    '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
+(defconst web-mode-blade-font-lock-keywords
+  (append
+   (list
+    '("{{\\|}}" 0 'web-mode-preprocessor-face)
+    '("\\(@\\)\\([[:alpha:]_]+\\)"
+      (1 'web-mode-preprocessor-face)
+      (2 'web-mode-keyword-face)))
+   web-mode-php-font-lock-keywords))
+
+;; (defconst web-mode-whitespace-font-lock-keywords
+;;   (list
+;;    '("[ \t]+$" 0 'web-mode-whitespace-trailing-face)
+;;    '("\\([ ][\t]\\|[\t][ ]\\)" 0 'web-mode-whitespace-trailing-face)
+;;    '("^[ ]+$" 0 'web-mode-whitespace-trailing-face)
+;;    ))
+
 (defvar web-mode-snippets
   (list
    '("table"
@@ -3061,7 +3244,9 @@ point is at the beginning of the line."
                    (looking-at-p "<\\?php[ ]+\\(if\\|while\\|for\\)")
                    (looking-at-p "{%[-]?[ ]+\\(if\\|while\\|for\\)")
                    (looking-at-p "{{[#^]")
-                   (looking-at-p "#\\(define\\|if\\|for\\|macro\\)"))
+                   (looking-at-p "#\\(define\\|if\\|for\\|macro\\)")
+                   (looking-at-p "@\\(section\\|if\\|for\\|while\\|unless\\)")
+                   );or
            (setq beg-outside (point))
            (cond
             ((looking-at-p "<\\?")
@@ -3071,6 +3256,8 @@ point is at the beginning of the line."
             ((looking-at-p "{{[#^]")
              (setq regexp "}}"))
             ((looking-at-p "#")
+             (setq regexp "$"))
+            ((looking-at-p "@")
              (setq regexp "$"))
             (t
              (setq regexp ">"))
@@ -3117,8 +3304,7 @@ point is at the beginning of the line."
           )
         )
       );let
-    )
-  )
+    ))
 
 (defun web-mode-line-type (&optional pos)
   "Line type."
@@ -3338,6 +3524,11 @@ point is at the beginning of the line."
            (looking-at-p "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\)?\\(for\\|if\\|else\\|while\\)"))
       (web-mode-match-php-tag))
 
+     ((and (eq (get-text-property pos 'server-engine) 'blade)
+           (web-mode-goto-block-beg)
+           (looking-at-p (concat "@\\(end\\)?" (regexp-opt web-mode-blade-controls))))
+      (web-mode-match-blade-tag))
+
      ((and (eq (get-text-property pos 'server-engine) 'smarty)
            (web-mode-goto-block-beg)
            (looking-at-p (concat "{/?" (regexp-opt web-mode-smarty-controls))))
@@ -3499,6 +3690,52 @@ point is at the beginning of the line."
         ))
     (search-backward "<")))
 
+(defconst web-mode-blade-controls
+  '("foreach" "forelse" "for" "if" "unless" "while" "section")
+  "Blade controls.")
+
+(defun web-mode-match-blade-tag ()
+  "Match blade tag."
+  (let (beg end chunk regexp)
+    (setq beg (1+ (point)))
+    (end-of-line)
+    (setq end (point))
+    (setq chunk (buffer-substring-no-properties beg end))
+;;    (message "chunk=%S" chunk)
+    (dolist (control web-mode-blade-controls)
+      (when (string-match-p control chunk)
+        (setq regexp (concat "@\\(" control "\\|end" control "\\)"))
+;;        (message "regexp=%S" regexp)
+        )
+      )
+    (if (string-match-p "end" chunk)
+        (web-mode-match-opening-blade-tag regexp)
+      (web-mode-match-closing-blade-tag regexp))))
+
+(defun web-mode-match-opening-blade-tag (regexp)
+  "Match blade opening tag."
+  (let ((counter 1) match)
+    (search-backward "@")
+    (while (and (> counter 0) (web-mode-rsb regexp nil t))
+      (setq match (match-string-no-properties 0))
+      (if (not (string-match-p "end" match))
+          (setq counter (1- counter))
+        (setq counter (1+ counter)))
+      )
+    ))
+
+(defun web-mode-match-closing-blade-tag (regexp)
+  "Match blade closing tag."
+  (let ((counter 1) match)
+    (while (and (> counter 0) (web-mode-rsf regexp nil t))
+      (setq match (match-string-no-properties 0))
+      (if (not (string-match-p "end" match))
+          (setq counter (1+ counter))
+        (setq counter (1- counter)))
+      )
+    (search-backward "@")
+    ))
+
 (defconst web-mode-django-controls
   '("autoescape" "block" "cache" "call" "embed" "filter" "foreach" "for" "if"
     "macro" "draw" "random" "sandbox" "spaceless" "trans" "with")
@@ -3518,16 +3755,6 @@ point is at the beginning of the line."
         ;;        (message "regexp=%S" regexp)
         )
       )
-    ;; (cond
-    ;;  ((string-match-p "foreach" chunk)
-    ;;   (setq regexp "{%[-]?[ ]+\\(foreach\\|endforeach\\)"))
-    ;;  ((string-match-p "for" chunk)
-    ;;   (setq regexp "{%[-]?[ ]+\\(for\\|endfor\\)[ ]+"))
-    ;;  ((string-match-p "if" chunk)
-    ;;   (setq regexp "{%[-]?[ ]+\\(if\\|endif\\)"))
-    ;;  ((string-match-p "block" chunk)
-    ;;   (setq regexp "{%[-]?[ ]+\\(block\\|endblock\\)"))
-    ;;  )
     (if (string-match-p "end" chunk)
         (web-mode-match-opening-django-tag regexp)
       (web-mode-match-closing-django-tag regexp))))
@@ -3539,8 +3766,6 @@ point is at the beginning of the line."
     (search-backward "{%")
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
       (setq match (match-string-no-properties 0))
-      ;;      (if (string-match-p "[ ]\\(autoescape\\|block\\|cache\\|call\\|embed\\|filter\\|for\\|foreach\\|if\\|macro\\|draw\\|sandbox\\|spaceless\\|trans\\|with\\)" match)
-      ;;      (if (string-match-p (concat (regexp-opt web-mode-django-controls)) match)
       (if (not (string-match-p "end" match))
           (setq counter (1- counter))
         (setq counter (1+ counter)))
