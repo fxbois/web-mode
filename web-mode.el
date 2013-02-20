@@ -5,12 +5,12 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 4.0.15
+;; Version: 4.0.17
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
 ;; Keywords: Web Template HTML PHP JavaScript CSS Js
-;;           JSP ASP ERB Twig Jinja Mustache
+;;           JSP ASP ERB Twig Jinja Mustache Blade
 ;;           FreeMarker Django Velocity Cheetah Smarty
 ;; URL: http://github.com/fxbois/web-mode
 ;;      http://web-mode.org
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates.
-`web-mode' is compatible with many template engines: php, jsp, aspx, erb, django/twig/jinja2, CTemplate/Mustache/Hapax.
+`web-mode' is compatible with many template engines: php, jsp, aspx, erb, django/twig/jinja2, CTemplate/Mustache/Hapax, blade.
 HTML files can embed various kinds of blocks: javascript / css / code."
   :version "4.0"
   :group 'languages)
@@ -225,6 +225,27 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     ("ctemplate" . ("mustache" "handlebars" "hapax" "ngtemplate")))
   "Engine name aliases")
 
+(defvar web-mode-smart-quotes
+  '("«" . "»")
+  "Preferred smart quotes")
+
+(defvar web-mode-html-entities
+  '(("eacute" . "é")
+    ("egrave" . "è")
+    ("middot" . "·")
+    ("quot"   . "\"")
+    ("amp"    . "&")
+    ("lt"     . "<")
+    ("gt"     . ">")
+    ("laquo"  . "«")
+    ("raquo"  . "»")
+    ("lsquo"  . "‘")
+    ("rsquo"  . "’")
+    ("ldquo"  . "“")
+    ("rdquo"  . "”")
+    ("apos"   . "'"))
+  "HTML entities")
+
 (defvar web-mode-file-type ""
   "Buffer file type.")
 
@@ -272,6 +293,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (define-key keymap (kbd "C-c C-p") 'web-mode-parent-element)
     (define-key keymap (kbd "C-c C-r") 'web-mode-rename-element)
     (define-key keymap (kbd "C-c C-s") 'web-mode-select-element)
+    (define-key keymap (kbd "C-c C-t") 'web-mode-replace-entities)
     (define-key keymap (kbd "C-c C-w") 'web-mode-toggle-whitespaces)
     keymap)
   "Keymap for `web-mode'.")
@@ -1404,16 +1426,6 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 ;;  (set-window-display-table nil nil)
   (setq web-mode-enable-whitespaces nil))
 
-(defun web-mode-replace-apos ()
-  "Replace ' with ’."
-  (interactive)
-  (save-excursion
-    (goto-char (point-min))
-    (while (re-search-forward "\\([[:alpha:]]\\)'\\([[:alpha:]]\\)" nil t)
-      (when (and (null (get-text-property (point) 'face))
-                 (not (get-text-property (point) 'server-side))
-                 (not (get-text-property (point) 'client-side)))
-        (replace-match "\\1’\\2")))))
 
 (defun web-mode-indent-buffer ()
   "Indent all buffer."
@@ -1464,61 +1476,6 @@ point is at the beginning of the line."
           nil)
       line)
     ))
-
-(defun web-mode-is-comment-or-string-line ()
-  "Detect if current line is in a comment or in a string."
-  (save-excursion
-    (let ((continue t) (counter 0))
-      (beginning-of-line)
-      (while (and continue (not (eolp)))
-        (if (web-mode-is-comment-or-string)
-            (setq counter (+ counter 1))
-          (when (not (char-equal (following-char) ?\s))
-            (setq continue nil
-                  counter 0))
-          );if
-        (forward-char)
-        );while
-      (> counter 0)
-      )))
-
-(defun web-mode-is-csss-line ()
-  "Detect if current line is in a comment or in a string."
-  (save-excursion
-    (let ((continue t) (counter 0))
-      (beginning-of-line)
-      (while (and continue (not (eolp)))
-        (if (web-mode-is-csss)
-            (setq counter (+ counter 1))
-          (when (not (char-equal (following-char) ?\s))
-            (setq continue nil
-                  counter 0))
-          );if
-        (forward-char)
-        );while
-      (> counter 0)
-      )))
-
-(defun web-mode-is-csss (&optional pos)
-  "Detect if point is in a comment, a string or in server script."
-  (unless pos (setq pos (point)))
-  (or (get-text-property pos 'server-side)
-      (get-text-property pos 'server-tag-name)
-      (not (null (member (get-text-property pos 'client-token-type) '(string comment))))))
-
-(defun web-mode-is-comment-or-string (&optional pos)
-  "Detect if point is in a comment or in a string."
-  (interactive)
-  (unless pos (setq pos (point)))
-  (or (memq (get-text-property pos 'server-token-type) '(string comment))
-      (memq (get-text-property pos 'client-token-type) '(string comment))))
-
-(defun web-mode-is-comment (&optional pos)
-  "Detect if point is in a comment."
-  (interactive)
-  (unless pos (setq pos (point)))
-  (or (eq (get-text-property pos 'server-token-type) 'comment)
-      (eq (get-text-property pos 'client-token-type) 'comment)))
 
 (defun web-mode-is-line-in-block (open close)
   "Detect if point is in a block delimited by open and close."
@@ -1849,6 +1806,13 @@ point is at the beginning of the line."
 
          ((string= cur-first-char ":")
           (setq offset (current-indentation))
+          )
+
+         ((string-match-p "\\(&&\\|||\\)$" prev-line)
+          (setq tmp (web-mode-fetch-opening-paren-block-pos (point) web-mode-block-beg))
+          (when tmp
+            (goto-char tmp)
+            (setq offset (+ (current-column) 1)))
           )
 
          ((string= prev-last-char ",")
@@ -2711,7 +2675,7 @@ point is at the beginning of the line."
 ;;     ))
 
 (defun web-mode-beginning-of-element (&optional pos)
-  "Fetch beginning of element."
+  "Move to beginning of element."
   (interactive)
   (unless pos (setq pos (point)))
   (let (boep)
@@ -2723,7 +2687,7 @@ point is at the beginning of the line."
 
 ;; todo: retourner null qd (web-mode-parent-element-pos) retourne null
 (defun web-mode-beginning-of-element-pos (&optional pos)
-  "Fetch beginning of element pos."
+  "Beginning of element pos."
   (unless pos (setq pos (point)))
   (let (ret tmp)
     (save-excursion
@@ -3901,10 +3865,6 @@ point is at the beginning of the line."
     (search-backward "{{")
     ))
 
-(defun web-mode-debug-point ()
-  (interactive)
-  (what-cursor-position))
-
 (defvar web-mode-autocompletes
   (list
    '("<?p" "hp  ?>" "\\?>" 3)
@@ -3945,8 +3905,8 @@ point is at the beginning of the line."
 
     (if (not (= (point-max) (+ (buffer-size) 1)))
         (setq web-mode-is-narrowed t)
-        (progn
-          (when (and (not web-mode-disable-autocompletion)
+      (progn
+        (when (and (not web-mode-disable-autocompletion)
                    (> pos 2)
                    (= len 0)
                    (= 1 (- end beg)))
@@ -4061,6 +4021,56 @@ point is at the beginning of the line."
 
         ))))
 
+(defun web-mode-replace-apostrophe ()
+  "Replace ' with ’."
+  (interactive)
+  (save-excursion
+    (let ((min (point-min)) (max (point-max)))
+      (when mark-active
+        (setq min (region-beginning)
+              max (region-end))
+        (deactivate-mark))
+      (goto-char min)
+      (while (web-mode-rsf-html-content "\\([[:alpha:]]\\)'\\([[:alpha:]]\\)" max)
+        (replace-match "\\1’\\2")
+        );while
+      )))
+
+(defun web-mode-replace-entities ()
+  "Replace HTML entities ie. &eacute; becomes é"
+  (interactive)
+  (save-excursion
+    (let (name pair (min (point-min)) (max (point-max)))
+      (when mark-active
+        (setq min (region-beginning)
+              max (region-end))
+        (deactivate-mark))
+      (goto-char min)
+      (while (web-mode-rsf-html-content "&\\([[:alpha:]]\\{2,8\\}\\);" max)
+        (setq name (match-string 1))
+        (setq pair (assoc name web-mode-html-entities))
+;;        (message "pos=%S name=%S pair=%S" (point) name pair)
+        (when pair
+          (replace-match (cdr pair)))
+        );while
+      )))
+
+(defun web-mode-replace-quotes ()
+  "Replace dumb quotes."
+  (interactive)
+  (save-excursion
+    (let (name expr (min (point-min)) (max (point-max)))
+      (when mark-active
+        (setq min (region-beginning)
+              max (region-end))
+        (deactivate-mark))
+      (goto-char min)
+      (setq expr (concat (car web-mode-smart-quotes) "\\2" (cdr web-mode-smart-quotes)))
+      (while (web-mode-rsf-html-content "\\(\"\\)\\(.\\{1,200\\}\\)\\(\"\\)" max)
+        (replace-match expr)
+        );while
+      )))
+
 (defun web-mode-rsb-client (regexp &optional limit noerror)
   "re-search-backward in client."
   (unless noerror (setq noerror t))
@@ -4163,6 +4173,87 @@ point is at the beginning of the line."
               (not (web-mode-is-csss)))
           (setq continue nil)))
     ret))
+
+(defun web-mode-rsf-html-content (regexp &optional limit noerror)
+  "re-search-forward only in html content."
+  (unless noerror (setq noerror t))
+  (let ((continue t) ret beg)
+    (while continue
+      (setq ret (re-search-forward regexp limit noerror)
+            beg (if (null ret) (point) (match-beginning 0))
+            end (if (null ret) (point) (match-end 0)))
+;;      (message "pt=%S" pos)
+      (if (or (null ret)
+              (and (web-mode-is-html-content beg)
+                   (web-mode-is-html-content end)))
+          (setq continue nil)))
+    ret))
+
+(defun web-mode-is-comment-or-string-line ()
+  "Detect if current line is in a comment or in a string."
+  (save-excursion
+    (let ((continue t) (counter 0))
+      (beginning-of-line)
+      (while (and continue (not (eolp)))
+        (if (web-mode-is-comment-or-string)
+            (setq counter (+ counter 1))
+          (when (not (char-equal (following-char) ?\s))
+            (setq continue nil
+                  counter 0))
+          );if
+        (forward-char)
+        );while
+      (> counter 0)
+      )))
+
+(defun web-mode-is-csss-line ()
+  "Detect if current line is in a comment or in a string."
+  (save-excursion
+    (let ((continue t) (counter 0))
+      (beginning-of-line)
+      (while (and continue (not (eolp)))
+        (if (web-mode-is-csss)
+            (setq counter (+ counter 1))
+          (when (not (char-equal (following-char) ?\s))
+            (setq continue nil
+                  counter 0))
+          );if
+        (forward-char)
+        );while
+      (> counter 0)
+      )))
+
+(defun web-mode-is-html-content (&optional pos)
+  "Detect if POS in HTML content."
+  (unless pos (setq pos (point)))
+  (not (or (get-text-property pos 'client-tag-name)
+           (get-text-property pos 'client-side)
+           (get-text-property pos 'server-side))))
+
+(defun web-mode-is-csss (&optional pos)
+  "Detect if POS is in a comment, a string or in server script."
+  (unless pos (setq pos (point)))
+  (or (get-text-property pos 'server-side)
+      (get-text-property pos 'server-tag-name)
+      (not (null (member (get-text-property pos 'client-token-type) '(string comment))))))
+
+(defun web-mode-is-comment-or-string (&optional pos)
+  "Detect if point is in a comment or in a string."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (or (memq (get-text-property pos 'server-token-type) '(string comment))
+      (memq (get-text-property pos 'client-token-type) '(string comment))))
+
+(defun web-mode-is-comment (&optional pos)
+  "Detect if point is in a comment."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (or (eq (get-text-property pos 'server-token-type) 'comment)
+      (eq (get-text-property pos 'client-token-type) 'comment)))
+
+(defun web-mode-debug-point ()
+  (interactive)
+  (what-cursor-position))
 
 (defun web-mode-reload ()
   "Reload web-mode."
