@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 4.0.17
+;; Version: 4.0.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -295,6 +295,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (define-key keymap (kbd "C-c C-s") 'web-mode-select-element)
     (define-key keymap (kbd "C-c C-t") 'web-mode-replace-entities)
     (define-key keymap (kbd "C-c C-w") 'web-mode-toggle-whitespaces)
+    (define-key keymap (kbd "C-c /")   'web-mode-close-element)
     keymap)
   "Keymap for `web-mode'.")
 
@@ -1624,6 +1625,7 @@ point is at the beginning of the line."
   "Indent current line according to language."
 ;;  (interactive)
   (let ((inhibit-modification-hooks t)
+        block-beg-column
         continue
         counter
         cur-line-beg-pos
@@ -1756,7 +1758,14 @@ point is at the beginning of the line."
 
       (end-of-line)
 
-      ;;      (message "block-limit:%d" web-mode-block-beg)
+      (when web-mode-block-beg
+        (save-excursion
+          (goto-char web-mode-block-beg)
+          (when in-javascript-block
+            (search-backward "<"))
+          (setq block-beg-column (current-column))))
+
+      ;;(message "block-limit:%d" web-mode-block-beg)
 
       (cond ;; switch language
 
@@ -1767,6 +1776,8 @@ point is at the beginning of the line."
        ((or in-php-block in-jsp-block in-asp-block in-javascript-block)
         ;;        (message "prev=%S" prev-last-char)
         (cond
+
+
 
          ((and (or in-jsp-block in-asp-block)
                (string-match-p "<%" prev-line))
@@ -1781,13 +1792,35 @@ point is at the beginning of the line."
           ;;          (setq offset prev-indentation)
           )
 
+
+         ;; todo : si } -> on va au {, on regarde is avant = ) -> on va au ( -> on skip alpha+whitespace
          ((member cur-first-char '("}" ")"))
+
           (goto-char pos)
           (back-to-indentation)
-          (setq tmp (web-mode-fetch-opening-paren-pos (point) web-mode-block-beg))
-          (when tmp
-            (goto-char tmp)
-            (setq offset (current-indentation)))
+          (forward-char)
+          (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
+          (setq offset (+ block-beg-column (* n local-indent-offset)))
+
+
+;;           (goto-char pos)
+;;           (back-to-indentation)
+;;           (setq tmp (web-mode-fetch-opening-paren-pos (point) web-mode-block-beg))
+;;           (when tmp
+;;             (cond
+;;              ((and (string= cur-first-char "}")
+;;                    (looking-back ")[ ]*" web-mode-block-beg))
+;;               (web-mode-rsb ")[ ]*" web-mode-block-beg)
+;;               (goto-char (web-mode-fetch-opening-paren-pos (point) web-mode-block-beg))
+;;               (web-mode-rsb "[ ^;][[:alnum:]]+[ ]*" web-mode-block-beg)
+;; ;;              (message "pos=%S" (point))
+;;               (setq offset (1+ (current-column)))
+;;               )
+;;              (t
+;;               (goto-char tmp)
+;;               (setq offset (current-indentation)))
+;;              );cond
+;;             );when
           )
 
          ((member cur-first-char '("]"))
@@ -1851,17 +1884,20 @@ point is at the beginning of the line."
           )
 
          ((string= prev-last-char "}")
-          (setq offset (current-indentation))
+          (goto-char pos)
+          (back-to-indentation)
+          (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
+;;          (message "n=%S bbc=%S" n block-beg-column)
+          (setq offset (if (= n 0) block-beg-column prev-indentation))
           )
 
          ((string= prev-last-char ")")
           (setq offset (current-indentation))
           )
 
-
          ((string= prev-last-char ";")
           (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
-          ;;          (message "n=%S block-beg=%S" n web-mode-block-beg)
+;;          (message "n=%S block-beg=%S" n web-mode-block-beg)
           (goto-char web-mode-block-beg)
           (if in-javascript-block (search-backward "<"))
           (setq offset (current-indentation))
@@ -1876,7 +1912,30 @@ point is at the beginning of the line."
           )
 
          ((member prev-last-char '("{" "[" "("))
-          (setq offset (+ (current-indentation) local-indent-offset))
+
+          (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
+          ;;          (message "n=%S block-beg=%S" n web-mode-block-beg)
+          ;;          (goto-char web-mode-block-beg)
+          (setq offset block-beg-column)
+          (if (> n 0) (setq offset (+ offset (* n local-indent-offset))))
+
+;;          (goto-char pos)
+;;          (message "pos=%S" (point))
+
+          ;; (cond
+          ;;  ((and (string= prev-last-char "{")
+          ;;        (web-mode-rsb prev-last-char web-mode-block-beg)
+          ;;        (looking-back ")[ ]*" web-mode-block-beg))
+          ;;   (web-mode-rsb ")[ ]*" web-mode-block-beg)
+          ;;   (goto-char (web-mode-fetch-opening-paren-pos (point) web-mode-block-beg))
+          ;;   (web-mode-rsb "[ ^;][[:alnum:]]+[ ]*" web-mode-block-beg)
+          ;;   ;;              (message "pos=%S" (point))
+          ;;   (setq offset (+ (1+ (current-column)) local-indent-offset))
+          ;;   )
+          ;;  (t
+          ;;   (setq offset (+ prev-indentation local-indent-offset)))
+          ;;  );cond
+
           )
 
          ((and in-php-block (string-match-p "\\(->[ ]?[[:alnum:]_]+\\|)\\)$" prev-line))
@@ -1967,32 +2026,12 @@ point is at the beginning of the line."
           )
 
          ;; toto : utiliser block-beg
-         ((and (> web-mode-indent-style 2)
-               (string-match-p "^\\(\\?>\\|%>\\)" cur-line))
+         ((string-match-p "^\\(\\?>\\|%>\\)" cur-line)
+;;          (message "ici")
           (goto-char pos)
           (web-mode-rsb "<[%?]")
           (setq offset (current-column)) ;; prev-indent ?
           )
-
-         ;;          ((and prev-indentation
-         ;;                (string-match-p "^<\\?php[ ]+\\(end\\|else\\)" cur-line))
-         ;;           (goto-char pos)
-         ;;           (back-to-indentation)
-         ;;           (web-mode-match-tag)
-         ;; ;;          (message "pos(%S)" (point))
-         ;;           (setq offset (current-indentation))
-         ;;           )
-
-         ;; ((and (string= web-mode-engine "smarty")
-         ;;       (char-equal (string-to-char cur-line) ?{))
-         ;;  (if (string-match-p "^{/" cur-line)
-         ;;      (progn
-         ;;        (goto-char pos)
-         ;;        (back-to-indentation)
-         ;;        (web-mode-match-tag)
-         ;;        (setq offset (current-indentation)))
-         ;;    (setq offset prev-indentation))
-         ;;  )
 
          ((or (string-match-p "^</" cur-line)
               (string-match-p "^<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\)" cur-line)
@@ -2012,24 +2051,6 @@ point is at the beginning of the line."
           (web-mode-match-tag)
           (setq offset (current-indentation))
           )
-
-         ;; ((and (string= web-mode-engine "velocity")
-         ;;       (char-equal (string-to-char cur-line) ?#))
-         ;;  (if (string-match-p "^#end" cur-line)
-         ;;      (progn
-         ;;        (goto-char pos)
-         ;;        (back-to-indentation)
-         ;;        (web-mode-match-tag)
-         ;;        (setq offset (current-indentation)))
-         ;;    (setq offset prev-indentation))
-         ;;  )
-
-         ;; ((string-match-p "^</" cur-line)
-         ;;  (goto-char pos)
-         ;;  (back-to-indentation)
-         ;;  (web-mode-match-tag)
-         ;;  (setq offset (current-indentation))
-         ;;  )
 
          ;;todo : il faut remonter les lignes une à une jusqu'a en trouver une qui commence par <alpha
          ;;       attention il peut y avoir du "server" ou commentaire au début
@@ -3876,6 +3897,11 @@ point is at the beginning of the line."
    '("{{ " " }}" "}}" 0)
    '("{% " " %}" "%}" 0))
   "Autocompletes")
+
+(defun web-mode-close-element ()
+  "Close element."
+  (let ((pos (point)))
+    ))
 
 (defun web-mode-on-after-change (beg end len)
   "Autocomplete"
