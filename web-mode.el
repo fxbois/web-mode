@@ -36,7 +36,7 @@
   "Major mode for editing web templates.
 `web-mode' is compatible with many template engines: php, jsp, aspx, erb, django/twig/jinja2, CTemplate/Mustache/Hapax, blade.
 HTML files can embed various kinds of blocks: javascript / css / code."
-  :version "4.0"
+  :version "4.0.18"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -1777,14 +1777,11 @@ point is at the beginning of the line."
         ;;        (message "prev=%S" prev-last-char)
         (cond
 
-
-
-         ((and (or in-jsp-block in-asp-block)
-               (string-match-p "<%" prev-line))
-          ;;                   (string-match-p "<%$" prev-line)))
-          (web-mode-sb "<%")
-          (setq offset (current-column))
-          )
+         ;; ((and (or in-jsp-block in-asp-block)
+         ;;       (string-match-p "<%" prev-line))
+         ;;  (web-mode-sb "<%")
+         ;;  (setq offset (current-column))
+         ;;  )
 
          ((and in-javascript-block
                (string= cur-first-char "."))
@@ -1792,15 +1789,13 @@ point is at the beginning of the line."
           ;;          (setq offset prev-indentation)
           )
 
-
-         ;; todo : si } -> on va au {, on regarde is avant = ) -> on va au ( -> on skip alpha+whitespace
          ((member cur-first-char '("}" ")"))
-
           (goto-char pos)
           (back-to-indentation)
-          (forward-char)
+;;          (forward-char)
           (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
-          (setq offset (+ block-beg-column (* n local-indent-offset)))
+;;          (setq n (1- n))
+          (setq offset (+ block-beg-column (* (1- n) local-indent-offset)))
 
 
 ;;           (goto-char pos)
@@ -1912,7 +1907,6 @@ point is at the beginning of the line."
           )
 
          ((member prev-last-char '("{" "[" "("))
-
           (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
           ;;          (message "n=%S block-beg=%S" n web-mode-block-beg)
           ;;          (goto-char web-mode-block-beg)
@@ -1943,18 +1937,17 @@ point is at the beginning of the line."
           (setq offset (- (current-column) 1))
           )
 
-         ((and in-javascript-block (string-match-p "<script" prev-line))
-          (web-mode-sb "<script")
-          (setq offset (current-column))
-          )
+;;         ((and in-javascript-block (string-match-p "<script" prev-line))
+;;          (setq offset block-beg-column)
+;;          )
 
-         ((and in-php-block (string-match-p "<\\?" prev-line))
-          (web-mode-sb "<?")
-          (setq offset (current-column))
-          )
+;;         ((and in-php-block (string-match-p "<\\?" prev-line))
+;;          (setq offset block-beg-column)
+;;          )
 
          (t
-          ()
+          (setq offset block-beg-column)
+          ;;()
           )
 
          ));end case script block
@@ -2455,404 +2448,6 @@ point is at the beginning of the line."
     )
   )
 
-;;-- nav -----------------------------------------------------------------------
-
-(defun web-mode-fetch-opening-paren-pos (&optional pos limit)
-  "Fetch opening paren."
-  (interactive)
-  (save-restriction
-    ;;    (unless paren (setq paren "("))
-    (unless pos (setq pos (point)))
-    (unless limit (setq limit nil))
-    (goto-char pos)
-    (let ((continue t)
-          (n -1)
-          paren
-          (pairs '((")" . "[)(]")
-                   ("]" . "[\]\[]")
-                   ("}" . "[}{]")))
-          pt
-          regexp)
-
-      (setq paren (string (char-after)))
-      ;;      (message "parent=%S" paren)
-      (setq regexp (cdr (assoc paren pairs)))
-      (if (null regexp) (setq continue nil))
-
-      ;; (cond
-
-      ;;  ((string= paren "(")
-      ;;   (setq regexp "[)(]"))
-
-      ;;  ((string= paren "{")
-      ;;   (setq regexp "[}{]"))
-
-      ;;  ((string= paren "[")
-      ;;   (setq regexp "[\]\[]"))
-
-      ;;  );cond
-
-      (while (and continue (re-search-backward regexp limit t))
-        (unless (web-mode-is-comment-or-string)
-          ;;          (message "pos=%S pt=%S" pos (point))
-          (if (not (string= (string (char-after)) paren))
-              (progn
-                (setq n (1+ n))
-                (if (= n 0)
-                    (setq continue nil
-                          pt (point))))
-            (setq n (1- n)))
-          ;;          (message "n=%S" n)
-          );unless
-        )
-      pt
-      )))
-
-(defun web-mode-fetch-closing-paren-pos (&optional pos limit)
-  "Fetch opening paren."
-  (interactive)
-  ;;  (unless paren (setq paren ")"))
-  ;;  (message (web-mode-text-at-point))
-  (save-excursion
-    (unless pos (setq pos (point)))
-    (unless limit (setq limit nil))
-    (goto-char pos)
-    (let ((continue t)
-          paren
-          (n 0)
-          (pairs '(("(" . "[)(]")
-                   ("[" . "[\]\[]")
-                   ("{" . "[}{]")))
-          pt
-          regexp)
-
-      (setq paren (string (char-after)))
-      (setq regexp (cdr (assoc paren pairs)))
-      (if (null regexp) (setq continue nil))
-      ;;      (message "paren=%S regexp=%S" paren regexp)
-
-      ;; (cond
-
-      ;;  ((string= paren ")")
-      ;;   (setq regexp "[)(]"))
-
-      ;;  ((string= paren "}")
-      ;;   (setq regexp "[}{]"))
-
-      ;;  ((string= paren "]")
-      ;;   (setq regexp "[\]\[]"))
-
-      ;;  );;cond
-
-      (while (and continue (re-search-forward regexp limit t))
-        (unless (web-mode-is-comment-or-string)
-          ;;          (message "char-before=%S pt=%S" (string (char-before)) (point))
-          (if (string= (string (char-before)) paren)
-              (setq n (1+ n))
-            (setq n (1- n))
-            (when (= n 0)
-              (setq continue nil
-                    pt (1- (point))))
-            )
-          ;;        (message "pt=%S char=%S n=%S" (point) (string (char-before)) n)
-          )
-        )
-      ;;      (message "n=%S pt=%S" n pt)
-      pt
-      )))
-
-(defun web-mode-fetch-opening-paren-block-pos (pos limit)
-  "Is opened code line."
-  (save-excursion
-    (goto-char pos)
-    (let (c
-          n
-          pt
-          (continue t)
-          (pairs '((")" . "(")
-                   ("]" . "[")
-                   ("}" . "{")))
-          (h (make-hash-table :test 'equal))
-          (regexp "[\]\[)(}{]"))
-      (while (and continue (re-search-backward regexp limit t))
-        (unless (web-mode-is-comment-or-string)
-          (setq c (string (char-after)))
-          (cond
-           ((member c '("(" "{" "["))
-            (setq n (gethash c h 0))
-            (if (= n 0)
-                (setq continue nil
-                      pt (point))
-              (puthash c (1+ n) h)
-              ))
-           (t
-            (setq c (cdr (assoc c pairs)))
-            (setq n (gethash c h 0))
-            (puthash c (1- n) h))
-           );cond
-          );unless
-        );while
-      ;;      (message "h=%S pt=%S" h pt)
-      pt
-      )))
-
-(defun web-mode-tag-beg ()
-  "Fetch html tag beg."
-  (interactive)
-  (let ((continue t) ret)
-    (while continue
-      (setq ret t)
-      (if (not (looking-at-p "</?[[:alpha:]]"))
-          (setq ret (re-search-backward "</?[[:alpha:]]" nil t)))
-      (if (or (null ret)
-              (member (get-text-property (point) 'client-tag-type) '(start end void)))
-          (setq continue nil)))
-    ret))
-
-(defun web-mode-tag-end ()
-  "Fetch html tag end."
-  (interactive)
-  (let ((continue t) ret prop)
-    (setq prop (if (get-text-property (point) 'server-tag-type)
-                   'server-tag-type
-                 'client-tag-type))
-    (while continue
-      (setq ret (web-mode-sf-client ">" nil t))
-      (if (or (null ret) (get-text-property (- (point) 1) prop))
-          (setq continue nil)))
-    ret))
-
-(defun web-mode-previous-element ()
-  "Fetch previous element."
-  (interactive)
-  (web-mode-rsb-html "</?[[:alpha:]]"))
-
-(defun web-mode-next-element ()
-  "Fetch next element."
-  (interactive)
-  (if (char-equal (following-char) ?<) (forward-char))
-  (if (web-mode-rsf-html "</?[[:alpha:]]")
-      (search-backward "<")))
-
-(defun web-mode-parent-element-pos (&optional pos)
-  "Parent element pos."
-  (interactive)
-  (let (tag-type
-        tag-name
-        n
-        (continue t)
-        (h (make-hash-table :test 'equal)))
-    (save-excursion
-      (if pos (goto-char pos))
-      (while (and continue (web-mode-previous-element))
-        (setq pos (point))
-        (setq tag-type (get-text-property pos 'client-tag-type)
-              tag-name (get-text-property pos 'client-tag-name))
-        (setq n (gethash tag-name h 0))
-        (when (member tag-type '(end start))
-          (if (eq tag-type 'end)
-              (puthash tag-name (1- n) h)
-            (puthash tag-name (1+ n) h)
-            (if (eq n 0) (setq continue nil))
-            );if
-          );when
-        );while
-      );save-excursion
-
-;;    (if (null continue) (goto-char pos))
-
-    (if (null continue) pos nil)
-
-    ))
-
-(defun web-mode-parent-element (&optional pos)
-  "Fetch parent element."
-  (interactive)
-  (unless pos (setq pos (point)))
-  (let (pep)
-    (setq pep (web-mode-parent-element-pos pos))
-;;    (message "pep=%S" pep)
-    (when pep
-      (goto-char pep))
-    ))
-
-;; (defun web-mode-beginning-of-element2 ()
-;;   "Fetch beginning of element."
-;;   (interactive)
-;;   (message "boep=%S" (web-mode-beginning-of-element-pos))
-;;   (let ((continue t)
-;;         (pos nil))
-;;     (save-excursion
-;;       (if (char-equal (char-before) ?<) (backward-char))
-;;       (if (and (looking-at-p "<[[:alpha:]]")
-;;                (not (web-mode-is-csss)))
-;;           (setq pos (point))
-;;         (while continue
-;;           (when (re-search-backward "<[[:alpha:]]" nil t)
-;;             (setq continue (web-mode-is-csss))
-;;             (unless continue (setq pos (point))))
-;;           )))
-;;     (if pos (goto-char pos))
-;;     ))
-
-(defun web-mode-beginning-of-element (&optional pos)
-  "Move to beginning of element."
-  (interactive)
-  (unless pos (setq pos (point)))
-  (let (boep)
-    (setq boep (web-mode-beginning-of-element-pos pos))
-;;    (message "boep=%S" boep)
-    (when boep
-      (goto-char boep))
-    ))
-
-;; todo: retourner null qd (web-mode-parent-element-pos) retourne null
-(defun web-mode-beginning-of-element-pos (&optional pos)
-  "Beginning of element pos."
-  (unless pos (setq pos (point)))
-  (let (ret tmp)
-    (save-excursion
-
-      (cond
-
-       ((null (get-text-property pos 'client-tag-type))
-        (setq tmp (web-mode-parent-element-pos))
-        (when tmp (goto-char tmp))
-        )
-
-       ((eq (get-text-property pos 'client-tag-type) 'end)
-        (web-mode-match-tag))
-
-       ((member (get-text-property pos 'client-tag-type) '(start void))
-        (unless (looking-at-p "<[[:alpha:]]")
-          (re-search-backward "<[[:alpha:]]" nil t))
-        )
-
-       );cond
-
-      (setq ret (point))
-
-      ret
-
-      )))
-
-(defun web-mode-server-block-beg-pos (&optional pos)
-  "web-mode-server-block-beg-pos"
-  (unless pos (setq pos (point)))
-  (cond
-   ((or (and (get-text-property pos 'server-side)
-             (eq pos (point-min)))
-        ;;                  (not (get-text-property (1- pos) 'server-side)))
-        (get-text-property pos 'server-beg))
-    )
-   ((get-text-property pos 'server-side)
-    ;;        (setq start (or (previous-single-property-change pos 'server-side)
-    ;;                        (point-min)))
-    ;;        (setq end (text-property-any start pos 'server-end t))
-    ;;        (setq pos (if end (1+ end) start))
-    (setq pos (previous-single-property-change pos 'server-beg))
-    (setq pos (if pos (1- pos) (point-min)))
-    )
-   (t
-    (setq pos nil))
-   );cond
-  ;;    (message "web-mode-server-block-beg-pos=%S" pos)
-  pos)
-
-(defun web-mode-prev-server-block-pos (&optional pos)
-  "web-mode-prev-server-block-pos"
-  (interactive)
-  (unless pos (setq pos (point)))
-  (cond
-
-   ((get-text-property pos 'server-side)
-    (setq pos (web-mode-server-block-beg-pos pos))
-    (when (and pos (> pos (point-min)))
-      (setq pos (1- pos))
-      (while (and (> pos (point-min))
-                  (eq (char-after pos) ?\n))
-        (setq pos (1- pos))
-        )
-      ;;            (message "pos=%S  <%c>" pos (char-after pos))
-      (if (get-text-property pos 'server-side)
-          (progn
-            (setq pos (web-mode-server-block-beg-pos pos))
-            )
-        (setq pos (previous-single-property-change pos 'server-side))
-        (when (and pos (> pos (point-min)))
-          (setq pos (web-mode-server-block-beg-pos (1- pos))))
-        );if
-      );when
-    )
-
-   (t
-    (setq pos (previous-single-property-change pos 'server-side))
-    (when (and pos (> pos (point-min)))
-      (setq pos (web-mode-server-block-beg-pos (1- pos))))
-    )
-
-   );conf
-  pos)
-
-(defun web-mode-prev-server-block (&optional pos)
-  "web-mode-prev-server-block"
-  (interactive)
-  (unless pos (setq pos (point)))
-  (setq pos (web-mode-prev-server-block-pos pos))
-  (if pos (goto-char pos)))
-
-(defun web-mode-server-block-end-pos (&optional pos)
-  "web-mode-server-block-end-pos"
-  (unless pos (setq pos (point)))
-  (cond
-   ((get-text-property pos 'server-end)
-    )
-   ((get-text-property pos 'server-side)
-    (setq pos (or (next-single-property-change pos 'server-end)
-                  (point-max))))
-   (t
-    (setq pos nil))
-   );cond
-  pos)
-
-(defun web-mode-next-server-block-pos (&optional pos)
-  "web-mode-next-server-block-pos"
-  (unless pos (setq pos (point)))
-  (if (get-text-property pos 'server-side)
-      (if (= pos (point-min))
-          (set pos (point-min))
-        (setq pos (web-mode-server-block-end-pos pos))
-        (when (and pos (> (point-max) pos))
-          (setq pos (1+ pos))
-          (if (not (get-text-property pos 'server-side))
-              (setq pos (next-single-property-change pos 'server-side)))
-          );when
-        )
-    (setq pos (next-single-property-change pos 'server-side)))
-  pos)
-
-(defun web-mode-next-server-block (&optional pos)
-  "web-mode-next-server-block"
-  (interactive)
-  (unless pos (setq pos (point)))
-  (setq pos (web-mode-next-server-block-pos pos))
-  (if pos (goto-char pos)))
-
-;; todo : faire attention à server-end 'end
-(defun web-mode-goto-block-beg (&optional pos)
-  "Block type beg"
-  (interactive)
-  (unless pos (setq pos (point)))
-  (unless (bobp)
-    (when (string= (get-text-property pos 'server-engine)
-                   (get-text-property (- pos 1) 'server-engine))
-      (setq pos (or (previous-single-property-change pos 'server-engine) (point-min)))
-      (goto-char pos))
-    );unless
-  t)
-
-
-;;-- /nav ----------------------------------------------------------------------
 
 (defun web-mode-text-at-point (&optional pos)
   "Text at point."
@@ -4096,6 +3691,403 @@ point is at the beginning of the line."
         (replace-match expr)
         );while
       )))
+;;-- nav -----------------------------------------------------------------------
+
+(defun web-mode-fetch-opening-paren-pos (&optional pos limit)
+  "Fetch opening paren."
+  (interactive)
+  (save-restriction
+    ;;    (unless paren (setq paren "("))
+    (unless pos (setq pos (point)))
+    (unless limit (setq limit nil))
+    (goto-char pos)
+    (let ((continue t)
+          (n -1)
+          paren
+          (pairs '((")" . "[)(]")
+                   ("]" . "[\]\[]")
+                   ("}" . "[}{]")))
+          pt
+          regexp)
+
+      (setq paren (string (char-after)))
+      ;;      (message "parent=%S" paren)
+      (setq regexp (cdr (assoc paren pairs)))
+      (if (null regexp) (setq continue nil))
+
+      ;; (cond
+
+      ;;  ((string= paren "(")
+      ;;   (setq regexp "[)(]"))
+
+      ;;  ((string= paren "{")
+      ;;   (setq regexp "[}{]"))
+
+      ;;  ((string= paren "[")
+      ;;   (setq regexp "[\]\[]"))
+
+      ;;  );cond
+
+      (while (and continue (re-search-backward regexp limit t))
+        (unless (web-mode-is-comment-or-string)
+          ;;          (message "pos=%S pt=%S" pos (point))
+          (if (not (string= (string (char-after)) paren))
+              (progn
+                (setq n (1+ n))
+                (if (= n 0)
+                    (setq continue nil
+                          pt (point))))
+            (setq n (1- n)))
+          ;;          (message "n=%S" n)
+          );unless
+        )
+      pt
+      )))
+
+(defun web-mode-fetch-closing-paren-pos (&optional pos limit)
+  "Fetch opening paren."
+  (interactive)
+  ;;  (unless paren (setq paren ")"))
+  ;;  (message (web-mode-text-at-point))
+  (save-excursion
+    (unless pos (setq pos (point)))
+    (unless limit (setq limit nil))
+    (goto-char pos)
+    (let ((continue t)
+          paren
+          (n 0)
+          (pairs '(("(" . "[)(]")
+                   ("[" . "[\]\[]")
+                   ("{" . "[}{]")))
+          pt
+          regexp)
+
+      (setq paren (string (char-after)))
+      (setq regexp (cdr (assoc paren pairs)))
+      (if (null regexp) (setq continue nil))
+      ;;      (message "paren=%S regexp=%S" paren regexp)
+
+      ;; (cond
+
+      ;;  ((string= paren ")")
+      ;;   (setq regexp "[)(]"))
+
+      ;;  ((string= paren "}")
+      ;;   (setq regexp "[}{]"))
+
+      ;;  ((string= paren "]")
+      ;;   (setq regexp "[\]\[]"))
+
+      ;;  );;cond
+
+      (while (and continue (re-search-forward regexp limit t))
+        (unless (web-mode-is-comment-or-string)
+          ;;          (message "char-before=%S pt=%S" (string (char-before)) (point))
+          (if (string= (string (char-before)) paren)
+              (setq n (1+ n))
+            (setq n (1- n))
+            (when (= n 0)
+              (setq continue nil
+                    pt (1- (point))))
+            )
+          ;;        (message "pt=%S char=%S n=%S" (point) (string (char-before)) n)
+          )
+        )
+      ;;      (message "n=%S pt=%S" n pt)
+      pt
+      )))
+
+(defun web-mode-fetch-opening-paren-block-pos (pos limit)
+  "Is opened code line."
+  (save-excursion
+    (goto-char pos)
+    (let (c
+          n
+          pt
+          (continue t)
+          (pairs '((")" . "(")
+                   ("]" . "[")
+                   ("}" . "{")))
+          (h (make-hash-table :test 'equal))
+          (regexp "[\]\[)(}{]"))
+      (while (and continue (re-search-backward regexp limit t))
+        (unless (web-mode-is-comment-or-string)
+          (setq c (string (char-after)))
+          (cond
+           ((member c '("(" "{" "["))
+            (setq n (gethash c h 0))
+            (if (= n 0)
+                (setq continue nil
+                      pt (point))
+              (puthash c (1+ n) h)
+              ))
+           (t
+            (setq c (cdr (assoc c pairs)))
+            (setq n (gethash c h 0))
+            (puthash c (1- n) h))
+           );cond
+          );unless
+        );while
+      ;;      (message "h=%S pt=%S" h pt)
+      pt
+      )))
+
+(defun web-mode-tag-beg ()
+  "Fetch html tag beg."
+  (interactive)
+  (let ((continue t) ret)
+    (while continue
+      (setq ret t)
+      (if (not (looking-at-p "</?[[:alpha:]]"))
+          (setq ret (re-search-backward "</?[[:alpha:]]" nil t)))
+      (if (or (null ret)
+              (member (get-text-property (point) 'client-tag-type) '(start end void)))
+          (setq continue nil)))
+    ret))
+
+(defun web-mode-tag-end ()
+  "Fetch html tag end."
+  (interactive)
+  (let ((continue t) ret prop)
+    (setq prop (if (get-text-property (point) 'server-tag-type)
+                   'server-tag-type
+                 'client-tag-type))
+    (while continue
+      (setq ret (web-mode-sf-client ">" nil t))
+      (if (or (null ret) (get-text-property (- (point) 1) prop))
+          (setq continue nil)))
+    ret))
+
+(defun web-mode-previous-element ()
+  "Fetch previous element."
+  (interactive)
+  (web-mode-rsb-html "</?[[:alpha:]]"))
+
+(defun web-mode-next-element ()
+  "Fetch next element."
+  (interactive)
+  (if (char-equal (following-char) ?<) (forward-char))
+  (if (web-mode-rsf-html "</?[[:alpha:]]")
+      (search-backward "<")))
+
+(defun web-mode-parent-element-pos (&optional pos)
+  "Parent element pos."
+  (interactive)
+  (let (tag-type
+        tag-name
+        n
+        (continue t)
+        (h (make-hash-table :test 'equal)))
+    (save-excursion
+      (if pos (goto-char pos))
+      (while (and continue (web-mode-previous-element))
+        (setq pos (point))
+        (setq tag-type (get-text-property pos 'client-tag-type)
+              tag-name (get-text-property pos 'client-tag-name))
+        (setq n (gethash tag-name h 0))
+        (when (member tag-type '(end start))
+          (if (eq tag-type 'end)
+              (puthash tag-name (1- n) h)
+            (puthash tag-name (1+ n) h)
+            (if (eq n 0) (setq continue nil))
+            );if
+          );when
+        );while
+      );save-excursion
+
+;;    (if (null continue) (goto-char pos))
+
+    (if (null continue) pos nil)
+
+    ))
+
+(defun web-mode-parent-element (&optional pos)
+  "Fetch parent element."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (let (pep)
+    (setq pep (web-mode-parent-element-pos pos))
+;;    (message "pep=%S" pep)
+    (when pep
+      (goto-char pep))
+    ))
+
+;; (defun web-mode-beginning-of-element2 ()
+;;   "Fetch beginning of element."
+;;   (interactive)
+;;   (message "boep=%S" (web-mode-beginning-of-element-pos))
+;;   (let ((continue t)
+;;         (pos nil))
+;;     (save-excursion
+;;       (if (char-equal (char-before) ?<) (backward-char))
+;;       (if (and (looking-at-p "<[[:alpha:]]")
+;;                (not (web-mode-is-csss)))
+;;           (setq pos (point))
+;;         (while continue
+;;           (when (re-search-backward "<[[:alpha:]]" nil t)
+;;             (setq continue (web-mode-is-csss))
+;;             (unless continue (setq pos (point))))
+;;           )))
+;;     (if pos (goto-char pos))
+;;     ))
+
+(defun web-mode-beginning-of-element (&optional pos)
+  "Move to beginning of element."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (let (boep)
+    (setq boep (web-mode-beginning-of-element-pos pos))
+;;    (message "boep=%S" boep)
+    (when boep
+      (goto-char boep))
+    ))
+
+;; todo: retourner null qd (web-mode-parent-element-pos) retourne null
+(defun web-mode-beginning-of-element-pos (&optional pos)
+  "Beginning of element pos."
+  (unless pos (setq pos (point)))
+  (let (ret tmp)
+    (save-excursion
+
+      (cond
+
+       ((null (get-text-property pos 'client-tag-type))
+        (setq tmp (web-mode-parent-element-pos))
+        (when tmp (goto-char tmp))
+        )
+
+       ((eq (get-text-property pos 'client-tag-type) 'end)
+        (web-mode-match-tag))
+
+       ((member (get-text-property pos 'client-tag-type) '(start void))
+        (unless (looking-at-p "<[[:alpha:]]")
+          (re-search-backward "<[[:alpha:]]" nil t))
+        )
+
+       );cond
+
+      (setq ret (point))
+
+      ret
+
+      )))
+
+(defun web-mode-server-block-beg-pos (&optional pos)
+  "web-mode-server-block-beg-pos"
+  (unless pos (setq pos (point)))
+  (cond
+   ((or (and (get-text-property pos 'server-side)
+             (eq pos (point-min)))
+        ;;                  (not (get-text-property (1- pos) 'server-side)))
+        (get-text-property pos 'server-beg))
+    )
+   ((get-text-property pos 'server-side)
+    ;;        (setq start (or (previous-single-property-change pos 'server-side)
+    ;;                        (point-min)))
+    ;;        (setq end (text-property-any start pos 'server-end t))
+    ;;        (setq pos (if end (1+ end) start))
+    (setq pos (previous-single-property-change pos 'server-beg))
+    (setq pos (if pos (1- pos) (point-min)))
+    )
+   (t
+    (setq pos nil))
+   );cond
+  ;;    (message "web-mode-server-block-beg-pos=%S" pos)
+  pos)
+
+(defun web-mode-prev-server-block-pos (&optional pos)
+  "web-mode-prev-server-block-pos"
+  (interactive)
+  (unless pos (setq pos (point)))
+  (cond
+
+   ((get-text-property pos 'server-side)
+    (setq pos (web-mode-server-block-beg-pos pos))
+    (when (and pos (> pos (point-min)))
+      (setq pos (1- pos))
+      (while (and (> pos (point-min))
+                  (eq (char-after pos) ?\n))
+        (setq pos (1- pos))
+        )
+      ;;            (message "pos=%S  <%c>" pos (char-after pos))
+      (if (get-text-property pos 'server-side)
+          (progn
+            (setq pos (web-mode-server-block-beg-pos pos))
+            )
+        (setq pos (previous-single-property-change pos 'server-side))
+        (when (and pos (> pos (point-min)))
+          (setq pos (web-mode-server-block-beg-pos (1- pos))))
+        );if
+      );when
+    )
+
+   (t
+    (setq pos (previous-single-property-change pos 'server-side))
+    (when (and pos (> pos (point-min)))
+      (setq pos (web-mode-server-block-beg-pos (1- pos))))
+    )
+
+   );conf
+  pos)
+
+(defun web-mode-prev-server-block (&optional pos)
+  "web-mode-prev-server-block"
+  (interactive)
+  (unless pos (setq pos (point)))
+  (setq pos (web-mode-prev-server-block-pos pos))
+  (if pos (goto-char pos)))
+
+(defun web-mode-server-block-end-pos (&optional pos)
+  "web-mode-server-block-end-pos"
+  (unless pos (setq pos (point)))
+  (cond
+   ((get-text-property pos 'server-end)
+    )
+   ((get-text-property pos 'server-side)
+    (setq pos (or (next-single-property-change pos 'server-end)
+                  (point-max))))
+   (t
+    (setq pos nil))
+   );cond
+  pos)
+
+(defun web-mode-next-server-block-pos (&optional pos)
+  "web-mode-next-server-block-pos"
+  (unless pos (setq pos (point)))
+  (if (get-text-property pos 'server-side)
+      (if (= pos (point-min))
+          (set pos (point-min))
+        (setq pos (web-mode-server-block-end-pos pos))
+        (when (and pos (> (point-max) pos))
+          (setq pos (1+ pos))
+          (if (not (get-text-property pos 'server-side))
+              (setq pos (next-single-property-change pos 'server-side)))
+          );when
+        )
+    (setq pos (next-single-property-change pos 'server-side)))
+  pos)
+
+(defun web-mode-next-server-block (&optional pos)
+  "web-mode-next-server-block"
+  (interactive)
+  (unless pos (setq pos (point)))
+  (setq pos (web-mode-next-server-block-pos pos))
+  (if pos (goto-char pos)))
+
+;; todo : faire attention à server-end 'end
+(defun web-mode-goto-block-beg (&optional pos)
+  "Block type beg"
+  (interactive)
+  (unless pos (setq pos (point)))
+  (unless (bobp)
+    (when (string= (get-text-property pos 'server-engine)
+                   (get-text-property (- pos 1) 'server-engine))
+      (setq pos (or (previous-single-property-change pos 'server-engine) (point-min)))
+      (goto-char pos))
+    );unless
+  t)
+
+;;-- /nav ----------------------------------------------------------------------
 
 (defun web-mode-rsb-client (regexp &optional limit noerror)
   "re-search-backward in client."
