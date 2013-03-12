@@ -3594,7 +3594,8 @@ point is at the beginning of the line."
    '("<%-" "-  --%>" "--" 2)
    '("<%@" "  %>" "%>" 1)
    '("{{ " " }}" "}}" 0)
-   '("{% " " %}" "%}" 0))
+   '("{% " " %}" "%}" 0)
+   '("{# " " #}" "#}" 0))
   "Autocompletes")
 
 (defun web-mode-element-close ()
