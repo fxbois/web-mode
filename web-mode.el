@@ -3585,7 +3585,7 @@ point is at the beginning of the line."
     (search-backward "{{")
     ))
 
-(defvar web-mode-autocompletes
+(defvar web-mode-autopairs
   (list
    '("<?p" "hp  ?>" "\\?>" 3)
    '("<? " "?>" "\\?>" 0)
@@ -3594,7 +3594,9 @@ point is at the beginning of the line."
    '("<%-" "-  --%>" "--" 2)
    '("<%@" "  %>" "%>" 1)
    '("{{ " " }}" "}}" 0)
-   '("{% " " %}" "%}" 0))
+   '("{% " " %}" "%}" 0)
+   '("{# " " #}" "%}" 0)
+   )
   "Autocompletes")
 
 (defun web-mode-element-close ()
@@ -3639,7 +3641,7 @@ point is at the beginning of the line."
         (i 0)
         counter
         expr
-        (l (length web-mode-autocompletes))
+        (l (length web-mode-autopairs))
         pos-end
         after
         jump-pos
@@ -3728,7 +3730,7 @@ point is at the beginning of the line."
 
           (while (and (< i l)
                       (not found))
-            (setq expr (elt web-mode-autocompletes i))
+            (setq expr (elt web-mode-autopairs i))
             ;;(message "%S" expr)
             (when (string= (elt expr 0) chunk)
               (unless (string-match-p (elt expr 2) after)
