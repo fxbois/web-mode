@@ -1174,7 +1174,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
           );while
         (goto-char beg)
         (while (and (not web-mode-disable-css-colorization)
-                    (re-search-forward "#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgb([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" end t)
+                    (re-search-forward "#[0-9a-fA-F]\\{6\\}\\b\\|#[0-9a-fA-F]\\{3\\}\\b\\|rgb([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" end t)
                     (< (point) end))
           (web-mode-colorize (match-beginning 0) (match-end 0))
           );while
