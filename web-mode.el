@@ -64,9 +64,9 @@ HTML files can embed various kinds of blocks: javascript / css / code."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-disable-autocompletion (not (display-graphic-p))
-  ;;(defcustom web-mode-disable-autocompletion nil
-  "Disable autocompletion."
+(defcustom web-mode-disable-auto-pairing (not (display-graphic-p))
+  ;;(defcustom web-mode-disable-auto-pairing nil
+  "Disable auto-pairing."
   :type 'bool
   :group 'web-mode)
 
@@ -81,11 +81,11 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-tag-autocomplete-style 1
-  "Tag autocomplete style:
-0=no autocomplete
-1=autocomplete with </
-2=autocomplete with > and </."
+(defcustom web-mode-tag-auto-pair-style 1
+  "Tag auto-pair style:
+0=no auto-pair
+1=auto-pair with </
+2=auto-pair with > and </."
   :type 'integer
   :group 'web-mode)
 
@@ -374,7 +374,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
     (make-local-variable 'web-mode-block-beg)
     (make-local-variable 'web-mode-buffer-highlighted)
-    (make-local-variable 'web-mode-disable-autocompletion)
+    (make-local-variable 'web-mode-disable-auto-pairing)
     (make-local-variable 'web-mode-disable-css-colorization)
     (make-local-variable 'web-mode-display-table)
     (make-local-variable 'web-mode-engine)
@@ -3585,7 +3585,7 @@ point is at the beginning of the line."
     (search-backward "{{")
     ))
 
-(defvar web-mode-autopairs
+(defvar web-mode-auto-pairs
   (list
    '("<?p" "hp  ?>" "\\?>" 3)
    '("<? " "?>" "\\?>" 0)
@@ -3597,7 +3597,7 @@ point is at the beginning of the line."
    '("{% " " %}" "%}" 0)
    '("{# " " #}" "#}" 0)
    )
-  "Autocompletes")
+  "Auto-Pairs")
 
 (defun web-mode-element-close ()
   "Close HTML element."
@@ -3623,7 +3623,7 @@ point is at the beginning of the line."
     ))
 
 (defun web-mode-on-after-change (beg end len)
-  "Autocomplete"
+  "Auto-Pair"
 ;;  (message "beg=%d, end=%d, len=%d, cur=%d" beg end len (current-column))
 
   ;;  (backtrace)
@@ -3633,7 +3633,7 @@ point is at the beginning of the line."
 
   (let ((chunk "")
         (pos (point))
-        (cur-col (current-column))
+;;        (cur-col (current-column))
         tag
         continue
         found
@@ -3641,7 +3641,7 @@ point is at the beginning of the line."
         (i 0)
         counter
         expr
-        (l (length web-mode-autopairs))
+        (l (length web-mode-auto-pairs))
         pos-end
         after
         jump-pos
@@ -3653,7 +3653,7 @@ point is at the beginning of the line."
 
        (setq web-mode-is-narrowed t)
 
-      (when (and (not web-mode-disable-autocompletion)
+      (when (and (not web-mode-disable-auto-pairing)
                  (> pos 2)
                  (= len 0)
                  (= 1 (- end beg)))
@@ -3665,7 +3665,7 @@ point is at the beginning of the line."
 
         (setq sub2 (buffer-substring-no-properties (- beg 1) end))
 
-        (if (and (= web-mode-tag-autocomplete-style 2)
+        (if (and (= web-mode-tag-auto-pair-style 2)
                  (not found)
                  (string-match-p "[[:alnum:]]>" sub2)
                  (not (get-text-property pos 'server-side))
@@ -3682,11 +3682,11 @@ point is at the beginning of the line."
               (setq found t))
           (goto-char pos))
 
-        (when (and (>= web-mode-tag-autocomplete-style 1)
+        (when (and (>= web-mode-tag-auto-pair-style 1)
                    (not found)
                    (not (get-text-property pos 'server-side))
                    (not (get-text-property pos 'client-side))
-                   (>= cur-col 2)
+;;                   (>= cur-col 2)
                    (string= "</" sub2))
           ;;            (message "%d %S %S" pos (get-text-property pos 'server-token-type) (get-text-property pos 'client-token-type))
           (when (string= "></" (buffer-substring-no-properties (- beg 2) end))
@@ -3724,13 +3724,11 @@ point is at the beginning of the line."
 
             );when
 
-        (when (and (>= cur-col 3)
-                   (not found))
+;;        (when (and (>= cur-col 3) (not found))
+        (when (and (> pos 3) (not found))
           (setq chunk (buffer-substring-no-properties (- beg 2) end))
-
-          (while (and (< i l)
-                      (not found))
-            (setq expr (elt web-mode-autopairs i))
+          (while (and (< i l) (not found))
+            (setq expr (elt web-mode-auto-pairs i))
             ;;(message "%S" expr)
             (when (string= (elt expr 0) chunk)
               (unless (string-match-p (elt expr 2) after)
@@ -3751,7 +3749,6 @@ point is at the beginning of the line."
               (setq scan-beg 1
                     scan-end (point-max))
               )
-
              ((web-mode-rsb-client "^[ ]*<")
               (setq scan-beg (point))
               (goto-char pos)
