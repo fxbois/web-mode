@@ -1148,12 +1148,12 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
       (when (string= tag-name "style")
         (goto-char beg)
-        (setq rules-beg (if (= beg 1) 1 (+ beg 1)))
+        (setq rules-beg (if (= beg 1) 1 (1+ beg)))
         (while (and rules-beg
                     (search-forward "{" end t)
                     (< (point) end))
-          (setq rules-end (- (point) 1))
-          (setq props-beg (point))
+          (setq rules-end (1- (point))
+                props-beg (point))
           ;;          (message "rules-beg(%S) rules-end(%S)" rules-beg rules-end)
           ;;          (message "%S" font-lock-keywords)
           (web-mode-fontify-region rules-beg rules-end web-mode-css-rules-font-lock-keywords)
@@ -1161,22 +1161,22 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
           (setq rules-beg nil)
           (when (and (search-forward "}" end t)
                      (< (point) end))
-            (setq props-end (- (point) 1))
-            (setq rules-beg (point))
+            (setq props-end (1- (point))
+                  rules-beg (point))
             ;;            (setq font-lock-keywords web-mode-css-props-font-lock-keywords)
             ;;            (message "props-beg(%S) props-end(%S)" props-beg props-end)
             (when (> (- props-end props-beg) 2)
               ;;              (font-lock-fontify-region props-beg props-end)
               (web-mode-fontify-region props-beg props-end web-mode-css-props-font-lock-keywords)
-              )
+              (goto-char props-beg)
+              (while (and (not web-mode-disable-css-colorization)
+                          (re-search-forward "#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgb([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" props-end t)
+                          (< (point) props-end))
+                (web-mode-colorize (match-beginning 0) (match-end 0))
+                );while
+              );when
             (goto-char rules-beg)
-            )
-          );while
-        (goto-char beg)
-        (while (and (not web-mode-disable-css-colorization)
-                    (re-search-forward "#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgb([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" end t)
-                    (< (point) end))
-          (web-mode-colorize (match-beginning 0) (match-end 0))
+            );when
           );while
         );when
 
