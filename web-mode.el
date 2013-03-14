@@ -3687,45 +3687,54 @@ point is at the beginning of the line."
                    (>= web-mode-tag-auto-pair-style 1)
                    (not (get-text-property pos 'server-side))
                    (not (get-text-property pos 'client-side))
-;;                   (>= cur-col 2)
+                   ;;                   (>= cur-col 2)
                    (string= "</" sub2))
           ;;            (message "%d %S %S" pos (get-text-property pos 'server-token-type) (get-text-property pos 'client-token-type))
+
           (when (string= "></" (buffer-substring-no-properties (- beg 2) end))
-            (setq jump-pos (- beg 1)))
+            (setq jump-pos (1- beg)))
+
+          (setq chunk (buffer-substring-no-properties (1+ beg)
+                                                      (if (>= (+ beg 6) (line-end-position))
+                                                          (line-end-position)
+                                                        (+ beg 6))))
+;;          (message "chunk=%S" chunk)
 
           (setq continue t
                 counter 1)
-            (while (and continue
-                        ;;                    (re-search-backward web-mode-tag-regexp 0 t))
-                        (web-mode-rsb web-mode-tag-regexp))
-              ;;          (when (not (web-mode-is-comment-or-string))
-              ;;          (when (not (web-mode-is-client-token-or-server))
-              (setq tag (substring (match-string-no-properties 0) 1))
-              ;;            (message "tag=%S" tag)
-              (if (string= (substring tag 0 1) "/")
-                  (setq counter (1+ counter))
-                (if (not (web-mode-is-void-element))
-                    (setq counter (1- counter))
-                  (message "tag %s is void" tag)
-                  ))
-              (when (eq counter 0)
-                (setq continue nil
-                      found t)
-                (goto-char pos)
-                (if (looking-at ">")
-                    (progn
-                      (insert tag)
-                      (goto-char (+ (point) 1)))
-                  (insert (concat tag ">")))
-                )
-              ;;            ) ;; when
-              ) ;; while
-            (if jump-pos (goto-char jump-pos)
-              (if continue (goto-char pos)))
+          (when (and (string-match-p ">" chunk) (not (string-match-p "<" chunk)))
+            (setq continue nil))
+          (while (and continue
+                      ;;                    (re-search-backward web-mode-tag-regexp 0 t))
+                      (web-mode-rsb web-mode-tag-regexp))
+            ;;          (when (not (web-mode-is-comment-or-string))
+            ;;          (when (not (web-mode-is-client-token-or-server))
+            (setq tag (substring (match-string-no-properties 0) 1))
+            ;;            (message "tag=%S" tag)
+            (if (string= (substring tag 0 1) "/")
+                (setq counter (1+ counter))
+              (if (not (web-mode-is-void-element))
+                  (setq counter (1- counter))
+                (message "tag %s is void" tag)
+                ))
+            (when (eq counter 0)
+              (setq continue nil
+                    found t)
+              (goto-char pos)
+              (if (looking-at ">")
+                  (progn
+                    (insert tag)
+                    (goto-char (+ (point) 1)))
+                (insert (concat tag ">")))
+              )
+            ;;            ) ;; when
+            ) ;; while
+          (if jump-pos (goto-char jump-pos)
+            (if continue (goto-char pos)))
 
-            );when
+          );when
 
-;;        (when (and (>= cur-col 3) (not found))
+        ;;        (when (and (>= cur-col 3) (not found))
         (when (and (not found) (> pos 3))
           (setq chunk (buffer-substring-no-properties (- beg 2) end))
           (while (and (< i l) (not found))
