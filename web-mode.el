@@ -286,6 +286,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
   (let ((keymap (make-sparse-keymap)))
 
     (define-key keymap (kbd "C-;") 'web-mode-comment-or-uncomment)
+    (define-key keymap (kbd "M-;") 'web-mode-comment-or-uncomment)
 
     (define-key keymap (kbd "C-c C-e") 'web-mode-errors-show)
     (define-key keymap (kbd "C-c C-f") 'web-mode-fold-or-unfold)
@@ -3585,20 +3586,6 @@ point is at the beginning of the line."
     (search-backward "{{")
     ))
 
-(defvar web-mode-auto-pairs
-  (list
-   '("<?p" "hp  ?>" "\\?>" 3)
-   '("<? " "?>" "\\?>" 0)
-   '("<?=" "?>" "\\?>" 0)
-   '("<!-" "-  -->" "--" 2)
-   '("<%-" "-  --%>" "--" 2)
-   '("<%@" "  %>" "%>" 1)
-   '("{{ " " }}" "}}" 0)
-   '("{% " " %}" "%}" 0)
-   '("{# " " #}" "#}" 0)
-   )
-  "Auto-Pairs")
-
 (defun web-mode-element-close ()
   "Close HTML element."
   (interactive)
@@ -3621,6 +3608,20 @@ point is at the beginning of the line."
       (insert tag)
       );when
     ))
+
+(defvar web-mode-auto-pairs
+  (list
+   '("<?p" "hp  ?>" "\\?>" 3)
+   '("<? " "?>" "\\?>" 0)
+   '("<?=" "?>" "\\?>" 0)
+   '("<!-" "-  -->" "--" 2)
+   '("<%-" "-  --%>" "--" 2)
+   '("<%@" "  %>" "%>" 1)
+   '("{{ " " }}" "}}" 0)
+   '("{% " " %}" "%}" 0)
+   '("{# " " #}" "#}" 0)
+   )
+  "Auto-Pairs")
 
 (defun web-mode-on-after-change (beg end len)
   "Auto-Pair"
