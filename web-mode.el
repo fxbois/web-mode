@@ -1972,7 +1972,8 @@ point is at the beginning of the line."
            );cond
           )
 
-         ((member prev-last-char '("." "+" "?" ":"))
+         ((and (member prev-last-char '("." "+" "?" ":"))
+               (not (string-match-p "^\\(case\\|default\\)[ :]" prev-line)))
           (web-mode-rsb "[=(]" web-mode-block-beg)
           (skip-chars-forward "= (")
           (setq offset (current-column))
@@ -2046,8 +2047,11 @@ point is at the beginning of the line."
 ;;          )
 
          (t
+
+          (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
           (setq offset block-beg-column)
-          ;;()
+          (if (> n 0) (setq offset (+ offset (* n local-indent-offset))))
+;;          (setq offset block-beg-column)
           )
 
          ));end case script block
@@ -2619,11 +2623,11 @@ point is at the beginning of the line."
   (regexp-opt
    (append (if (boundp 'web-mode-extra-php-keywords)
                web-mode-extra-php-keywords '())
-           '("array" "as" "break" "callable" "catch" "class" "const" "continue"
+           '("array" "as" "break" "callable" "case" "catch" "class" "const" "continue"
              "default" "die" "do"
              "echo" "else" "elseif" "empty"
              "endfor" "endforeach" "endif" "endswitch" "endwhile" "exit" "extends"
-             "for" "foreach" "function"
+             "for" "foreach" "function" "global"
              "if" "include" "instanceof" "interface" "isset" "list"
              "next" "or" "require" "return" "switch" "try" "unset"
              "var" "when" "while")))
@@ -2851,7 +2855,7 @@ point is at the beginning of the line."
    '("[[:alnum:]_][ ]?::[ ]?\\(\\sw+\\)" 1 'web-mode-constant-face)
    '("->[ ]?\\(\\sw+\\)" 1 'web-mode-variable-name-face)
    '("\\<\\(\\sw+\\)[ ]?::" 1 'web-mode-type-face)
-   '("\\<\\(instanceof\\|class\\|new\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
+   '("\\<\\(instanceof\\|class\\|extends\\|new\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
    '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
@@ -3705,10 +3709,7 @@ point is at the beginning of the line."
           (when (and (string-match-p ">" chunk) (not (string-match-p "<" chunk)))
             (setq continue nil))
           (while (and continue
-                      ;;                    (re-search-backward web-mode-tag-regexp 0 t))
                       (web-mode-rsb web-mode-tag-regexp))
-            ;;          (when (not (web-mode-is-comment-or-string))
-            ;;          (when (not (web-mode-is-client-token-or-server))
             (setq tag (substring (match-string-no-properties 0) 1))
             ;;            (message "tag=%S" tag)
             (if (string= (substring tag 0 1) "/")
