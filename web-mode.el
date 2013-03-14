@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.0
+;; Version: 5.0.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
   "Major mode for editing web templates.
 `web-mode' is compatible with many template engines: php, jsp, aspx, erb, django/twig/jinja2, CTemplate/Mustache/Hapax, blade.
 HTML files can embed various kinds of blocks: javascript / css / code."
-  :version "5.0.0"
+  :version "5.0.1"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -3683,8 +3683,8 @@ point is at the beginning of the line."
               (setq found t))
           (goto-char pos))
 
-        (when (and (>= web-mode-tag-auto-pair-style 1)
-                   (not found)
+        (when (and (not found)
+                   (>= web-mode-tag-auto-pair-style 1)
                    (not (get-text-property pos 'server-side))
                    (not (get-text-property pos 'client-side))
 ;;                   (>= cur-col 2)
@@ -3697,7 +3697,7 @@ point is at the beginning of the line."
                 counter 1)
             (while (and continue
                         ;;                    (re-search-backward web-mode-tag-regexp 0 t))
-                        (web-mode-rsb-html web-mode-tag-regexp))
+                        (web-mode-rsb web-mode-tag-regexp))
               ;;          (when (not (web-mode-is-comment-or-string))
               ;;          (when (not (web-mode-is-client-token-or-server))
               (setq tag (substring (match-string-no-properties 0) 1))
@@ -3726,7 +3726,7 @@ point is at the beginning of the line."
             );when
 
 ;;        (when (and (>= cur-col 3) (not found))
-        (when (and (> pos 3) (not found))
+        (when (and (not found) (> pos 3))
           (setq chunk (buffer-substring-no-properties (- beg 2) end))
           (while (and (< i l) (not found))
             (setq expr (elt web-mode-auto-pairs i))
