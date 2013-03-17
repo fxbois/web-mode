@@ -2164,8 +2164,7 @@ point is at the beginning of the line."
 
          ((or (string-match-p "\\(^}\\|{\\)" cur-line)
               (not (web-mode-is-line-in-block "{" "}")))
-          (if (or (= web-mode-indent-style 2)
-                  (string= web-mode-file-type "css"))
+          (if (string= web-mode-file-type "css")
               (setq offset 0)
             (web-mode-sb "<style")
             (setq offset (current-column))))
@@ -2178,8 +2177,7 @@ point is at the beginning of the line."
           (setq offset (current-column)))
 
          (t
-          (if (or (= web-mode-indent-style 2)
-                  (string= web-mode-file-type "css"))
+          (if (string= web-mode-file-type "css")
               (setq offset local-indent-offset)
             (web-mode-sb "<style" nil t)
             (setq offset (+ (current-column) local-indent-offset))))
@@ -2204,11 +2202,11 @@ point is at the beginning of the line."
           (skip-chars-forward " ")
           (setq offset (current-column)))
 
-         ((and (= web-mode-indent-style 2)
-               (string-match-p "^\\(<\\?php\\|</?[@#]\\|<%\\|[?%]>\\)" cur-line))
+;;         ((and (= web-mode-indent-style 2)
+;;               (string-match-p "^\\(<\\?php\\|</?[@#]\\|<%\\|[?%]>\\)" cur-line))
 ;;          (message "ici")
-          (setq offset 0)
-          )
+;;          (setq offset 0)
+;;          )
 
          ;; toto : utiliser block-beg
          ((string-match-p "^\\(\\?>\\|%>\\)" cur-line)
@@ -2240,6 +2238,7 @@ point is at the beginning of the line."
          ;;todo : il faut remonter les lignes une à une jusqu'a en trouver une qui commence par <alpha
          ;;       attention il peut y avoir du "server" ou commentaire au début
          ((or (eq (length cur-line) 0)
+              (= web-mode-indent-style 2)
               (char-equal cur-char ?<)
               (and (string= web-mode-engine "ctemplate")
                    (char-equal cur-char ?{))
