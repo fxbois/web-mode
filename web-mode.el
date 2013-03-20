@@ -1477,10 +1477,19 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
          ;;          (subst-char-in-region beg end ?\n ?\s)
           ;;          (message "fill-column=%S pt=%S pair=%S chunk=%S"
           ;;                   fill-column (point) pair chunk)
-          (fill-region beg end)
           )
         );comment - case
+
+       ((web-mode-is-html-text)
+        (setq pair (web-mode-property-boundaries prop pos))
+        (setq beg (previous-property-change pos)
+              end (next-property-change pos))
+        )
+
        );cond
+      ;;(message "beg%S end%S" beg end)
+      (when (and beg end)
+        (fill-region beg end))
       t)))
 
 (defun web-mode-property-boundaries (prop &optional pos)
@@ -2299,8 +2308,19 @@ point is at the beginning of the line."
 
     ))
 
+(defun web-mode-is-html-text ()
+  "Is point in a html text."
+  (let ((pos (point)))
+    (not (or (get-text-property pos 'client-side)
+             (get-text-property pos 'client-tag-type)
+             (get-text-property pos 'client-token-type)
+             (get-text-property pos 'server-side)
+             (get-text-property pos 'server-tag-type)
+             (get-text-property pos 'server-token-type)
+             ))))
+
 (defun web-mode-is-html-tag ()
-  "Is point a the beginning of an html tag."
+  "Is point in an html tag."
   (member (get-text-property (point) 'client-tag-type) '(start end void)))
 
 (defun web-mode-count-opened-blocks-at-point (&optional limit)
