@@ -1079,9 +1079,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
             ;;            (setq regexp ">")
             )
            );cond
-
           ;;          (add-text-properties tag-beg tag-stop props)
-
           );t
          );cond
 
@@ -1108,7 +1106,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
                 tag-end (line-end-position))
           ;;          (message "close not found , tag=%S (%S > %S)" tag-name tag-beg tag-end)
 
-          );if
+          );if web-mode-rsf
 
         (if (and (string= tag-name "script")
                  (string-match-p " type=\"text/html\"" (buffer-substring tag-beg tag-end)))
@@ -2322,7 +2320,30 @@ point is at the beginning of the line."
           (setq n (1+ n))))
     n))
 
-;;todo: remplacer les looking-at
+(defun web-mode-scan-at-point ()
+  "web mode scan at point"
+  (save-excursion
+    (let (scan-beg scan-end (pos (point)))
+      (cond
+       ((web-mode-rsb-client "^[ ]*<")
+        (setq scan-beg (point))
+        (goto-char pos)
+        (setq scan-end (if (web-mode-rsf-client "[[:alnum:] /\"]>[ ]*$") (point) (point-max)))
+        ;;              (message "scan-end=%S" scan-end)
+        ;;            (setq scan-end (point-max))
+        )
+       (t
+        (setq scan-beg 1
+              scan-end (point-max))
+        )
+       );cond
+      ;;(message "scan-region (%S) > (%S)" scan-beg scan-end)
+      ;;          (setq scan-end (point-max))
+      (web-mode-scan-region scan-beg scan-end)
+      );save-excursion
+    ))
+
+;;todo: implementer : scan-at-point
 (defun web-mode-element-rename ()
   "Rename the current HTML element."
   (interactive)
@@ -2332,6 +2353,7 @@ point is at the beginning of the line."
       (when (and (> (length tag-name) 0)
                  (web-mode-element-beginning)
                  (looking-at "<\\([[:alpha:]]+\\)"))
+        (message "la")
         (setq pos (point))
         (unless (web-mode-is-void-element)
             (save-match-data
@@ -2341,6 +2363,7 @@ point is at the beginning of the line."
                 )))
         (goto-char pos)
         (replace-match (concat "<" tag-name))
+        (web-mode-scan-at-point)
         ))))
 
 (defun web-mode-mark-and-expand ()
@@ -2626,7 +2649,7 @@ point is at the beginning of the line."
         (pos 0)
         (h (make-hash-table :test 'equal)))
 ;;    (unless line (setq line (web-mode-element-at-point)))
-;;    (message "line=%s l=%S" line (length line))
+    ;;(message "line=%s" line)
     ;;    (message "-- web-mode-is-opened-element")
 
 ;;    (setq line (web-mode-clean-client-line line))
@@ -2634,14 +2657,16 @@ point is at the beginning of the line."
 ;;    (when t
 
     (while continue
-      (when (get-text-property pos 'tag-boundary line)
+      (when (and (get-text-property pos 'tag-boundary line)
+                 (member (get-text-property pos 'client-tag-type line) '(start end)))
         (setq tag (get-text-property pos 'client-tag-name line))
         (setq n (gethash tag h 0))
-        (when (not (eq (get-text-property pos 'client-tag-type line) 'void))
-          (if (eq (get-text-property pos 'client-tag-type line) 'end)
-              (when (> n 0) (puthash tag (1- n) h))
-            (puthash tag (1+ n) h)))
-        ;;          (message "(%S) tag=%S" pos tag)
+;;        (when (not (eq (get-text-property pos 'client-tag-type line) 'void))
+        (if (eq (get-text-property pos 'client-tag-type line) 'end)
+            (when (> n 0) (puthash tag (1- n) h))
+          (puthash tag (1+ n) h))
+        ;;)
+;;        (message "(%S) tag=%S" pos tag)
         );when
       (setq pos (next-single-property-change pos 'tag-boundary line))
       (when (null pos) (setq continue nil))
