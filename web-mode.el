@@ -2195,6 +2195,11 @@ point is at the beginning of the line."
 
 ;;        (goto-char web-mode-block-beg)
         (setq offset (current-column))
+
+        (when (and (string= (buffer-substring-no-properties (point) (+ (point) 2)) "/*")
+                   (string= cur-first-char "*"))
+          (setq offset (1+ offset)))
+
 ;;        (setq offset prev-indentation)
         ); end comment block
 
@@ -2739,7 +2744,9 @@ point is at the beginning of the line."
              "endfor" "endforeach" "endif" "endswitch" "endwhile" "exit" "extends"
              "for" "foreach" "function" "global"
              "if" "include" "instanceof" "interface" "isset" "list"
-             "next" "or" "require" "return" "switch" "try" "unset"
+             "next" "or"
+             "private" "protected" "public"
+             "require" "return" "static" "switch" "try" "unset"
              "var" "when" "while")))
   "PHP keywords.")
 
