@@ -1894,7 +1894,7 @@ point is at the beginning of the line."
 
        );cond
 
-      ;;(message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-javascript-block in-css-block in-directive-block in-asp-block in-html-block in-comment-block)
+   ;;   (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-javascript-block in-css-block in-directive-block in-asp-block in-html-block in-comment-block)
 
       ;;(message "block limit = %S" web-mode-block-beg)
 
@@ -1950,7 +1950,7 @@ point is at the beginning of the line."
 
       (cond ;; switch language
 
-       ((null prev-line)
+       ((and (null prev-line) (not in-comment-block))
         (setq offset 0)
         )
 
@@ -1962,7 +1962,7 @@ point is at the beginning of the line."
         )
 
        ((or in-php-block in-jsp-block in-asp-block in-javascript-block)
-        ;;        (message "prev=%S" prev-last-char)
+       ;;       (message "prev=%S" prev-last-char)
         (cond
 
          ((and in-php-block (string-match-p "^->" cur-line))
@@ -2187,7 +2187,15 @@ point is at the beginning of the line."
         ); end case style block
 
        (in-comment-block
-        (goto-char web-mode-block-beg)
+        (goto-char pos)
+        (goto-char (car
+                    (web-mode-property-boundaries
+                     (if (eq (get-text-property (point) 'client-token-type) 'comment)
+                         'client-token-type
+                       'server-token-type)
+                     (point))))
+
+;;        (goto-char web-mode-block-beg)
         (setq offset (current-column))
 ;;        (setq offset prev-indentation)
         ); end comment block
@@ -2251,15 +2259,12 @@ point is at the beginning of the line."
               (and (string= web-mode-engine "velocity")
                    (char-equal cur-char ?#))
               )
-          ;;          (message "ici")
+          ;;         (message "ici")
           (setq continue t
                 counter 0)
           (while (and continue (re-search-backward "^[[:blank:]]*</?[[:alpha:]]" nil t))
             (back-to-indentation)
-            (when (and (web-mode-is-html-tag)
-                       t
-                       ;;(not (member (get-text-property (point) 'client-tag-name) '("style" "script")))
-                       )
+            (when (web-mode-is-html-tag)
               (setq counter (1+ counter)
                     continue nil
                     offset (+ (current-indentation)
@@ -2277,11 +2282,11 @@ point is at the beginning of the line."
           ()
           )
 
-         )) ;; end case html block
+         ));end case html block
 
-       ) ;; end switch language block
+       );end switch language block
 
-      ) ;; save-excursion
+      );save-excursion
 
     (when (and offset (not (eq cur-indentation offset)))
       (setq offset (max 0 offset))
@@ -2289,13 +2294,11 @@ point is at the beginning of the line."
 
     (if (< (current-column) (current-indentation)) (back-to-indentation))
 
-    ) ;; let
-  )
+    ))
 
 (defun web-mode-is-html-tag ()
   "Is point a the beginning of an html tag."
-  (member (get-text-property (point) 'client-tag-type) '(start end void))
-  )
+  (member (get-text-property (point) 'client-tag-type) '(start end void)))
 
 (defun web-mode-count-opened-blocks-at-point (&optional limit)
   "Is it an open block."
@@ -2319,41 +2322,7 @@ point is at the beginning of the line."
           (setq n (1+ n))))
     n))
 
-(defun web-mode-element-at-point ()
-  "Return element at point."
-  (interactive)
-  (save-excursion
-    (beginning-of-line)
-    (let ((continue t)
-          cont
-          line l1 l2
-          (pos (point)))
-      (while continue
-        (setq l1 (web-mode-current-line-number))
-        (end-of-line)
-        (setq cont t)
-        (while cont
-          (re-search-backward "<[[:alpha:]/]" nil t)
-          (setq cont (web-mode-is-comment-or-string)))
-        ;;          (setq cont (web-mode-is-client-token-or-server)))
-        (setq cont t)
-        (while cont
-          (re-search-forward "[[:alnum:] /\"']>" nil t)
-          (setq cont (web-mode-is-comment-or-string)))
-        ;;          (setq cont (web-mode-is-client-token-or-server)))
-        ;;        (message "point=%d" (point))
-        (setq l2 (web-mode-current-line-number))
-        (if (eq l1 l2) (setq continue nil))
-        )
-      (end-of-line)
-      ;;      (setq line (buffer-substring-no-properties pos (point)))
-      (setq line (buffer-substring pos (point)))
-      (setq line (replace-regexp-in-string "[\r\n]" "" line))
-      (setq line (replace-regexp-in-string "[ ]+" " " line))
-      ;;      (message "elt at point: %s" line)
-      line
-      )))
-
+;;todo: remplacer les looking-at
 (defun web-mode-element-rename ()
   "Rename the current HTML element."
   (interactive)
@@ -2642,50 +2611,73 @@ point is at the beginning of the line."
       (indent-line-to offset)
       (yank))))
 
-(defun web-mode-is-opened-element (&optional line)
+;; todo : utiliser les properties de line
+(defun web-mode-is-opened-element (line)
   "Is there any HTML element without a closing tag ?"
   (interactive)
-  (let ((deb 0)
-        is-closing-tag
-        is-void-element
+  (let (
+        ;;(deb 0)
+        ;;is-closing-tag
+        ;;is-void-element
         tag
         n
         ret
+        (continue t)
+        (pos 0)
         (h (make-hash-table :test 'equal)))
-    (unless line (setq line (web-mode-element-at-point)))
-    ;;    (message "line=%s" line)
+;;    (unless line (setq line (web-mode-element-at-point)))
+;;    (message "line=%s l=%S" line (length line))
     ;;    (message "-- web-mode-is-opened-element")
-    (setq line (web-mode-clean-client-line line))
-    (setq line (substring-no-properties line))
-    ;;    (message "*** clean-line=%s" line)
-    (while (string-match web-mode-tag-regexp line deb)
-      (setq deb (match-end 0)
-            tag (match-string 1 line)
-            is-closing-tag (string= (substring tag 0 1) "/"))
-      ;;      (message "tag=%s" tag)
-      (if is-closing-tag (setq tag (substring tag 1)))
-      (setq n (gethash tag h 0))
-      (setq deb (string-match "/?>" line deb))
-      ;;      (setq deb (string-match "[^%?]?>" line deb))
-      (setq is-void-element (string= (substring (match-string 0 line) 0 1) "/"))
-      ;;      (message "ms=%s" (match-string 0 line))
-      (if (or is-void-element (web-mode-is-void-element tag))
-          (progn
-            ;;            (message "void tag: %s" tag)
-            )
-        (if is-closing-tag
-            (if (> n 0) (puthash tag (1- n) h))
-          (puthash tag (1+ n) h))
-        )
 
+;;    (setq line (web-mode-clean-client-line line))
+
+;;    (when t
+
+    (while continue
+      (when (get-text-property pos 'tag-boundary line)
+        (setq tag (get-text-property pos 'client-tag-name line))
+        (setq n (gethash tag h 0))
+        (when (not (eq (get-text-property pos 'client-tag-type line) 'void))
+          (if (eq (get-text-property pos 'client-tag-type line) 'end)
+              (when (> n 0) (puthash tag (1- n) h))
+            (puthash tag (1+ n) h)))
+        ;;          (message "(%S) tag=%S" pos tag)
+        );when
+      (setq pos (next-single-property-change pos 'tag-boundary line))
+      (when (null pos) (setq continue nil))
       );while
 
+;;      );when t
+
+    ;; (setq line (substring-no-properties line))
+    ;; ;;    (message "*** clean-line=%s" line)
+    ;; (while (string-match web-mode-tag-regexp line deb)
+    ;;   (setq deb (match-end 0)
+    ;;         tag (match-string 1 line)
+    ;;         is-closing-tag (string= (substring tag 0 1) "/"))
+    ;;   ;;      (message "tag=%s" tag)
+    ;;   (if is-closing-tag (setq tag (substring tag 1)))
+    ;;   (setq n (gethash tag h 0))
+    ;;   (setq deb (string-match "/?>" line deb))
+    ;;   ;;      (setq deb (string-match "[^%?]?>" line deb))
+    ;;   (setq is-void-element (string= (substring (match-string 0 line) 0 1) "/"))
+    ;;   ;;      (message "ms=%s" (match-string 0 line))
+    ;;   (if (or is-void-element (web-mode-is-void-element tag))
+    ;;       (progn
+    ;;         ;;            (message "void tag: %s" tag)
+    ;;         )
+    ;;     (if is-closing-tag
+    ;;         (if (> n 0) (puthash tag (1- n) h))
+    ;;       (puthash tag (1+ n) h))
+    ;;     )
+
+    ;;   );while
+
     ;;(message (number-to-string (hash-table-count h)))
-    (maphash (lambda (k v) (if (> v 0) (setq ret 't))) h)
+    (maphash (lambda (k v) (if (> v 0) (setq ret t))) h)
     ;;    (if ret (message "line=%s: opened" line) (message "line=%s: closed" line))
     ret
-    )
-  )
+    ))
 
 (defun web-mode-current-trimmed-line ()
   "Line at point, trimmed."
@@ -4614,3 +4606,38 @@ point is at the beginning of the line."
 (provide 'web-mode)
 
 ;;; web-mode.el ends here
+
+;; (defun web-mode-element-at-point ()
+;;   "Return element at point."
+;;   (interactive)
+;;   (save-excursion
+;;     (beginning-of-line)
+;;     (let ((continue t)
+;;           cont
+;;           line l1 l2
+;;           (pos (point)))
+;;       (while continue
+;;         (setq l1 (web-mode-current-line-number))
+;;         (end-of-line)
+;;         (setq cont t)
+;;         (while cont
+;;           (re-search-backward "<[[:alpha:]/]" nil t)
+;;           (setq cont (web-mode-is-comment-or-string)))
+;;         ;;          (setq cont (web-mode-is-client-token-or-server)))
+;;         (setq cont t)
+;;         (while cont
+;;           (re-search-forward "[[:alnum:] /\"']>" nil t)
+;;           (setq cont (web-mode-is-comment-or-string)))
+;;         ;;          (setq cont (web-mode-is-client-token-or-server)))
+;;         ;;        (message "point=%d" (point))
+;;         (setq l2 (web-mode-current-line-number))
+;;         (if (eq l1 l2) (setq continue nil))
+;;         )
+;;       (end-of-line)
+;;       ;;      (setq line (buffer-substring-no-properties pos (point)))
+;;       (setq line (buffer-substring pos (point)))
+;;       (setq line (replace-regexp-in-string "[\r\n]" "" line))
+;;       (setq line (replace-regexp-in-string "[ ]+" " " line))
+;;       ;;      (message "elt at point: %s" line)
+;;       line
+;;       )))
