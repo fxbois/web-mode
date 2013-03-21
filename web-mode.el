@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.3
+;; Version: 5.0.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
   "Major mode for editing web templates.
 `web-mode' is compatible with many template engines: php, jsp, aspx, erb, django/twig/jinja2, CTemplate/Mustache/Hapax, blade.
 HTML files can embed various kinds of blocks: javascript / css / code."
-  :version "5.0.3"
+  :version "5.0.4"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -1418,18 +1418,18 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (setq len (length str))
     (cond
      ((string= (substring str 0 1) "#")
-      (setq plist (list :background str :foreground (web-mode-colorize-foreground str)))
-      (put-text-property beg end 'face plist)
-      )
+      (setq plist (list :background str
+                        :foreground (web-mode-colorize-foreground str)))
+      (put-text-property beg end 'face plist))
      ((string= (substring str 0 4) "rgb(")
       (setq str (format "#%02X%02X%02X"
                         (string-to-number (match-string-no-properties 1))
                         (string-to-number (match-string-no-properties 2))
                         (string-to-number (match-string-no-properties 3))))
-      (setq plist (list :background str :foreground (web-mode-colorize-foreground str)))
-      (put-text-property beg end 'face plist)
-      )
-     )
+      (setq plist (list :background str
+                        :foreground (web-mode-colorize-foreground str)))
+      (put-text-property beg end 'face plist))
+     );cond
     ))
 
 (defun web-mode-fontify-region (beg end keywords)
