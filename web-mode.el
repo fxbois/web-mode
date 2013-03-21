@@ -1402,6 +1402,15 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
 
   )
 
+(defun web-mode-colorize-foreground (color)
+  "Colorize foreground based on background luminance."
+  (let* ((values (x-color-values color))
+	 (r (car values))
+	 (g (cadr values))
+	 (b (car (cdr (cdr values)))))
+    (if (> 128.0 (floor (+ (* .3 r) (* .59 g) (* .11 b)) 256))
+	"white" "black")))
+
 (defun web-mode-colorize (beg end)
   "Colorize CSS colors."
   (let (str plist len)
@@ -1409,7 +1418,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
     (setq len (length str))
     (cond
      ((string= (substring str 0 1) "#")
-      (setq plist (list :background str))
+      (setq plist (list :background str :foreground (web-mode-colorize-foreground str)))
       (put-text-property beg end 'face plist)
       )
      ((string= (substring str 0 4) "rgb(")
@@ -1417,7 +1426,7 @@ With the value 2 blocks like <?php for (): ?> stay on the left (no indentation).
                         (string-to-number (match-string-no-properties 1))
                         (string-to-number (match-string-no-properties 2))
                         (string-to-number (match-string-no-properties 3))))
-      (setq plist (list :background str))
+      (setq plist (list :background str :foreground (web-mode-colorize-foreground str)))
       (put-text-property beg end 'face plist)
       )
      )
