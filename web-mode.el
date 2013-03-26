@@ -2950,11 +2950,13 @@ point is at the beginning of the line."
    (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
    '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
+
    ))
 
 (defconst web-mode-django-expr-font-lock-keywords
   (list
    '("{{\\|}}" 0 'web-mode-preprocessor-face)
+   '("\\<\\(set\\)\\>" 1 'web-mode-keyword-face)
    (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    ))
