@@ -509,7 +509,7 @@
           font-lock-unfontify-buffer-function 'web-mode-scan-buffer
           imenu-case-fold-search t
           imenu-create-index-function 'web-mode-imenu-index
-          imenu-generic-expression web-mode-imenu-generic-expression
+;;          imenu-generic-expression web-mode-imenu-generic-expression
           indent-line-function 'web-mode-indent-line
           indent-tabs-mode nil
           require-final-newline nil)
@@ -525,24 +525,17 @@
 
     ))
 
-(defvar web-mode-imenu-generic-expression
-  `(("Id"   " id=\"\\([[:alnum:]_-]+\\)\\1\"" 1)
-    ("Name" " name=\"\\([[:alnum:]_-]+\\)\\1\"" 1))
-  "Imenu generic expression for Web Mode.")
-
-;;(defvar html-imenu-regexp
-;;  "\\s-*<h\\([1-9]\\)[^\n<>]*>\\(<[^\n<>]*>\\)*\\s-*\\([^\n<>]*\\)"
-;;  "*A regular expression matching a head line to be added to the menu.
-;;The first `match-string' should be a number from 1-9.
-;;The second `match-string' matches extra tags and is ignored.
-;;The third `match-string' will be the used in the menu.")
+;; (defvar web-mode-imenu-generic-expression
+;;   `(("Id"   " id=\"\\([[:alnum:]_-]+\\)\\1\"" 1)
+;;     ("Name" " name=\"\\([[:alnum:]_-]+\\)\\1\"" 1))
+;;   "Imenu generic expression for Web Mode.")
 
 (defun web-mode-imenu-index ()
   "Return a table of contents."
   (let (toc-index)
     (save-excursion
       (goto-char (point-min))
-      (while (re-search-forward "<\\(h[1-9]\\)" nil t)
+      (while (re-search-forward "<h\\([1-9]\\)\\([^>]*\\)>\\([^<]*\\)" nil t)
 	(setq toc-index
 	      (cons (cons (concat (make-string
 				   (* 2 (1- (string-to-number (match-string 1))))
@@ -551,7 +544,6 @@
 			  (line-beginning-position))
 		    toc-index))))
     (nreverse toc-index)))
-
 
 (defun web-mode-scan-buffer ()
   "Scan entine buffer."
@@ -2875,7 +2867,7 @@ point is at the beginning of the line."
        "endautoescape" "endblock" "endcache" "endcall" "endembed" "endfilter"
        "endfor" "endif" "endifchanged" "endifequal" "endifnotequal"
        "endmacro" "endrandom" "endraw"
-       "endsandbox" "endspaceless" "endtrans" "endwith"
+       "endsandbox" "endset" "endspaceless" "endtrans" "endwith"
        "extends" "false" "filter" "firstof" "flush" "for" "from"
        "if" "ifchanged" "ifequal" "ifnotequal" "ignore" "import" "in" "include" "is"
        "load" "macro" "missing" "none" "not" "now" "or" "pluralize"
@@ -2956,7 +2948,6 @@ point is at the beginning of the line."
 (defconst web-mode-django-expr-font-lock-keywords
   (list
    '("{{\\|}}" 0 'web-mode-preprocessor-face)
-   '("\\<\\(set\\)\\>" 1 'web-mode-keyword-face)
    (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    ))
