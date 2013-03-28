@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.6
+;; Version: 5.0.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates: HTML files embedding client parts (CSS/JavaScript) and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "5.0.6"
+  :version "5.0.7"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -3159,8 +3159,11 @@ point is at the beginning of the line."
   "Comment or uncomment line(s) at point."
   (interactive)
   (unless pos
-    (back-to-indentation)
-    (setq pos (point)))
+    (if mark-active
+        (setq pos (region-beginning))
+      (back-to-indentation)
+      (setq pos (point)))
+    )
   (if (web-mode-is-comment)
       (web-mode-uncomment pos)
     (web-mode-comment pos))
@@ -3171,17 +3174,16 @@ point is at the beginning of the line."
   (interactive)
   (unless pos (setq pos (point)))
   (save-excursion
-    (let (type sel beg end)
+    (let (type sel beg end tmp)
 
       (if mark-active
           (progn
             (setq beg (region-beginning)
                   end (region-end))
+;;            (message "beg=%S end=%S" beg end)
             (setq type (web-mode-line-type beg))
-            ;;            (message "(%d)->(%d)" (region-beginning) (region-end))
             )
         (setq type (web-mode-line-type (line-beginning-position)))
-        ;;        (message "type=%S" type)
         (if (string= type "html")
             (progn
               (back-to-indentation)
@@ -3193,8 +3195,17 @@ point is at the beginning of the line."
               end (region-end))
         ); if
 
-      ;;      (message "type=%s" type)
+      (when (> (point) (mark))
+;;        (message "exchange")
+        (exchange-point-and-mark))
 
+
+      (if (eq (char-before end) ?\n)
+          (setq end (1- end)))
+
+;;     (message "type=%S beg=%S end=%S" type beg end)
+
+;;      (setq sel (buffer-substring-no-properties beg end))
       (setq sel (web-mode-trim (buffer-substring-no-properties beg end)))
       ;;      (message "[type=%s] sel=%s" type sel)
       (delete-region beg end)
@@ -3203,13 +3214,10 @@ point is at the beginning of the line."
       (cond
 
        ((string= type "html")
-        (web-mode-insert-and-indent (concat "<!-- " sel " -->"))
-        )
+        (web-mode-insert-and-indent (concat "<!-- " sel " -->")))
 
-;;       ((or (string= type "php") (string= type "script") (string= type "style"))
        ((member type '("php" "script" "style"))
-        (web-mode-insert-and-indent (concat "/* " sel " */"))
-        )
+        (web-mode-insert-and-indent (concat "/* " sel " */")))
 
        (t
         (web-mode-insert-and-indent (concat "/* " sel " */")))
