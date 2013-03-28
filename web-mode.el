@@ -62,6 +62,11 @@
   :type 'boolean
   :group 'web-mode)
 
+(defcustom web-mode-prefer-server-commenting nil
+  "Prefer server commenting."
+  :type 'bool
+  :group 'web-mode)
+
 (defcustom web-mode-disable-auto-pairing (not (display-graphic-p))
   "Disable auto-pairing."
   :type 'bool
@@ -232,6 +237,8 @@
     ("erb"       . ("eruby" "ember" "erubis"))
     ("velocity"  . ("cheetah"))
     ("blade"     . ())
+    ("jsp"       . ())
+    ("asp"       . ("aspx"))
     ("ctemplate" . ("mustache" "handlebars" "hapax" "ngtemplate")))
   "Engine name aliases")
 
@@ -459,7 +466,9 @@
         (setq web-mode-engine "php"))
        ((string-match-p "\\.as[cp]x?\\'" buff-name)
         (setq web-mode-engine "asp"))
-       ((string-match-p "\\.\\(djhtml\\|tmpl\\|twig\\|dtl\\)\\'" buff-name)
+       ((string-match-p "twig" buff-name)
+        (setq web-mode-engine "django"))
+       ((string-match-p "\\.\\(djhtml\\|tmpl\\|dtl\\)\\'" buff-name)
         (setq web-mode-engine "django"))
        ((string-match-p "\\.ftl\\'" buff-name)
         (setq web-mode-engine "freemarker"))
@@ -501,7 +510,7 @@
       (setq web-mode-server-blocks-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%."))
      )
 
-;;    (message "engine=%S regexp=%S" web-mode-engine web-mode-server-blocks-regexp)
+   (message "engine=%S regexp=%S" web-mode-engine web-mode-server-blocks-regexp)
 
     (setq fill-paragraph-function 'web-mode-fill-paragraph
           font-lock-fontify-buffer-function 'web-mode-scan-buffer
@@ -3214,7 +3223,29 @@ point is at the beginning of the line."
       (cond
 
        ((string= type "html")
-        (web-mode-insert-and-indent (concat "<!-- " sel " -->")))
+
+        (cond
+         ((and web-mode-prefer-server-commenting (string= web-mode-engine "django"))
+          (web-mode-insert-and-indent (concat "{# " sel " #}"))
+          )
+         ((and web-mode-prefer-server-commenting (string= web-mode-engine "erb"))
+          (web-mode-insert-and-indent (concat "<%# " sel " %>"))
+          )
+         ((and web-mode-prefer-server-commenting (string= web-mode-engine "asp"))
+          (web-mode-insert-and-indent (concat "<%-- " sel " --%>"))
+          )
+         ((and web-mode-prefer-server-commenting (string= web-mode-engine "smarty"))
+          (web-mode-insert-and-indent (concat "{* " sel " *}"))
+          )
+         ((and web-mode-prefer-server-commenting (string= web-mode-engine "blade"))
+          (web-mode-insert-and-indent (concat "{{-- " sel " --}}"))
+          )
+         (t
+          (web-mode-insert-and-indent (concat "<!-- " sel " -->"))
+          )
+         )
+
+        )
 
        ((member type '("php" "script" "style"))
         (web-mode-insert-and-indent (concat "/* " sel " */")))
