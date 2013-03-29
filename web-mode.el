@@ -62,11 +62,6 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-prefer-server-commenting nil
-  "Prefer server commenting."
-  :type 'bool
-  :group 'web-mode)
-
 (defcustom web-mode-disable-auto-pairing (not (display-graphic-p))
   "Disable auto-pairing."
   :type 'bool
@@ -74,6 +69,11 @@
 
 (defcustom web-mode-enable-whitespaces nil
   "Enable whitespaces."
+  :type 'bool
+  :group 'web-mode)
+
+(defcustom web-mode-comment-style 1
+  "Comment style : 2 = server comments."
   :type 'bool
   :group 'web-mode)
 
@@ -239,6 +239,7 @@
     ("blade"     . ())
     ("jsp"       . ())
     ("asp"       . ("aspx"))
+    ("razor"     . ("play" "play2"))
     ("ctemplate" . ("mustache" "handlebars" "hapax" "ngtemplate")))
   "Engine name aliases")
 
@@ -415,6 +416,7 @@
 
     (make-local-variable 'web-mode-block-beg)
     (make-local-variable 'web-mode-buffer-highlighted)
+    (make-local-variable 'web-mode-comment-style)
     (make-local-variable 'web-mode-disable-auto-pairing)
     (make-local-variable 'web-mode-disable-css-colorization)
     (make-local-variable 'web-mode-display-table)
@@ -478,6 +480,8 @@
         (setq web-mode-engine "handlebars"))
        ((string-match-p "\\.\\(vsl\\|vm\\)\\'" buff-name)
         (setq web-mode-engine "velocity"))
+       ((string-match-p "play\\|\\.scala\\.\\|\\.cshtml\\'\\|\\.vbhtml\\'" buff-name)
+        (setq web-mode-engine "razor"))
        )
       )
 
@@ -506,6 +510,10 @@
       (setq web-mode-server-blocks-regexp "{[[:alpha:]#$/*\"]"))
      ((string= web-mode-engine "asp")
       (setq web-mode-server-blocks-regexp "<%."))
+     ((string= web-mode-engine "razor")
+;;      (setq web-mode-server-blocks-regexp "${\\|#{\\|@@?{\\|&{\\|*{\\|%{")
+      (setq web-mode-server-blocks-regexp "@.")
+      )
      (t
       (setq web-mode-server-blocks-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%."))
      )
@@ -597,7 +605,8 @@
       (while (and (> end (point))
                   (re-search-forward web-mode-server-blocks-regexp end t))
 
-        (setq close nil
+        (setq closing-string nil
+              close nil
               tagopen (match-string 0)
               open (match-beginning 0)
               pos nil)
@@ -648,6 +657,28 @@
            )
 
           );ctemplate
+
+         ((string= web-mode-engine "razor")
+
+          (cond
+           ((string= sub2 "@*")
+            (setq closing-string "*@"))
+
+           ((string= sub2 "@{")
+            (setq closing-string "}"))
+
+           ((string= sub2 "@(")
+            (setq closing-string ")"))
+
+           ((string= sub2 "@@")
+            (setq closing-string nil))
+
+           ((string-match-p "@[[:alpha:]]" sub2)
+            (setq closing-string "EOV"))
+
+           )
+;;          (message "pos=%S to=%s cs=%s" (point) tagopen closing-string)
+          );razor
 
          (t
 
@@ -736,7 +767,8 @@
            ((string= closing-string "EOV")
             (goto-char open)
             ;;            (message "pt=%S %c" (point) (char-after))
-            (when (char-equal ?$ (char-after))
+            (when (or (char-equal ?$ (char-after))
+                      (char-equal ?@ (char-after)))
               ;;              (message "pt=%S" (point))
               (forward-char))
             (when (char-equal ?! (char-after))
@@ -778,7 +810,7 @@
 
           (if pos (goto-char pos))
 
-          );when closing-strin
+          );when closing-string
 
         );while
 
@@ -862,6 +894,18 @@
               keywords web-mode-ctemplate-font-lock-keywords))
        )
       );ctemplate
+
+     ((string= web-mode-engine "razor")
+      (cond
+       ((string= sub2 "@*")
+        (setq props '(server-token-type comment face web-mode-comment-face)))
+       (t
+        (setq regexp "\"\\|'"
+              props '(server-engine razor face nil)
+              keywords web-mode-razor-font-lock-keywords))
+       )
+      );razor
+
 
      ((string= web-mode-engine "blade")
       (cond
@@ -1668,6 +1712,12 @@
   (interactive)
   (indent-region (point-min) (point-max))
   (delete-trailing-whitespace))
+
+(defun web-mode-buffer-refresh ()
+  "Indent and fontify buffer."
+  (interactive)
+  (web-mode-scan-buffer)
+  (web-mode-buffer-indent))
 
 (defun web-mode-previous-usable-server-line ()
   "Move cursor to previous non blank/comment/string line and return this line (trimmed).
@@ -2901,6 +2951,12 @@ point is at the beginning of the line."
              "undefined" "var" "while")))
   "JavaScript keywords.")
 
+(defconst web-mode-razor-keywords
+  (regexp-opt
+   (append (if (boundp 'web-mode-extra-razor-keywords) web-mode-extra-razor-keywords '())
+           '("false" "true" "foreach" "if" "in" "var")))
+  "Razor keywords.")
+
 (defconst web-mode-directive-font-lock-keywords
   (list
    '("<%@\\|%>" 0 'web-mode-preprocessor-face)
@@ -2968,6 +3024,13 @@ point is at the beginning of the line."
    '("[[:alnum:]_]" 0 'web-mode-variable-name-face)
    '("[ ]+\\([[:alnum:]_]+=\\)" 1 'web-mode-param-name-face t t)
    '("[:=]\\([[:alpha:]_]+\\)" 1 'web-mode-function-name-face t t)
+   ))
+
+(defconst web-mode-razor-font-lock-keywords
+  (list
+   '("@" 0 'web-mode-preprocessor-face t t)
+   (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
+   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face t t)
    ))
 
 ;;comment:Unified Expression Language
@@ -3225,20 +3288,23 @@ point is at the beginning of the line."
        ((string= type "html")
 
         (cond
-         ((and web-mode-prefer-server-commenting (string= web-mode-engine "django"))
+         ((and (= web-mode-comment-style 2) (string= web-mode-engine "django"))
           (web-mode-insert-and-indent (concat "{# " sel " #}"))
           )
-         ((and web-mode-prefer-server-commenting (string= web-mode-engine "erb"))
+         ((and (= web-mode-comment-style 2) (string= web-mode-engine "erb"))
           (web-mode-insert-and-indent (concat "<%# " sel " %>"))
           )
-         ((and web-mode-prefer-server-commenting (string= web-mode-engine "asp"))
+         ((and (= web-mode-comment-style 2) (string= web-mode-engine "asp"))
           (web-mode-insert-and-indent (concat "<%-- " sel " --%>"))
           )
-         ((and web-mode-prefer-server-commenting (string= web-mode-engine "smarty"))
+         ((and (= web-mode-comment-style 2) (string= web-mode-engine "smarty"))
           (web-mode-insert-and-indent (concat "{* " sel " *}"))
           )
-         ((and web-mode-prefer-server-commenting (string= web-mode-engine "blade"))
+         ((and (= web-mode-comment-style 2) (string= web-mode-engine "blade"))
           (web-mode-insert-and-indent (concat "{{-- " sel " --}}"))
+          )
+         ((and (= web-mode-comment-style 2) (string= web-mode-engine "razor"))
+          (web-mode-insert-and-indent (concat "@* " sel " *@"))
           )
          (t
           (web-mode-insert-and-indent (concat "<!-- " sel " -->"))
