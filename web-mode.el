@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.7
+;; Version: 5.0.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates: HTML files embedding client parts (CSS/JavaScript) and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "5.0.7"
+  :version "5.0.8"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -246,11 +246,11 @@
   "Template engine")
 
 (defvar web-mode-engine-families
-  '(("django"     . ("twig" "jinja" "jinja2" "erlydtl"))
+  '(("django"     . ("dtl" "twig" "jinja" "jinja2" "erlydtl"))
     ("erb"        . ("eruby" "ember" "erubis"))
     ("velocity"   . ("cheetah"))
     ("blade"      . ())
-    ("go"         . ())
+    ("go"         . ("gtl"))
     ("jsp"        . ())
     ("asp"        . ("aspx"))
     ("razor"      . ("play" "play2"))
@@ -539,7 +539,6 @@
       (setq web-mode-content-type "html"))
      )
 
-    ;; CHANGER LA DOC (inversion de l'ordre) !!!!!
     (when (boundp 'web-mode-engines-alist)
       (dolist (elt web-mode-engines-alist)
         (when (string-match-p (cdr elt) buff-name)
@@ -565,23 +564,13 @@
         )
       )
 
-    ;; todo : rules for erb : "<%\\|^%."
-
-    ;; (setq web-mode-server-block-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%.")
-    ;; (setq found nil)
-    ;; (dolist (elt web-mode-engine-block-regexps)
-    ;;   (when (and (not found) (string= (car elt) web-mode-engine))
-    ;;     (setq web-mode-server-block-regexp (cdr elt)
-    ;;           found t))
-    ;;   )
-
     (setq elt (assoc web-mode-engine web-mode-engine-block-regexps))
     (if elt
         (setq web-mode-server-block-regexp (cdr elt))
       (setq web-mode-server-block-regexp "<\\?\\|<%[#-!@]?\\|[<[]/?[#@][-]?\\|[$#]{\\|{[#{%]\\|^%."))
 
-    (message "buffer=%S engine=%S type=%S regexp=%S"
-             buff-name web-mode-engine web-mode-content-type web-mode-server-block-regexp)
+;;    (message "buffer=%S engine=%S type=%S regexp=%S"
+;;             buff-name web-mode-engine web-mode-content-type web-mode-server-block-regexp)
 
     ))
 
@@ -898,53 +887,33 @@
     ))
 
 (defun web-mode-scan-server (beg end)
-  "Identifies server blocks."
-  (save-excursion
-;;    (message "beg(%S) end(%S)" beg end)
-    (let ((i 0)
-          (block-beg beg)
-          (block-end nil)
-          (continue t))
-
-      (goto-char beg)
-
-      (unless (get-text-property beg 'server-side)
-        ;;        (setq block-beg (next-single-property-change beg 'server-side))
-        (setq block-beg (web-mode-server-block-next-position beg))
-        (when (or (null block-beg) (>= block-beg end))
-          (setq continue nil))
-;;        (message "continue(%S) block-beg(%S)" continue block-beg)
+  "Identifies server blocks. The scan relies on the 'server-boundary text property."
+  (let ((i 0)
+        (block-beg beg)
+        (block-end nil)
+        (continue t))
+    (while continue
+      (setq block-end nil
+            i (1+ i))
+      (unless (get-text-property block-beg 'server-boundary)
+        (setq block-beg (web-mode-server-block-next-position block-beg)))
+      (when (and block-beg (< block-beg end))
+        (setq block-end (web-mode-server-block-end-position block-beg)))
+      (cond
+       ((or (null block-end)
+            (> block-end end)
+            (> i 200))
+        (setq continue nil)
+        (if (> i 200) (message "*** invalid loop ***")))
+       (t
+        (setq block-end (1+ block-end))
+        ;;(message "block-beg=%S block-end=%S" block-beg block-end)
+        (web-mode-scan-server-block block-beg block-end)
+        (setq block-beg block-end)
         )
-
-      (while continue
-        (setq i (1+ i))
-        (setq block-end (web-mode-server-block-end-position block-beg))
-        (cond
-
-         ((or (null block-end)
-              (> block-end end)
-              (> i 200))
-          (setq continue nil)
-          (if (> i 200) (message "*** invalid loop ***")))
-
-         (t
-          (setq block-end (1+ block-end))
-;;          (message "block-beg=%S block-end=%S" block-beg block-end)
-          (web-mode-scan-server-block block-beg block-end)
-          (if (get-text-property block-end 'server-boundary)
-              (setq block-beg block-end)
-            (setq block-beg (web-mode-server-block-next-position block-end)))
-;;          (message "new block-beg=%S" block-beg)
-          (when (or (null block-beg)
-;;                    (= block-beg block-end)
-                    (> block-beg end))
-            (setq continue nil))
-          )
-
-         );cond
-        );while
-
-      )))
+       );cond
+      );while
+    ))
 
 (defun web-mode-scan-server-block (beg end)
   "Scan server block."
@@ -4994,4 +4963,43 @@ point is at the beginning of the line."
 ;;       (setq line (replace-regexp-in-string "[ ]+" " " line))
 ;;       ;;      (message "elt at point: %s" line)
 ;;       line
+;;       )))
+
+;; (defun web-mode-scan-server2 (beg end)
+;;   "Identifies server blocks."
+;;   (save-excursion
+;; ;;    (message "beg(%S) end(%S)" beg end)
+;;     (let ((i 0)
+;;           (block-beg beg)
+;;           (block-end nil)
+;;           (continue t))
+;;       (goto-char beg)
+;;       (unless (get-text-property beg 'server-side)
+;;         (setq block-beg (web-mode-server-block-next-position beg))
+;;         (when (or (null block-beg) (>= block-beg end))
+;;           (setq continue nil))
+;;         )
+;;       (while continue
+;;         (setq i (1+ i))
+;;         (setq block-end (web-mode-server-block-end-position block-beg))
+;;         (cond
+;;          ((or (null block-end)
+;;               (> block-end end)
+;;               (> i 200))
+;;           (setq continue nil)
+;;           (if (> i 200) (message "*** invalid loop ***")))
+;;          (t
+;;           (setq block-end (1+ block-end))
+;; ;;          (message "block-beg=%S block-end=%S" block-beg block-end)
+;;           (web-mode-scan-server-block block-beg block-end)
+;;           (if (get-text-property block-end 'server-boundary)
+;;               (setq block-beg block-end)
+;;             (setq block-beg (web-mode-server-block-next-position block-end)))
+;; ;;          (message "new block-beg=%S" block-beg)
+;;           (when (or (null block-beg)
+;;                     (> block-beg end))
+;;             (setq continue nil))
+;;           )
+;;          );cond
+;;         );while
 ;;       )))
