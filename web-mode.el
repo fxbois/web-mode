@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.8
+;; Version: 5.0.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates: HTML files embedding client parts (CSS/JavaScript) and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "5.0.8"
+  :version "5.0.9"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -78,7 +78,8 @@
   :group 'web-mode)
 
 (defcustom web-mode-indent-style 1
-  "Indentation style. Value 2 : lines beginning with HTML text are indented also."
+  "Indentation style.
+with value 2, HTML lines beginning text are also indented (do not forget side effects, ie. content of a textarea)."
   :type 'integer
   :group 'web-mode)
 
@@ -835,9 +836,13 @@
             (setq close (point-max)
                   pos (point-max)))
 
+           (t
+            (message "** missing %S (%s) **" closing-string sub2)
+            )
+
            )
 
-          (when (and close (> end pos))
+          (when (and close (>= end pos))
 ;;            (message "pos(%S) : open(%S) close(%S)" pos open close)
             (add-text-properties open close '(server-side t))
             (put-text-property open (1+ open) 'server-boundary (1- close))
