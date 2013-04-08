@@ -72,6 +72,11 @@
   :type 'bool
   :group 'web-mode)
 
+(defcustom web-mode-enable-server-block-background t
+  "Enable server block background."
+  :type 'bool
+  :group 'web-mode)
+
 (defcustom web-mode-comment-style 1
   "Comment style : 2 = server comments."
   :type 'bool
@@ -201,6 +206,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   "Face for whitespaces."
   :group 'web-mode-faces)
 
+(defface web-mode-server-background-face
+  '((t :background "black"))
+  "Face for whitespaces."
+  :group 'web-mode-faces)
+
 (defface web-mode-folded-face
   '((t :underline t))
   "Overlay face for folded."
@@ -223,6 +233,9 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 (defvar web-mode-is-scratch nil
   "Is scratch buffer ?")
+
+(defvar web-mode-time nil
+  "For benchmarking")
 
 (defvar web-mode-expand-initial-position nil
   "First mark pos.")
@@ -476,6 +489,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   (make-local-variable 'web-mode-indent-style)
   (make-local-variable 'web-mode-is-narrowed)
   (make-local-variable 'web-mode-server-block-regexp)
+  (make-local-variable 'web-mode-time)
 
   (if (and (fboundp 'global-hl-line-mode)
            global-hl-line-mode)
@@ -613,8 +627,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
              (web-mode-scan-client-block beg end "style"))
             (t
              (web-mode-mark-server-boundaries beg end)
+             (web-mode-trace "server-boundaries")
              (web-mode-scan-client beg end)
+             (web-mode-trace "scan-client")
              (web-mode-scan-server beg end)
+             (web-mode-trace "scan-server")
              )
             );cond
          (if web-mode-enable-whitespaces
@@ -837,7 +854,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
                   pos (point-max)))
 
            (t
-            (message "** missing %S (%s) **" closing-string sub2)
+;;            (message "** missing %S (%s) **" closing-string sub2)
             )
 
            )
@@ -1163,7 +1180,10 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
         );while
 
       );when
-
+    (when web-mode-enable-server-block-background
+      (font-lock-append-text-property beg end
+                                      'face
+                                      'web-mode-server-background-face))
     ))
 
 ;; start-tag, end-tag, tag-name, element (<a>xsx</a>, an element is delimited by tags), void-element
@@ -1595,11 +1615,14 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           (font-lock-extend-region-functions nil)
           )
       (font-lock-fontify-region beg end)
+
       ))
+
   ;; UGLY HACK / workaround (help needed)
   (unless web-mode-buffer-highlighted
     (setq web-mode-buffer-highlighted t)
-    (web-mode-fontify-region beg end keywords))
+    (web-mode-fontify-region beg end keywords)
+    )
   )
 
 (defun web-mode-fill-paragraph (&optional justify)
@@ -4910,6 +4933,15 @@ point is at the beginning of the line."
   (web-mode)
   (if (fboundp 'web-mode-hook)
       (web-mode-hook)))
+
+(defun web-mode-trace (msg)
+  "Benchmark."
+  (interactive)
+  (when nil
+    (when (null web-mode-time) (setq web-mode-time (current-time)))
+    (setq sub (time-subtract (current-time) web-mode-time))
+    (message "%18s: time elapsed = %Ss %9Sµs" msg (nth 1 sub) (nth 2 sub))
+    ))
 
 ;;--- compatibility
 
