@@ -72,7 +72,7 @@
   :type 'bool
   :group 'web-mode)
 
-(defcustom web-mode-enable-server-block-background t
+(defcustom web-mode-enable-server-block-background nil
   "Enable server block background."
   :type 'bool
   :group 'web-mode)
@@ -207,8 +207,20 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   :group 'web-mode-faces)
 
 (defface web-mode-server-background-face
-  '((t :background "black"))
-  "Face for whitespaces."
+  '((((class color) (min-colors 88) (background dark))
+     :background "grey18")
+    (((class color) (min-colors 88) (background light))
+     :background "LightYellow1")
+    (((class color) (min-colors 16) (background dark))
+     :background "grey18")
+    (((class color) (min-colors 16) (background light))
+     :background "LightYellow1")
+    (((class color) (min-colors 8))
+     :background "Black")
+    (((type tty) (class mono))
+     :inverse-video t)
+    (t :background "grey"))
+  "Face for blocwhitespaces."
   :group 'web-mode-faces)
 
 (defface web-mode-folded-face
