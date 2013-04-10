@@ -79,7 +79,7 @@
 
 (defcustom web-mode-comment-style 1
   "Comment style : 2 = server comments."
-  :type 'boolean
+  :type 'integer
   :group 'web-mode)
 
 (defcustom web-mode-indent-style 1
