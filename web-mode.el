@@ -278,7 +278,8 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     ("blade"      . ())
     ("go"         . ("gtl"))
     ("jsp"        . ())
-    ("asp"        . ("aspx"))
+    ("aspx"       . ("aspx"))
+    ("asp"        . ("asp"))
     ("razor"      . ("play" "play2"))
     ("ctemplate"  . ("mustache" "handlebars" "hapax" "ngtemplate")))
   "Engine name aliases")
@@ -289,7 +290,8 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     ("blade"      . "\\.blade\\.")
     ("jsp"        . "\\.jsp\\'")
     ("php"        . "\\.\\(php\\|ctp\\|psp\\)\\'")
-    ("asp"        . "\\.as[cp]x?\\'")
+    ("aspx"       . "\\.as[cp]x\\'")
+    ("asp"        . "\\.asp'")
     ("django"     . "twig")
     ("django"     . "\\.\\(djhtml\\|tmpl\\|dtl\\)\\'")
     ("freemarker" . "\\.ftl\\'")
@@ -310,6 +312,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     ("go"         . "{{.")
     ("freemarker" . "[<[]/?[#@][-]?\\|${")
     ("smarty"     . "{[[:alpha:]#$/*\"]")
+    ("aspx"       . "<%")
     ("asp"        . "<%")
     ("razor"      . "@.")
     )
@@ -536,11 +539,26 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defvar web-mode-asp-keywords
   (regexp-opt
    (append (if (boundp 'web-mode-extra-asp-keywords) web-mode-extra-asp-keywords '())
+           '("If" "Then" "End" "Set" "Dim" "On" "For" "Next" "Rem" "Empty"
+             "IsArray" "Erase" "LBound" "UBound" "Let" "Nothing" "Null"
+             "True" "False" "Do" "Loop" "Each" "Select" "Case"
+             "While" "Wend" "Err")))
+  "ASP keywords.")
+
+(defvar web-mode-asp-types
+  (regexp-opt
+   (append (if (boundp 'web-mode-extra-asp-types) web-mode-extra-asp-types '())
+           '("Application" "ASPError" "Request" "Response" "Server" "Session")))
+  "ASP types.")
+
+(defvar web-mode-aspx-keywords
+  (regexp-opt
+   (append (if (boundp 'web-mode-extra-aspx-keywords) web-mode-extra-aspx-keywords '())
            '("case" "catch" "do" "else" "end" "for" "function"
              "if" "in" "include"
              "new" "package" "page" "return"
              "tag" "throw" "throws" "try" "while")))
-  "ASP keywords.")
+  "ASP.Net keywords.")
 
 (defvar web-mode-smarty-directives
   (eval-when-compile
@@ -753,10 +771,18 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 (defvar web-mode-asp-font-lock-keywords
   (list
+   '("<%\\|%>" 0 'web-mode-preprocessor-face)
+   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   (cons (concat "\\<\\(" web-mode-asp-types "\\)\\>") '(0 'web-mode-type-face))
+   (cons (concat "\\<\\(" web-mode-asp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   ))
+
+(defvar web-mode-aspx-font-lock-keywords
+  (list
    '("<%[=#:]?\\|%>" 0 'web-mode-preprocessor-face)
    '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
    '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
-   (cons (concat "\\<\\(" web-mode-asp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-aspx-keywords "\\)\\>") '(0 'web-mode-keyword-face))
    ))
 
 ;; todo : specific keywords for erb
@@ -1406,7 +1432,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
             keywords web-mode-expression-font-lock-keywords))
 
      ((and (string= sub3 "<%#")
-           (not (string= web-mode-engine "asp")))
+           (not (string= web-mode-engine "aspx")))
       (setq props '(server-token-type comment face web-mode-comment-face))
       )
 
@@ -1416,6 +1442,9 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
        ((or (string= sub1 "%") (string= web-mode-engine "erb"))
         (setq props '(server-engine erb face nil)
               keywords web-mode-jsp-font-lock-keywords))
+       ((string= web-mode-engine "aspx")
+        (setq props '(server-engine aspx face nil)
+              keywords web-mode-aspx-font-lock-keywords))
        ((string= web-mode-engine "asp")
         (setq props '(server-engine asp face nil)
               keywords web-mode-asp-font-lock-keywords))
@@ -1489,8 +1518,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
         (cond
 
          ((and (string= web-mode-engine "asp")
-               (string= fc "'")
-               (looking-back "^[ \t]*'"))
+               (string= fc "'"))
           (setq props '(server-token-type comment face web-mode-server-comment-face))
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
@@ -1963,7 +1991,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 ;;    (message "beg=%S end=%S" beg end)
     (let ((font-lock-keywords keywords)
           (font-lock-multiline nil)
-          (font-lock-keywords-case-fold-search nil)
+          (font-lock-keywords-case-fold-search (string= web-mode-engine "asp"))
           (font-lock-keywords-only t)
           (font-lock-extend-region-functions nil)
           )
@@ -2367,6 +2395,7 @@ point is at the beginning of the line."
         in-directive-block
         in-code-block
         in-php-block
+        in-aspx-block
         in-asp-block
         in-jsp-block
         in-javascript-block
@@ -2427,6 +2456,9 @@ point is at the beginning of the line."
        ((web-mode-in-server-block 'directive)
         (setq in-directive-block t))
 
+       ((web-mode-in-server-block 'aspx)
+        (setq in-aspx-block t))
+
        ((web-mode-in-server-block 'asp)
         (setq in-asp-block t))
 
@@ -2446,7 +2478,7 @@ point is at the beginning of the line."
 
        );cond
 
-   ;;   (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-javascript-block in-css-block in-directive-block in-asp-block in-html-block in-comment-block)
+   ;;   (message "php(%S) jsp(%S) js(%S) css(%S) directive(%S) asp(%S) aspx(%S) html(%S) comment(%S)" in-php-block in-jsp-block in-javascript-block in-css-block in-directive-block in-asp-block in-aspx-block in-html-block in-comment-block)
 
       ;;(message "block limit = %S" web-mode-block-beg)
 
@@ -2456,7 +2488,7 @@ point is at the beginning of the line."
       (setq cur-first-char (if (string= cur-line "") cur-line (substring cur-line 0 1)))
       (setq cur-char (if (string= cur-line "") cur-line (string-to-char cur-line)))
 
-      (if (or in-php-block in-asp-block in-jsp-block in-directive-block)
+      (if (or in-php-block in-aspx-block in-asp-block in-jsp-block in-directive-block)
           (setq prev-line (web-mode-previous-usable-server-line))
         (setq prev-line (web-mode-previous-usable-client-line)))
 
@@ -2518,7 +2550,7 @@ point is at the beginning of the line."
         (setq offset nil)
         )
 
-       ((or in-php-block in-jsp-block in-asp-block in-javascript-block in-code-block)
+       ((or in-php-block in-jsp-block in-asp-block in-aspx-block in-javascript-block in-code-block)
 ;;              (message "prev=%s" prev-last-char)
         (cond
 
@@ -3378,6 +3410,8 @@ point is at the beginning of the line."
         (setq type "html"))
        ((web-mode-in-server-block 'asp)
         (setq type "asp"))
+       ((web-mode-in-server-block 'aspx)
+        (setq type "aspx"))
        ((web-mode-in-client-block 'javascript)
         (setq type "script"))
        ((web-mode-in-client-block 'css)
@@ -3455,7 +3489,7 @@ point is at the beginning of the line."
          ((and (= web-mode-comment-style 2) (string= web-mode-engine "erb"))
           (web-mode-insert-and-indent (concat "<%# " sel " %>"))
           )
-         ((and (= web-mode-comment-style 2) (string= web-mode-engine "asp"))
+         ((and (= web-mode-comment-style 2) (string= web-mode-engine "aspx"))
           (web-mode-insert-and-indent (concat "<%-- " sel " --%>"))
           )
          ((and (= web-mode-comment-style 2) (string= web-mode-engine "smarty"))
