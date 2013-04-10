@@ -310,7 +310,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     ("go"         . "{{.")
     ("freemarker" . "[<[]/?[#@][-]?\\|${")
     ("smarty"     . "{[[:alpha:]#$/*\"]")
-    ("asp"        . "<%.")
+    ("asp"        . "<%")
     ("razor"      . "@.")
     )
   "engine blocks")
