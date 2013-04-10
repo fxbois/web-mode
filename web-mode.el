@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.9
+;; Version: 5.0.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates: HTML files embedding client parts (CSS/JavaScript) and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "5.0.9"
+  :version "5.0.10"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -64,22 +64,22 @@
 
 (defcustom web-mode-disable-auto-pairing (not (display-graphic-p))
   "Disable auto-pairing."
-  :type 'bool
+  :type 'boolean
   :group 'web-mode)
 
 (defcustom web-mode-enable-whitespaces nil
   "Enable whitespaces."
-  :type 'bool
+  :type 'boolean
   :group 'web-mode)
 
 (defcustom web-mode-enable-server-block-background nil
   "Enable server block background."
-  :type 'bool
+  :type 'boolean
   :group 'web-mode)
 
 (defcustom web-mode-comment-style 1
   "Comment style : 2 = server comments."
-  :type 'bool
+  :type 'boolean
   :group 'web-mode)
 
 (defcustom web-mode-indent-style 1
@@ -220,7 +220,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     (((type tty) (class mono))
      :inverse-video t)
     (t :background "grey"))
-  "Face for blocwhitespaces."
+  "Face for server background blocks."
   :group 'web-mode-faces)
 
 (defface web-mode-folded-face
@@ -454,10 +454,344 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     keymap)
   "Keymap for `web-mode'.")
 
-;;(defun web-mode-on-click (event)
-;;  "on click"
-;;  (interactive "e")
-;;  (message "evt=%S" event))
+(defvar web-mode-go-controls
+  '("else" "end" "if" "range" "with")
+  "Go controls.")
+
+(defvar web-mode-blade-controls
+  '("foreach" "forelse" "for" "if" "unless" "while" "section")
+  "Blade controls.")
+
+(defvar web-mode-django-controls
+  '("autoescape" "block" "cache" "call" "embed" "filter" "foreach" "for"
+    "endifchanged" "endifequal" "endifnotequal" "if"
+    "macro" "draw" "random" "sandbox" "spaceless" "trans" "with")
+  "Django controls.")
+
+(defvar web-mode-smarty-controls
+  '("block" "foreach" "for" "if" "section" "while")
+  "Smarty controls.")
+
+(defvar web-mode-velocity-controls
+  '("define" "foreach" "for" "if" "macro" "end")
+  "Velocity controls.")
+
+(defvar web-mode-php-constants
+  (regexp-opt
+   (append (if (boundp 'web-mode-extra-php-constants)
+               web-mode-extra-php-constants '())
+           '("TRUE" "FALSE" "NULL" "true" "false" "null"
+             "STR_PAD_LEFT" "STR_PAD_RIGHT")))
+  "PHP constants.")
+
+(defvar web-mode-php-keywords
+  (regexp-opt
+   (append (if (boundp 'web-mode-extra-php-keywords) web-mode-extra-php-keywords '())
+           '("array" "as" "break" "callable" "case" "catch" "class" "const" "continue"
+             "default" "die" "do"
+             "echo" "else" "elseif" "empty"
+             "endfor" "endforeach" "endif" "endswitch" "endwhile" "exit" "extends"
+             "for" "foreach" "function" "global"
+             "if" "include" "instanceof" "interface" "isset" "list" "next" "or"
+             "private" "protected" "public"
+             "require" "return" "static" "switch" "try" "unset"
+             "var" "when" "while")))
+  "PHP keywords.")
+
+(defvar web-mode-php-types
+  (eval-when-compile
+    (regexp-opt
+     '("array" "bool" "boolean" "char" "const" "double" "float"
+       "int" "integer" "long" "mixed" "object" "real" "string"
+       "Exception")))
+  "PHP types.")
+
+(defvar web-mode-css-at-rules
+  (eval-when-compile
+    (regexp-opt
+     '("charset" "import" "media" "page" "font-face" "namespace")))
+  "CSS at-rules.")
+
+(defvar web-mode-css-pseudo-classes
+  (eval-when-compile
+    (regexp-opt
+     '("active" "after" "before" "checked" "disabled" "empty" "enabled"
+       "first" "first-child" "first-letter" "first-line" "first-of-type"
+       "focus" "hover" "lang" "last-child" "last-of-type" "left" "link"
+       "not" "nth-child" "nth-last-child" "nth-of-type"
+       "only-child" "only-of-type"
+       "right" "root" "selection" "target" "visited")))
+  "CSS pseudo-classes (and pseudo-elements).")
+
+(defvar web-mode-jsp-keywords
+  (regexp-opt
+   (append (if (boundp 'web-mode-extra-jsp-keywords) web-mode-extra-jsp-keywords '())
+           '("case" "catch" "do" "else" "end" "false" "for" "function"
+             "if" "in" "include" "new"
+             "package" "page" "private" "protected" "public"
+             "return" "tag" "taglib" "throw" "throws" "true" "try"
+             "void" "while")))
+  "JSP keywords.")
+
+(defvar web-mode-asp-keywords
+  (regexp-opt
+   (append (if (boundp 'web-mode-extra-asp-keywords) web-mode-extra-asp-keywords '())
+           '("case" "catch" "do" "else" "end" "for" "function"
+             "if" "in" "include"
+             "new" "package" "page" "return"
+             "tag" "throw" "throws" "try" "while")))
+  "ASP keywords.")
+
+(defvar web-mode-smarty-directives
+  (eval-when-compile
+    (regexp-opt
+     '("if" "include" "html_options")))
+  "Smarty directives.")
+
+(defvar web-mode-velocity-directives
+  (eval-when-compile
+    (regexp-opt
+     '("else" "elseif" "end" "foreach" "if" "in" "include" "macro" "parse"
+       "set" "stop")))
+  "Velocity directives.")
+
+(defvar web-mode-freemarker-keywords
+  (eval-when-compile
+    (regexp-opt
+     '("as"))))
+
+(defvar web-mode-go-keywords
+  (eval-when-compile
+    (regexp-opt
+     '("define" "else" "end" "if" "pipeline" "range" "template" "with"))))
+
+(defvar web-mode-go-functions
+  (eval-when-compile
+    (regexp-opt
+     '("and" "call" "html" "index" "js" "len" "not" "or"
+       "print" "printf" "println" "urlquery"))))
+
+(defvar web-mode-django-filters
+  (eval-when-compile
+    (regexp-opt
+     '("add" "addslashes" "capfirst" "center" "cut"
+       "date" "default" "default_if_none" "dictsort" "dictsortreversed" "divisibleby"
+       "escape" "escapejs" "filesizeformat" "first" "fix_ampersands" "floatformat"
+       "force_escape" "format_integer" "format_number"
+       "get_digit" "iriencode" "join"
+       "last" "length" "length_is" "linebreaks" "linebreaksbr" "linenumbers"
+       "ljust" "lower" "make_list"
+       "phonenumeric" "pluralize" "pprint"
+       "random" "random_num" "random_range" "removetags" "rjust"
+       "safe" "safeseq" "slice" "slugify" "stringformat" "striptags"
+       "time" "timesince" "timeuntil" "title" "truncatechars" "truncatewords"
+       "truncatewords_html" "unordered_list" "upper" "urlencode" "urlize" "urlizetrunc"
+       "wordcount" "wordwrap" "yesno")))
+  "Django filters.")
+
+(defvar web-mode-django-keywords
+  (eval-when-compile
+    (regexp-opt
+     '("and" "as" "autoescape" "block" "blocktrans" "break"
+       "cache" "call" "comment" "context" "continue" "csrf_token" "cycle"
+       "debug" "do"
+       "embed" "empty" "else" "elseif" "elif"
+       "endautoescape" "endblock" "endcache" "endcall" "endembed" "endfilter"
+       "endfor" "endif" "endifchanged" "endifequal" "endifnotequal"
+       "endmacro" "endrandom" "endraw"
+       "endsandbox" "endset" "endspaceless" "endtrans" "endwith"
+       "extends" "false" "filter" "firstof" "flush" "for" "from"
+       "if" "ifchanged" "ifequal" "ifnotequal" "ignore" "import" "in" "include" "is"
+       "load" "macro" "missing" "none" "not" "now" "or" "pluralize"
+       "random" "raw" "regroup" "trans" "true"
+       "sandbox" "set" "spaceless" "ssi" "static" "templatetag" "trans"
+       "use" "url" "var" "verbatim" "widthratio" "with")))
+  "Django keywords.")
+
+(defvar web-mode-directives
+  (eval-when-compile
+    (regexp-opt
+     '("include" "page" "taglib"
+       "Assembly" "Control" "Implements" "Import"
+       "Master" "OutputCache" "Page" "Reference" "Register")))
+  "Directives.")
+
+(defvar web-mode-javascript-keywords
+  (regexp-opt
+   (append (if (boundp 'web-mode-extra-javascript-keywords) web-mode-extra-javascript-keywords '())
+           '("catch" "else" "false" "for" "function" "if" "in" "instanceof"
+             "new" "null" "return" "this" "true" "try" "typeof"
+             "undefined" "var" "while")))
+  "JavaScript keywords.")
+
+(defvar web-mode-razor-keywords
+  (regexp-opt
+   (append (if (boundp 'web-mode-extra-razor-keywords) web-mode-extra-razor-keywords '())
+           '("false" "true" "foreach" "if" "in" "var" "for" "display")))
+  "Razor keywords.")
+
+(defvar web-mode-django-expr-font-lock-keywords
+  (list
+   '("{{\\|}}" 0 'web-mode-preprocessor-face)
+   (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
+   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
+   )
+  "Font lock keywords for dtl expr")
+
+(defvar web-mode-directive-font-lock-keywords
+  (list
+   '("<%@\\|%>" 0 'web-mode-preprocessor-face)
+   (cons (concat "\\(" web-mode-directives "\\)[ ]+") '(1 'web-mode-keyword-face t t))
+   '("[[:space:]^]\\([[:alpha:]]+=\\)\\(\"[^\"]*\"\\)"
+     (1 'web-mode-html-attr-name-face t t)
+     (2 'web-mode-html-attr-value-face t t))
+   ))
+
+(defvar web-mode-freemarker-font-lock-keywords
+  (list
+   '("[<[]/?[#@][[:alpha:]_.]*\\|/?>\\|/?]" 0 'web-mode-preprocessor-face)
+   (cons (concat "\\<\\(" web-mode-freemarker-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
+   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   ))
+
+(defvar web-mode-smarty-font-lock-keywords
+  (list
+   '("[}{]" 0 'web-mode-preprocessor-face)
+   '("{\\(/?[[:alpha:]_]+\\)" (1 'web-mode-keyword-face))
+   '("\\<\\([$]\\)\\([[:alnum:]_]+\\)" (1 nil) (2 'web-mode-variable-name-face))
+   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '(" \\(\\sw+[ ]?=\\)" 1 'web-mode-param-name-face)
+   '(" \\(\\sw+\\)[ }]" 1 'web-mode-param-name-face)
+   '("|\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
+   '("\\(->\\)\\(\\sw+\\)" (1 nil) (2 'web-mode-variable-name-face))
+   '("[.]\\([[:alnum:]_-]+\\)[ ]?(" (1 'web-mode-function-name-face))
+   '("[.]\\([[:alnum:]_]+\\)" (1 'web-mode-variable-name-face))
+   '("#\\([[:alnum:]_]+\\)#" 1 'web-mode-variable-name-face)
+   ))
+
+(defvar web-mode-velocity-font-lock-keywords
+  (list
+   (cons (concat "\\([#]\\)\\(" web-mode-velocity-directives "\\)\\>")
+         '((1 'web-mode-preprocessor-face)
+           (2 'web-mode-keyword-face)))
+   '("[.]\\([[:alnum:]_-]+\\)[ ]?("
+     (1 'web-mode-function-name-face))
+   '("[.]\\([[:alnum:]_-]+\\)"
+     (1 'web-mode-variable-name-face))
+   '("\\<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
+   ))
+
+(defvar web-mode-django-code-font-lock-keywords
+  (list
+   '("{%\\|%}" 0 'web-mode-preprocessor-face)
+   (cons (concat "[% ]\\(" web-mode-django-keywords "\\)[ %]") '(1 'web-mode-keyword-face t t))
+   (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
+   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
+   ))
+
+
+(defvar web-mode-ctemplate-font-lock-keywords
+  (list
+   '("{{[>#/{%^&]?\\|[}]?}}" 0 'web-mode-preprocessor-face)
+   '("{{>[ ]*\\([[:alnum:]_]+\\)" 1 'web-mode-keyword-face)
+   '("[[:alnum:]_]" 0 'web-mode-variable-name-face)
+   '("[ ]+\\([[:alnum:]_]+=\\)" 1 'web-mode-param-name-face t t)
+   '("[:=]\\([[:alpha:]_]+\\)" 1 'web-mode-function-name-face t t)
+   ))
+
+(defvar web-mode-razor-font-lock-keywords
+  (list
+   '("@" 0 'web-mode-preprocessor-face)
+   (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
+   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("<\\([[:alnum:]_]+\\)>" 1 'web-mode-type-face)
+   '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
+   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
+   ))
+
+(defvar web-mode-go-font-lock-keywords
+  (list
+   '("{{\\|}}" 0 'web-mode-preprocessor-face t t)
+   (cons (concat "\\<\\(" web-mode-go-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
+   (cons (concat "\\<\\(" web-mode-go-functions "\\)\\>") '(1 'web-mode-function-name-face t t))
+   '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
+   ))
+
+;;comment:Unified Expression Language
+(defvar web-mode-uel-font-lock-keywords
+  (list
+   '("[$#{]{\\|}" 0 'web-mode-preprocessor-face)
+   '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
+   ))
+
+(defvar web-mode-expression-font-lock-keywords
+  (list
+   '("<%\\$\\|%>" 0 'web-mode-preprocessor-face)
+   '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
+   ))
+
+(defvar web-mode-css-rules-font-lock-keywords
+  (list
+   (cons (concat ":\\(" web-mode-css-pseudo-classes "\\)\\>") '(1 'web-mode-css-pseudo-class-face))
+   '("[[:alnum:]-]+" 0 'web-mode-css-rule-face)
+   ))
+
+(defvar web-mode-css-props-font-lock-keywords
+  (list
+   (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>") '(1 'web-mode-css-at-rule-face))
+   '("[[:alpha:]-]\\{3,\\}[ ]?:" 0 'web-mode-css-prop-face)
+   '("#[[:alnum:]]\\{3,6\\}\\|![ ]?important" 0 font-lock-builtin-face t t)
+   ))
+
+(defvar web-mode-javascript-font-lock-keywords
+  (list
+   (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\([[:alnum:]]+\\):" 1 'web-mode-variable-name-face)
+   ))
+
+(defvar web-mode-asp-font-lock-keywords
+  (list
+   '("<%[=#:]?\\|%>" 0 'web-mode-preprocessor-face)
+   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
+   (cons (concat "\\<\\(" web-mode-asp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   ))
+
+;; todo : specific keywords for erb
+(defvar web-mode-jsp-font-lock-keywords
+  (list
+   '("%>\\|^%\\|<%\\(!\\|=\\|#=\\)?" 0 'web-mode-preprocessor-face)
+   '("\\(throws\\|new\\|extends\\)[ ]+\\([[:alnum:].]+\\)" 2 'web-mode-type-face)
+   (cons (concat "\\<\\(" web-mode-jsp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
+   '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
+   ))
+
+(defvar web-mode-php-font-lock-keywords
+  (list
+   '("<\\?\\(php\\|=\\)?\\|\\?>" 0 'web-mode-preprocessor-face)
+   (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   (cons (concat "(\\<\\(" web-mode-php-types "\\)\\>") '(1 'web-mode-type-face))
+   (cons (concat "\\<\\(" web-mode-php-constants "\\)\\>") '(0 'web-mode-constant-face))
+   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("[[:alnum:]_][ ]?::[ ]?\\(\\sw+\\)" 1 'web-mode-constant-face)
+   '("->[ ]?\\(\\sw+\\)" 1 'web-mode-variable-name-face)
+   '("\\<\\(\\sw+\\)[ ]?::" 1 'web-mode-type-face)
+   '("\\<\\(instanceof\\|class\\|extends\\|new\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
+   '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
+   ))
+
+(defvar web-mode-blade-font-lock-keywords
+  (append
+   (list
+    '("{{\\|}}" 0 'web-mode-preprocessor-face)
+    '("\\(@\\)\\([[:alpha:]_]+\\)"
+      (1 'web-mode-preprocessor-face)
+      (2 'web-mode-keyword-face)))
+   web-mode-php-font-lock-keywords))
 
 ;;;###autoload
 (define-derived-mode web-mode web-mode-prog-mode "Web"
@@ -1204,7 +1538,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defun web-mode-scan-client (beg end)
   "Scan client side blocks (JavaScript / CSS / HTML Comments) and identifies strings and comments."
   (save-excursion
-    (let (open limit close ms regexp props closing-string start tag-name tag-beg tag-end tag-fc tag-stop tag-content-type attrs-end close-found prop-type prop-name)
+    (let (open limit close ms regexp props closing-string start tag-name tag-beg tag-end tag-fc tag-stop tag-content-type attrs-end close-found pos markup-face prop-type prop-name)
 
       (goto-char beg)
 
@@ -1640,7 +1974,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defun web-mode-fill-paragraph (&optional justify)
   "fill paragraph"
   (save-excursion
-    (let ((pos (point))
+    (let ((pos (point)) fill-coll
           prop pair beg end delim-beg delim-end chunk fill-col)
       (cond
        ((or (eq (get-text-property pos 'client-token-type) 'comment)
@@ -1724,7 +2058,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defun web-mode-errors-show ()
   "Show unclosed tags."
   (interactive)
-  (let (tag pos l n tags i cont cell overlay overlays first
+  (let (beg end tag pos l n tags i cont cell overlay overlays first
             (ori (point))
             (errors 0)
             (continue t)
@@ -2936,321 +3270,6 @@ point is at the beginning of the line."
     (eq (get-text-property (point) 'client-tag-type) 'void)
     ))
 
-(defconst web-mode-php-constants
-  (regexp-opt
-   (append (if (boundp 'web-mode-extra-php-constants)
-               web-mode-extra-php-constants '())
-           '("TRUE" "FALSE" "NULL" "true" "false" "null"
-             "STR_PAD_LEFT" "STR_PAD_RIGHT")))
-  "PHP constants.")
-
-(defconst web-mode-php-keywords
-  (regexp-opt
-   (append (if (boundp 'web-mode-extra-php-keywords) web-mode-extra-php-keywords '())
-           '("array" "as" "break" "callable" "case" "catch" "class" "const" "continue"
-             "default" "die" "do"
-             "echo" "else" "elseif" "empty"
-             "endfor" "endforeach" "endif" "endswitch" "endwhile" "exit" "extends"
-             "for" "foreach" "function" "global"
-             "if" "include" "instanceof" "interface" "isset" "list" "next" "or"
-             "private" "protected" "public"
-             "require" "return" "static" "switch" "try" "unset"
-             "var" "when" "while")))
-  "PHP keywords.")
-
-(defconst web-mode-php-types
-  (eval-when-compile
-    (regexp-opt
-     '("array" "bool" "boolean" "char" "const" "double" "float"
-       "int" "integer" "long" "mixed" "object" "real" "string"
-       "Exception")))
-  "PHP types.")
-
-(defconst web-mode-css-at-rules
-  (eval-when-compile
-    (regexp-opt
-     '("charset" "import" "media" "page" "font-face" "namespace")))
-  "CSS at-rules.")
-
-(defconst web-mode-css-pseudo-classes
-  (eval-when-compile
-    (regexp-opt
-     '("active" "after" "before" "checked" "disabled" "empty" "enabled"
-       "first" "first-child" "first-letter" "first-line" "first-of-type"
-       "focus" "hover" "lang" "last-child" "last-of-type" "left" "link"
-       "not" "nth-child" "nth-last-child" "nth-of-type"
-       "only-child" "only-of-type"
-       "right" "root" "selection" "target" "visited")))
-  "CSS pseudo-classes (and pseudo-elements).")
-
-(defconst web-mode-jsp-keywords
-  (regexp-opt
-   (append (if (boundp 'web-mode-extra-jsp-keywords) web-mode-extra-jsp-keywords '())
-           '("case" "catch" "do" "else" "end" "false" "for" "function"
-             "if" "in" "include" "new"
-             "package" "page" "private" "protected" "public"
-             "return" "tag" "taglib" "throw" "throws" "true" "try"
-             "void" "while")))
-  "JSP keywords.")
-
-(defconst web-mode-asp-keywords
-  (regexp-opt
-   (append (if (boundp 'web-mode-extra-asp-keywords) web-mode-extra-asp-keywords '())
-           '("case" "catch" "do" "else" "end" "for" "function"
-             "if" "in" "include"
-             "new" "package" "page" "return"
-             "tag" "throw" "throws" "try" "while")))
-  "ASP keywords.")
-
-(defconst web-mode-smarty-directives
-  (eval-when-compile
-    (regexp-opt
-     '("if" "include" "html_options")))
-  "Smarty directives.")
-
-(defconst web-mode-velocity-directives
-  (eval-when-compile
-    (regexp-opt
-     '("else" "elseif" "end" "foreach" "if" "in" "include" "macro" "parse"
-       "set" "stop")))
-  "Velocity directives.")
-
-(defconst web-mode-freemarker-keywords
-  (eval-when-compile
-    (regexp-opt
-     '("as"))))
-
-(defconst web-mode-go-keywords
-  (eval-when-compile
-    (regexp-opt
-     '("define" "else" "end" "if" "pipeline" "range" "template" "with"))))
-
-(defconst web-mode-go-functions
-  (eval-when-compile
-    (regexp-opt
-     '("and" "call" "html" "index" "js" "len" "not" "or"
-       "print" "printf" "println" "urlquery"))))
-
-(defconst web-mode-django-filters
-  (eval-when-compile
-    (regexp-opt
-     '("add" "addslashes" "capfirst" "center" "cut"
-       "date" "default" "default_if_none" "dictsort" "dictsortreversed" "divisibleby"
-       "escape" "escapejs" "filesizeformat" "first" "fix_ampersands" "floatformat"
-       "force_escape" "format_integer" "format_number"
-       "get_digit" "iriencode" "join"
-       "last" "length" "length_is" "linebreaks" "linebreaksbr" "linenumbers"
-       "ljust" "lower" "make_list"
-       "phonenumeric" "pluralize" "pprint"
-       "random" "random_num" "random_range" "removetags" "rjust"
-       "safe" "safeseq" "slice" "slugify" "stringformat" "striptags"
-       "time" "timesince" "timeuntil" "title" "truncatechars" "truncatewords"
-       "truncatewords_html" "unordered_list" "upper" "urlencode" "urlize" "urlizetrunc"
-       "wordcount" "wordwrap" "yesno")))
-  "Django filters.")
-
-(defconst web-mode-django-keywords
-  (eval-when-compile
-    (regexp-opt
-     '("and" "as" "autoescape" "block" "blocktrans" "break"
-       "cache" "call" "comment" "context" "continue" "csrf_token" "cycle"
-       "debug" "do"
-       "embed" "empty" "else" "elseif" "elif"
-       "endautoescape" "endblock" "endcache" "endcall" "endembed" "endfilter"
-       "endfor" "endif" "endifchanged" "endifequal" "endifnotequal"
-       "endmacro" "endrandom" "endraw"
-       "endsandbox" "endset" "endspaceless" "endtrans" "endwith"
-       "extends" "false" "filter" "firstof" "flush" "for" "from"
-       "if" "ifchanged" "ifequal" "ifnotequal" "ignore" "import" "in" "include" "is"
-       "load" "macro" "missing" "none" "not" "now" "or" "pluralize"
-       "random" "raw" "regroup" "trans" "true"
-       "sandbox" "set" "spaceless" "ssi" "static" "templatetag" "trans"
-       "use" "url" "var" "verbatim" "widthratio" "with")))
-  "Django keywords.")
-
-(defconst web-mode-directives
-  (eval-when-compile
-    (regexp-opt
-     '("include" "page" "taglib"
-       "Assembly" "Control" "Implements" "Import"
-       "Master" "OutputCache" "Page" "Reference" "Register")))
-  "Directives.")
-
-(defconst web-mode-javascript-keywords
-  (regexp-opt
-   (append (if (boundp 'web-mode-extra-javascript-keywords) web-mode-extra-javascript-keywords '())
-           '("catch" "else" "false" "for" "function" "if" "in" "instanceof"
-             "new" "null" "return" "this" "true" "try" "typeof"
-             "undefined" "var" "while")))
-  "JavaScript keywords.")
-
-(defconst web-mode-razor-keywords
-  (regexp-opt
-   (append (if (boundp 'web-mode-extra-razor-keywords) web-mode-extra-razor-keywords '())
-           '("false" "true" "foreach" "if" "in" "var" "for" "display")))
-  "Razor keywords.")
-
-(defconst web-mode-directive-font-lock-keywords
-  (list
-   '("<%@\\|%>" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\(" web-mode-directives "\\)[ ]+") '(1 'web-mode-keyword-face t t))
-   '("[[:space:]^]\\([[:alpha:]]+=\\)\\(\"[^\"]*\"\\)"
-     (1 'web-mode-html-attr-name-face t t)
-     (2 'web-mode-html-attr-value-face t t))
-   ))
-
-(defconst web-mode-freemarker-font-lock-keywords
-  (list
-   '("[<[]/?[#@][[:alpha:]_.]*\\|/?>\\|/?]" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-freemarker-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
-   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
-   ))
-
-(defconst web-mode-smarty-font-lock-keywords
-  (list
-   '("[}{]" 0 'web-mode-preprocessor-face)
-   '("{\\(/?[[:alpha:]_]+\\)" (1 'web-mode-keyword-face))
-   '("\\<\\([$]\\)\\([[:alnum:]_]+\\)" (1 nil) (2 'web-mode-variable-name-face))
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
-   '(" \\(\\sw+[ ]?=\\)" 1 'web-mode-param-name-face)
-   '(" \\(\\sw+\\)[ }]" 1 'web-mode-param-name-face)
-   '("|\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
-   '("\\(->\\)\\(\\sw+\\)" (1 nil) (2 'web-mode-variable-name-face))
-   '("[.]\\([[:alnum:]_-]+\\)[ ]?(" (1 'web-mode-function-name-face))
-   '("[.]\\([[:alnum:]_]+\\)" (1 'web-mode-variable-name-face))
-   '("#\\([[:alnum:]_]+\\)#" 1 'web-mode-variable-name-face)
-   ))
-
-(defconst web-mode-velocity-font-lock-keywords
-  (list
-   (cons (concat "\\([#]\\)\\(" web-mode-velocity-directives "\\)\\>")
-         '((1 'web-mode-preprocessor-face)
-           (2 'web-mode-keyword-face)))
-   '("[.]\\([[:alnum:]_-]+\\)[ ]?("
-     (1 'web-mode-function-name-face))
-   '("[.]\\([[:alnum:]_-]+\\)"
-     (1 'web-mode-variable-name-face))
-   '("\\<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
-   ))
-
-(defconst web-mode-django-code-font-lock-keywords
-  (list
-   '("{%\\|%}" 0 'web-mode-preprocessor-face)
-   (cons (concat "[% ]\\(" web-mode-django-keywords "\\)[ %]") '(1 'web-mode-keyword-face t t))
-   (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
-   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
-   ))
-
-(defconst web-mode-django-expr-font-lock-keywords
-  (list
-   '("{{\\|}}" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
-   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
-   ))
-
-(defconst web-mode-ctemplate-font-lock-keywords
-  (list
-   '("{{[>#/{%^&]?\\|[}]?}}" 0 'web-mode-preprocessor-face)
-   '("{{>[ ]*\\([[:alnum:]_]+\\)" 1 'web-mode-keyword-face)
-   '("[[:alnum:]_]" 0 'web-mode-variable-name-face)
-   '("[ ]+\\([[:alnum:]_]+=\\)" 1 'web-mode-param-name-face t t)
-   '("[:=]\\([[:alpha:]_]+\\)" 1 'web-mode-function-name-face t t)
-   ))
-
-(defconst web-mode-razor-font-lock-keywords
-  (list
-   '("@" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
-   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
-   '("<\\([[:alnum:]_]+\\)>" 1 'web-mode-type-face)
-   '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
-   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
-   ))
-
-(defconst web-mode-go-font-lock-keywords
-  (list
-   '("{{\\|}}" 0 'web-mode-preprocessor-face t t)
-   (cons (concat "\\<\\(" web-mode-go-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
-   (cons (concat "\\<\\(" web-mode-go-functions "\\)\\>") '(1 'web-mode-function-name-face t t))
-   '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
-   ))
-
-;;comment:Unified Expression Language
-(defconst web-mode-uel-font-lock-keywords
-  (list
-   '("[$#{]{\\|}" 0 'web-mode-preprocessor-face)
-   '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
-   ))
-
-(defconst web-mode-expression-font-lock-keywords
-  (list
-   '("<%\\$\\|%>" 0 'web-mode-preprocessor-face)
-   '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
-   ))
-
-(defconst web-mode-css-rules-font-lock-keywords
-  (list
-   (cons (concat ":\\(" web-mode-css-pseudo-classes "\\)\\>") '(1 'web-mode-css-pseudo-class-face))
-   '("[[:alnum:]-]+" 0 'web-mode-css-rule-face)
-   ))
-
-(defconst web-mode-css-props-font-lock-keywords
-  (list
-   (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>") '(1 'web-mode-css-at-rule-face))
-   '("[[:alpha:]-]\\{3,\\}[ ]?:" 0 'web-mode-css-prop-face)
-   '("#[[:alnum:]]\\{3,6\\}\\|![ ]?important" 0 font-lock-builtin-face t t)
-   ))
-
-(defconst web-mode-javascript-font-lock-keywords
-  (list
-   (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
-   '("\\([[:alnum:]]+\\):" 1 'web-mode-variable-name-face)
-   ))
-
-(defconst web-mode-asp-font-lock-keywords
-  (list
-   '("<%[=#:]?\\|%>" 0 'web-mode-preprocessor-face)
-   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
-   '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
-   (cons (concat "\\<\\(" web-mode-asp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   ))
-
-;; todo : specific keywords for erb
-(defconst web-mode-jsp-font-lock-keywords
-  (list
-   '("%>\\|^%\\|<%\\(!\\|=\\|#=\\)?" 0 'web-mode-preprocessor-face)
-   '("\\(throws\\|new\\|extends\\)[ ]+\\([[:alnum:].]+\\)" 2 'web-mode-type-face)
-   (cons (concat "\\<\\(" web-mode-jsp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
-   '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
-   '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
-   ))
-
-(defconst web-mode-php-font-lock-keywords
-  (list
-   '("<\\?\\(php\\|=\\)?\\|\\?>" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   (cons (concat "(\\<\\(" web-mode-php-types "\\)\\>") '(1 'web-mode-type-face))
-   (cons (concat "\\<\\(" web-mode-php-constants "\\)\\>") '(0 'web-mode-constant-face))
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
-   '("[[:alnum:]_][ ]?::[ ]?\\(\\sw+\\)" 1 'web-mode-constant-face)
-   '("->[ ]?\\(\\sw+\\)" 1 'web-mode-variable-name-face)
-   '("\\<\\(\\sw+\\)[ ]?::" 1 'web-mode-type-face)
-   '("\\<\\(instanceof\\|class\\|extends\\|new\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
-   '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
-   ))
-
-(defconst web-mode-blade-font-lock-keywords
-  (append
-   (list
-    '("{{\\|}}" 0 'web-mode-preprocessor-face)
-    '("\\(@\\)\\([[:alpha:]_]+\\)"
-      (1 'web-mode-preprocessor-face)
-      (2 'web-mode-keyword-face)))
-   web-mode-php-font-lock-keywords))
-
 ;; todo: <?php ?>
 (defun web-mode-fold-or-unfold ()
   "Toggle folding on a block."
@@ -3574,28 +3593,6 @@ point is at the beginning of the line."
     (insert text)
     (setq end (point-at-eol))
     (indent-region beg end)))
-
-(defconst web-mode-go-controls
-  '("else" "end" "if" "range" "with")
-  "Go controls.")
-
-(defconst web-mode-blade-controls
-  '("foreach" "forelse" "for" "if" "unless" "while" "section")
-  "Blade controls.")
-
-(defconst web-mode-django-controls
-  '("autoescape" "block" "cache" "call" "embed" "filter" "foreach" "for"
-    "endifchanged" "endifequal" "endifnotequal" "if"
-    "macro" "draw" "random" "sandbox" "spaceless" "trans" "with")
-  "Django controls.")
-
-(defconst web-mode-smarty-controls
-  '("block" "foreach" "for" "if" "section" "while")
-  "Smarty controls.")
-
-(defconst web-mode-velocity-controls
-  '("define" "foreach" "for" "if" "macro" "end")
-  "Velocity controls.")
 
 ;; todo : demander dans la doc l'adresse email de dev qui accepte d'aider
 ;; todo : avec tag-type ... différenciation pour freemarker
@@ -4844,7 +4841,7 @@ point is at the beginning of the line."
 (defun web-mode-rsf-content (regexp &optional limit noerror)
   "re-search-forward only in html content."
   (unless noerror (setq noerror t))
-  (let ((continue t) ret beg)
+  (let ((continue t) ret beg end)
     (while continue
       (setq ret (re-search-forward regexp limit noerror)
             beg (if (null ret) (point) (match-beginning 0))
@@ -4939,12 +4936,13 @@ point is at the beginning of the line."
 (defun web-mode-reload ()
   "Reload web-mode."
   (interactive)
-  (put-text-property (point-min) (point-max) 'invisible nil)
-  (remove-overlays)
-  (unload-feature 'web-mode)
-  (web-mode)
-  (if (fboundp 'web-mode-hook)
-      (web-mode-hook)))
+  (web-mode-with-silent-modifications
+   (put-text-property (point-min) (point-max) 'invisible nil)
+   (remove-overlays)
+   (unload-feature 'web-mode)
+   (web-mode)
+   (if (fboundp 'web-mode-hook)
+       (web-mode-hook))))
 
 (defun web-mode-trace (msg)
   "Benchmark."
@@ -4957,7 +4955,7 @@ point is at the beginning of the line."
 
 ;;--- compatibility
 
-(eval-and-compile
+;;(eval-and-compile
 
   (defalias 'web-mode-prog-mode (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
 
@@ -4972,7 +4970,7 @@ point is at the beginning of the line."
              ,@body
            (set-buffer-modified-p old-modified-p)))))
 
-  ); eval-and-compile
+;;  ); eval-and-compile
 
 
 (provide 'web-mode)
@@ -5052,3 +5050,9 @@ point is at the beginning of the line."
 ;;          );cond
 ;;         );while
 ;;       )))
+
+
+;;(defun web-mode-on-click (event)
+;;  "on click"
+;;  (interactive "e")
+;;  (message "evt=%S" event))
