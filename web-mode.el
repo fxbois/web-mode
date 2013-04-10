@@ -1488,6 +1488,13 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
         (setq fc (substring ms 0 1))
         (cond
 
+         ((and (string= web-mode-engine "asp")
+               (string= fc "'")
+               (looking-back "^[ \t]*'"))
+          (setq props '(server-token-type comment face web-mode-server-comment-face))
+          (goto-char (if (< end (line-end-position)) end (line-end-position)))
+          )
+
          ((string= fc "'")
           (setq props '(server-token-type string face web-mode-server-string-face))
           (while (and continue (search-forward "'" end t))
