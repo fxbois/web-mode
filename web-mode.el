@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.10
+;; Version: 5.0.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates: HTML files embedding client parts (CSS/JavaScript) and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "5.0.10"
+  :version "5.0.11"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -818,6 +818,26 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
       (1 'web-mode-preprocessor-face)
       (2 'web-mode-keyword-face)))
    web-mode-php-font-lock-keywords))
+
+;;--- compatibility
+
+(eval-and-compile
+
+  (defalias 'web-mode-prog-mode
+    (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
+
+  (if (fboundp 'with-silent-modifications)
+      (defalias 'web-mode-with-silent-modifications 'with-silent-modifications)
+    (defmacro web-mode-with-silent-modifications (&rest body)
+      "For compatibility with Emacs pre 23.3"
+      `(let ((old-modified-p (buffer-modified-p))
+             (inhibit-modification-hooks t)
+             (buffer-undo-list t))
+         (unwind-protect
+             ,@body
+           (set-buffer-modified-p old-modified-p)))))
+
+  ); eval-and-compile
 
 ;;;###autoload
 (define-derived-mode web-mode web-mode-prog-mode "Web"
@@ -4993,25 +5013,6 @@ point is at the beginning of the line."
     (setq sub (time-subtract (current-time) web-mode-time))
     (message "%18s: time elapsed = %Ss %9Sµs" msg (nth 1 sub) (nth 2 sub))
     ))
-
-;;--- compatibility
-
-;;(eval-and-compile
-
-  (defalias 'web-mode-prog-mode (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
-
-  (if (fboundp 'with-silent-modifications)
-      (defalias 'web-mode-with-silent-modifications 'with-silent-modifications)
-    (defmacro web-mode-with-silent-modifications (&rest body)
-      "For compatibility with Emacs pre 23.3"
-      `(let ((old-modified-p (buffer-modified-p))
-             (inhibit-modification-hooks t)
-             (buffer-undo-list t))
-         (unwind-protect
-             ,@body
-           (set-buffer-modified-p old-modified-p)))))
-
-;;  ); eval-and-compile
 
 
 (provide 'web-mode)
