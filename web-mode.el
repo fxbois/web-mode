@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.11
+;; Version: 5.0.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates: HTML files embedding client parts (CSS/JavaScript) and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "5.0.11"
+  :version "5.0.12"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -53,7 +53,7 @@
   :group 'web-mode)
 
 (defcustom web-mode-code-indent-offset 2
-  "Code (ie. JS, PHP, ) indentation level."
+  "Code (JavaScript, PHP, etc.) indentation level."
   :type 'integer
   :group 'web-mode)
 
@@ -220,7 +220,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     (((type tty) (class mono))
      :inverse-video t)
     (t :background "grey"))
-  "Face for server background blocks."
+  "Face for server background blocks. Must be used in conjunction with web-mode-enable-server-block-background"
   :group 'web-mode-faces)
 
 (defface web-mode-folded-face
@@ -228,14 +228,14 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   "Overlay face for folded."
   :group 'web-mode-faces)
 
-(defconst web-mode-void-elements
+(defvar web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
     "link" "meta" "param" "source" "track" "wbr"
     "tmpl_var" "h:inputtext" "jsp:usebean"
     "#include" "#assign" "#import" "#else")
   "Void (self-closing) tags.")
 
-(defconst web-mode-text-properties
+(defvar web-mode-text-properties
   '(client-side nil client-language nil client-tag-name nil client-tag-type nil client-token-type nil server-side nil server-engine nil server-tag-name nil server-tag-type nil server-token-type nil server-boundary nil tag-boundary nil face nil)
   "Text properties used for fontification and indentation.")
 
@@ -978,6 +978,9 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 ;;    (message "buffer=%S engine=%S type=%S regexp=%S"
 ;;             buff-name web-mode-engine web-mode-content-type web-mode-server-block-regexp)
+
+    (when (string= web-mode-engine "razor")
+      (setq web-mode-enable-server-block-background t))
 
     ))
 
@@ -4121,7 +4124,8 @@ point is at the beginning of the line."
 
 (defun web-mode-on-after-change (beg end len)
   "Auto-Pair"
-;;  (message "beg=%d, end=%d, len=%d, cur=%d" beg end len (current-column))
+;;  (message "pos=%d, beg=%d, end=%d, len=%d, cur=%d"
+;;           (point) beg end len (current-column))
 
   ;;  (backtrace)
 
@@ -4253,15 +4257,19 @@ point is at the beginning of the line."
 
       ;;-- region-refresh
       (save-excursion
-        (when (not (= len (- end beg)))
+        (save-match-data
+
+          ;;          (when (not (= len (- end beg)))
+          (goto-char beg)
+
           (cond
-           ((or (> (- end beg) 1) (> len 1))
-            (setq scan-beg 1
-                  scan-end (point-max))
-            )
+           ;;           ((or (> (- end beg) 1) (> len 1))
+           ;;            (setq scan-beg 1
+           ;;                  scan-end (point-max))
+           ;;            )
            ((web-mode-rsb-client "^[ ]*<")
             (setq scan-beg (point))
-            (goto-char pos)
+            (goto-char end)
             (setq scan-end (if (web-mode-rsf-client "[[:alnum:] /\"]>[ ]*$") (point) (point-max)))
             ;;              (message "scan-end=%S" scan-end)
             ;;            (setq scan-end (point-max))
@@ -4271,15 +4279,18 @@ point is at the beginning of the line."
                   scan-end (point-max))
             )
            );cond
-          ;;(message "scan-region (%S) > (%S)" scan-beg scan-end)
-          ;;          (setq scan-end (point-max))
-          (web-mode-scan-region scan-beg scan-end)
-          );when
-        );save-excursion
 
+          ;;          (message "scan-region (%S) > (%S)" scan-beg scan-end)
+          ;;          (setq scan-end (point-max))
+          ;;            )
+
+          (web-mode-scan-region scan-beg scan-end)
+
+          ))
 
       );if
     );let
+
   )
 
 (defun web-mode-apostrophes-replace ()
