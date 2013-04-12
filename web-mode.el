@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.12
+;; Version: 5.0.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates: HTML files embedding client parts (CSS/JavaScript) and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "5.0.12"
+  :version "5.0.13"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -708,7 +708,6 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    ))
 
-
 (defvar web-mode-ctemplate-font-lock-keywords
   (list
    '("{{[>#/{%^&]?\\|[}]?}}" 0 'web-mode-preprocessor-face)
@@ -837,7 +836,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
              ,@body
            (set-buffer-modified-p old-modified-p)))))
 
-  ); eval-and-compile
+  );eval-and-compile
 
 ;;;###autoload
 (define-derived-mode web-mode web-mode-prog-mode "Web"
@@ -1645,30 +1644,34 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
            ((web-mode-is-void-element tag-name)
             (setq props (plist-put props prop-name tag-name))
             (setq props (plist-put props prop-type 'void))
-            (setq regexp "/?>")
-            ;;            (setq regexp ">")
+;;            (setq regexp "/?>")
+            (setq regexp ">")
             )
            (t
             (setq props (plist-put props prop-name tag-name))
             (setq props (plist-put props prop-type 'start))
-            (setq regexp "/?>")
-            ;;            (setq regexp ">")
+;;            (setq regexp "/?>")
+            (setq regexp ">")
             )
            );cond
           ;;          (add-text-properties tag-beg tag-stop props)
           );t
          );cond
 
-        (if (web-mode-rsf-client regexp limit t)
+        (if (web-mode-sf-client regexp limit t)
+;;        (if (web-mode-rsf-client regexp limit t)
             (progn
-              (setq attrs-end (match-beginning 0)
+              (setq ;;attrs-end (match-beginning 0)
+                    attrs-end (- (point) (length regexp) 1)
                     tag-end (point)
                     close-found t)
-              ;;              (message "attrs-end=%S" attrs-end)
-              ;;              (message "close found , tag=%S (%d > %d)" tag-name tag-beg tag-end)
 
-              (when (char-equal (string-to-char (match-string 0)) ?/)
-                ;;                (put-text-property tag-beg tag-stop 'markup-type 'void)
+;;              (message "attrs-end=%S" attrs-end)
+;;              (message "close found , tag=%S (%d > %d)" tag-name tag-beg tag-end)
+
+;;              (when (char-equal (string-to-char (match-string 0)) ?/)
+              (when (char-equal (char-after (- (point) 2)) ?/)
+;;                (message "void-tag=%S" tag-name)
                 (setq props (plist-put props prop-type 'void))
                 )
 
@@ -1682,7 +1685,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
                 tag-end (line-end-position))
           ;;          (message "close not found , tag=%S (%S > %S)" tag-name tag-beg tag-end)
 
-          );if web-mode-rsf
+          );if
 
         (if (and (string= tag-name "script")
                  (string-match-p " type=\"text/html\"" (buffer-substring tag-beg tag-end)))
@@ -1829,24 +1832,27 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
       )))
 
 ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-attributes
-;; states: "nil" "space" "name" "space-before" "equal" "space-after" "value-uq" "value-sq" "value-dq"
+;; states:
+;; nil(0) space(1) name(2) space-before(3) equal(4) space-after(5) value-uq(6) value-sq(7) value-dq(8)
 (defun web-mode-scan-attrs (beg end)
   "Scan and fontify html attributes."
   (save-excursion
     ;;    (message "beg(%S) end(%S)" beg end)
-    (let (name-beg name-end val-beg val-end (state "nil") c pos prev)
-      (goto-char (- beg 1))
-      ;;      (setq end (1- end))
+    (let (name-beg name-end val-beg val-end (state 0) char pos escaped spaced)
+      (goto-char (1- beg))
+
       (while (< (point) end)
         (forward-char)
-        (setq pos (point))
-        (setq c (buffer-substring-no-properties pos (+ pos 1)))
+        (setq pos (point)
+              char (char-after))
+        (setq spaced (char-equal char ?\s))
+;;        (setq char (buffer-substring-no-properties pos (1+ pos)))
 
         (cond
 
-         ((= (point) end)
-          (web-mode-propertize-attr state c name-beg name-end val-beg)
-          (setq state "nil"
+         ((= pos end)
+          (web-mode-propertize-attr state char name-beg name-end val-beg)
+          (setq state 0
                 name-beg nil
                 name-end nil
                 val-beg nil
@@ -1856,105 +1862,94 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
          ((get-text-property pos 'server-side)
           )
 
-         ((and (string= c " ")
-               (string= state "nil"))
-          (setq state "space")
+         ((and spaced (= state 0))
+          (setq state 1)
           )
 
-         ((and (string= c " ")
-               (member state '("space-before" "space-after" "space")))
+         ((and spaced (member state '(1 3 5)))
           )
 
-         ((and (string= c " ")
-               (string= state "name"))
-          (setq state "space-before")
+         ((and spaced (= state 2))
+          (setq state 3)
           )
 
-         ((and (string= c " ")
-               (string= state "equal"))
-          (setq state "space-after")
+         ((and spaced (= state 4))
+          (setq state 5)
           )
 
-         ((and (string= c "\n")
-               (not (member state '("value-sq" "value-dq"))))
-          (web-mode-propertize-attr state c name-beg name-end val-beg)
-          (setq state "space"
+         ((and (char-equal char ?\n) (not (member state '(7 8))))
+          (web-mode-propertize-attr state char name-beg name-end val-beg)
+          (setq state 1
                 name-beg nil
                 name-end nil
                 val-beg nil
                 val-end nil)
           )
 
-         ((or (and (string= c "\"") (string= state "value-dq") (not (string= prev "\\")))
-              (and (string= c "'") (string= state "value-sq") (not (string= prev "\\")))
-              (and (or (string= c " ") (string= c "\n") (string= c ">")) (string= state "value-uq")))
-          (web-mode-propertize-attr state c name-beg name-end val-beg)
-          (setq state (if (string= state "value-uq") "space" "nil")
+         ((or (and (char-equal char ?\") (= state 8) (not escaped))
+              (and (char-equal char ?\') (= state 7) (not escaped))
+              (and (member char '(?\s ?\n ?\>)) (= state 6)))
+          (web-mode-propertize-attr state char name-beg name-end val-beg)
+          (setq state (if (= state 6) 1 0)
                 name-beg nil
                 name-end nil
                 val-beg nil
                 val-end nil)
           )
 
-         ((and (not (string= c " "))
-               (string= state "space"))
+         ((and (not spaced) (= state 1))
           ;;          (message "pos(%S)" (point))
-          (setq state "name")
-          (setq name-beg (point))
+          (setq state 2)
+          (setq name-beg pos)
           )
 
-         ((and (string= c "=")
-               (member state '("space-before" "name")))
-          (setq name-end (point))
-          (setq state "equal")
+         ((and (char-equal char ?\=) (member state '(2 3)))
+          (setq name-end pos)
+          (setq state 4)
           )
 
-         ((and (string= c "\"")
-               (member state '("space-after" "equal")))
-          (setq val-beg (point))
-          (setq state "value-dq")
+         ((and (char-equal char ?\") (member state '(4 5)))
+          (setq val-beg pos)
+          (setq state 8)
           )
 
-         ((and (string= c "'")
-               (member state '("space-after" "equal")))
-          (setq val-beg (point))
-          (setq state "value-sq")
+         ((and (char-equal char ?\') (member state '(4 5)))
+          (setq val-beg pos)
+          (setq state 7)
           )
 
-         ((member state '("space-after" "equal"))
-          (setq val-beg (point))
-          (setq state "value-uq")
+         ((member state '(4 5))
+          (setq val-beg pos)
+          (setq state 6)
           )
 
-         ((string= state "space")
-          (setq state "name")
+         ((= state 1)
+          (setq state 2)
           )
 
          );;cond
 
-        ;;        (message "point(%S) end(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) val-end(%S)" pos end state c name-beg name-end val-beg val-end)
+        ;;        (message "point(%S) end(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) val-end(%S)" pos end state char name-beg name-end val-beg val-end)
 
-        (setq prev c)
+        (setq escaped (char-equal char ?\\))
 
         );;while
 
       )))
 
-(defun web-mode-propertize-attr (state c name-beg name-end val-beg &optional val-end)
+(defun web-mode-propertize-attr (state char name-beg name-end val-beg &optional val-end)
   "propertize attr."
   (unless val-end (setq val-end (point)))
-  ;;  (message "point(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) val-end(%S)" (point) state c name-beg name-end val-beg val-end)
+  ;;  (message "point(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) val-end(%S)" (point) state char name-beg name-end val-beg val-end)
   (cond
 
-   ((and (string= state "value-dq")
-         (not (string= c "\"")))
+   ((and (= state 8) (not (char-equal char ?\")))
     )
 
-   ((and (string= state "value-sq")
-         (not (string= c "'")))
+   ((and (= state 7) (not (char-equal char ?\')))
     )
 
-   ((string= state "equal")
+   ((= state 4)
     )
 
    ((null name-beg)
@@ -1962,16 +1957,15 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
    (t
 
-    (if (or (and (string= state "value-dq") (string= c "\""))
-            (and (string= state "value-sq") (string= c "'")))
-        (add-text-properties name-beg (+ (point) 1) '(client-token-type attr face web-mode-html-attr-name-face))
-      (add-text-properties name-beg (point) '(client-token-type attr face web-mode-html-attr-name-face))
-      )
+    (if (or (and (= state 8) (char-equal char ?\"))
+            (and (= state 7) (char-equal char ?\')))
+        (add-text-properties name-beg (1+ (point)) '(client-token-type attr face web-mode-html-attr-name-face))
+      (add-text-properties name-beg (point) '(client-token-type attr face web-mode-html-attr-name-face)))
 
-    ;;    (add-text-properties name-beg (point) '(client-token-type attr face web-mode-html-attr-name-face))
     (when (and val-beg val-end)
-      (setq val-end (if (string= c ">") val-end (+ val-end 1)))
+      (setq val-end (if (char-equal char ?\>) val-end (1+ val-end)))
       (add-text-properties val-beg val-end '(face web-mode-html-attr-value-face)))
+
     );t
 
    );cond
@@ -2019,7 +2013,6 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           (font-lock-extend-region-functions nil)
           )
       (font-lock-fontify-region beg end)
-
       ))
 
   ;; UGLY HACK / workaround (help needed)
@@ -2967,7 +2960,6 @@ point is at the beginning of the line."
       (when (and (> (length tag-name) 0)
                  (web-mode-element-beginning)
                  (looking-at "<\\([[:alpha:]]+\\)"))
-        (message "la")
         (setq pos (point))
         (unless (web-mode-is-void-element)
             (save-match-data
@@ -5024,7 +5016,6 @@ point is at the beginning of the line."
     (setq sub (time-subtract (current-time) web-mode-time))
     (message "%18s: time elapsed = %Ss %9Sµs" msg (nth 1 sub) (nth 2 sub))
     ))
-
 
 (provide 'web-mode)
 
