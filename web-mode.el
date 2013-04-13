@@ -770,7 +770,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 (defvar web-mode-asp-font-lock-keywords
   (list
-   '("<%\\|%>" 0 'web-mode-preprocessor-face)
+   '("<%=?\\|%>" 0 'web-mode-preprocessor-face)
    '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-asp-types "\\)\\>") '(0 'web-mode-type-face))
    (cons (concat "\\<\\(" web-mode-asp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
