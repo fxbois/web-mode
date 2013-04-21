@@ -77,6 +77,11 @@
   :type 'boolean
   :group 'web-mode)
 
+(defcustom web-mode-enable-heredoc-fontification nil
+  "Enable heredoc fontification. The identifier should contain JS, JAVASCRIPT or HTML."
+  :type 'boolean
+  :group 'web-mode)
+
 (defcustom web-mode-comment-style 1
   "Comment style : 2 = server comments."
   :type 'integer
@@ -761,6 +766,14 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
    '("#[[:alnum:]]\\{3,6\\}\\|![ ]?important" 0 font-lock-builtin-face t t)
    ))
 
+(defvar web-mode-html-font-lock-keywords
+  (list
+   '("</?[[:alnum:]_]+\\|>" 0 'web-mode-html-tag-face)
+   '(" \\([[:alnum:]-]+=\\)\\(\"[^\"]+\"\\)"
+     (1 'web-mode-html-attr-name-face)
+     (2 'web-mode-html-attr-value-face))
+   ))
+
 (defvar web-mode-javascript-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>") '(0 'web-mode-keyword-face))
@@ -838,6 +851,8 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
   );eval-and-compile
 
+;;(defvar web-mode-abbrev-table nil)
+
 ;;;###autoload
 (define-derived-mode web-mode web-mode-prog-mode "Web"
   "Major mode for editing web templates."
@@ -909,6 +924,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
                  )
                nil)
             t t)
+
+;;  (define-abbrev
+;;    'web-mode-abbrev-table
+;;    '(("ehre" "here" nil 1)
+;;      ("ta" "table")))
 
   (when (boundp 'yas/after-exit-snippet-hook)
     (add-hook 'yas/after-exit-snippet-hook
@@ -1333,7 +1353,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 (defun web-mode-scan-server-block (beg end)
   "Scan server block."
-  (let (sub1 sub2 sub3 regexp props start ms continue fc keywords tag)
+  (let (sub1 sub2 sub3 regexp props start ms continue fc keywords tag hddeb hdend hdflk)
 
     (goto-char beg)
 
@@ -1570,15 +1590,29 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           )
 
          ((string= fc "<")
-          ;;                (message "tag=%S" (match-string 1))
+          (when (and web-mode-enable-heredoc-fontification
+                     (string-match-p "JS\\|JAVASCRIPT\\|HTM\\|CSS" (match-string 1)))
+            (setq hddeb (1+ (point))
+                  hdflk (if (string-match-p "HTM" (match-string 1))
+                            web-mode-html-font-lock-keywords
+                          web-mode-javascript-font-lock-keywords))
+            )
+          ;;          (message "tag=%s pos=%S" (match-string 1) (point))
           (setq props '(server-token-type string face web-mode-server-string-face))
           (re-search-forward (concat "^" (match-string 1)) end t)
+          (when hddeb (setq hdend (1- (match-beginning 0))))
           )
 
          );;cond
 
         ;;        (message "elt=%S" (buffer-substring start (point)))
         (add-text-properties start (point) props)
+
+        (when hddeb
+;;          (message "%S %S" hddeb hdend)
+          (web-mode-fontify-region hddeb hdend hdflk)
+          (setq hddeb nil)
+          )
 
         );while
 
