@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.14
+;; Version: 5.0.15
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates: HTML files embedding client parts (CSS/JavaScript) and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "5.0.14"
+  :version "5.0.15"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -72,7 +72,7 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-server-block-background nil
+(defcustom web-mode-enable-block-faces nil
   "Enable server block background."
   :type 'boolean
   :group 'web-mode)
@@ -211,7 +211,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   "Face for whitespaces."
   :group 'web-mode-faces)
 
-(defface web-mode-server-background-face
+(defface web-mode-server-face
   '((((class color) (min-colors 88) (background dark))
      :background "grey18")
     (((class color) (min-colors 88) (background light))
@@ -226,6 +226,16 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
      :inverse-video t)
     (t :background "grey"))
   "Face for server background blocks. Must be used in conjunction with web-mode-enable-server-block-background"
+  :group 'web-mode-faces)
+
+(defface web-mode-css-face
+  '((t :inherit web-mode-server-face))
+  "Face for css block."
+  :group 'web-mode-faces)
+
+(defface web-mode-javascript-face
+  '((t :inherit web-mode-server-face))
+  "Face for javascript block."
   :group 'web-mode-faces)
 
 (defface web-mode-folded-face
@@ -999,7 +1009,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 ;;             buff-name web-mode-engine web-mode-content-type web-mode-server-block-regexp)
 
     (when (string= web-mode-engine "razor")
-      (setq web-mode-enable-server-block-background t))
+      (setq web-mode-enable-block-faces t))
 
     ))
 
@@ -1611,16 +1621,17 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
         (when hddeb
 ;;          (message "%S %S" hddeb hdend)
           (web-mode-fontify-region hddeb hdend hdflk)
+;;          (web-mode-scan-client hddeb hdend)
           (setq hddeb nil)
           )
 
         );while
 
       );when
-    (when web-mode-enable-server-block-background
+    (when web-mode-enable-block-faces
       (font-lock-append-text-property beg end
                                       'face
-                                      'web-mode-server-background-face))
+                                      'web-mode-server-face))
     ))
 
 ;; start-tag, end-tag, tag-name, element (<a>xsx</a>, an element is delimited by tags), void-element
@@ -1862,6 +1873,12 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
         (add-text-properties start (point) props)
 
         );while
+
+      (when web-mode-enable-block-faces
+        (let (face)
+          (setq face (if (string= tag-name "style") 'web-mode-css-face 'web-mode-javascript-face))
+          (font-lock-append-text-property beg end 'face face))
+        )
 
       )))
 
