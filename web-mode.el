@@ -296,7 +296,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     ("aspx"       . ("aspx"))
     ("asp"        . ("asp"))
     ("razor"      . ("play" "play2"))
-    ("ctemplate"  . ("mustache" "handlebars" "hapax" "ngtemplate")))
+    ("ctemplate"  . ("mustache" "handlebars" "hapax" "ngtemplate" "ember")))
   "Engine name aliases")
 
 (defvar web-mode-engine-file-regexps
@@ -1733,7 +1733,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           );if
 
         (if (and (string= tag-name "script")
-                 (string-match-p " type=\"text/html\"" (buffer-substring tag-beg tag-end)))
+                 (string-match-p " type=\"text/\\(x-handlebars\\|html\\)\"" (buffer-substring tag-beg tag-end)))
             (setq tag-content-type "text/html")
           (setq tag-content-type "text/javascript"))
 
