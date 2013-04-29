@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.16
+;; Version: 5.0.17
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates: HTML files embedding client parts (CSS/JavaScript) and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "5.0.16"
+  :version "5.0.17"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -2491,15 +2491,21 @@ point is at the beginning of the line."
 ;; web-mode-count-opened-blocks-at-point doit également retourner la position
 ;; du dernier bloc ouvert ... permet de regarder si les arguments commencent
 ;; sur la meme ligne
+;; il s'agit ensuite de regarder s'il exite une assignation entre la position
+;; du bloc ouvrant (si c'est un '(') et la position de l'indentation
+
+;; doit-on considérer que '=' est un bloc ouvrant avec ';' comme char de fin ?
 
 ;; todo: use indent-context
 ;; todo: less vars
+
 (defun web-mode-indent-line ()
   "Indent current line according to language."
 ;;  (interactive)
   (let ((inhibit-modification-hooks t)
         block-beg-column
         continue
+        block-info
         counter
         cur-line-beg-pos
         cur-column
@@ -2682,14 +2688,15 @@ point is at the beginning of the line."
           ;;          (setq offset prev-indentation)
           )
 
-         ((member cur-first-char '("}" ")" "]"))
-          (goto-char pos)
-          (back-to-indentation)
-          (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
-;;          (message "n=%S (%S)" n web-mode-block-beg)
-          (setq offset (+ block-beg-column (* (1- n) local-indent-offset)))
-;;          (setq offset (+ block-beg-column (* n local-indent-offset)))
-          )
+;;          ((member cur-first-char '("}" ")" "]"))
+;;           (goto-char pos)
+;;           (back-to-indentation)
+;;           (setq block-info (web-mode-count-opened-blocks (point) web-mode-block-beg))
+;;           (setq n (car block-info))
+;; ;;          (message "n=%S (%S)" n web-mode-block-beg)
+;;           (setq offset (+ block-beg-column (* (1- n) local-indent-offset)))
+;; ;;          (setq offset (+ block-beg-column (* n local-indent-offset)))
+;;           )
 
          ;; ((member cur-first-char '("]"))
          ;;  (goto-char pos)
@@ -2700,21 +2707,21 @@ point is at the beginning of the line."
          ;;    (setq offset (current-column)))
          ;;  )
 
-         ((string= cur-first-char "?")
+         ((member cur-first-char '("?" "." ":"))
           (web-mode-rsb "[=(]" web-mode-block-beg)
           (setq offset (current-column))
           )
 
-         ((string= cur-first-char ":")
-          (setq offset (current-indentation))
-          )
+         ;; ((string= cur-first-char ":")
+         ;;  (setq offset (current-indentation))
+         ;;  )
 
-         ((string-match-p "\\(&&\\|||\\)$" prev-line)
-          (setq tmp (web-mode-opening-paren-block-position (point) web-mode-block-beg))
-          (when tmp
-            (goto-char tmp)
-            (setq offset (+ (current-column) 1)))
-          )
+         ;; ((string-match-p "\\(&&\\|||\\)$" prev-line)
+         ;;  (setq tmp (web-mode-opening-paren-block-position (point) web-mode-block-beg))
+         ;;  (when tmp
+         ;;    (goto-char tmp)
+         ;;    (setq offset (+ (current-column) 1)))
+         ;;  )
 
          ;; ((string= prev-last-char ",")
          ;;  (goto-char pos)
@@ -2752,9 +2759,10 @@ point is at the beginning of the line."
 ;;           (setq offset (if (= n 0) block-beg-column prev-indentation))
 ;;           )
 
-         ((string= prev-last-char ")")
-          (setq offset (current-indentation))
-          )
+         ;; cas du if () expressions; ?
+;;         ((string= prev-last-char ")")
+;;          (setq offset (current-indentation))
+;;          )
 
          ;; ((string= prev-last-char ";")
          ;;  (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
@@ -2773,10 +2781,18 @@ point is at the beginning of the line."
          (t
           (goto-char pos)
           (back-to-indentation)
-          (setq n (web-mode-count-opened-blocks-at-point web-mode-block-beg))
-          ;;          (message "n=%S block-beg=%S" n web-mode-block-beg)
-          (setq offset block-beg-column)
-          (if (> n 0) (setq offset (+ offset (* n local-indent-offset))))
+          (setq block-info (web-mode-count-opened-blocks (point) web-mode-block-beg))
+          (if (cddr block-info)
+              (progn
+                (setq offset (car (cdr block-info)))
+                )
+            (setq n (car block-info))
+            (setq offset block-beg-column)
+            (when (> n 0)
+              (if (member cur-first-char '("}" ")" "]")) (setq n (1- n)))
+              (setq offset (+ offset (* n local-indent-offset)))
+              );when
+            );if
           )
 
          ));end case script block
@@ -2938,20 +2954,59 @@ point is at the beginning of the line."
 
     ))
 
-;; todo : ajouter dans la regexp ] et [
-(defun web-mode-count-opened-blocks-at-point (&optional limit)
+;; return (opened-blocks . (col-num . arg-inline))
+(defun web-mode-count-opened-blocks (pt &optional limit)
   "Count opened opened block at point."
   (interactive)
   (unless limit (setq limit nil))
-  (let ((continue t) (n 0) (regexp "[\]\[}{)(]"))
-    (while (and continue (re-search-backward regexp limit t))
-      (unless (web-mode-is-comment-or-string)
-        (if (member (char-after) '(?\{ ?\( ?\[))
-            (setq n (1+ n))
-          (setq n (1- n))))
-      );while
-    ;;    (message "opened-blocks(%S)" n)
-    n))
+  (save-excursion
+    (goto-char pt)
+    (let ((continue t)
+          (default (cons 0 0))
+          arg-inline
+          (h (make-hash-table :test 'equal))
+          (opened-blocks 0) p (col-num 0) (i 0) c (regexp "[\]\[}{)(]"))
+      (while (and continue (re-search-backward regexp limit t))
+        (unless (web-mode-is-comment-or-string)
+          (setq c (char-after))
+          (if (member c '(?\{ ?\( ?\[))
+              (progn
+                (setq p (gethash c h default))
+                (setq i (1+ (car p)))
+                ;;              (setq i (1+ i))
+                (when (and (> i 0) (= col-num 0))
+                  (when (and (member c '(?\( ?\[))
+                             (not (member (char-after (1+ (point))) '(?\n ?\r))))
+                    (setq arg-inline t))
+                  (setq col-num (1+ (current-column))))
+                );progn
+            (cond
+             ((char-equal c ?\)) (setq c ?\())
+             ((char-equal c ?\}) (setq c ?\{))
+             ((char-equal c ?\]) (setq c ?\[))
+             )
+            (setq p (gethash c h default))
+            (setq i (1- (car p)))
+            ;;          (setq n (1- n))
+            ;;          (setq i (1- i))
+            );if
+          (puthash c (cons i (point)) h)
+          ;;        (message "%c : %S" c i)
+          );unless
+        );while
+
+      (maphash
+       (lambda (c p)
+         ;;       (message "%c : %S" c p)
+         (setq i (car p))
+         (when (> i 0)
+           (setq opened-blocks (+ opened-blocks i)))
+         )
+       h)
+;;      (message "opened-blocks(%S) col-num(%S) arg-inline(%S)"
+;;               opened-blocks col-num arg-inline)
+      (cons opened-blocks (cons col-num arg-inline))
+      )))
 
 (defun web-mode-count-char-in-string (char &optional string)
   "Count char in string."
