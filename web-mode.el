@@ -2958,6 +2958,7 @@ point is at the beginning of the line."
     (goto-char pt)
     (let ((continue t)
           (match "")
+          (case-found nil)
           (case-count 0)
           (default (cons 0 0))
           (h (make-hash-table :test 'equal))
@@ -2998,7 +2999,8 @@ point is at the beginning of the line."
             )
 
            ((member match '("case" "default"))
-            (setq case-count (1+ case-count))
+            (setq case-found t
+                  case-count (1+ case-count))
             )
 
            ((string= match "break")
@@ -3023,7 +3025,7 @@ point is at the beginning of the line."
 
 ;;      (message "case-count(%S)" case-count)
 
-      (when (> case-count 0)
+      (when (and case-found (> case-count 0))
         (goto-char pt)
         (back-to-indentation)
         (when (not (looking-at-p "case\\|}"))
