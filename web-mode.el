@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 5.0.17
+;; Version: 5.0.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -34,7 +34,7 @@
 
 (defgroup web-mode nil
   "Major mode for editing web templates: HTML files embedding client parts (CSS/JavaScript) and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "5.0.17"
+  :version "5.0.18"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -2488,11 +2488,6 @@ point is at the beginning of the line."
     ))
 
 
-;; web-mode-count-opened-blocks-at-point doit également retourner la position
-;; du dernier bloc ouvert ... permet de regarder si les arguments commencent
-;; sur la meme ligne
-;; il s'agit ensuite de regarder s'il exite une assignation entre la position
-;; du bloc ouvrant (si c'est un '(') et la position de l'indentation
 
 ;; doit-on considérer que '=' est un bloc ouvrant avec ';' comme char de fin ?
 
@@ -2962,24 +2957,37 @@ point is at the beginning of the line."
   (save-excursion
     (goto-char pt)
     (let ((continue t)
+          (match "")
+          (case-count 0)
           (default (cons 0 0))
-          arg-inline
           (h (make-hash-table :test 'equal))
-          (opened-blocks 0) p (col-num 0) (i 0) c (regexp "[\]\[}{)(]"))
+          (opened-blocks 0)
+          (col-num 0)
+          (i 0)
+          (regexp "[\]\[}{)(]\\|\\(break\\|case\\|default\\)")
+          arg-inline p c)
       (while (and continue (re-search-backward regexp limit t))
         (unless (web-mode-is-comment-or-string)
-          (setq c (char-after))
-          (if (member c '(?\{ ?\( ?\[))
-              (progn
-                (setq p (gethash c h default))
-                (setq i (1+ (car p)))
-                ;;              (setq i (1+ i))
-                (when (and (> i 0) (= col-num 0))
-                  (when (and (member c '(?\( ?\[))
-                             (not (member (char-after (1+ (point))) '(?\n ?\r))))
-                    (setq arg-inline t))
-                  (setq col-num (1+ (current-column))))
-                );progn
+          (setq match (match-string-no-properties 0)
+                c (char-after)
+                p nil)
+          (cond
+
+           ((member c '(?\{ ?\( ?\[))
+            (setq p (gethash c h default))
+            (setq i (1+ (car p)))
+            (when (and (> i 0) (= col-num 0))
+              (when (and (member c '(?\( ?\[))
+                         (not (member (char-after (1+ (point))) '(?\n ?\r))))
+                (setq arg-inline t))
+              (setq col-num (1+ (current-column))))
+            )
+
+           ((member c '(?\} ?\) ?\]))
+            (cond
+             ((char-equal c ?\}) (setq case-count (1- case-count)))
+             ((char-equal c ?\{) (setq case-count (1+ case-count)))
+             )
             (cond
              ((char-equal c ?\)) (setq c ?\())
              ((char-equal c ?\}) (setq c ?\{))
@@ -2987,10 +2995,19 @@ point is at the beginning of the line."
              )
             (setq p (gethash c h default))
             (setq i (1- (car p)))
-            ;;          (setq n (1- n))
-            ;;          (setq i (1- i))
-            );if
-          (puthash c (cons i (point)) h)
+            )
+
+           ((member match '("case" "default"))
+            (setq case-count (1+ case-count))
+            )
+
+           ((string= match "break")
+            (setq case-count (1- case-count))
+            )
+
+           );cond
+          (when p
+            (puthash c (cons i (point)) h))
           ;;        (message "%c : %S" c i)
           );unless
         );while
@@ -3003,6 +3020,17 @@ point is at the beginning of the line."
            (setq opened-blocks (+ opened-blocks i)))
          )
        h)
+
+;;      (message "case-count(%S)" case-count)
+
+      (when (> case-count 0)
+        (goto-char pt)
+        (back-to-indentation)
+        (when (not (looking-at-p "case\\|}"))
+          (setq opened-blocks (1+ opened-blocks))
+          )
+        )
+
 ;;      (message "opened-blocks(%S) col-num(%S) arg-inline(%S)"
 ;;               opened-blocks col-num arg-inline)
       (cons opened-blocks (cons col-num arg-inline))
