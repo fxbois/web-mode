@@ -431,6 +431,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
    '("<!-" "-  -->" "--" 2)
    '("<%-" "-  --%>" "--" 2)
    '("<%@" "  %>" "%>" 1)
+   '("<%=" "  %>" "%>" 1)
    '("<% " " %>" "%>" 0)
    '("{{ " " }}" "}}" 0)
    '("{% " " %}" "%}" 0)
