@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 6.0.1
+;; Version: 6.0.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "6.0.1"
+  :version "6.0.2"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -2864,7 +2864,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           (setq offset (1+ offset)))
         ); end comment block
 
-       ((member language '("php" "jsp" "asp" "aspx" "javascript" "code" "python"))
+       ((member language '("php" "jsp" "asp" "aspx" "javascript" "code" "python" "erb"))
 
         (cond
 
