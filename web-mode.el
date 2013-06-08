@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 6.0.2
+;; Version: 6.0.3
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "6.0.2"
+  :version "6.0.3"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -3873,6 +3873,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
      ((and (eq (get-text-property pos 'server-engine) 'erb)
            (web-mode-server-block-beginning)
+;;           (message "pt=%S" (point))
            (looking-at-p "<%[ ]+\\(.* do \\|for\\|end\\|if\\|else\\)"))
       (web-mode-match-erb-tag))
 
@@ -4825,9 +4826,14 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
              (= pos (point-min)))
         (get-text-property pos 'server-boundary))
     )
+   ((and (> pos (point-min))
+         (get-text-property (1- pos) 'server-boundary))
+    (setq pos (1- pos))
+    )
    ((get-text-property pos 'server-side)
     (setq pos (previous-single-property-change pos 'server-boundary))
     (setq pos (if pos (1- pos) (point-min)))
+;;    (setq pos (if pos pos (point-min)))
     )
    (t
     (setq pos nil))
