@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 6.0.0
+;; Version: 6.0.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "6.0.0"
+  :version "6.0.1"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -115,6 +115,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 (defcustom web-mode-extra-jsp-keywords '()
   "A list of additional strings to treat as JSP keywords."
+  :type 'list
+  :group 'web-mode)
+
+(defcustom web-mode-extra-python-keywords '()
+  "A list of additional strings to treat as Python keywords."
   :type 'list
   :group 'web-mode)
 
@@ -366,6 +371,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     ("blade"      . ("laravel"))
     ("go"         . ("gtl"))
     ("jsp"        . ())
+    ("python"     . ())
     ("aspx"       . ("aspx"))
     ("asp"        . ("asp"))
     ("razor"      . ("play" "play2"))
@@ -392,6 +398,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     ("jsp"        . "\\.jsp\\'")
     ("mustache"   . "\\.mustache\\'")
     ("php"        . "\\.\\(php\\|ctp\\|psp\\)\\'")
+    ("python"     . "\\.pml\\'")
     ("razor"      . "play\\|\\.scala\\.\\|\\.cshtml\\'\\|\\.vbhtml\\'")
     ("smarty"     . "\\.tpl\\'")
     ("velocity"   . "\\.\\(vsl\\|vtl\\|vm\\)\\'"))
@@ -408,6 +415,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     ("go"         . "{{.")
     ("jsp"        . "<%\\|${")
     ("php"        . "<\\?")
+    ("python"     . "<\\?")
     ("razor"      . "@.")
     ("smarty"     . "{[[:alpha:]#$/*\"]")
     ("velocity"   . "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]")
@@ -623,6 +631,18 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
        "right" "root" "selection" "target" "visited")))
   "CSS pseudo-classes (and pseudo-elements).")
 
+(defvar web-mode-python-keywords
+  (regexp-opt
+   (append web-mode-extra-python-keywords
+           '("False" "class" "finally" "is" "return"
+             "None" "continue" "for" "lambda" "try"
+             "True" "def" "from" "nonlocal" "while"
+             "and" "del" "global" "not" "with"
+             "as" "elif" "if" "or" "yield"
+             "assert" "else" "import" "pass"
+             "break" "except" "in" "raise")))
+  "Python keywords.")
+
 (defvar web-mode-jsp-keywords
   (regexp-opt
    (append web-mode-extra-jsp-keywords
@@ -636,7 +656,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defvar web-mode-erb-keywords
   (regexp-opt
    (append web-mode-extra-erb-keywords
-           '("do" "end" "render" "if" "for" "in" "package"
+           '("do" "end" "render" "if" "else" "for" "in" "package"
              "link_to" "html_escape" "h" "u" "url_encode"
              "javascript_tag" "form_for" "escape_javascript" "j"
              "button_to_function" "link_to_function"
@@ -942,6 +962,12 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
    '("[[:alpha:]][[:alnum:]_]*" 0 'web-mode-variable-name-face)
    ))
 
+(defvar web-mode-python-font-lock-keywords
+  (list
+   '("<\\?\\|\\?>" 0 'web-mode-preprocessor-face)
+   (cons (concat "\\<\\(" web-mode-python-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   ))
+
 (defvar web-mode-php-font-lock-keywords
   (list
    '("<\\?\\(php\\|=\\)?\\|\\?>" 0 'web-mode-preprocessor-face)
@@ -1227,6 +1253,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           (unless (looking-at-p "xml ")
             (setq closing-string "?>"))
           );php
+
+         ((string= web-mode-engine "python")
+          (unless (looking-at-p "xml ")
+            (setq closing-string "?>"))
+          );python
 
          ((string= web-mode-engine "django")
           (cond
@@ -1564,6 +1595,13 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
        )
       );razor
 
+     ((string= web-mode-engine "python")
+      (setq regexp "\"\\|'\\|#"
+            props '(server-engine python face nil)
+            keywords web-mode-python-font-lock-keywords)
+      );python
+
+
      ((string= web-mode-engine "blade")
       (cond
        ((string= sub3 "{{-")
@@ -1749,6 +1787,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           (setq props '(server-token-type string face web-mode-server-string-face))
           (re-search-forward (concat "^" (match-string 1)) end t)
           (when hddeb (setq hdend (1- (match-beginning 0))))
+          )
+
+         ((and (string= web-mode-engine "python") (string= fc "#"))
+          (setq props '(server-token-type comment face web-mode-server-comment-face))
+          (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
 
          );;cond
@@ -2821,7 +2864,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           (setq offset (1+ offset)))
         ); end comment block
 
-       ((member language '("php" "jsp" "asp" "aspx" "javascript" "code"))
+       ((member language '("php" "jsp" "asp" "aspx" "javascript" "code" "python"))
 
         (cond
 
@@ -2904,6 +2947,8 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
                    (string-match-p "^@end" line))
               (and (string= web-mode-engine "velocity")
                    (string-match-p "^#end" line))
+              (and (string= web-mode-engine "erb")
+                   (string-match-p "^<%[ ]+\\(end\\|else\\)" line))
               )
           (web-mode-tag-match)
           (setq offset (current-indentation))
@@ -3826,6 +3871,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
            (looking-at-p "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\)?\\(for\\|if\\|else\\|while\\)"))
       (web-mode-match-php-tag))
 
+     ((and (eq (get-text-property pos 'server-engine) 'erb)
+           (web-mode-server-block-beginning)
+           (looking-at-p "<%[ ]+\\(.* do \\|for\\|end\\|if\\|else\\)"))
+      (web-mode-match-erb-tag))
+
      ((and (eq (get-text-property pos 'server-engine) 'django)
            (web-mode-server-block-beginning)
            (looking-at-p (concat "{%[-]?[ ]*\\(end\\)?" (regexp-opt web-mode-django-controls))))
@@ -3995,6 +4045,58 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           (setq counter (1- counter)))
         ))
     (search-backward "<")))
+
+;;-- erb
+
+(defun web-mode-match-erb-tag ()
+  "Match ERB tag."
+  (let (chunk regexp)
+    (setq chunk (buffer-substring-no-properties (+ (point) 3)
+                                                (- (get-text-property (point) 'server-boundary) 2)))
+    (setq regexp "<%[ ]+\\(.* do \\|for\\|if\\|else\\|end\\)")
+    (if (string-match-p "else\\|end" chunk)
+        (web-mode-match-opening-erb-tag regexp)
+      (web-mode-match-closing-erb-tag regexp))
+    ))
+
+(defun web-mode-match-opening-erb-tag (regexp)
+  "Match erb opening tag."
+  (let ((counter 1) match)
+    (while (and (> counter 0) (web-mode-rsb regexp nil t))
+      (setq match (match-string-no-properties 0))
+      (cond
+       ((string-match-p "else" match)
+        )
+       ((not (string-match-p "end" match))
+        (setq counter (1- counter)))
+       (t
+        (setq counter (1+ counter)))
+       )
+      )
+    ))
+
+(defun web-mode-match-closing-erb-tag (regexp)
+  "Match erb closing tag."
+  (let ((counter 1) match)
+    (web-mode-server-block-end)
+    (while (and (> counter 0) (web-mode-rsf regexp nil t))
+      (setq match (match-string-no-properties 0))
+      (cond
+       ((string-match-p "else" match)
+        )
+       ((not (string-match-p "end" match))
+        (setq counter (1+ counter))
+        )
+       (t
+        (setq counter (1- counter))
+        )
+       )
+      )
+    (web-mode-server-block-beginning)
+    ))
+
+;;-- /erb
+
 
 (defun web-mode-match-blade-tag ()
   "Match blade tag."
