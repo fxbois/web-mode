@@ -656,11 +656,12 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defvar web-mode-erb-keywords
   (regexp-opt
    (append web-mode-extra-erb-keywords
-           '("do" "end" "render" "if" "else" "for" "in" "package"
+           '("do" "end" "render" "if" "unless" "else" "elsif" "for" "in" "package"
              "link_to" "html_escape" "h" "u" "url_encode"
              "javascript_tag" "form_for" "escape_javascript" "j"
              "button_to_function" "link_to_function"
-             "raw"
+             "class" "def" "while" "case" "when"
+             "raw" "puts"
              ;;"each" "each_with_index"
              )))
   "ERB keywords.")
@@ -958,7 +959,9 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
    '("-?%>\\|^%\\|<%[=-]?" 0 'web-mode-preprocessor-face)
    '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-erb-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-;;   '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
+   '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
+   '("class[ ]+\\(\\sw*\\)" 1 'web-mode-type-face)
+   '("def[ ]+\\(\\sw*\\)" 1 'web-mode-function-name-face)
    '("[[:alpha:]][[:alnum:]_]*" 0 'web-mode-variable-name-face)
    ))
 
@@ -2520,10 +2523,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
       (while (and continue
                   (not (bobp))
                   (forward-line -1))
+        (message "pos=%S" (point))
         (if (not (web-mode-is-comment-or-string-line))
             (setq line (web-mode-trim (buffer-substring (point) (line-end-position)))))
         (when (not (string= line "")) (setq continue nil))
-        )
+        );while
       (if (string= line "")
           (progn
             (goto-char pos)
@@ -2897,11 +2901,19 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           (setq offset (current-column))
           )
 
+         ((string= language "erb")
+          (setq offset (web-mode-ruby-indentation pos
+                                                  line
+                                                  block-column
+                                                  indent-offset
+                                                  block-beg))
+          )
+
          (t
-          (setq offset (web-mode-indentation pos
-                                             block-column
-                                             indent-offset
-                                             block-beg))
+          (setq offset (web-mode-bracket-indentation pos
+                                                     block-column
+                                                     indent-offset
+                                                     block-beg))
           );t
 
          ));end case script block
@@ -2913,10 +2925,10 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
         );directive
 
        ((string= language "css")
-        (setq offset (web-mode-indentation pos
-                                           block-column
-                                           indent-offset
-                                           block-beg))
+        (setq offset (web-mode-bracket-indentation pos
+                                                   block-column
+                                                   indent-offset
+                                                   block-beg))
         ); end case style block
 
        (t ; case html block
@@ -3003,7 +3015,57 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
     ))
 
-(defun web-mode-indentation (pos initial-column language-offset &optional limit)
+(defun web-mode-ruby-indentation (pos line initial-column language-offset limit)
+  "Calc indent column."
+  (interactive)
+  (unless limit (setq limit nil))
+  (let (h out)
+    (setq h (web-mode-previous-line pos limit))
+    (setq out initial-column)
+    (when h
+;;      (message "prev-line=%S" h)
+      (setq prev-line (car h))
+      (setq prev-indentation (cdr h))
+      (cond
+       ((string-match-p "^\\(end\\|else\\|elsif\\|when\\)" line)
+        (setq out (- prev-indentation language-offset))
+        )
+       ((string-match-p "\\(when\\|if\\|else\\|elsif\\|unless\\|for\\|while\\|def\\|class\\)" prev-line)
+        (setq out (+ prev-indentation language-offset))
+        )
+       (t
+        (setq out prev-indentation)
+        )
+       )
+      );when
+    out
+    ))
+
+(defun web-mode-previous-line (pos limit)
+  "Previous line"
+  (save-excursion
+    (let (beg end line (continue t))
+      (goto-char pos)
+      (while continue
+        (forward-line -1)
+        (setq end (line-end-position))
+        (setq line (buffer-substring-no-properties (point) end))
+        (when (or (not (string-match-p "^[ \t]*$" line))
+                  (bobp)
+                  (<= (point) limit))
+          (setq continue nil))
+        )
+      (if (<= (point) limit)
+          ;;todo : affiner (le + 3 n est pas générique cf. <?php <% <%- etc.)
+          (setq beg (if (< (+ limit 3) end) (+ limit 3) end))
+        (setq beg (line-beginning-position))
+        );if
+      (setq line (buffer-substring-no-properties beg end))
+      ;;      (message "line=%s" line)
+      (cons line (current-indentation))
+      )))
+
+(defun web-mode-bracket-indentation (pos initial-column language-offset &optional limit)
   "Calc indent column."
   (interactive)
   (unless limit (setq limit nil))
