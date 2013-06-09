@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 6.0.3
+;; Version: 6.0.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "6.0.3"
+  :version "6.0.4"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -189,22 +189,22 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   :group 'web-mode-faces)
 
 (defface web-mode-css-rule-face
-  '((t :foreground "orchid3"))
+  '((t :inherit font-lock-keyword-face))
   "Face for CSS rules."
   :group 'web-mode-faces)
 
 (defface web-mode-css-pseudo-class-face
-  '((t :foreground "plum2"))
+  '((t :inherit font-lock-builtin-face))
   "Face for CSS pseudo-classes."
   :group 'web-mode-faces)
 
 (defface web-mode-css-at-rule-face
-  '((t :inherit font-lock-builtin-face))
+  '((t :inherit font-lock-constant-face))
   "Face for CSS at-rules."
   :group 'web-mode-faces)
 
 (defface web-mode-css-prop-face
-  '((t :foreground "Pink3"))
+  '((t :inherit font-lock-variable-name-face))
   "Face for CSS props."
   :group 'web-mode-faces)
 
