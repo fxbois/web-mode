@@ -962,7 +962,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   (list
    '("-?%>\\|^%\\|<%[=-]?" 0 'web-mode-preprocessor-face)
    '(":\\([[:alnum:]_]+\\)" 1 'web-mode-symbol-face)
-   '("\\([[:alnum:]_]+\\):" 1 'web-mode-symbol-face)
+   '("\\([[:alnum:]_]+\\):[ ]+" 1 'web-mode-symbol-face)
    '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-erb-keywords "\\)\\>") '(0 'web-mode-keyword-face))
    '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
