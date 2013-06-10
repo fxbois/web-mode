@@ -661,7 +661,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
              "javascript_tag" "form_for" "escape_javascript" "j"
              "button_to_function" "link_to_function"
              "class" "def" "while" "case" "when"
-             "raw" "puts" "and" "or"
+             "raw" "puts" "and" "or" "not"
              )))
   "ERB keywords.")
 
