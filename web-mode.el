@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 6.0.4
+;; Version: 6.0.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "6.0.4"
+  :version "6.0.6"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -1081,7 +1081,8 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     (add-hook 'yas/after-exit-snippet-hook
               '(lambda ()
                  (web-mode-buffer-refresh)
-                 (indent-for-tab-command))
+;;                 (indent-for-tab-command)
+                 )
               t t)
     )
 
