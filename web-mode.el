@@ -168,6 +168,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   "Face for builtins."
   :group 'web-mode-faces)
 
+(defface web-mode-symbol-face
+  '((t :foreground "gold"))
+  "Face for builtins."
+  :group 'web-mode-faces)
+
 (defface web-mode-doctype-face
   '((t :foreground "Grey"))
   "Face for HTML doctype."
@@ -956,6 +961,8 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defvar web-mode-erb-font-lock-keywords
   (list
    '("-?%>\\|^%\\|<%[=-]?" 0 'web-mode-preprocessor-face)
+   '(":\\([[:alnum:]_]+\\)" 1 'web-mode-symbol-face)
+   '("\\([[:alnum:]_]+\\):" 1 'web-mode-symbol-face)
    '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-erb-keywords "\\)\\>") '(0 'web-mode-keyword-face))
    '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
