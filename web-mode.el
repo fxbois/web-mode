@@ -5,7 +5,7 @@
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 6.0.6
+;; Version: 6.0.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "6.0.6"
+  :version "6.0.7"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -661,8 +661,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
              "javascript_tag" "form_for" "escape_javascript" "j"
              "button_to_function" "link_to_function"
              "class" "def" "while" "case" "when"
-             "raw" "puts"
-             ;;"each" "each_with_index"
+             "raw" "puts" "and" "or"
              )))
   "ERB keywords.")
 
@@ -2845,10 +2844,9 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
       (setq prev-char (plist-get ctx ':prev-char))
       (setq prev-props (plist-get ctx ':prev-props))
 
-      (cond ;; switch language
+      (cond
 
        ((bobp)
-        ;;       ((and (null prev-line) (not in-comment-block))
         (setq offset 0)
         )
 
@@ -2947,7 +2945,8 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           )
 
          ((or (string-match-p "^</" line)
-              (string-match-p "^<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\)" line)
+              (and (string= web-mode-engine "php")
+                   (string-match-p "^<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\)" line))
               (and (string= web-mode-engine "django")
                    (string-match-p "^{%[-]?[ ]*end" line))
               (and (string= web-mode-engine "smarty")
@@ -2982,6 +2981,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
               )
           (let ((continue t)
                 (counter 0))
+;;            (message "pt=%S %S" (point) prev-line)
             (while (and continue (re-search-backward "^[[:blank:]]*</?[[:alpha:]]" nil t))
               (back-to-indentation)
               (when (web-mode-is-html-tag)
@@ -3016,6 +3016,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
     ))
 
+
 (defun web-mode-ruby-indentation (pos line initial-column language-offset limit)
   "Calc indent column."
   (interactive)
@@ -3041,6 +3042,19 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
       );when
     out
     ))
+
+(defun web-mode-is-line-in-control-flow ()
+  (save-excursion
+    (let (out)
+      (forward-line -1)
+      (back-to-indentation)
+      (when (looking-at-p "<\\?php \\(if\\|foreach\\)")
+        (setq out (+ (current-indentation) web-mode-))
+        )
+      out
+      )
+    )
+  )
 
 (defun web-mode-previous-line (pos limit)
   "Previous line"
