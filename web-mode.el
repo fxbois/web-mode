@@ -1,19 +1,20 @@
-;;; web-mode.el --- major mode for editing HTML templates
+;;; web-mode.el --- major mode for editing html templates
 
-;; Copyright (C) 2011-2013 François-Xavier Bois
+;; Copyright 2011-2013 François-Xavier Bois
+
+;; Version: 6.0.10
+;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
+;; Maintainer: François-Xavier Bois
+;; Created: July 2011
+;; Keywords: web template html php javascript js css
+;;           jsp asp erb twig jinja mustache blade
+;;           freemarker django velocity cheetah smarty
+;; URL: http://web-mode.org
+;; Repository: http://github.com/fxbois/web-mode
 
 ;; =========================================================================
 ;; This work is sponsored by KerniX : Digital Agency (Web & Mobile) in Paris
 ;; =========================================================================
-;; Version: 6.0.9
-;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
-;; Maintainer: François-Xavier Bois
-;; Created: July 2011
-;; Keywords: Web Template HTML PHP JavaScript CSS Js
-;;           JSP ASP ERB Twig Jinja Mustache Blade
-;;           FreeMarker Django Velocity Cheetah Smarty
-;; URL: http://github.com/fxbois/web-mode
-;;      http://web-mode.org
 
 ;; This file is not part of Emacs
 
@@ -32,11 +33,13 @@
 ;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
 
+;; Code goes here
+
 (defgroup web-mode nil
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "6.0.9"
+  :version "6.0.10"
   :group 'languages)
 
 (defgroup web-mode-faces nil
