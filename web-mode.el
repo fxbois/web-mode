@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.10
+;; Version: 6.0.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -39,7 +39,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, JSP, ASP, Django/Twig, Smarty, etc.)."
-  :version "6.0.10"
+  :version "6.0.11"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -85,6 +85,11 @@
 (defcustom web-mode-enable-heredoc-fontification nil
   "Enable heredoc fontification. The identifier should contain JS, JAVASCRIPT or HTML."
   :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-comment-keywords nil
+  "Enable highlight of keywords like FIXME, TODO, etc. in comments."
+  :type 'list
   :group 'web-mode)
 
 (defcustom web-mode-comment-style 1
@@ -153,6 +158,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 (defcustom web-mode-extra-razor-keywords '()
   "A list of additional strings to treat as Razor keywords."
+  :type 'list
+  :group 'web-mode)
+
+(defcustom web-mode-extra-comment-keywords '()
+  "A list of additional strings to treat as comment keywords."
   :type 'list
   :group 'web-mode)
 
@@ -331,6 +341,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defface web-mode-folded-face
   '((t :underline t))
   "Overlay face for folded."
+  :group 'web-mode-faces)
+
+(defface web-mode-comment-keyword-face
+  '((t :weight bold :box t))
+  "Comment keywords."
   :group 'web-mode-faces)
 
 (defvar web-mode-void-elements
@@ -589,6 +604,12 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defvar web-mode-velocity-controls
   '("define" "foreach" "for" "if" "macro" "end")
   "Velocity controls.")
+
+(defvar web-mode-comment-keywords
+  (regexp-opt
+   (append web-mode-extra-comment-keywords
+           '("FIXME" "TODO" "BUG" "KLUDGE" "WORKAROUND")))
+  "Comment keywords.")
 
 (defvar web-mode-php-constants
   (regexp-opt
@@ -1031,8 +1052,6 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
   );eval-and-compile
 
-;;(defvar web-mode-abbrev-table nil)
-
 ;;;###autoload
 (define-derived-mode web-mode web-mode-prog-mode "Web"
   "Major mode for editing web templates."
@@ -1052,8 +1071,6 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   (make-local-variable 'web-mode-buffer-highlighted)
   (make-local-variable 'web-mode-comment-style)
   (make-local-variable 'web-mode-content-type)
-  (make-local-variable 'web-mode-disable-auto-pairing)
-  (make-local-variable 'web-mode-disable-css-colorization)
   (make-local-variable 'web-mode-display-table)
   (make-local-variable 'web-mode-engine)
   (make-local-variable 'web-mode-engine-block-regexps)
@@ -1218,8 +1235,6 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
            (cond
             ((member web-mode-content-type '("javascript" "json" "css"))
              (web-mode-scan-client-block beg end web-mode-content-type))
-            ;;            ((string= web-mode-content-type "php")
-            ;;             (web-mode-scan-client-block beg end "php"))
             ((string= web-mode-engine "none")
              (web-mode-scan-client beg end)
              )
@@ -1450,7 +1465,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
       )))
 
 (defun web-mode-velocity-skip-forward (pos)
-  "find the end of the velocity block."
+  "find the end of a velocity block."
   (goto-char pos)
   (let (continue)
     (when (char-equal ?\# (char-after))
@@ -1478,7 +1493,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     ))
 
 (defun web-mode-razor-skip-forward (pos)
-  "find the end of the razor block."
+  "find the end of a razor block."
   (goto-char pos)
   ;;            (message "pt=%S %c" (point) (char-after))
   (let (continue)
@@ -1543,7 +1558,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 (defun web-mode-scan-server-block (beg end)
   "Scan server block."
-  (let (sub1 sub2 sub3 regexp props start ms continue fc keywords tag hddeb hdend hdflk)
+  (let (sub1 sub2 sub3 regexp props start ms continue fc keywords tag token-type hddeb hdend hdflk)
 
     (goto-char beg)
 
@@ -1623,7 +1638,6 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
             keywords web-mode-python-font-lock-keywords)
       );python
 
-
      ((string= web-mode-engine "blade")
       (cond
        ((string= sub3 "{{-")
@@ -1675,7 +1689,6 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
        ((string= sub3 "<%#")
         (setq props '(server-token-type comment face web-mode-comment-face)))
        (t
-;;        (setq regexp "//\\|/\\*\\|\"\\|'"
         (setq regexp "\"\\|'"
               props '(server-engine erb face nil)
               keywords web-mode-erb-font-lock-keywords)
@@ -1759,6 +1772,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     (when keywords (web-mode-fontify-region beg end keywords))
 
     (when regexp
+      (setq token-type "string")
       (goto-char beg)
       (while (re-search-forward regexp end t)
         (setq start (match-beginning 0)
@@ -1769,7 +1783,8 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
          ((and (string= web-mode-engine "asp")
                (string= fc "'"))
-          (setq props '(server-token-type comment face web-mode-server-comment-face))
+          (setq props '(server-token-type comment face web-mode-server-comment-face)
+                token-type "comment")
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
 
@@ -1788,12 +1803,14 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           )
 
          ((string= ms "//")
-          (setq props '(server-token-type comment face web-mode-server-comment-face))
+          (setq props '(server-token-type comment face web-mode-server-comment-face)
+                token-type "comment")
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
 
          ((string= ms "/*")
-          (setq props '(server-token-type comment face web-mode-server-comment-face))
+          (setq props '(server-token-type comment face web-mode-server-comment-face)
+                token-type "comment")
           (search-forward "*/" end t)
           )
 
@@ -1821,6 +1838,15 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
         ;;        (message "elt=%S" (buffer-substring start (point)))
         (add-text-properties start (point) props)
 
+        (cond
+         ((string= token-type "comment")
+          (if web-mode-enable-comment-keywords
+              (web-mode-enhance-comment start (point) t))
+          )
+         (t
+          )
+         )
+
         (when hddeb
           ;;          (message "%S %S" hddeb hdend)
           (web-mode-fontify-region hddeb hdend hdflk)
@@ -1830,12 +1856,26 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
         );while
 
-      );when
+      );when regexp
+
     (when web-mode-enable-block-faces
       (font-lock-append-text-property beg end
                                       'face
                                       'web-mode-server-face))
     ))
+
+(defun web-mode-enhance-comment (beg end server-side)
+  "Enhance comment"
+  (save-excursion
+    (let (regexp)
+      (goto-char beg)
+      (setq regexp (concat "\\<\\(" web-mode-comment-keywords "\\)\\>"))
+      (while (re-search-forward regexp end t)
+        (font-lock-append-text-property (match-beginning 1) (match-end 1)
+                                        'face
+                                        'web-mode-comment-keyword-face)
+        )
+      )))
 
 ;; start-tag, end-tag, tag-name, element (<a>xsx</a>, an element is delimited by tags), void-element
 ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
@@ -1999,7 +2039,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defun web-mode-scan-client-block (beg end content-type)
   "Scan client block."
   (save-excursion
-    (let (regexp ch-before ch-at ch-next props start continue keywords rules-beg rules-end props-beg props-end)
+    (let (regexp ch-before ch-at ch-next props start continue keywords rules-beg rules-end props-beg props-end token-type)
 
       (cond
        ((string= content-type "javascript")
@@ -2064,6 +2104,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
         (setq ch-at (char-after start))
         (setq ch-next (or (char-after (1+ start)) ?\d))
         (setq ch-before (or (char-before start) ?\d))
+        (setq token-type "string")
 ;;        (message "beg=%S :%c%c%c" start ch-before ch-at ch-next)
         (cond
 
@@ -2115,22 +2156,32 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
          ((char-equal ch-next ?\/)
           (unless (char-equal ?\\ ch-before)
-            (setq props '(client-token-type comment face web-mode-comment-face))
+            (setq props '(client-token-type comment face web-mode-comment-face)
+                  token-type "comment")
             (goto-char (if (< end (line-end-position)) end (line-end-position)))
             )
           )
 
          ((char-equal ch-next ?\*)
           (unless (char-equal ?\\ ch-before)
-            (setq props '(client-token-type comment face web-mode-comment-face))
+            (setq props '(client-token-type comment face web-mode-comment-face)
+                  token-type "comment")
             (search-forward "*/" end t)
             )
           )
 
          );cond
 
-        ;;        (message "elt=%s" (buffer-substring-no-properties start (point)))
         (if props (add-text-properties start (point) props))
+
+        (cond
+         ((string= token-type "comment")
+          (if web-mode-enable-comment-keywords
+              (web-mode-enhance-comment start (point) t))
+          )
+         (t
+          )
+         )
 
         );while
 
@@ -2366,7 +2417,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
             (setq delim-beg "<!--"
                   delim-end "-->"))
            )
-         ;;          (subst-char-in-region beg end ?\n ?\s)
+          ;;          (subst-char-in-region beg end ?\n ?\s)
           ;;          (message "fill-column=%S pt=%S pair=%S chunk=%S"
           ;;                   fill-column (point) pair chunk)
           )
@@ -2406,16 +2457,12 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defun web-mode-scan-whitespaces (beg end)
   "Scan whitespaces."
   (save-excursion
-    (let (mbeg mend)
-      (goto-char beg)
-      ;;      (setq regexp web-mode-whitespace-regexp)
-      (while (re-search-forward web-mode-whitespaces-regexp end t)
-        (setq mbeg (match-beginning 0)
-              mend (match-end 0))
-        ;;        (message "mbeg(%d) mend(%d)" mbeg mend)
-        (add-text-properties mbeg mend '(face web-mode-whitespaces-face))
-        );while
-      )))
+    (goto-char beg)
+    (while (re-search-forward web-mode-whitespaces-regexp end t)
+      (add-text-properties (match-beginning 0) (match-end 0)
+                           '(face web-mode-whitespaces-face))
+      );while
+    ))
 
 (defun web-mode-errors-show ()
   "Show unclosed tags."
