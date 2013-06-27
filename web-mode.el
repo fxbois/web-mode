@@ -344,7 +344,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   :group 'web-mode-faces)
 
 (defface web-mode-comment-keyword-face
-  '((t :weight bold :box t))
+  '((t :weight bold :box t)) ;;  :background "white" :foreground "white"
   "Comment keywords."
   :group 'web-mode-faces)
 
@@ -1838,6 +1838,14 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
         ;;        (message "elt=%S" (buffer-substring start (point)))
         (add-text-properties start (point) props)
 
+
+        (when hddeb
+          ;;          (message "%S %S" hddeb hdend)
+          (web-mode-fontify-region hddeb hdend hdflk)
+;;          (web-mode-scan-client hddeb hdend)
+          (setq hddeb nil)
+          )
+
         (cond
          ((string= token-type "comment")
           (if web-mode-enable-comment-keywords
@@ -1847,19 +1855,13 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
           )
          )
 
-        (when hddeb
-          ;;          (message "%S %S" hddeb hdend)
-          (web-mode-fontify-region hddeb hdend hdflk)
-;;          (web-mode-scan-client hddeb hdend)
-          (setq hddeb nil)
-          )
 
         );while
 
       );when regexp
 
     (when web-mode-enable-block-faces
-      (font-lock-append-text-property beg end
+      (font-lock-prepend-text-property beg end
                                       'face
                                       'web-mode-server-face))
     ))
@@ -1871,9 +1873,9 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
       (goto-char beg)
       (setq regexp (concat "\\<\\(" web-mode-comment-keywords "\\)\\>"))
       (while (re-search-forward regexp end t)
-        (font-lock-append-text-property (match-beginning 1) (match-end 1)
-                                        'face
-                                        'web-mode-comment-keyword-face)
+        (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
+                                         'face
+                                         'web-mode-comment-keyword-face)
         )
       )))
 
@@ -2631,9 +2633,9 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
       (when prop
         (setq start pos
               end pos)
-        (when (eq (get-text-property pos prop) (get-text-property (- pos 1) prop))
+        (when (eq (get-text-property pos prop) (get-text-property (1- pos) prop))
           (setq start (or (previous-single-property-change pos prop) (point-min))))
-        (when (eq (get-text-property pos prop) (get-text-property (+ pos 1) prop))
+        (when (eq (get-text-property pos prop) (get-text-property (1+ pos) prop))
           (setq end (next-single-property-change pos prop)))
         ;;        (message "start(%S) end(%S)" start end)
         )
@@ -2653,7 +2655,6 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   (let (ret)
     (setq ret (+ (count-lines 1 pos)
                  (if (= (current-column) 0) 1 0)))
-    ;;    (message "%d [%d] %s" pos out (web-mode-text-at-point))
     ret))
 
 (defun web-mode-clean-client-line (input)
@@ -2714,29 +2715,8 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     (current-column)
     ))
 
-;;todo: a supprimer
-(defun web-mode-in-server-block (language)
-  "Detect if point is in a server block."
-  (save-excursion
-    (let ((pos (point)))
-      (and (not (bobp))
-           (eq (get-text-property pos 'server-engine) language)
-           (not (get-text-property pos 'server-beg))
-           (not (looking-at-p "\\?>\\|%>"))
-           )
-      )))
 
-;;todo: a supprimer
-(defun web-mode-in-client-block (language)
-  "Detect if point is in a client (CSS/JS) block."
-  (save-excursion
-    (let ((pos (point)))
-      (and (not (bobp))
-           (get-text-property pos 'client-side)
-           (eq (get-text-property pos 'client-language) language))
-      )))
-
-(defun web-mode-indent-context (pos)
+(defun web-mode-point-context (pos)
   "POS should be at the beginning of the indentation.
    Return ctx = plist containing
     :block-beg, :block-column,
@@ -2899,7 +2879,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
     (save-excursion
       (back-to-indentation)
       (setq pos (point))
-      (setq ctx (web-mode-indent-context pos))
+      (setq ctx (web-mode-point-context pos))
       (setq block-beg (plist-get ctx ':block-beg))
       (setq block-column (plist-get ctx ':block-column))
       (setq first-char (plist-get ctx ':first-char))
@@ -3742,35 +3722,6 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
       );let
     ))
 
-;;todo: a supprimer ou modifier
-(defun web-mode-line-type (&optional pos)
-  "Line type."
-  (save-excursion
-    (let (type)
-      (if pos (goto-char pos))
-      (back-to-indentation)
-      (cond
-       ((web-mode-in-server-block 'php)
-        (setq type "php"))
-       ((web-mode-in-server-block 'jsp)
-        (setq type "java"))
-       ((web-mode-in-server-block 'directive)
-        (setq type "html"))
-       ((web-mode-in-server-block 'asp)
-        (setq type "asp"))
-       ((web-mode-in-server-block 'aspx)
-        (setq type "aspx"))
-       ((web-mode-in-client-block 'javascript)
-        (setq type "javascript"))
-       ((web-mode-in-client-block 'json)
-        (setq type "javascript"))
-       ((web-mode-in-client-block 'css)
-        (setq type "css"))
-       (t
-        (setq type "html"))
-       );cond
-      type
-      )))
 
 (defun web-mode-comment-or-uncomment (&optional pos)
   "Comment or uncomment line(s) at point."
@@ -3792,17 +3743,22 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   (interactive)
   (unless pos (setq pos (point)))
   (save-excursion
-    (let (type sel beg end tmp)
+    (let (language sel beg end tmp)
+
+      (setq ctx (web-mode-point-context
+                 (if mark-active (region-beginning) (line-beginning-position))))
+;;      (message "ctx=%S" ctx)
+      (setq language (plist-get ctx ':language))
 
       (if mark-active
           (progn
             (setq beg (region-beginning)
                   end (region-end))
 ;;            (message "beg=%S end=%S" beg end)
-            (setq type (web-mode-line-type beg))
+;;            (setq language (web-mode-line-type beg))
             )
-        (setq type (web-mode-line-type (line-beginning-position)))
-        (if (string= type "html")
+;;        (setq language (web-mode-line-type (line-beginning-position)))
+        (if (string= language "html")
             (progn
               (back-to-indentation)
               (web-mode-element-select))
@@ -3821,17 +3777,17 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
       (if (eq (char-before end) ?\n)
           (setq end (1- end)))
 
-;;     (message "type=%S beg=%S end=%S" type beg end)
+;;     (message "language=%S beg=%S end=%S" language beg end)
 
 ;;      (setq sel (buffer-substring-no-properties beg end))
       (setq sel (web-mode-trim (buffer-substring-no-properties beg end)))
-      ;;      (message "[type=%s] sel=%s" type sel)
+      ;;      (message "[language=%s] sel=%s" language sel)
       (delete-region beg end)
       (deactivate-mark)
 
       (cond
 
-       ((string= type "html")
+       ((string= language "html")
 
         (cond
          ((and (= web-mode-comment-style 2) (string= web-mode-engine "django"))
@@ -3859,7 +3815,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
         )
 
-       ((member type '("php" "javascript" "css"))
+       ((member language '("php" "javascript" "css"))
         (web-mode-insert-and-indent (concat "/* " sel " */")))
 
        (t
@@ -5846,3 +5802,57 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
          ;;   );cond
 
          ;;  );t
+
+;; ;;todo: a supprimer ou modifier
+;; (defun web-mode-line-type (&optional pos)
+;;   "Line type."
+;;   (save-excursion
+;;     (let (type)
+;;       (if pos (goto-char pos))
+;;       (back-to-indentation)
+;;       (cond
+;;        ((web-mode-in-server-block 'php)
+;;         (setq type "php"))
+;;        ((web-mode-in-server-block 'jsp)
+;;         (setq type "java"))
+;;        ((web-mode-in-server-block 'directive)
+;;         (setq type "html"))
+;;        ((web-mode-in-server-block 'asp)
+;;         (setq type "asp"))
+;;        ((web-mode-in-server-block 'aspx)
+;;         (setq type "aspx"))
+;;        ((web-mode-in-client-block 'javascript)
+;;         (setq type "javascript"))
+;;        ((web-mode-in-client-block 'json)
+;;         (setq type "javascript"))
+;;        ((web-mode-in-client-block 'css)
+;;         (setq type "css"))
+;;        (t
+;;         (setq type "html"))
+;;        );cond
+;;       type
+;;       )))
+
+
+;; ;;todo: a supprimer
+;; (defun web-mode-in-server-block (language)
+;;   "Detect if point is in a server block."
+;;   (save-excursion
+;;     (let ((pos (point)))
+;;       (and (not (bobp))
+;;            (eq (get-text-property pos 'server-engine) language)
+;;            (not (get-text-property pos 'server-beg))
+;;            (not (looking-at-p "\\?>\\|%>"))
+;;            )
+;;       )))
+
+;; ;;todo: a supprimer
+;; (defun web-mode-in-client-block (language)
+;;   "Detect if point is in a client (CSS/JS) block."
+;;   (save-excursion
+;;     (let ((pos (point)))
+;;       (and (not (bobp))
+;;            (get-text-property pos 'client-side)
+;;            (eq (get-text-property pos 'client-language) language))
+;;       )))
+
