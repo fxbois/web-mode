@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.16
+;; Version: 6.0.17
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.16"
+  :version "6.0.17"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -638,7 +638,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Go controls.")
 
 (defvar web-mode-blade-controls
-  '("foreach" "forelse" "for" "if" "unless" "while" "section")
+  '("elseif" "else" "foreach" "forelse" "for" "if" "unless" "while" "section")
   "Blade controls.")
 
 (defvar web-mode-django-controls
