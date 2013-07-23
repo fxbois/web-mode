@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.17
+;; Version: 6.0.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.17"
+  :version "6.0.18"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -3068,27 +3068,36 @@ Must be used in conjunction with web-mode-enable-block-face."
               ))
           )
 
-         ((or (string-match-p "^</" line)
+         ((or (and (string-match-p "^</" line)
+                   (web-mode-match-html-tag))
               (and (string= web-mode-engine "php")
-                   (string-match-p "^<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\)" line))
+                   (string-match-p "^<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\)" line)
+                   (web-mode-match-php-block))
               (and (string= web-mode-engine "django")
-                   (string-match-p "^{%[-]?[ ]+\\(end\\|else\\)" line))
+                   (string-match-p "^{%[-]?[ ]+\\(end\\|else\\)" line)
+                   (web-mode-match-django-block))
               (and (string= web-mode-engine "erb")
-                   (string-match-p "^<%[ ]+\\(end\\|else\\)" line))
+                   (string-match-p "^<%[ ]+\\(end\\|else\\)" line)
+                   (web-mode-match-erb-block))
               (and (string= web-mode-engine "smarty")
-                   (string-match-p "^{\\(/\\|else\\)" line))
+                   (string-match-p "^{\\(/\\|else\\)" line)
+                   (web-mode-match-smarty-block))
               (and (string= web-mode-engine "ctemplate")
-                   (string-match-p "^{{/" line))
+                   (string-match-p "^{{/" line)
+                   (web-mode-match-ctemplate-block))
               (and (string= web-mode-engine "go")
-                   (string-match-p "^{{[ ]*end" line))
+                   (string-match-p "^{{[ ]*end" line)
+                   (web-mode-match-go-block))
               (and (string= web-mode-engine "blade")
-                   (string-match-p "^@\\\(end\\|else\\)" line))
+                   (string-match-p "^@\\\(end\\|else\\)" line)
+                   (web-mode-match-blade-block))
               (and (string= web-mode-engine "velocity")
-                   (string-match-p "^#end" line))
+                   (string-match-p "^#end" line)
+                   (web-mode-match-velocity-block))
               (and (string= web-mode-engine "freemarker")
-                   (string-match-p "^[<[]#\\(els\\|break\\)" line))
+                   (string-match-p "^[<[]#\\(els\\|break\\)" line)
+                   (web-mode-match-freemarker-block))
               )
-          (web-mode-tag-match)
           (setq offset (current-indentation))
           )
 
@@ -4386,52 +4395,54 @@ Must be used in conjunction with web-mode-enable-block-face."
            (web-mode-rsb web-mode-tag-regexp nil t))
       (if (web-mode-is-void-element)
           (goto-char init)
-        (web-mode-match-html-block))
+        (web-mode-match-html-tag))
       )
 
      ); cond
 
     ))
 
-(defun web-mode-match-html-block (&optional pos)
+(defun web-mode-match-html-tag (&optional pos)
   "Fetch HTML block."
   (unless pos (setq pos (point)))
-  (let (tag)
+  (let (tag regexp)
     (setq tag (get-text-property pos 'tag-name))
-    (if (eq (get-text-property pos 'tag-type) 'end)
-        (web-mode-match-html-opening-block tag pos)
-      (web-mode-match-html-closing-block tag pos))))
-
-(defun web-mode-match-html-closing-block (tag pos)
-  "Fetch closing HTML closing block."
-  (let ((counter 1) (n 0) regexp)
-    (web-mode-tag-end)
-    (backward-char)
     (setq regexp (concat "</?" tag))
+    (if (eq (get-text-property pos 'tag-type) 'end)
+        (web-mode-fetch-html-opening-tag regexp pos)
+      (web-mode-fetch-html-closing-tag regexp pos))
+    t))
+
+(defun web-mode-fetch-html-opening-tag (regexp pos)
+  "Fetch opening HTML block."
+  (let ((counter 1) (n 0))
+    (while (and (> counter 0) (re-search-backward regexp nil t))
+      (when (get-text-property (point) 'tag-beg)
+        (setq n (1+ n))
+;;        (if (char-equal (aref (match-string-no-properties 0) 1) ?\/)
+        (if (eq (get-text-property (point) 'tag-type) 'end)
+            (setq counter (1+ counter))
+          (setq counter (1- counter))))
+      )
+    (if (= n 0) (goto-char pos))
+    ))
+
+(defun web-mode-fetch-html-closing-tag (regexp pos)
+  "Fetch closing HTML closing block."
+  (let ((counter 1) (n 0))
+    (web-mode-tag-end)
+;;    (backward-char)
     (while (and (> counter 0) (re-search-forward regexp nil t))
       (when (get-text-property (match-beginning 0) 'tag-beg)
         (setq n (1+ n))
-        (if (char-equal (aref (match-string-no-properties 0) 1) ?\/)
+;;        (if (char-equal (aref (match-string-no-properties 0) 1) ?\/)
+        (if (eq (get-text-property (point) 'tag-type) 'end)
             (setq counter (1- counter))
           (setq counter (1+ counter))))
       )
     (if (> n 0)
         (web-mode-tag-beginning)
       (goto-char pos))
-    ))
-
-(defun web-mode-match-html-opening-block (tag pos)
-  "Fetch opening HTML block."
-  (let ((counter 1) (n 0) regexp)
-    (setq regexp (concat "</?" tag))
-    (while (and (> counter 0) (re-search-backward regexp nil t))
-      (when (get-text-property (point) 'tag-beg)
-        (setq n (1+ n))
-        (if (char-equal (aref (match-string-no-properties 0) 1) ?\/)
-            (setq counter (1+ counter))
-          (setq counter (1- counter))))
-      )
-    (if (= n 0) (goto-char pos))
     ))
 
 (defun web-mode-match-php-block ()
@@ -4447,10 +4458,10 @@ Must be used in conjunction with web-mode-enable-block-face."
      ((looking-at "<\\?\\(php[ ]+\\|[ ]*\\)?\\(while\\|endwhile\\)")
       (setq regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(while\\|endwhile\\)[ ]?[(;]"))
      )
-    (if (string-match-p "\\(endif\\|endfor\\|endwhile\\|else\\)" (match-string-no-properties 2))
-        (web-mode-fetch-pening-php-block regexp)
+    (if (string-match-p "\\(end\\|else\\)" (match-string-no-properties 2))
+        (web-mode-fetch-opening-php-block regexp)
       (web-mode-fetch-closing-php-block regexp))
-    ))
+    t))
 
 (defun web-mode-fetch-opening-php-block (regexp)
   "Fetch PHP opening block."
@@ -4489,7 +4500,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (if (string-match-p "else\\|end" chunk)
         (web-mode-fetch-opening-erb-block regexp)
       (web-mode-fetch-closing-erb-block regexp))
-    ))
+    t))
 
 (defun web-mode-fetch-opening-erb-block (regexp)
   "Fetch erb opening block."
@@ -4545,7 +4556,8 @@ Must be used in conjunction with web-mode-enable-block-face."
       )
     (if (string-match-p "end" chunk)
         (web-mode-fetch-opening-blade-block regexp)
-      (web-mode-fetch-closing-blade-block regexp))))
+      (web-mode-fetch-closing-blade-block regexp))
+    t))
 
 (defun web-mode-fetch-opening-blade-block (regexp)
   "Fetch blade opening block."
@@ -4583,7 +4595,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             (member match '("else" "elseif")))
         (web-mode-fetch-opening-django-block regexp)
       (web-mode-fetch-closing-django-block regexp))
-    ))
+    t))
 
 (defun web-mode-fetch-opening-django-block (regexp)
   "Fetch django opening block."
@@ -4617,7 +4629,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             (string= match "else"))
         (web-mode-fetch-opening-smarty-block regexp)
       (web-mode-fetch-closing-smarty-block regexp))
-    ))
+    t))
 
 (defun web-mode-fetch-opening-smarty-block (regexp)
   "Fetch smarty opening block."
@@ -4647,7 +4659,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq regexp (concat "#" (regexp-opt web-mode-velocity-controls)))
     (if (looking-at-p "#end")
         (web-mode-fetch-opening-velocity-block regexp)
-      (web-mode-fetch-closing-velocity-block regexp))))
+      (web-mode-fetch-closing-velocity-block regexp))
+    t))
 
 (defun web-mode-fetch-opening-velocity-block (regexp)
   "Fetch velocity opening block."
@@ -4681,7 +4694,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ;;    (message "pt=%S regexp=%S" (point) regexp)
     (if (looking-at-p "{{/")
         (web-mode-fetch-opening-ctemplate-block regexp)
-      (web-mode-fetch-closing-ctemplate-block regexp))))
+      (web-mode-fetch-closing-ctemplate-block regexp))
+    t))
 
 (defun web-mode-fetch-opening-ctemplate-block (regexp)
   "Fetch ctemplate opening block."
@@ -4717,7 +4731,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;    (message "go: point=%S regexp=%S tag=%S" (point) regexp tag)
     (if (string= tag "end")
         (web-mode-fetch-opening-go-block regexp)
-      (web-mode-fetch-closing-go-block regexp))))
+      (web-mode-fetch-closing-go-block regexp))
+    t))
 
 (defun web-mode-fetch-opening-go-block (regexp)
   "Fetch go opening block."
@@ -4766,7 +4781,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;    (message "go: point=%S regexp=%S tag=%S" (point) regexp tag)
     (if (char-equal ?\/ (aref match 1))
         (web-mode-fetch-opening-jsp-block regexp)
-      (web-mode-fetch-closing-jsp-block regexp))))
+      (web-mode-fetch-closing-jsp-block regexp))
+    t))
 
 (defun web-mode-fetch-opening-jsp-block (regexp)
   "Fetch jsp opening block."
@@ -4819,7 +4835,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     (message "freemarker: point=%S regexp=%S tag=%S" (point) regexp tag)
     (if (char-equal (aref match 1) ?\/)
         (web-mode-fetch-opening-freemarker-block regexp)
-      (web-mode-fetch-closing-freemarker-block regexp))))
+      (web-mode-fetch-closing-freemarker-block regexp))
+    t))
 
 (defun web-mode-fetch-opening-freemarker-block (regexp)
   "Fetch freemarker opening block."
