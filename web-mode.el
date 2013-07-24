@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.18
+;; Version: 6.0.19
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -35,6 +35,7 @@
 
 ;; Code goes here
 
+;;todo : autoindent lorsq on est en début de ligne et que la ligne commance par un tag ou un block
 ;;todo : indentation attributs jsp
 ;;todo : supprimer notion de directive
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
@@ -43,7 +44,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.18"
+  :version "6.0.19"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -3420,21 +3421,26 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive)
   (unless limit (setq limit nil))
   (save-excursion
-    (let (offset n first-char block-info col block-column)
+    (let (offset n first-char block-info col block-column regexp)
       (goto-char pos)
       (setq first-char (char-after)
             block-column initial-column)
-      (forward-line -1)
-      (end-of-line)
-      (when (and (> (point) limit)
+
+;;todo : remonter jusqu'à la première dont l'indentation = initial-column
+
+;;      (forward-line -1)
+;;      (end-of-line)
+;;      (setq regexp (concat "^[[:blank:]]{" (number-to-string initial-column) "}[[:alnum:]]"))
+;;      (when (and (> (point) limit)
+;;                 (web-mode-rsb regexp limit))
 ;;                 (web-mode-rsb "^[[:blank:]]*}[,); ]*$" limit))
-                 (web-mode-rsb "^[[:blank:]]*\\(}\\)[;,]?[ ]*$" limit))
-        (end-of-line)
-        (setq limit (point))
-        (setq initial-column (current-indentation))
-        );when
-;;      (message "point=%S limit=%S" (point) limit)
-      (goto-char pos)
+;;                 (web-mode-rsb "^[[:blank:]]*\\(}\\)[;,]?[ ]*$" limit))
+;;        (end-of-line)
+;;        (setq limit (point))
+;;        (setq initial-column (current-indentation))
+;;        );when
+;;      (message "regexp=%S point=%S limit=%S" regexp (point) limit)
+;;      (goto-char pos)
       (setq block-info (web-mode-count-opened-blocks pos limit))
       (setq col initial-column)
 ;;      (message "bi=%S" block-info)
@@ -3444,6 +3450,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             )
         (setq n (car block-info))
         (setq col initial-column)
+;;        (message "initial-col=%S n=%S col=%S" initial-column n col)
         (if (member first-char '(?\} ?\) ?\])) (setq n (1- n)))
         (setq col (+ initial-column (* n language-offset)))
         );if
@@ -4489,8 +4496,6 @@ Must be used in conjunction with web-mode-enable-block-face."
     (web-mode-block-beginning)
     ))
 
-;;-- erb
-
 (defun web-mode-match-erb-block ()
   "Fetch ERB block."
   (let (chunk regexp)
@@ -4537,8 +4542,6 @@ Must be used in conjunction with web-mode-enable-block-face."
       )
     (web-mode-block-beginning)
     ))
-
-;;-- /erb
 
 (defun web-mode-match-blade-block ()
   "Fetch blade block."
