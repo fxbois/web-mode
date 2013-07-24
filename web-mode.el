@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.19
+;; Version: 6.0.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -44,7 +44,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.19"
+  :version "6.0.20"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -2893,12 +2893,15 @@ Must be used in conjunction with web-mode-enable-block-face."
         (cond
          ((member language '("html" "javascript"))
           (setq prev-line (web-mode-previous-usable-client-line))
-          (setq prev-line (web-mode-clean-client-line prev-line))
-          (setq prev-props (text-properties-at (1- (length prev-line)) prev-line))
+;;          (message "prev-line=%S" prev-line)
+          (when prev-line
+            (setq prev-line (web-mode-clean-client-line prev-line))
+            (setq prev-props (text-properties-at (1- (length prev-line)) prev-line)))
           )
          (t
           (setq prev-line (web-mode-previous-usable-server-line))
-          (setq prev-line (web-mode-clean-server-line prev-line))
+          (when prev-line
+            (setq prev-line (web-mode-clean-server-line prev-line)))
           )
          );cond
         (when (>= (length prev-line) 1)
@@ -3421,12 +3424,10 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive)
   (unless limit (setq limit nil))
   (save-excursion
-    (let (offset n first-char block-info col block-column regexp)
+    (let (offset n first-char block-info col block-column (continue t))
       (goto-char pos)
       (setq first-char (char-after)
             block-column initial-column)
-
-;;todo : remonter jusqu'à la première dont l'indentation = initial-column
 
 ;;      (forward-line -1)
 ;;      (end-of-line)
@@ -3441,6 +3442,25 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;        );when
 ;;      (message "regexp=%S point=%S limit=%S" regexp (point) limit)
 ;;      (goto-char pos)
+
+      (while continue
+        (forward-line -1)
+        (back-to-indentation)
+        (cond
+         ((or (> limit (point))
+              (bobp))
+          (setq continue nil)
+          )
+         ((and (= (current-indentation) initial-column)
+               (not (eolp)))
+          (setq continue nil)
+          (setq limit (point))
+          )
+         )
+        )
+;;      (message "ic=%S point=%S limit=%S" initial-column (point) limit)
+      (goto-char pos)
+
       (setq block-info (web-mode-count-opened-blocks pos limit))
       (setq col initial-column)
 ;;      (message "bi=%S" block-info)
