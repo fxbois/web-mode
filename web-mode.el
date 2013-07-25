@@ -660,7 +660,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-comment-keywords
   (regexp-opt
    (append web-mode-extra-comment-keywords
-           '("FIXME" "TODO" "BUG" "KLUDGE" "WORKAROUND")))
+           '("FIXME" "TODO" "BUG" "KLUDGE" "WORKAROUND"
+             "OPTIMIZE" "HACK" "REFACTOR")))
   "Comment keywords.")
 
 (defvar web-mode-php-constants
