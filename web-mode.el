@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.20
+;; Version: 6.0.21
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -44,7 +44,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.20"
+  :version "6.0.21"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -3216,7 +3216,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq found t
                   state (not (char-equal ?\/ (aref (match-string-no-properties 0) 1)))
                   ctrl (match-string-no-properties 1))
-            (message "state=%S ctrl=%S" state ctrl)
+;;            (message "state=%S ctrl=%S" state ctrl)
             )
           (setq struct nil)
           )
@@ -3226,7 +3226,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq found t
                   state (not (char-equal ?\/ (aref (match-string-no-properties 0) 2)))
                   ctrl (match-string-no-properties 1))
-            (message "state=%S ctrl=%S" state ctrl)
+;;            (message "state=%S ctrl=%S" state ctrl)
             )
           (setq struct nil)
           )
@@ -3236,7 +3236,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq found t
                   state (not (string= "end" (match-string-no-properties 1)))
                   ctrl (match-string-no-properties 2))
-            (message "state=%S ctrl=%S" state ctrl)
+;;            (message "state=%S ctrl=%S" state ctrl)
             )
           (setq struct nil)
           )
@@ -3356,13 +3356,25 @@ Must be used in conjunction with web-mode-enable-block-face."
           (puthash tag (1+ n) h))
         );when
       (setq pos (1+ pos))
-      (setq tag-pos (next-single-property-change pos 'tag-beg buffer limit))
-      (setq block-pos (next-single-property-change pos 'block-beg buffer limit))
-      (if (and (null tag-pos) (null block-pos))
-          (setq pos nil)
-        (setq pos (min tag-pos block-pos))
-
+      (when (null tag-pos)
+        (setq tag-pos (next-single-property-change pos 'tag-beg buffer limit)))
+      (when (null block-pos)
+        (setq block-pos (next-single-property-change pos 'block-beg buffer limit)))
+      (cond
+       ((and (null tag-pos)
+             (null block-pos))
+        (setq pos nil)
         )
+       ((or (null block-pos)
+            (< tag-pos block-pos))
+        (setq pos tag-pos)
+        (setq tag-pos nil)
+        )
+       (t
+        (setq pos block-pos)
+        (setq block-pos nil)
+        )
+       )
       (when (or (null pos)
                 (>= pos limit))
         (setq continue nil))
