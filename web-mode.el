@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.22
+;; Version: 6.0.23
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -45,7 +45,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.22"
+  :version "6.0.23"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -670,13 +670,25 @@ Must be used in conjunction with web-mode-enable-block-face."
   (concat "{%[-]?[ ]+\\(end\\)?" (regexp-opt web-mode-django-controls t))
   "Django controls regexp.")
 
+(defvar web-mode-ctemplate-control-regexp
+  "{{[#^/]\\([[:alnum:]_]+\\)"
+  "Ctemplate control regexp.")
+
 (defvar web-mode-smarty-controls
   '("block" "else" "foreach" "for" "if" "section" "while")
   "Smarty controls.")
 
+(defvar web-mode-smarty-control-regexp
+  (concat "{/?" (regexp-opt web-mode-smarty-controls t))
+  "Smarty control regexp.")
+
 (defvar web-mode-velocity-controls
-  '("define" "foreach" "for" "if" "macro" "end")
+  '("define" "else" "elseif" "end" "for" "foreach" "if" "macro")
   "Velocity controls.")
+
+(defvar web-mode-velocity-control-regexp
+  (concat "#" (regexp-opt web-mode-velocity-controls t))
+  "Velocity control regexp.")
 
 (defvar web-mode-comment-keywords
   (regexp-opt
@@ -803,13 +815,6 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("as"))
   "Smarty keywords.")
 
-(defvar web-mode-velocity-directives
-  (eval-when-compile
-    (regexp-opt
-     '("else" "elseif" "end" "foreach" "if" "in" "include" "macro" "parse"
-       "set" "stop")))
-  "Velocity directives.")
-
 (defvar web-mode-velocity-keywords
   (eval-when-compile
     (regexp-opt
@@ -926,12 +931,13 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-velocity-font-lock-keywords
   (list
-   (cons (concat "\\([#]\\)\\(" web-mode-velocity-directives "\\)\\>")
+   (cons (concat "\\([#]\\)\\([[:alpha:]]+\\)\\>")
          '((1 'web-mode-preprocessor-face)
-           (2 'web-mode-keyword-face)))
+           (2 'web-mode-block-control-face)))
    (cons (concat "[ ]\\(" web-mode-velocity-keywords "\\)[ ]") '(1 'web-mode-keyword-face t t))
-   '("[.]\\([[:alnum:]_-]+\\)[ ]?(" (1 'web-mode-function-name-face))
-   '("[.]\\([[:alnum:]_-]+\\)" (1 'web-mode-variable-name-face))
+;;   '("[.]\\([[:alnum:]_-]+\\)[ ]?(" (1 'web-mode-function-name-face))
+   '("#macro([ ]*\\([[:alpha:]]+\\)[ ]+" 1 'web-mode-function-name-face)
+   '("[.]\\([[:alnum:]_-]+\\)" 1 'web-mode-variable-name-face)
    '("\\<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
@@ -3120,7 +3126,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                    (string-match-p "^@\\\(end\\|else\\)" line)
                    (web-mode-match-blade-block))
               (and (string= web-mode-engine "velocity")
-                   (string-match-p "^#end" line)
+                   (string-match-p "^#\\(end\\|else\\)" line)
                    (web-mode-match-velocity-block))
               (and (string= web-mode-engine "freemarker")
                    (string-match-p "^[<[]\\(/#\\|#els\\|#break\\)" line)
@@ -3209,7 +3215,8 @@ Must be used in conjunction with web-mode-enable-block-face."
       (goto-char pos)
 
       (setq struct (cdr (assoc web-mode-engine web-mode-engine-controls)))
-      (setq regexp (cdr (assoc :regexp struct)))
+      (when struct
+        (setq regexp (cdr (assoc :regexp struct))))
 
       (when (get-text-property pos 'block-beg)
         (cond
@@ -3264,8 +3271,18 @@ Must be used in conjunction with web-mode-enable-block-face."
                   state (not (string= "end" (match-string-no-properties 1))))
 ;;            (message "state=%S ctrl=%S" state ctrl)
             )
-
           )
+
+         ((string= web-mode-engine "velocity")
+          (setq struct nil)
+          (when (and (looking-at web-mode-velocity-control-regexp)
+                     (setq ctrl (match-string-no-properties 1))
+                     (not (member ctrl '("else" "elseif"))))
+            (setq found t
+                  state (not (string= "end" (match-string-no-properties 1))))
+            )
+          )
+
 
          );cond
         );when
@@ -4427,16 +4444,13 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((and (string= web-mode-engine "go") (looking-at-p web-mode-go-control-regexp))
         (web-mode-match-go-block))
 
-       ((and (string= web-mode-engine "smarty")
-             (looking-at-p (concat "{/?" (regexp-opt web-mode-smarty-controls))))
+       ((and (string= web-mode-engine "smarty") (looking-at-p web-mode-smarty-control-regexp))
         (web-mode-match-smarty-block))
 
-       ((and (string= web-mode-engine "velocity")
-             (looking-at-p (concat "#" (regexp-opt web-mode-velocity-controls))))
+       ((and (string= web-mode-engine "velocity") (looking-at-p web-mode-velocity-control-regexp))
         (web-mode-match-velocity-block))
 
-       ((and (string= web-mode-engine "ctemplate")
-             (looking-at-p "{{[#^/]"))
+       ((and (string= web-mode-engine "ctemplate") (looking-at-p web-mode-ctemplate-control-regexp))
         (web-mode-match-ctemplate-block))
 
        ((and (string= web-mode-engine "jsp")
@@ -4689,7 +4703,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-match-smarty-block ()
   "Fetch smarty block."
   (let (match regexp)
-    (looking-at (concat "{/?" (regexp-opt web-mode-smarty-controls t)))
+    (looking-at web-mode-smarty-control-regexp)
     (setq match (match-string-no-properties 1))
     (setq regexp (concat "{/?" (if (string= match "else") "if" match)))
     (if (or (char-equal ?\/ (aref (match-string-no-properties 0) 1))
@@ -4722,43 +4736,66 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-match-velocity-block ()
   "Fetch velocity block."
-  (let (regexp)
-    (setq regexp (concat "#" (regexp-opt web-mode-velocity-controls)))
-    (if (looking-at-p "#end")
+  (let (regexp match)
+    (looking-at web-mode-velocity-control-regexp)
+    (setq match (match-string-no-properties 1))
+;;    (message "regexp=%S match=%S" web-mode-velocity-control-regexp match)
+;;    (setq regexp (concat "#\\(" (if (member match '("else" "elseif")) "if" match) "\\|end\\)"))
+    (setq regexp web-mode-velocity-control-regexp)
+    (if (member match '("else" "elseif" "end"))
         (web-mode-fetch-opening-velocity-block regexp)
       (web-mode-fetch-closing-velocity-block regexp))
     t))
 
 (defun web-mode-fetch-opening-velocity-block (regexp)
   "Fetch velocity opening block."
-  (let ((counter 1) match)
+  (let ((counter 1))
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
-      (setq match (match-string-no-properties 0))
-      (if (string-match-p "end" match)
-          (setq counter (1+ counter))
+      (setq match (match-string-no-properties 1))
+      (cond
+       ((string= "end" match)
+        (setq counter (1+ counter)))
+       ((string= "else" match)
+        )
+       (t
         (setq counter (1- counter)))
+       )
+
+;;      (if (string= "end" (match-string-no-properties 1))
+;;          (setq counter (1+ counter))
+;;        (setq counter (1- counter)))
+
       )
     ))
 
 (defun web-mode-fetch-closing-velocity-block (regexp)
   "Fetch velocity closing block."
-  (let ((counter 1) match)
-    (forward-char)
+  (let ((counter 1))
+    (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
-      (setq match (match-string-no-properties 0))
-      (if (string-match-p "end" match)
-          (setq counter (1- counter))
+      (setq match (match-string-no-properties 1))
+      (cond
+       ((string= "end" match)
+        (setq counter (1- counter)))
+       ((string= "else" match)
+        )
+       (t
         (setq counter (1+ counter)))
+       )
+
+;;    (if (string= "end" (match-string-no-properties 1))
+;;          (setq counter (1- counter))
+;;        (setq counter (1+ counter)))
+
       )
-    (web-mode-block-beginning)
+    (goto-char (match-beginning 0))
     ))
 
 (defun web-mode-match-ctemplate-block ()
   "Fetch ctemplate block."
   (let (regexp)
-    (looking-at "{{[#^/]\\([[:alnum:]_]+\\)")
+    (looking-at web-mode-ctemplate-control-regexp)
     (setq regexp (concat "{{[#^/]" (match-string-no-properties 1)))
-    ;;    (message "pt=%S regexp=%S" (point) regexp)
     (if (looking-at-p "{{/")
         (web-mode-fetch-opening-ctemplate-block regexp)
       (web-mode-fetch-closing-ctemplate-block regexp))
@@ -4766,10 +4803,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-fetch-opening-ctemplate-block (regexp)
   "Fetch ctemplate opening block."
-  (let ((counter 1) match)
+  (let ((counter 1))
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
-      (setq match (match-string-no-properties 0))
-      (if (string-match-p "/" match)
+      (if (char-equal ?\/ (aref (match-string-no-properties 0) 2))
           (setq counter (1+ counter))
         (setq counter (1- counter)))
       )
@@ -4777,12 +4813,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-fetch-closing-ctemplate-block (regexp)
   "Fetch ctemplate closing block."
-  (let ((counter 1) match)
-    ;;    (forward-char)
+  (let ((counter 1))
+    (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
-      (setq match (match-string-no-properties 0))
-      ;;      (message "match=%S" match)
-      (if (string-match-p "/" match)
+      (if (char-equal ?\/ (aref (match-string-no-properties 0) 2))
           (setq counter (1- counter))
         (setq counter (1+ counter)))
       )
@@ -4791,11 +4825,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-match-go-block ()
   "Fetch go block."
-  (let (regexp tag)
+  (let (regexp match)
     (looking-at web-mode-go-control-regexp)
-    (setq tag (match-string-no-properties 1))
+    (setq match (match-string-no-properties 1))
     (setq regexp web-mode-go-control-regexp)
-    (if (member tag '("end" "else"))
+    (if (member match '("end" "else"))
         (web-mode-fetch-opening-go-block regexp)
       (web-mode-fetch-closing-go-block regexp))
     t))
@@ -4905,11 +4939,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-fetch-opening-freemarker-block (regexp)
   "Fetch freemarker opening block."
-  (let ((counter 1) tag)
+  (let ((counter 1))
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
-      (setq tag (match-string-no-properties 1))
       (cond
-       ((char-equal ?\/ (aref tag 0))
+       ((char-equal ?\/ (aref (match-string-no-properties 1) 0))
         (setq counter (1+ counter)))
        (t
         (setq counter (1- counter)))
@@ -4919,12 +4952,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-fetch-closing-freemarker-block (regexp)
   "Fetch freemarker closing block."
-  (let ((counter 1) tag)
+  (let ((counter 1))
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
-      (setq tag (match-string-no-properties 1))
       (cond
-       ((char-equal ?\/ (aref tag 0))
+       ((char-equal ?\/ (aref (match-string-no-properties 1) 0))
         (setq counter (1- counter)))
        (t
         (setq counter (1+ counter)))
