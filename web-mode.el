@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.25
+;; Version: 6.0.27
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -35,17 +35,13 @@
 
 ;; Code goes here
 
-;;todo : web-mode-indent-on-close : indentation automatique sur tag autoclosing
-;;todo : autoindent lorsq on est en début de ligne et que la ligne commance par un tag ou un block
-;;todo : indentation attributs jsp
-;;todo : supprimer notion de directive
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
 (defgroup web-mode nil
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.25"
+  :version "6.0.27"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -85,6 +81,11 @@
 
 (defcustom web-mode-disable-css-colorization (not (display-graphic-p))
   "In a CSS block, do not set background according to the color: #xxx, rgb(x,x,x)."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-disable-auto-indentation (not (display-graphic-p))
+  "Disable auto-indentation."
   :type 'boolean
   :group 'web-mode)
 
@@ -242,6 +243,16 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defface web-mode-html-attr-value-face
   '((t :inherit font-lock-string-face))
   "Face for HTML attribute values."
+  :group 'web-mode-faces)
+
+(defface web-mode-block-attr-name-face
+  '((t :inherit web-mode-html-attr-name-face))
+  "Face for block attribute names."
+  :group 'web-mode-faces)
+
+(defface web-mode-block-attr-value-face
+  '((t :inherit web-mode-html-attr-value-face))
+  "Face for block attribute values."
   :group 'web-mode-faces)
 
 (defface web-mode-css-selector-face
@@ -550,17 +561,17 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-auto-pairs
   (list
-   '("<?p" "hp  ?>" "\\?>" 3)
-   '("<? " "?>" "\\?>" 0)
-   '("<?=" "?>" "\\?>" 0)
-   '("<!-" "-  -->" "--" 2)
-   '("<%-" "-  --%>" "--" 2)
-   '("<%@" "  %>" "%>" 1)
-   '("<%=" "%>" "%>" 0)
-   '("<% " " %>" "%>" 0)
-   '("{{ " " }}" "}}" 0)
-   '("{% " " %}" "%}" 0)
-   '("{# " " #}" "#}" 0)
+   '("<?p"  "hp  ?>"   "\\?>"  3)
+   '("<? "  "?>"       "\\?>"  0)
+   '("<?="  "?>"       "\\?>"  0)
+   '("<!-"  "-  -->"   "--"    2)
+   '("<%-"  "-  --%>"  "--"    2)
+   '("<%@"  "  %>"     "%>"    1)
+   '("<%="  "%>"       "%>"    0)
+   '("<% "  " %>"      "%>"    0)
+   '("{{ "  " }}"      "}}"    0)
+   '("{% "  " %}"      "%}"    0)
+   '("{# "  " #}"      "#}"    0)
    )
   "Auto-Pairs")
 
@@ -637,8 +648,6 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key keymap (kbd "M-C-d")     'web-mode-element-child)
     (define-key keymap (kbd "M-C-n")     'web-mode-elenent-next)
     (define-key keymap (kbd "M-C-p")     'web-mode-element-previous)
-
-    ;;    (define-key keymap (kbd "<down-mouse-1>") 'web-mode-on-click)
 
     keymap)
   "Keymap for `web-mode'.")
@@ -1081,15 +1090,6 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
    ))
 
-(defvar web-mode-directive-font-lock-keywords
-  (list
-   '("<%@\\|%>" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\(" web-mode-directives "\\)[ ]+") '(1 'web-mode-keyword-face t t))
-   '("[[:blank:]^]\\([[:alpha:]]+=\\)\\(\"[^\"]*\"\\)"
-     (1 'web-mode-html-attr-name-face t t)
-     (2 'web-mode-html-attr-value-face t t))
-   ))
-
 ;;Unified Expression Language
 (defvar web-mode-uel-font-lock-keywords
   (list
@@ -1121,10 +1121,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;TODO : definir web-mode-block-attr-name-face et web-mode-block-attr-name-face
 (defvar web-mode-jsp-tag-font-lock-keywords
   (list
-   '("</?[[:alpha:]]+:[[:alpha:]]*\\|/?>" 0 'web-mode-preprocessor-face)
-   '("[[:blank:]^]\\([[:alpha:]]+=\\)\\(\"[^\"]*\"\\)"
-     (1 'web-mode-html-attr-name-face t t)
-     (2 'web-mode-html-attr-value-face t t))
+   '("</?\\|/?>" 0 'web-mode-preprocessor-face)
+   '("</?\\([[:alpha:]]+:[[:alpha:]]+\\)" 1 'web-mode-block-control-face)
+   '("\\<\\([[:alpha:]]+=\\)\\(\"[^\"]*\"\\)"
+     (1 'web-mode-block-attr-name-face t t)
+     (2 'web-mode-block-attr-value-face t t))
    ))
 
 (defvar web-mode-jsp-font-lock-keywords
@@ -1135,6 +1136,15 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
    '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
    '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
+   ))
+
+(defvar web-mode-directive-font-lock-keywords
+  (list
+   '("<%@\\|%>" 0 'web-mode-preprocessor-face)
+   '("<%@[ ]*\\([[:alpha:]]+\\)[ ]+" 1 'web-mode-block-control-face)
+   '("\\<\\([[:alpha:]]+=\\)\\(\"[^\"]*\"\\)"
+     (1 'web-mode-block-attr-name-face t t)
+     (2 'web-mode-block-attr-value-face t t))
    ))
 
 (defvar web-mode-erb-font-lock-keywords
@@ -2954,10 +2964,30 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq block-column (current-column))
         (setq language web-mode-engine)
         (setq indent-offset web-mode-code-indent-offset)
-        (when (string= web-mode-engine "razor")
+        (cond
+         ((string= web-mode-engine "razor")
           (setq block-beg (+ block-beg 2))
           (setq block-column (+ block-column 2))
           )
+         ((and (string= web-mode-engine "jsp")
+               (web-mode-looking-at-pos "<%@\\|<[[:alpha:]]" block-beg))
+          (save-excursion
+            (goto-char block-beg)
+            (looking-at "<%@[ ]*[[:alpha:]]+[ ]+\\|</?[[:alpha:]]+:[[:alpha:]]+[ ]+")
+            (goto-char (match-end 0))
+            (setq block-column (current-column))
+            )
+          )
+         ((and (string= web-mode-engine "freemarker")
+               (web-mode-looking-at-pos "<@\\|<%@\\|<[[:alpha:]]" block-beg))
+          (save-excursion
+            (goto-char block-beg)
+            (looking-at "<@[[:alpha:].]+[ ]+\\|<%@[ ]*[[:alpha:]]+[ ]+\\|<[[:alpha:]]+:[[:alpha:]]+[ ]+")
+            (goto-char (match-end 0))
+            (setq block-column (current-column))
+            )
+          )
+         );cond
         )
 
        ((and (get-text-property pos 'part-side)
@@ -3095,7 +3125,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq offset (1+ offset)))
         );case comment
 
-       ((member language '("php" "jsp" "asp" "aspx" "javascript" "code" "python" "erb"))
+       ((member language '("php" "jsp" "asp" "aspx" "javascript" "code" "python" "erb" "freemarker"))
 
         (cond
 
@@ -3139,6 +3169,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          (t
+
           (setq offset (web-mode-bracket-indentation pos
                                                      block-column
                                                      indent-offset
@@ -3146,12 +3177,6 @@ Must be used in conjunction with web-mode-enable-block-face."
           );t
 
          ));end case script block
-
-       ;; ((string= language "directive")
-       ;;  (re-search-backward "@ " nil t)
-       ;;  (re-search-forward "@ [[:alpha:]]+ " nil t)
-       ;;  (setq offset (current-column))
-       ;;  );directive
 
        ((string= language "css")
         (setq offset (web-mode-bracket-indentation pos
@@ -3179,36 +3204,6 @@ Must be used in conjunction with web-mode-enable-block-face."
               (and (get-text-property pos 'block-beg)
                    (looking-at-p web-mode-engine-end-control-regexp)
                    (funcall web-mode-engine-control-matcher))
-
-              ;; (and (string= web-mode-engine "php")
-              ;;      (string-match-p "^<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\|}\\)" line)
-              ;;      (web-mode-match-php-block))
-              ;; (and (string= web-mode-engine "django")
-              ;;      (string-match-p "^{%[-]?[ ]+\\(end\\|else\\)" line)
-              ;;      (web-mode-match-django-block))
-              ;; (and (string= web-mode-engine "erb")
-              ;;      (string-match-p "^<%[ ]+\\(end\\|else\\)" line)
-              ;;      (web-mode-match-erb-block))
-              ;; (and (string= web-mode-engine "smarty")
-              ;;      (string-match-p "^{\\(/\\|else\\)" line)
-              ;;      (web-mode-match-smarty-block))
-              ;; (and (string= web-mode-engine "ctemplate")
-              ;;      (string-match-p "^{{/" line)
-              ;;      (web-mode-match-ctemplate-block))
-              ;; (and (string= web-mode-engine "go")
-              ;;      (string-match-p "^{{[ ]*end" line)
-              ;;      (web-mode-match-go-block))
-              ;; (and (string= web-mode-engine "blade")
-              ;;      (string-match-p "^@\\\(end\\|else\\)" line)
-              ;;      (web-mode-match-blade-block))
-              ;; (and (string= web-mode-engine "velocity")
-              ;;      (string-match-p "^#\\(end\\|else\\)" line)
-              ;;      (web-mode-match-velocity-block))
-              ;; (and (string= web-mode-engine "freemarker")
-              ;;      (string-match-p "^[<[]\\(/#\\|#els\\|#break\\)" line)
-              ;;      (web-mode-match-freemarker-block))
-              ;; (and (string-match-p "^</" line)
-              ;;      (web-mode-match-jsp-block))
               )
 ;;          (message "pt=%S" pos)
           (setq offset (current-indentation))
@@ -5012,7 +5007,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (setq web-mode-expand-initial-pos nil
         web-mode-expand-previous-state "")
 
-  (let ((pos (point)) found chunk)
+  (let ((pos (point)) found chunk auto-closed)
 
     (if (not (= (point-max) (+ (buffer-size) 1)))
 
@@ -5030,7 +5025,10 @@ Must be used in conjunction with web-mode-enable-block-face."
                    (or (and (= web-mode-tag-auto-close-style 2)
                             (string-match-p "[[:alnum:]]>" chunk))
                        (string= "</" chunk)))
-          (if (web-mode-element-close) (setq found t)))
+          (when (web-mode-element-close)
+            (setq auto-closed t
+                  found t))
+          )
 
         ;;-- auto-pairing
         (when (and (not web-mode-disable-auto-pairing)
@@ -5063,6 +5061,15 @@ Must be used in conjunction with web-mode-enable-block-face."
                             (or (web-mode-next-tag-at-eol-pos end)
                                 (point-max)))
       ;;        );save-match-data
+
+      ;;-- auto-indentation
+      (when (and (not web-mode-disable-auto-indentation)
+                 (or auto-closed
+                     (and (> end (point-min))
+                          (get-text-property (1- end) 'tag-end)
+                          (get-text-property (line-beginning-position) 'tag-beg))))
+        (indent-for-tab-command)
+        )
 
       );if narrowed
     ))
@@ -5100,7 +5107,8 @@ Must be used in conjunction with web-mode-enable-block-face."
         (when (eobp)
           (setq continue nil))
         (skip-chars-backward " ")
-        (if (get-text-property (1- (point)) 'tag-end)
+        (if (and (> (point) (point-min))
+                 (get-text-property (1- (point)) 'tag-end))
             (setq continue nil)
           (setq pos nil))
         (if continue (forward-line))
@@ -6742,3 +6750,34 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;      )
 ;;  (setq offset (current-indentation))
 ;;  )
+
+
+              ;; (and (string= web-mode-engine "php")
+              ;;      (string-match-p "^<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\|}\\)" line)
+              ;;      (web-mode-match-php-block))
+              ;; (and (string= web-mode-engine "django")
+              ;;      (string-match-p "^{%[-]?[ ]+\\(end\\|else\\)" line)
+              ;;      (web-mode-match-django-block))
+              ;; (and (string= web-mode-engine "erb")
+              ;;      (string-match-p "^<%[ ]+\\(end\\|else\\)" line)
+              ;;      (web-mode-match-erb-block))
+              ;; (and (string= web-mode-engine "smarty")
+              ;;      (string-match-p "^{\\(/\\|else\\)" line)
+              ;;      (web-mode-match-smarty-block))
+              ;; (and (string= web-mode-engine "ctemplate")
+              ;;      (string-match-p "^{{/" line)
+              ;;      (web-mode-match-ctemplate-block))
+              ;; (and (string= web-mode-engine "go")
+              ;;      (string-match-p "^{{[ ]*end" line)
+              ;;      (web-mode-match-go-block))
+              ;; (and (string= web-mode-engine "blade")
+              ;;      (string-match-p "^@\\\(end\\|else\\)" line)
+              ;;      (web-mode-match-blade-block))
+              ;; (and (string= web-mode-engine "velocity")
+              ;;      (string-match-p "^#\\(end\\|else\\)" line)
+              ;;      (web-mode-match-velocity-block))
+              ;; (and (string= web-mode-engine "freemarker")
+              ;;      (string-match-p "^[<[]\\(/#\\|#els\\|#break\\)" line)
+              ;;      (web-mode-match-freemarker-block))
+              ;; (and (string-match-p "^</" line)
+              ;;      (web-mode-match-jsp-block))
