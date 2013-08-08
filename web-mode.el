@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.27
+;; Version: 6.0.28
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -41,7 +41,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.27"
+  :version "6.0.28"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -670,7 +670,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "PHP control regexp")
 
 (defvar web-mode-erb-control-regexp
-  "<%[ ]+\\(.* do \\|for\\|unless\\|end\\|if\\|else\\)"
+  "<%[-]?[ ]+\\(.* do \\|for\\|unless\\|end\\|if\\|else\\)"
   "ERB control regexp")
 
 (defvar web-mode-go-controls
@@ -738,7 +738,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-blade-end-control-regexp "@\\\(end\\|else\\)" "")
 (defvar web-mode-ctemplate-end-control-regexp "{{/" "")
 (defvar web-mode-django-end-control-regexp "{%[-]?[ ]+\\(end\\|else\\|elseif\\|elif\\)" "")
-(defvar web-mode-erb-end-control-regexp "<%[ ]+\\(end\\|else\\)" "")
+(defvar web-mode-erb-end-control-regexp "<%[-]?[ ]+\\(end\\|else\\)" "")
 (defvar web-mode-freemarker-end-control-regexp "[<[]\\(/#\\|#els\\|#break\\)" "")
 (defvar web-mode-go-end-control-regexp "{{[ ]*\\(end\\|else\\)" "")
 (defvar web-mode-jsp-end-control-regexp "</" "jsp")
@@ -992,7 +992,6 @@ Must be used in conjunction with web-mode-enable-block-face."
          '((1 'web-mode-preprocessor-face)
            (2 'web-mode-block-control-face)))
    (cons (concat "[ ]\\(" web-mode-velocity-keywords "\\)[ ]") '(1 'web-mode-keyword-face t t))
-;;   '("[.]\\([[:alnum:]_-]+\\)[ ]?(" (1 'web-mode-function-name-face))
    '("#macro([ ]*\\([[:alpha:]]+\\)[ ]+" 1 'web-mode-function-name-face)
    '("[.]\\([[:alnum:]_-]+\\)" 1 'web-mode-variable-name-face)
    '("\\<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
@@ -2769,15 +2768,12 @@ Must be used in conjunction with web-mode-enable-block-face."
       (while (and continue
                   (not (bobp))
                   (forward-line -1))
-;;        (message "pos=%S" (point))
         (if (not (web-mode-is-comment-or-string-line))
             (setq line (web-mode-trim (buffer-substring (point) (line-end-position)))))
         (when (not (string= line "")) (setq continue nil))
         );while
       (if (string= line "")
-          (progn
-            (goto-char pos)
-            nil)
+          (progn (goto-char pos) nil)
         line)
       )))
 
@@ -2797,9 +2793,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         (when (not (string= line "")) (setq continue nil))
         )
       (if (string= line "")
-          (progn
-            (goto-char pos)
-            nil)
+          (progn (goto-char pos) nil)
         line)
       )))
 
@@ -3205,7 +3199,6 @@ Must be used in conjunction with web-mode-enable-block-face."
                    (looking-at-p web-mode-engine-end-control-regexp)
                    (funcall web-mode-engine-control-matcher))
               )
-;;          (message "pt=%S" pos)
           (setq offset (current-indentation))
           )
 
@@ -3491,21 +3484,6 @@ Must be used in conjunction with web-mode-enable-block-face."
       (goto-char pos)
       (setq first-char (char-after)
             block-column initial-column)
-
-;;      (forward-line -1)
-;;      (end-of-line)
-;;      (setq regexp (concat "^[[:blank:]]{" (number-to-string initial-column) "}[[:alnum:]]"))
-;;      (when (and (> (point) limit)
-;;                 (web-mode-rsb regexp limit))
-;;                 (web-mode-rsb "^[[:blank:]]*}[,); ]*$" limit))
-;;                 (web-mode-rsb "^[[:blank:]]*\\(}\\)[;,]?[ ]*$" limit))
-;;        (end-of-line)
-;;        (setq limit (point))
-;;        (setq initial-column (current-indentation))
-;;        );when
-;;      (message "regexp=%S point=%S limit=%S" regexp (point) limit)
-;;      (goto-char pos)
-
       (while continue
         (forward-line -1)
         (back-to-indentation)
@@ -4418,70 +4396,25 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Match tag."
   (interactive)
   (unless pos (setq pos (point)))
-  (let (init control-regexp match-function)
-
+  (let (init)
     (goto-char pos)
     (setq init (point))
-
     (when (> (current-indentation) (current-column))
       (back-to-indentation))
-
     (setq pos (point))
-
     (cond
-
      ((web-mode-is-comment-or-string)
       (goto-char init))
-
      ((and (get-text-property pos 'block-side)
            (web-mode-block-beginning)
            (looking-at-p web-mode-engine-control-regexp))
-      (funcall web-mode-engine-control-matcher)
-
-       ;; ((and (string= web-mode-engine "php")
-       ;;       (or (looking-at-p "<\\?php[ ]+}")
-       ;;           (looking-at-p web-mode-php-control-regexp)))
-       ;;  (web-mode-match-php-block))
-
-       ;; ((and (string= web-mode-engine "erb") (looking-at-p web-mode-erb-control-regexp))
-       ;;  (web-mode-match-erb-block))
-
-       ;; ((and (string= web-mode-engine "django") (looking-at-p web-mode-django-control-regexp))
-       ;;  (web-mode-match-django-block))
-
-       ;; ((and (string= web-mode-engine "blade") (looking-at-p web-mode-blade-control-regexp))
-       ;;  (web-mode-match-blade-block))
-
-       ;; ((and (string= web-mode-engine "go") (looking-at-p web-mode-go-control-regexp))
-       ;;  (web-mode-match-go-block))
-
-       ;; ((and (string= web-mode-engine "smarty") (looking-at-p web-mode-smarty-control-regexp))
-       ;;  (web-mode-match-smarty-block))
-
-       ;; ((and (string= web-mode-engine "velocity") (looking-at-p web-mode-velocity-control-regexp))
-       ;;  (web-mode-match-velocity-block))
-
-       ;; ((and (string= web-mode-engine "ctemplate") (looking-at-p web-mode-ctemplate-control-regexp))
-       ;;  (web-mode-match-ctemplate-block))
-
-       ;; ((and (string= web-mode-engine "jsp") (looking-at-p web-mode-jsp-control-regexp))
-       ;;  (web-mode-match-jsp-block))
-
-       ;; ((and (string= web-mode-engine "freemarker") (looking-at-p web-mode-freemarker-control-regexp))
-       ;;  (web-mode-match-freemarker-block))
-      )
-
-;;      );block-side
-
+      (funcall web-mode-engine-control-matcher))
      ((member (get-text-property pos 'tag-type) '(start end))
       (web-mode-tag-beginning)
       (web-mode-match-html-tag))
-
      (t
       (goto-char init))
-
      ); cond
-
     ))
 
 (defun web-mode-match-html-tag (&optional pos)
