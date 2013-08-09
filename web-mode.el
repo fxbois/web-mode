@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.28
+;; Version: 6.0.29
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -41,7 +41,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.28"
+  :version "6.0.29"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -4527,7 +4527,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-match-erb-block ()
   "Fetch ERB block."
-  (let (regexp)
+  (let (regexp chunk)
     (setq chunk (buffer-substring-no-properties (+ (point) 3)
                                                 (- (web-mode-block-end-position) 2)))
     (setq regexp web-mode-erb-control-regexp)
@@ -4572,7 +4572,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-match-blade-block ()
   "Fetch blade block."
-  (let (beg end chunk regexp)
+  (let (beg end match regexp)
     (looking-at web-mode-blade-control-regexp)
     (setq match (match-string-no-properties 2))
     (setq regexp (concat "@\\(end\\)?\\("
@@ -4682,8 +4682,6 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let (regexp match)
     (looking-at web-mode-velocity-control-regexp)
     (setq match (match-string-no-properties 1))
-;;    (message "regexp=%S match=%S" web-mode-velocity-control-regexp match)
-;;    (setq regexp (concat "#\\(" (if (member match '("else" "elseif")) "if" match) "\\|end\\)"))
     (setq regexp web-mode-velocity-control-regexp)
     (if (member match '("else" "elseif" "end"))
         (web-mode-fetch-opening-velocity-block regexp)
@@ -4692,7 +4690,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-fetch-opening-velocity-block (regexp)
   "Fetch velocity opening block."
-  (let ((counter 1))
+  (let ((counter 1) match)
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
       (setq match (match-string-no-properties 1))
       (cond
@@ -4703,17 +4701,12 @@ Must be used in conjunction with web-mode-enable-block-face."
        (t
         (setq counter (1- counter)))
        )
-
-;;      (if (string= "end" (match-string-no-properties 1))
-;;          (setq counter (1+ counter))
-;;        (setq counter (1- counter)))
-
       )
     ))
 
 (defun web-mode-fetch-closing-velocity-block (regexp)
   "Fetch velocity closing block."
-  (let ((counter 1))
+  (let ((counter 1) match)
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
       (setq match (match-string-no-properties 1))
@@ -4725,11 +4718,6 @@ Must be used in conjunction with web-mode-enable-block-face."
        (t
         (setq counter (1+ counter)))
        )
-
-;;    (if (string= "end" (match-string-no-properties 1))
-;;          (setq counter (1- counter))
-;;        (setq counter (1+ counter)))
-
       )
     (goto-char (match-beginning 0))
     ))
@@ -4809,7 +4797,6 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq counter (1+ counter))
         )
        )
-;;      (message "closing(%S)> %S : %S" (point) (match-string-no-properties 1) counter)
       )
     (web-mode-block-beginning)
     ))
@@ -5007,47 +4994,6 @@ Must be used in conjunction with web-mode-enable-block-face."
       );if narrowed
     ))
 
-(defun web-mode-previous-tag-at-bol-pos (pos)
-  "Line beginning with and HTML tag. BOL is returned or nil."
-  (save-excursion
-    (goto-char pos)
-    (setq pos nil)
-    (let ((continue t))
-      (back-to-indentation)
-      (if (get-text-property (point) 'tag-beg)
-          (setq pos (line-beginning-position))
-        (while continue
-          (forward-line -1)
-          (setq pos (point))
-          (when (bobp)
-            (setq continue nil))
-          (back-to-indentation)
-          (if (get-text-property (point) 'tag-beg)
-              (setq continue nil)
-            (setq pos nil))
-          );while
-        );if
-      pos)))
-
-(defun web-mode-next-tag-at-eol-pos (pos)
-  "Line ending with an HTML tag. EOL is returned or nil."
-  (save-excursion
-    (goto-char pos)
-    (let ((continue t))
-      (while continue
-        (end-of-line)
-        (setq pos (point))
-        (when (eobp)
-          (setq continue nil))
-        (skip-chars-backward " ")
-        (if (and (> (point) (point-min))
-                 (get-text-property (1- (point)) 'tag-end))
-            (setq continue nil)
-          (setq pos nil))
-        (if continue (forward-line))
-        );while
-      pos)))
-
 (defun web-mode-apostrophes-replace ()
   "Replace ' with ’."
   (interactive)
@@ -5116,7 +5062,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-opening-paren-position (&optional pos limit)
   "Fetch opening paren."
-  (interactive)
   (save-restriction
     ;;    (unless paren (setq paren "("))
     (unless pos (setq pos (point)))
@@ -5155,7 +5100,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-closing-paren-position (&optional pos limit)
   "Fetch opening paren."
-  (interactive)
   (save-excursion
     (unless pos (setq pos (point)))
     (unless limit (setq limit nil))
@@ -5225,6 +5169,47 @@ Must be used in conjunction with web-mode-enable-block-face."
       ;;      (message "h=%S pt=%S" h pt)
       pt
       )))
+
+(defun web-mode-previous-tag-at-bol-pos (pos)
+  "Line beginning with and HTML tag. BOL is returned or nil."
+  (save-excursion
+    (goto-char pos)
+    (setq pos nil)
+    (let ((continue t))
+      (back-to-indentation)
+      (if (get-text-property (point) 'tag-beg)
+          (setq pos (line-beginning-position))
+        (while continue
+          (forward-line -1)
+          (setq pos (point))
+          (when (bobp)
+            (setq continue nil))
+          (back-to-indentation)
+          (if (get-text-property (point) 'tag-beg)
+              (setq continue nil)
+            (setq pos nil))
+          );while
+        );if
+      pos)))
+
+(defun web-mode-next-tag-at-eol-pos (pos)
+  "Line ending with an HTML tag. EOL is returned or nil."
+  (save-excursion
+    (goto-char pos)
+    (let ((continue t))
+      (while continue
+        (end-of-line)
+        (setq pos (point))
+        (when (eobp)
+          (setq continue nil))
+        (skip-chars-backward " ")
+        (if (and (> (point) (point-min))
+                 (get-text-property (1- (point)) 'tag-end))
+            (setq continue nil)
+          (setq pos nil))
+        (if continue (forward-line))
+        );while
+      pos)))
 
 (defun web-mode-tag-match-position (&optional pos)
   "Match tag position."
@@ -5339,7 +5324,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-element-parent-position (&optional pos)
   "Parent element pos."
-  (interactive)
   (let (n
         tag-type
         tag-name
@@ -5405,7 +5389,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-block-previous-position (&optional pos)
   "web-mode-block-previous-position"
-  (interactive)
   (unless pos (setq pos (point)))
   (cond
    ((get-text-property pos 'block-side)
@@ -5839,24 +5822,22 @@ Must be used in conjunction with web-mode-enable-block-face."
       (> counter 0)
       )))
 
-(defun web-mode-is-html-text ()
+(defun web-mode-is-html-text (&optional pos)
   "Is point in a html text."
-  (let ((pos (point)))
-    (not (or (get-text-property pos 'part-side)
-             (get-text-property pos 'tag-type)
-             (get-text-property pos 'block-side)
-             ))))
+  (unless pos (setq pos (point)))
+  (not (or (get-text-property pos 'part-side)
+           (get-text-property pos 'tag-type)
+           (get-text-property pos 'block-side)
+           )))
 
 (defun web-mode-is-comment-or-string (&optional pos)
   "Detect if point is in a comment or in a string."
-  (interactive)
   (unless pos (setq pos (point)))
   (or (memq (get-text-property pos 'block-token) '(string comment))
       (memq (get-text-property pos 'part-token) '(string comment))))
 
 (defun web-mode-is-comment (&optional pos)
   "Detect if point is in a comment."
-  (interactive)
   (unless pos (setq pos (point)))
   (or (eq (get-text-property pos 'block-token) 'comment)
       (eq (get-text-property pos 'part-token) 'comment)))
