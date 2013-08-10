@@ -452,17 +452,17 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Template engine")
 
 (defvar web-mode-engine-families
-  '(("django"    . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl"))
-    ("erb"       . ("eruby" "ember" "erubis"))
-    ("velocity"  . ("vtl" "cheetah"))
-    ("blade"     . ("laravel"))
-    ("go"        . ("gtl"))
-    ("jsp"       . ())
-    ("python"    . ())
-    ("aspx"      . ("aspx"))
-    ("asp"       . ("asp"))
-    ("razor"     . ("play" "play2"))
-    ("ctemplate" . ("mustache" "handlebars" "hapax" "ngtemplate" "ember")))
+  '(("django"     . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl"))
+    ("erb"        . ("eruby" "ember" "erubis"))
+    ("velocity"   . ("vtl" "cheetah"))
+    ("blade"      . ("laravel"))
+    ("go"         . ("gtl"))
+    ("jsp"        . ())
+    ("python"     . ())
+    ("aspx"       . ("aspx"))
+    ("asp"        . ("asp"))
+    ("razor"      . ("play" "play2"))
+    ("ctemplate"  . ("mustache" "handlebars" "hapax" "ngtemplate" "ember")))
   "Engine name aliases")
 
 (defvar web-mode-content-types
@@ -602,8 +602,78 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-hl-line-mode-flag nil
   "Is hl-line-mode enabled ?")
 
+
+;; (define-key-after
+;;   global-map
+;;   [menu-bar web-mode]
+;;   (cons "Web-Mode" (make-sparse-keymap "web-mode"))
+;;   'tools)
+
+;; ;; Creating a menu item, under the menu by the id “[menu-bar mymenu]”
+;; (define-key
+;;   global-map
+;;   [menu-bar web-mode nl]
+;;   '("Next Line" . next-line))
+
+;; ;; creating another menu item
+;; (define-key
+;;   global-map
+;;   [menu-bar web-mode pl]
+;;   '("Previous Line" . previous-line))
+
 (defvar web-mode-map
   (let ((keymap (make-sparse-keymap)))
+
+    (define-key keymap [menu-bar web-mode] (cons "Web-Mode" (make-sparse-keymap)))
+    (define-key keymap [menu-bar web-mode elt] (cons "Html Element" (make-sparse-keymap)))
+    (define-key keymap [menu-bar web-mode tag] (cons "Html Tag" (make-sparse-keymap)))
+    (define-key keymap [menu-bar web-mode blk] (cons "Block" (make-sparse-keymap)))
+
+    (define-key keymap [menu-bar web-mode separator-1]
+      '(menu-item "--"))
+    (define-key keymap [menu-bar web-mode entities-replace]
+      '(menu-item "Replace HTML entities" web-mode-entities-replace))
+    (define-key keymap [menu-bar web-mode insert-snippet]
+      '(menu-item "Insert snippet" web-mode-snippet-insert))
+    (define-key keymap [menu-bar web-mode search-documentation]
+      '(menu-item "Toggle whitespaces" web-mode-whitespaces-show))
+    (define-key keymap [menu-bar web-mode mark-and-expand]
+      '(menu-item "Mark and Expand" web-mode-mark-and-expand))
+    (define-key keymap [menu-bar web-mode tag-match]
+      '(menu-item "Tag/Block match" web-mode-tag-match))
+    (define-key keymap [menu-bar web-mode indent-buffer]
+      '(menu-item "Indent buffer" web-mode-buffer-indent))
+    (define-key keymap [menu-bar web-mode fold-unfold]
+      '(menu-item "Fold/Unfold" web-mode-fold-or-unfold))
+    (define-key keymap [menu-bar web-mode show-errors]
+      '(menu-item "Show error(s)" web-mode-errors-show))
+    (define-key keymap [menu-bar web-mode elt elt-beginning] '(menu-item "Beginning" web-mode-element-beginning))
+    (define-key keymap [menu-bar web-mode elt elt-end] '(menu-item "End" web-mode-element-end))
+    (define-key keymap [menu-bar web-mode elt elt-previous] '(menu-item "Previous" web-mode-element-previous))
+    (define-key keymap [menu-bar web-mode elt elt-next] '(menu-item "Next" web-mode-element-next))
+    (define-key keymap [menu-bar web-mode elt elt-delete] '(menu-item "Delete" web-mode-element-delete))
+    (define-key keymap [menu-bar web-mode elt elt-child] '(menu-item "Child" web-mode-element-child))
+    (define-key keymap [menu-bar web-mode elt elt-close] '(menu-item "Close" web-mode-element-close))
+    (define-key keymap [menu-bar web-mode elt elt-duplicate] '(menu-item "Duplicate" web-mode-element-duplicate))
+    (define-key keymap [menu-bar web-mode elt elt-rename] '(menu-item "Rename" web-mode-element-rename))
+    (define-key keymap [menu-bar web-mode elt elt-select] '(menu-item "Select" web-mode-element-select))
+    (define-key keymap [menu-bar web-mode elt elt-parent] '(menu-item "Parent" web-mode-element-parent))
+    (define-key keymap [menu-bar web-mode elt elt-content-select] '(menu-item "Select Content" web-mode-element-content-select))
+    (define-key keymap [menu-bar web-mode tag tag-beginning] '(menu-item "Beginning" web-mode-tag-beginning))
+    (define-key keymap [menu-bar web-mode tag tag-end] '(menu-item "End" web-mode-tag-beginning))
+    (define-key keymap [menu-bar web-mode tag tag-previous] '(menu-item "Previous" web-mode-tag-previous))
+    (define-key keymap [menu-bar web-mode tag tag-next] '(menu-item "Next" web-mode-tag-next))
+    (define-key keymap [menu-bar web-mode tag tag-match] '(menu-item "Match" web-mode-tag-match))
+    (define-key keymap [menu-bar web-mode tag tag-select] '(menu-item "Select" web-mode-tag-select))
+    (define-key keymap [menu-bar web-mode blk blk-beginning] '(menu-item "Beginning" web-mode-block-beginning))
+    (define-key keymap [menu-bar web-mode blk blk-end] '(menu-item "End" web-mode-block-beginning))
+    (define-key keymap [menu-bar web-mode blk blk-previous] '(menu-item "Previous" web-mode-block-previous))
+    (define-key keymap [menu-bar web-mode blk blk-next] '(menu-item "Next" web-mode-block-next))
+
+
+
+
+
 
     (define-key keymap (kbd "C-;") 'web-mode-comment-or-uncomment)
     (define-key keymap (kbd "M-;") 'web-mode-comment-or-uncomment)
@@ -733,7 +803,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-razor-control-regexp
   "X-X-X-X"
   "Razor control regexp.")
-
 
 (defvar web-mode-blade-end-control-regexp "@\\\(end\\|else\\)" "")
 (defvar web-mode-ctemplate-end-control-regexp "{{/" "")
@@ -4331,8 +4400,8 @@ Must be used in conjunction with web-mode-enable-block-face."
       ))
     ))
 
-(defun web-mode-snippet-codes ()
-  "Snippet codes."
+(defun web-mode-snippet-names ()
+  "Return list a snippet names."
   (interactive)
   (let (codes
         (counter 0)
@@ -4350,7 +4419,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive
    (list (completing-read
           "Snippet: "
-          (web-mode-snippet-codes))))
+          (web-mode-snippet-names))))
   (let (beg
         (continue t)
         (counter 0)
