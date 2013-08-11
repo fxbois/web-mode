@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.29
+;; Version: 6.0.30
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -41,7 +41,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.29"
+  :version "6.0.30"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -602,124 +602,91 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-hl-line-mode-flag nil
   "Is hl-line-mode enabled ?")
 
-
-;; (define-key-after
-;;   global-map
-;;   [menu-bar web-mode]
-;;   (cons "Web-Mode" (make-sparse-keymap "web-mode"))
-;;   'tools)
-
-;; ;; Creating a menu item, under the menu by the id “[menu-bar mymenu]”
-;; (define-key
-;;   global-map
-;;   [menu-bar web-mode nl]
-;;   '("Next Line" . next-line))
-
-;; ;; creating another menu item
-;; (define-key
-;;   global-map
-;;   [menu-bar web-mode pl]
-;;   '("Previous Line" . previous-line))
-
 (defvar web-mode-map
-  (let ((keymap (make-sparse-keymap)))
+  (let ((map (make-sparse-keymap)))
 
-    (define-key keymap [menu-bar web-mode] (cons "Web-Mode" (make-sparse-keymap)))
-    (define-key keymap [menu-bar web-mode elt] (cons "Html Element" (make-sparse-keymap)))
-    (define-key keymap [menu-bar web-mode tag] (cons "Html Tag" (make-sparse-keymap)))
-    (define-key keymap [menu-bar web-mode blk] (cons "Block" (make-sparse-keymap)))
+    (define-key map [menu-bar wm] (cons "Web-Mode" (make-sparse-keymap)))
+    (define-key map [menu-bar wm blk] (cons "Block" (make-sparse-keymap)))
+    (define-key map [menu-bar wm tag] (cons "Html Tag" (make-sparse-keymap)))
+    (define-key map [menu-bar wm elt] (cons "Html Element" (make-sparse-keymap)))
 
-    (define-key keymap [menu-bar web-mode separator-1]
-      '(menu-item "--"))
-    (define-key keymap [menu-bar web-mode entities-replace]
-      '(menu-item "Replace HTML entities" web-mode-entities-replace))
-    (define-key keymap [menu-bar web-mode insert-snippet]
-      '(menu-item "Insert snippet" web-mode-snippet-insert))
-    (define-key keymap [menu-bar web-mode search-documentation]
-      '(menu-item "Toggle whitespaces" web-mode-whitespaces-show))
-    (define-key keymap [menu-bar web-mode mark-and-expand]
-      '(menu-item "Mark and Expand" web-mode-mark-and-expand))
-    (define-key keymap [menu-bar web-mode tag-match]
-      '(menu-item "Tag/Block match" web-mode-tag-match))
-    (define-key keymap [menu-bar web-mode indent-buffer]
-      '(menu-item "Indent buffer" web-mode-buffer-indent))
-    (define-key keymap [menu-bar web-mode fold-unfold]
-      '(menu-item "Fold/Unfold" web-mode-fold-or-unfold))
-    (define-key keymap [menu-bar web-mode show-errors]
-      '(menu-item "Show error(s)" web-mode-errors-show))
-    (define-key keymap [menu-bar web-mode elt elt-beginning] '(menu-item "Beginning" web-mode-element-beginning))
-    (define-key keymap [menu-bar web-mode elt elt-end] '(menu-item "End" web-mode-element-end))
-    (define-key keymap [menu-bar web-mode elt elt-previous] '(menu-item "Previous" web-mode-element-previous))
-    (define-key keymap [menu-bar web-mode elt elt-next] '(menu-item "Next" web-mode-element-next))
-    (define-key keymap [menu-bar web-mode elt elt-delete] '(menu-item "Delete" web-mode-element-delete))
-    (define-key keymap [menu-bar web-mode elt elt-child] '(menu-item "Child" web-mode-element-child))
-    (define-key keymap [menu-bar web-mode elt elt-close] '(menu-item "Close" web-mode-element-close))
-    (define-key keymap [menu-bar web-mode elt elt-duplicate] '(menu-item "Duplicate" web-mode-element-duplicate))
-    (define-key keymap [menu-bar web-mode elt elt-rename] '(menu-item "Rename" web-mode-element-rename))
-    (define-key keymap [menu-bar web-mode elt elt-select] '(menu-item "Select" web-mode-element-select))
-    (define-key keymap [menu-bar web-mode elt elt-parent] '(menu-item "Parent" web-mode-element-parent))
-    (define-key keymap [menu-bar web-mode elt elt-content-select] '(menu-item "Select Content" web-mode-element-content-select))
-    (define-key keymap [menu-bar web-mode tag tag-beginning] '(menu-item "Beginning" web-mode-tag-beginning))
-    (define-key keymap [menu-bar web-mode tag tag-end] '(menu-item "End" web-mode-tag-beginning))
-    (define-key keymap [menu-bar web-mode tag tag-previous] '(menu-item "Previous" web-mode-tag-previous))
-    (define-key keymap [menu-bar web-mode tag tag-next] '(menu-item "Next" web-mode-tag-next))
-    (define-key keymap [menu-bar web-mode tag tag-match] '(menu-item "Match" web-mode-tag-match))
-    (define-key keymap [menu-bar web-mode tag tag-select] '(menu-item "Select" web-mode-tag-select))
-    (define-key keymap [menu-bar web-mode blk blk-beginning] '(menu-item "Beginning" web-mode-block-beginning))
-    (define-key keymap [menu-bar web-mode blk blk-end] '(menu-item "End" web-mode-block-beginning))
-    (define-key keymap [menu-bar web-mode blk blk-previous] '(menu-item "Previous" web-mode-block-previous))
-    (define-key keymap [menu-bar web-mode blk blk-next] '(menu-item "Next" web-mode-block-next))
+    (define-key map [menu-bar wm sep-1] '(menu-item "--"))
+    (define-key map [menu-bar wm blk blk-next] '(menu-item "Next" web-mode-block-next))
+    (define-key map [menu-bar wm blk blk-prev] '(menu-item "Previous" web-mode-block-previous))
+    (define-key map [menu-bar wm blk blk-end] '(menu-item "End" web-mode-block-beginning))
+    (define-key map [menu-bar wm blk blk-beg] '(menu-item "Beginning" web-mode-block-beginning))
+    (define-key map [menu-bar wm tag tag-sel] '(menu-item "Select" web-mode-tag-select))
+    (define-key map [menu-bar wm tag tag-match] '(menu-item "Match" web-mode-tag-match))
+    (define-key map [menu-bar wm tag tag-next] '(menu-item "Next" web-mode-tag-next))
+    (define-key map [menu-bar wm tag tag-prev] '(menu-item "Previous" web-mode-tag-previous))
+    (define-key map [menu-bar wm tag tag-end] '(menu-item "End" web-mode-tag-beginning))
+    (define-key map [menu-bar wm tag tag-beg] '(menu-item "Beginning" web-mode-tag-beginning))
+    (define-key map [menu-bar wm elt elt-in] '(menu-item "Inner Content" web-mode-element-content-select))
+    (define-key map [menu-bar wm elt elt-parent] '(menu-item "Parent" web-mode-element-parent))
+    (define-key map [menu-bar wm elt elt-sel] '(menu-item "Select" web-mode-element-select))
+    (define-key map [menu-bar wm elt elt-ren] '(menu-item "Rename" web-mode-element-rename))
+    (define-key map [menu-bar wm elt elt-dup] '(menu-item "Duplicate" web-mode-element-duplicate))
+    (define-key map [menu-bar wm elt elt-close] '(menu-item "Close" web-mode-element-close))
+    (define-key map [menu-bar wm elt elt-child] '(menu-item "Child" web-mode-element-child))
+    (define-key map [menu-bar wm elt elt-del] '(menu-item "Delete" web-mode-element-delete))
+    (define-key map [menu-bar wm elt elt-next] '(menu-item "Next" web-mode-element-next))
+    (define-key map [menu-bar wm elt elt-prev] '(menu-item "Previous" web-mode-element-previous))
+    (define-key map [menu-bar wm elt elt-end] '(menu-item "End" web-mode-element-end))
+    (define-key map [menu-bar wm elt elt-beg] '(menu-item "Beginning" web-mode-element-beginning))
+    (define-key map [menu-bar wm err] '(menu-item "Show error(s)" web-mode-errors-show))
+    (define-key map [menu-bar wm fold] '(menu-item "Fold/Unfold" web-mode-fold-or-unfold))
+    (define-key map [menu-bar wm indent] '(menu-item "Indent buffer" web-mode-buffer-indent))
+    (define-key map [menu-bar wm nav] '(menu-item "Tag/Block navigation" web-mode-tag-match))
+    (define-key map [menu-bar wm expand] '(menu-item "Mark and Expand" web-mode-mark-and-expand))
+    (define-key map [menu-bar wm space] '(menu-item "Toggle whitespaces" web-mode-whitespaces-show))
+    (define-key map [menu-bar wm snippet] '(menu-item "Insert snippet" web-mode-snippet-insert))
+    (define-key map [menu-bar wm entities] '(menu-item "Replace HTML entities" web-mode-entities-replace))
 
+    (define-key map (kbd "C-;") 'web-mode-comment-or-uncomment)
+    (define-key map (kbd "M-;") 'web-mode-comment-or-uncomment)
 
+    (define-key map (kbd "C-c C-d")   'web-mode-errors-show)
+    (define-key map (kbd "C-c C-f")   'web-mode-fold-or-unfold)
+    (define-key map (kbd "C-c C-i")   'web-mode-buffer-indent)
+    (define-key map (kbd "C-c C-m")   'web-mode-mark-and-expand)
+    (define-key map (kbd "C-c C-n")   'web-mode-tag-match)
+    (define-key map (kbd "C-c C-r")   'web-mode-entities-replace)
+    (define-key map (kbd "C-c C-s")   'web-mode-snippet-insert)
+    (define-key map (kbd "C-c C-w")   'web-mode-whitespaces-show)
 
+    (define-key map (kbd "C-c /")     'web-mode-element-close)
+    (define-key map (kbd "C-c <")     'web-mode-element-beginning)
+    (define-key map (kbd "C-c >")     'web-mode-element-end)
 
-
-
-    (define-key keymap (kbd "C-;") 'web-mode-comment-or-uncomment)
-    (define-key keymap (kbd "M-;") 'web-mode-comment-or-uncomment)
-
-    (define-key keymap (kbd "C-c C-d")   'web-mode-errors-show)
-    (define-key keymap (kbd "C-c C-f")   'web-mode-fold-or-unfold)
-    (define-key keymap (kbd "C-c C-i")   'web-mode-buffer-indent)
-    (define-key keymap (kbd "C-c C-m")   'web-mode-mark-and-expand)
-    (define-key keymap (kbd "C-c C-n")   'web-mode-tag-match)
-    (define-key keymap (kbd "C-c C-r")   'web-mode-entities-replace)
-    (define-key keymap (kbd "C-c C-s")   'web-mode-snippet-insert)
-    (define-key keymap (kbd "C-c C-w")   'web-mode-whitespaces-show)
-
-    (define-key keymap (kbd "C-c /")     'web-mode-element-close)
-    (define-key keymap (kbd "C-c <")     'web-mode-element-beginning)
-    (define-key keymap (kbd "C-c >")     'web-mode-element-end)
-
-    (define-key keymap (kbd "C-c C-b b") 'web-mode-block-beginning)
-    (define-key keymap (kbd "C-c C-b e") 'web-mode-block-end)
-    (define-key keymap (kbd "C-c C-b n") 'web-mode-block-next)
-    (define-key keymap (kbd "C-c C-b p") 'web-mode-block-previous)
-    (define-key keymap (kbd "C-c C-e b") 'web-mode-element-beginning)
-    (define-key keymap (kbd "C-c C-e c") 'web-mode-element-child)
-    (define-key keymap (kbd "C-c C-e d") 'web-mode-element-delete)
-    (define-key keymap (kbd "C-c C-e e") 'web-mode-element-end)
-    (define-key keymap (kbd "C-c C-e c") 'web-mode-element-duplicate)
-    (define-key keymap (kbd "C-c C-e n") 'web-mode-element-next)
-    (define-key keymap (kbd "C-c C-e p") 'web-mode-element-previous)
-    (define-key keymap (kbd "C-c C-e r") 'web-mode-element-rename)
-    (define-key keymap (kbd "C-c C-e s") 'web-mode-element-select)
-    (define-key keymap (kbd "C-c C-e u") 'web-mode-element-parent)
-    (define-key keymap (kbd "C-c C-e i") 'web-mode-element-content-select)
-    (define-key keymap (kbd "C-c C-t b") 'web-mode-tag-beginning)
-    (define-key keymap (kbd "C-c C-t e") 'web-mode-tag-end)
-    (define-key keymap (kbd "C-c C-t m") 'web-mode-tag-match)
-    (define-key keymap (kbd "C-c C-t s") 'web-mode-tag-select)
-    (define-key keymap (kbd "C-c C-t p") 'web-mode-tag-previous)
-    (define-key keymap (kbd "C-c C-t n") 'web-mode-tag-next)
+    (define-key map (kbd "C-c C-b b") 'web-mode-block-beginning)
+    (define-key map (kbd "C-c C-b e") 'web-mode-block-end)
+    (define-key map (kbd "C-c C-b n") 'web-mode-block-next)
+    (define-key map (kbd "C-c C-b p") 'web-mode-block-previous)
+    (define-key map (kbd "C-c C-e b") 'web-mode-element-beginning)
+    (define-key map (kbd "C-c C-e c") 'web-mode-element-child)
+    (define-key map (kbd "C-c C-e d") 'web-mode-element-delete)
+    (define-key map (kbd "C-c C-e e") 'web-mode-element-end)
+    (define-key map (kbd "C-c C-e c") 'web-mode-element-duplicate)
+    (define-key map (kbd "C-c C-e n") 'web-mode-element-next)
+    (define-key map (kbd "C-c C-e p") 'web-mode-element-previous)
+    (define-key map (kbd "C-c C-e r") 'web-mode-element-rename)
+    (define-key map (kbd "C-c C-e s") 'web-mode-element-select)
+    (define-key map (kbd "C-c C-e u") 'web-mode-element-parent)
+    (define-key map (kbd "C-c C-e i") 'web-mode-element-content-select)
+    (define-key map (kbd "C-c C-t b") 'web-mode-tag-beginning)
+    (define-key map (kbd "C-c C-t e") 'web-mode-tag-end)
+    (define-key map (kbd "C-c C-t m") 'web-mode-tag-match)
+    (define-key map (kbd "C-c C-t s") 'web-mode-tag-select)
+    (define-key map (kbd "C-c C-t p") 'web-mode-tag-previous)
+    (define-key map (kbd "C-c C-t n") 'web-mode-tag-next)
 
     ;; compatibility with nxml
-    (define-key keymap (kbd "M-C-u")     'web-mode-element-parent)
-    (define-key keymap (kbd "M-C-d")     'web-mode-element-child)
-    (define-key keymap (kbd "M-C-n")     'web-mode-elenent-next)
-    (define-key keymap (kbd "M-C-p")     'web-mode-element-previous)
+    (define-key map (kbd "M-C-u")     'web-mode-element-parent)
+    (define-key map (kbd "M-C-d")     'web-mode-element-child)
+    (define-key map (kbd "M-C-n")     'web-mode-elenent-next)
+    (define-key map (kbd "M-C-p")     'web-mode-element-previous)
 
-    keymap)
+    map)
   "Keymap for `web-mode'.")
 
 (defvar web-mode-engine-control-matcher nil
