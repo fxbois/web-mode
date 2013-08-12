@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.31
+;; Version: 6.0.32
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -35,13 +35,14 @@
 
 ;; Code goes here
 
+;;todo : transformer web-mode-*-end-control-regexp en une liste
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
 (defgroup web-mode nil
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.31"
+  :version "6.0.32"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -453,6 +454,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engine-families
   '(("django"     . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl"))
+    ("dust"       . ())
     ("erb"        . ("eruby" "ember" "erubis"))
     ("velocity"   . ("vtl" "cheetah"))
     ("blade"      . ("laravel"))
@@ -489,6 +491,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("python"     . "\\.pml\\'")
     ("razor"      . "play\\|\\.scala\\.\\|\\.cshtml\\'\\|\\.vbhtml\\'")
     ("smarty"     . "\\.tpl\\'")
+    ("dust"       . "\\.dust\\'")
     ("velocity"   . "\\.\\(vsl\\|vtl\\|vm\\)\\'"))
   "engine extensions")
 
@@ -505,6 +508,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("php"        . "<\\?")
     ("python"     . "<\\?")
     ("razor"      . "@.")
+    ("dust"       . "{.")
     ("smarty"     . "{[[:alpha:]#$/*\"]")
     ("velocity"   . "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]"))
   "engine blocks")
@@ -627,6 +631,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map [menu-bar wm elt elt-ren] '(menu-item "Rename" web-mode-element-rename))
     (define-key map [menu-bar wm elt elt-dup] '(menu-item "Duplicate" web-mode-element-duplicate))
     (define-key map [menu-bar wm elt elt-close] '(menu-item "Close" web-mode-element-close))
+    (define-key map [menu-bar wm elt elt-trav] '(menu-item "Traverse DOM" web-mode-element-traverse))
     (define-key map [menu-bar wm elt elt-child] '(menu-item "Child" web-mode-element-child))
     (define-key map [menu-bar wm elt elt-del] '(menu-item "Delete" web-mode-element-delete))
     (define-key map [menu-bar wm elt elt-next] '(menu-item "Next" web-mode-element-next))
@@ -671,6 +676,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map (kbd "C-c C-e p") 'web-mode-element-previous)
     (define-key map (kbd "C-c C-e r") 'web-mode-element-rename)
     (define-key map (kbd "C-c C-e s") 'web-mode-element-select)
+    (define-key map (kbd "C-c C-e t") 'web-mode-element-traverse)
     (define-key map (kbd "C-c C-e u") 'web-mode-element-parent)
     (define-key map (kbd "C-c C-e i") 'web-mode-element-content-select)
     (define-key map (kbd "C-c C-t b") 'web-mode-tag-beginning)
@@ -747,6 +753,10 @@ Must be used in conjunction with web-mode-enable-block-face."
   '("block" "else" "elseif" "foreach" "for" "if" "section" "while")
   "Smarty controls.")
 
+(defvar web-mode-dust-control-regexp
+  "{[#/:?@><+^]\\([[:alpha:]_]+\\)"
+  "Dust control regexp.")
+
 (defvar web-mode-smarty-control-regexp
   (concat "{/?" (regexp-opt web-mode-smarty-controls t))
   "Smarty control regexp.")
@@ -781,6 +791,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-php-end-control-regexp "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\|}\\)" "")
 (defvar web-mode-razor-end-control-regexp "}" "")
 (defvar web-mode-smarty-end-control-regexp "{\\(/\\|else\\)" "")
+(defvar web-mode-dust-end-control-regexp "{\\(/\\|:else\\)" "")
 (defvar web-mode-velocity-end-control-regexp "#\\(end\\|else\\)" "")
 
 (defvar web-mode-comment-keywords
@@ -1003,10 +1014,21 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-django-expr-font-lock-keywords
   (list
    '("{{\\|}}" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
+   (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face))
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    )
   "Font lock keywords for dtl expr")
+
+(defvar web-mode-dust-font-lock-keywords
+  (list
+   '("/?}\\|{[#/:?@><+^]?" 0 'web-mode-preprocessor-face)
+   '("{[#:/?@><+^]\\([[:alpha:]_]+\\)" 1 'web-mode-block-control-face)
+   '(":\\([[:alpha:]]+\\)" 1 'web-mode-keyword-face)
+   '("\\<\\([[:alpha:]_]+=\\)\\(\"[^\"]*\"\\|[[:alnum:]_]*\\)"
+     (1 'web-mode-block-attr-name-face)
+     (2 'web-mode-block-attr-value-face))
+   '("\\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
+   ))
 
 (defvar web-mode-smarty-font-lock-keywords
   (list
@@ -1556,6 +1578,16 @@ Must be used in conjunction with web-mode-enable-block-face."
            )
           );smarty
 
+         ((string= web-mode-engine "dust")
+          (cond
+           ((string= sub2 "{!")
+            (setq closing-string "!}"))
+           (t
+            (setq closing-string "}")
+            )
+           )
+          );dust
+
          ((string= web-mode-engine "ctemplate")
           (cond
            ((string= sub3 "{{{")
@@ -1648,7 +1680,7 @@ Must be used in conjunction with web-mode-enable-block-face."
               )
             )
 
-           ((and (string= web-mode-engine "smarty")
+           ((and (member web-mode-engine '("smarty" "dust"))
                  (string= closing-string "}"))
             (goto-char open)
             (setq tmp (web-mode-closing-paren-position (point) (line-end-position)))
@@ -1935,6 +1967,19 @@ Must be used in conjunction with web-mode-enable-block-face."
         )
        )
       );smarty
+
+     ((string= web-mode-engine "dust")
+      (cond
+       ((string= sub2 "{!")
+        (setq props '(block-token comment face web-mode-comment-face))
+        )
+       (t
+        (setq regexp "\"\\|'"
+              props '(face nil)
+              keywords web-mode-dust-font-lock-keywords)
+        )
+       )
+      );dust
 
      )
 
@@ -2863,7 +2908,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   (unless pos (setq pos (point)))
   (let (ret)
     (setq ret (+ (count-lines 1 pos)
-                 (if (= (current-column) 0) 1 0)))
+;;                 (if (= (current-column) 0) 1 0)))
+                 (if (= (web-mode-column-at-pos pos) 0) 1 0)))
     ret))
 
 (defun web-mode-clean-client-line (input)
@@ -2914,7 +2960,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ;;    (message "%S [%s] > [%s]" beg input out)
     ))
 
-(defun web-mode-column-at-point (&optional pos)
+(defun web-mode-column-at-pos (&optional pos)
   "Column at point"
   (unless pos (setq pos (point)))
   (save-excursion
@@ -3294,6 +3340,15 @@ Must be used in conjunction with web-mode-enable-block-face."
          ((string= web-mode-engine "smarty")
           (setq ctrl (match-string-no-properties 1))
           (if (member ctrl '("else" "elseif"))
+              (setq ctrl nil)
+            (setq state (not (char-equal ?\/ (aref (match-string-no-properties 0) 1))))
+            )
+          )
+
+         ((string= web-mode-engine "dust")
+          (setq ctrl (match-string-no-properties 1))
+          (if (or (member ctrl '("else"))
+                  (char-equal ?\/ (char-after (1- (web-mode-block-end-position)))))
               (setq ctrl nil)
             (setq state (not (char-equal ?\/ (aref (match-string-no-properties 0) 1))))
             )
@@ -3679,7 +3734,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq n (1+ n))))
     n))
 
-(defun web-mode-scan-at-point ()
+(defun web-mode-scan-at-pos ()
   "web mode scan at point"
   (save-excursion
     (let (scan-beg scan-end (pos (point)))
@@ -3929,7 +3984,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                 )))
         (goto-char pos)
         (replace-match (concat "<" tag-name))
-        (web-mode-scan-at-point)
+        (web-mode-scan-at-pos)
         ))))
 
 (defun web-mode-current-trimmed-line ()
@@ -3950,62 +4005,51 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defun web-mode-fold-or-unfold ()
-  "Toggle folding on a block."
+  "Toggle folding on an HTML element or a control block."
   (interactive)
   (web-mode-with-silent-modifications
    (save-excursion
      (let (beg-inside beg-outside end-inside end-outside overlay overlays regexp)
        (back-to-indentation)
        (setq overlays (overlays-at (point)))
-       (if overlays
-           (progn
-             ;; *** unfolding
-             (setq overlay (car overlays))
-             (setq beg-inside (overlay-start overlay)
-                   end-inside (overlay-end overlay))
-             (remove-overlays beg-inside end-inside)
-             (put-text-property beg-inside end-inside 'invisible nil))
-         ;; *** folding
-         (when (or (eq (get-text-property (point) 'tag-type) 'start)
-                   (looking-at-p "<\\?php[ ]+\\(if\\|while\\|for\\)")
-                   (looking-at-p "{%[-]?[ ]+\\(if\\|while\\|for\\)")
-                   (looking-at-p "{{[#^]")
-                   (looking-at-p "{{[ ]*\\(if\\|range\\|with\\)")
-                   (looking-at-p "#\\(define\\|if\\|for\\|macro\\)")
-                   (looking-at-p "@\\(section\\|if\\|for\\|while\\|unless\\)")
-                   );or
-           (setq beg-outside (point))
-           (cond
-            ((looking-at-p "<\\?")
-             (setq regexp "\\?>"))
-            ((looking-at-p "{%")
-             (setq regexp "%}"))
-            ((and (string= web-mode-engine "go") (looking-at-p "{{"))
-             (setq regexp "}}"))
-            ((looking-at-p "{{[#^]")
-             (setq regexp "}}"))
-            ((looking-at-p "#")
-             (setq regexp "$"))
-            ((looking-at-p "@")
-             (setq regexp "$"))
-            (t
-             (setq regexp ">"))
-            )
-           (web-mode-rsf regexp)
-           (setq beg-inside (point))
-           (goto-char beg-outside)
-           (web-mode-tag-match)
+       (cond
+        ;; *** unfolding
+        (overlays
+         (setq overlay (car overlays))
+         (setq beg-inside (overlay-start overlay)
+               end-inside (overlay-end overlay))
+         (remove-overlays beg-inside end-inside)
+         (put-text-property beg-inside end-inside 'invisible nil)
+         )
+        ;; *** folding
+        ((eq (get-text-property (point) 'tag-type) 'start)
+         (setq beg-outside (point))
+         (web-mode-tag-end)
+         (setq beg-inside (point))
+         (goto-char beg-outside)
+         (when (web-mode-tag-match)
            (setq end-inside (point))
-           (web-mode-rsf regexp)
-           (setq end-outside (point))
-           ;;          (message "beg-out(%d) beg-in(%d) end-in(%d) end-out(%d)" beg-outside beg-inside end-inside end-outside)
-           (setq overlay (make-overlay beg-outside end-outside))
-           (overlay-put overlay 'face 'web-mode-folded-face)
-           (put-text-property beg-inside end-inside 'invisible t)
-           ); when
-         ); if
-       ); let
-     )))
+           (web-mode-tag-end)
+           (setq end-outside (point)))
+         )
+        ((cdr (web-mode-is-active-control-block (point)))
+         (setq beg-outside (point))
+         (web-mode-block-end)
+         (setq beg-inside (point))
+         (goto-char beg-outside)
+         (when (web-mode-tag-match)
+           (setq end-inside (point))
+           (web-mode-block-end)
+           (setq end-outside (point)))
+         )
+        );cond
+       (when end-outside
+         ;;          (message "beg-out(%d) beg-in(%d) end-in(%d) end-out(%d)" beg-outside beg-inside end-inside end-outside)
+         (setq overlay (make-overlay beg-outside end-outside))
+         (overlay-put overlay 'face 'web-mode-folded-face)
+         (put-text-property beg-inside end-inside 'invisible t)
+         )
+       ))))
 
 (defun web-mode-toggle-comments ()
   "Toggle comments visbility"
@@ -4056,12 +4100,19 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       (setq block-side (get-text-property pos 'block-side))
       (setq single-line-block (web-mode-is-single-line-block pos))
+
       (cond
 
        ((and block-side
              (string= web-mode-engine "django")
              single-line-block)
         (web-mode-comment-django-block pos)
+        )
+
+       ((and block-side
+             (string= web-mode-engine "dust")
+             single-line-block)
+        (web-mode-comment-dust-block pos)
         )
 
        ((and block-side
@@ -4098,7 +4149,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
         (setq ctx (web-mode-point-context
                    (if mark-active (region-beginning) (line-beginning-position))))
-;;        (message "ctx=%S" ctx)
+        ;;        (message "ctx=%S" ctx)
         (setq language (plist-get ctx :language))
 
         (if mark-active
@@ -4223,6 +4274,24 @@ Must be used in conjunction with web-mode-enable-block-face."
     (web-mode-insert-text-at-pos "#" (1+ beg))
     ))
 
+(defun web-mode-uncomment-dust-block (pos)
+  "Uncomment a dust block."
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-remove-text-at-pos 1 (1- end))
+    (web-mode-remove-text-at-pos 1 (1+ beg))
+    ))
+
+(defun web-mode-comment-dust-block (pos)
+  "Turn a dust block into a comment block."
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos "!" end)
+    (web-mode-insert-text-at-pos "!" (1+ beg))
+    ))
+
 (defun web-mode-comment-aspx-block (pos)
   "Turn a aspx block into a comment block."
   (let (beg end)
@@ -4296,6 +4365,11 @@ Must be used in conjunction with web-mode-enable-block-face."
      ((and (get-text-property pos 'block-side)
            (string= web-mode-engine "django"))
         (web-mode-uncomment-django-block pos)
+        )
+
+     ((and (get-text-property pos 'block-side)
+           (string= web-mode-engine "dust"))
+        (web-mode-uncomment-dust-block pos)
         )
 
      ((and (get-text-property pos 'block-side)
@@ -4705,6 +4779,57 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-fetch-closing-smarty-block (regexp)
   "Fetch smarty closing block."
+  (let ((counter 1))
+    (web-mode-block-end)
+    (while (and (> counter 0) (web-mode-rsf regexp nil t))
+      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+          (setq counter (1- counter))
+        (setq counter (1+ counter)))
+      )
+    (web-mode-block-beginning)
+    ))
+
+(defun web-mode-match-dust-block ()
+  "Fetch dust block."
+  (let (match regexp)
+    (looking-at web-mode-dust-control-regexp)
+    (cond
+     ((string= (match-string-no-properties 0) "{:else")
+      (let ((continue t))
+        (while continue
+          (if (web-mode-block-previous)
+              (progn
+                (setq pair (web-mode-is-active-control-block (point)))
+                (when (cdr pair)
+                  (setq continue nil)
+                  )
+                )
+            (setq continue nil)
+            )
+          );while
+        );let
+      )
+     (t
+      (setq match (match-string-no-properties 1))
+      (setq regexp (concat "{[#/:?@><+^]?" match))
+      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+          (web-mode-fetch-opening-smarty-block regexp)
+        (web-mode-fetch-closing-smarty-block regexp)))
+     );cond
+    t))
+
+(defun web-mode-fetch-opening-dust-block (regexp)
+  "Fetch dust opening block."
+  (let ((counter 1))
+    (while (and (> counter 0) (web-mode-rsb regexp nil t))
+      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+          (setq counter (1+ counter))
+        (setq counter (1- counter)))
+      )
+    ))
+
+(defun web-mode-fetch-closing-dust-block (regexp)
+  "Fetch dust closing block."
   (let ((counter 1))
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
