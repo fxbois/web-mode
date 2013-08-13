@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.32
+;; Version: 6.0.33
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -42,7 +42,7 @@
   "Major mode for editing web templates:
    HTML files embedding client parts (CSS/JavaScript)
    and server blocs (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.32"
+  :version "6.0.33"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -629,7 +629,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map [menu-bar wm elt elt-parent] '(menu-item "Parent" web-mode-element-parent))
     (define-key map [menu-bar wm elt elt-sel] '(menu-item "Select" web-mode-element-select))
     (define-key map [menu-bar wm elt elt-ren] '(menu-item "Rename" web-mode-element-rename))
-    (define-key map [menu-bar wm elt elt-dup] '(menu-item "Duplicate" web-mode-element-duplicate))
+    (define-key map [menu-bar wm elt elt-dup] '(menu-item "Clone" web-mode-element-clone))
     (define-key map [menu-bar wm elt elt-close] '(menu-item "Close" web-mode-element-close))
     (define-key map [menu-bar wm elt elt-trav] '(menu-item "Traverse DOM" web-mode-element-traverse))
     (define-key map [menu-bar wm elt elt-child] '(menu-item "Child" web-mode-element-child))
@@ -667,24 +667,26 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map (kbd "C-c C-b e") 'web-mode-block-end)
     (define-key map (kbd "C-c C-b n") 'web-mode-block-next)
     (define-key map (kbd "C-c C-b p") 'web-mode-block-previous)
+
     (define-key map (kbd "C-c C-e b") 'web-mode-element-beginning)
-    (define-key map (kbd "C-c C-e c") 'web-mode-element-child)
-    (define-key map (kbd "C-c C-e d") 'web-mode-element-delete)
+    (define-key map (kbd "C-c C-e c") 'web-mode-element-clone)
+    (define-key map (kbd "C-c C-e d") 'web-mode-element-child)
     (define-key map (kbd "C-c C-e e") 'web-mode-element-end)
-    (define-key map (kbd "C-c C-e c") 'web-mode-element-duplicate)
+    (define-key map (kbd "C-c C-e i") 'web-mode-element-content-select)
+    (define-key map (kbd "C-c C-e k") 'web-mode-element-delete)
     (define-key map (kbd "C-c C-e n") 'web-mode-element-next)
     (define-key map (kbd "C-c C-e p") 'web-mode-element-previous)
     (define-key map (kbd "C-c C-e r") 'web-mode-element-rename)
     (define-key map (kbd "C-c C-e s") 'web-mode-element-select)
     (define-key map (kbd "C-c C-e t") 'web-mode-element-traverse)
     (define-key map (kbd "C-c C-e u") 'web-mode-element-parent)
-    (define-key map (kbd "C-c C-e i") 'web-mode-element-content-select)
+
     (define-key map (kbd "C-c C-t b") 'web-mode-tag-beginning)
     (define-key map (kbd "C-c C-t e") 'web-mode-tag-end)
     (define-key map (kbd "C-c C-t m") 'web-mode-tag-match)
-    (define-key map (kbd "C-c C-t s") 'web-mode-tag-select)
-    (define-key map (kbd "C-c C-t p") 'web-mode-tag-previous)
     (define-key map (kbd "C-c C-t n") 'web-mode-tag-next)
+    (define-key map (kbd "C-c C-t p") 'web-mode-tag-previous)
+    (define-key map (kbd "C-c C-t s") 'web-mode-tag-select)
 
     ;; compatibility with nxml
     (define-key map (kbd "M-C-u")     'web-mode-element-parent)
@@ -3951,8 +3953,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   (when mark-active
     (delete-region (region-beginning) (region-end))))
 
-(defun web-mode-element-duplicate ()
-  "Duplicate the current HTML element."
+(defun web-mode-element-clone ()
+  "Clone the current HTML element."
   (interactive)
   (let ((offset 0))
     (web-mode-element-select)
