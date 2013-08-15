@@ -449,7 +449,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("aspx"       . ("aspx"))
     ("blade"      . ("laravel"))
     ("closure"    . ("soy"))
-    ("ctemplate"  . ("mustache" "handlebars" "hapax" "ngtemplate" "ember"))
+    ("ctemplate"  . ("mustache" "handlebars" "hapax" "ngtemplate" "ember" "kite"))
     ("django"     . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl"))
     ("dust"       . ())
     ("erb"        . ("eruby" "erubis"))
