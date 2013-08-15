@@ -1244,7 +1244,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ;; compatibility with nxml
     (define-key map (kbd "M-C-u")     'web-mode-element-parent)
     (define-key map (kbd "M-C-d")     'web-mode-element-child)
-    (define-key map (kbd "M-C-n")     'web-mode-elenent-next)
+    (define-key map (kbd "M-C-n")     'web-mode-element-next)
     (define-key map (kbd "M-C-p")     'web-mode-element-previous)
 
     map)
