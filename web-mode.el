@@ -1331,8 +1331,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                nil)
             t t)
 
-  (when (boundp 'yas/after-exit-snippet-hook)
-    (add-hook 'yas/after-exit-snippet-hook
+  (when (boundp 'yas-after-exit-snippet-hook)
+    (add-hook 'yas-after-exit-snippet-hook
               '(lambda () (web-mode-buffer-refresh))
               t t)
     )
