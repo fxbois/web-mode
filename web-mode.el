@@ -1,3 +1,5 @@
+;; -*- coding: utf-8 -*-
+;;
 ;;; web-mode.el --- major mode for editing html templates
 
 ;; Copyright 2011-2013 François-Xavier Bois
@@ -35,6 +37,7 @@
 
 ;; Code goes here
 
+;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : ne mettre tag-type et tag-name que sur le '<'
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
@@ -597,7 +600,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Go controls.")
 
 (defvar web-mode-php-active-blocks
-  '("else" "elseif" "for" "foreach" "if" "while")
+  '("declare" "else" "elseif" "for" "foreach" "if" "while")
   "PHP controls.")
 
 (defvar web-mode-smarty-active-blocks
@@ -1933,7 +1936,7 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((string= sub3 "<%#")
         (setq props '(block-token comment face web-mode-comment-face)))
        (t
-        (setq regexp "\"\\|'"
+        (setq regexp "\"\\|'\\|#"
               props '(face nil)
               keywords web-mode-erb-font-lock-keywords)
         )
@@ -2068,7 +2071,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (when hddeb (setq hdend (1- (match-beginning 0))))
           )
 
-         ((and (string= web-mode-engine "python") (string= fc "#"))
+         ((and (member web-mode-engine '("python" "erb")) (string= fc "#"))
           (setq props '(block-token comment face web-mode-block-comment-face))
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
@@ -3263,6 +3266,14 @@ Must be used in conjunction with web-mode-enable-block-face."
                                                   block-beg))
           )
 
+         ((string= language "asp")
+          (setq offset (web-mode-asp-indentation pos
+                                                 line
+                                                 block-column
+                                                 indent-offset
+                                                 block-beg))
+          )
+
          (t
           (setq offset (web-mode-bracket-indentation pos
                                                      block-column
@@ -3559,6 +3570,34 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq out (- prev-indentation language-offset))
         )
        ((string-match-p "\\(when\\|if\\|else\\|elsif\\|unless\\|for\\|while\\|def\\|class\\)" prev-line)
+        (setq out (+ prev-indentation language-offset))
+        )
+       (t
+        (setq out prev-indentation)
+        )
+       )
+      );when
+    out
+    ))
+
+(defun web-mode-asp-indentation (pos line initial-column language-offset limit)
+  "Calc indent column."
+  (interactive)
+  (unless limit (setq limit nil))
+  (let (h out prev-line prev-indentation)
+    (setq h (web-mode-previous-line pos limit))
+    (setq out initial-column)
+    (when h
+      (setq prev-line (car h))
+      (setq prev-indentation (cdr h))
+      (cond
+       ((string-match-p "^\\(end \\(if\\|function\\|class\\|sub\\|select\\)\\|else\\|elsif\\|when\\|next\\|loop\\)" line)
+        (setq out (- prev-indentation language-offset))
+        )
+       ((string-match-p "\\(end \\(if\\|function\\|class\\|sub\\|select\\)\\|case else\\)" prev-line)
+        (setq out (+ prev-indentation 0))
+        )
+       ((string-match-p "\\(when\\|select\\|if\\|else\\|elsif\\|unless\\|for\\|while\\|def\\|class\\|do until\\|\\(public\\|private\\) \\(function\\|sub\\|class\\)\\)" prev-line)
         (setq out (+ prev-indentation language-offset))
         )
        (t
@@ -4236,6 +4275,12 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((member language '("php" "javascript" "css"))
           (web-mode-insert-and-indent (concat "/* " sel " */")))
+
+         ((member language '("erb"))
+          (web-mode-insert-and-indent (replace-regexp-in-string "^" "#" sel)))
+
+         ((member language '("asp"))
+          (web-mode-insert-and-indent (replace-regexp-in-string "^" "''" sel)))
 
          (t
           (web-mode-insert-and-indent (concat "/* " sel " */")))
