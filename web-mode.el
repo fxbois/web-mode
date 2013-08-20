@@ -1,10 +1,10 @@
-;; -*- coding: utf-8 -*-
-;;
+;;; -*- coding: utf-8 -*-
+
 ;;; web-mode.el --- major mode for editing html templates
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.38
+;; Version: 6.0.39
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -45,7 +45,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.38"
+  :version "6.0.39"
   :group 'languages)
 
 (defgroup web-mode-faces nil
