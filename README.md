@@ -1,4 +1,4 @@
-web-mode
+web-mode  [![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/thing/1849746/web-mode-el)
 ========
 
 web-mode.el is an emacs major mode for editing **web templates** aka HTML files embedding client parts (CSS/JavaScript) and server blocks.
