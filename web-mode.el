@@ -4,7 +4,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.39
+;; Version: 6.0.40
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -37,6 +37,7 @@
 
 ;; Code goes here
 
+;;todo : tester shortcut A -> pour pomme
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : ne mettre tag-type et tag-name que sur le '<'
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
@@ -45,7 +46,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.39"
+  :version "6.0.40"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -421,6 +422,15 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(part-side nil part-token nil part-language nil tag-name nil tag-type nil tag-beg nil tag-end nil block-side nil block-token nil block-beg nil block-end nil face nil)
   "Text properties used for fontification and indentation.")
 
+(defvar web-mode-large-embed-threshold 256
+  "Threshold for large part/block.")
+
+(defvar web-mode-has-any-large-part nil
+  "Does the current buffer has large parts ?")
+
+(defvar web-mode-has-any-large-block nil
+  "Does the current buffer has large blocks ?")
+
 (defvar web-mode-is-scratch nil
   "Is scratch buffer ?")
 
@@ -782,7 +792,9 @@ Must be used in conjunction with web-mode-enable-block-face."
            '("If" "Then" "Each" "End" "Set" "Dim" "On" "For" "Next" "Rem" "Empty"
              "IsArray" "Erase" "LBound" "UBound" "Let" "Next" "Nothing" "Null" "In"
              "True" "False" "Do" "Loop" "Each" "Select" "Case"
-             "While" "Wend" "Err")))
+             "While" "Wend" "Err"
+             "public" "function" "private" "else" "const" "class" "or" "and" "elseif"
+             "not" "until" "new" "redim" "redim preserve" "sub")))
   "ASP keywords.")
 
 (defvar web-mode-asp-types
@@ -1043,9 +1055,15 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-asp-font-lock-keywords
   (list
    '("<%=?\\|%>" 0 'web-mode-preprocessor-face)
-   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
-   (cons (concat "\\<\\(" web-mode-asp-types "\\)\\>") '(0 'web-mode-type-face))
    (cons (concat "\\<\\(" web-mode-asp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-asp-types "\\)\\>") '(0 'web-mode-type-face))
+   '("\\(Class\\|new\\) \\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
+   '("Const \\([[:alnum:]_]+\\)" 1 'web-mode-constant-face)
+   '("\\<dim\\>"
+     (0 'web-mode-keyword-face)
+     ("[[:alnum:]_]+" nil nil (0 'web-mode-variable-name-face)))
+   '("\\<\\(public\\|private\\|sub\\|function\\)\\> \\([[:alnum:]_]+\\)[ ]*(" 2 'web-mode-function-name-face)
+   '("\\<\\(public\\|private\\|dim\\)\\> \\([[:alnum:]_]+\\)" 2 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-aspx-font-lock-keywords
@@ -1299,6 +1317,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   (make-local-variable 'web-mode-engine-file-regexps)
   (make-local-variable 'web-mode-expand-initial-pos)
   (make-local-variable 'web-mode-expand-previous-state)
+  (make-local-variable 'web-mode-has-any-large-block)
+  (make-local-variable 'web-mode-has-any-large-part)
   (make-local-variable 'web-mode-hl-line-mode-flag)
   (make-local-variable 'web-mode-indent-style)
   (make-local-variable 'web-mode-is-narrowed)
@@ -1431,6 +1451,13 @@ Must be used in conjunction with web-mode-enable-block-face."
 
     (when (string= web-mode-engine "razor")
       (setq web-mode-enable-block-face t))
+
+    (cond
+     ((member web-mode-content-type '("css" "javascript" "json"))
+      (setq web-mode-has-any-large-part t))
+     ((member web-mode-content-type '("php"))
+      (setq web-mode-has-any-large-block t))
+     )
 
     (when (and (string= web-mode-content-type "html")
                (not (string= web-mode-engine "none")))
@@ -1781,6 +1808,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-scan-block (beg end)
   "Fontify a block."
   (let (sub1 sub2 sub3 regexp props start ms continue fc keywords tag token-type hddeb hdend hdflk)
+
+    (when (and (not web-mode-has-any-large-block)
+               (> (- end beg) web-mode-large-embed-threshold))
+      (message "** large block detected **")
+      (setq web-mode-has-any-large-block t))
 
     (goto-char beg)
 
@@ -2268,6 +2300,11 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Scan client part (e.g. javascript, json, css)."
   (save-excursion
     (let (regexp ch-before ch-at ch-next props start continue keywords rules-beg rules-end props-beg props-end token-type face)
+
+      (when (and (not web-mode-has-any-large-part)
+                 (> (- end beg) web-mode-large-embed-threshold))
+        (message "** large part detected **")
+        (setq web-mode-has-any-large-part t))
 
       (cond
        ((string= content-type "javascript")
@@ -5264,10 +5301,30 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       ;;-- region-refresh
       ;;      (save-match-data
-      (web-mode-scan-region (or (web-mode-previous-tag-at-bol-pos beg)
-                                (point-min))
-                            (or (web-mode-next-tag-at-eol-pos end)
-                                (point-max)))
+      (cond
+       ((and web-mode-has-any-large-part
+             (or (and (= len 0)
+                      (= 1 (- end beg))
+                      (member (get-text-property beg 'part-language) '(css javascript)))
+                 (member web-mode-content-type '("css" "javascript"))))
+        (if (eq web-mode-content-type "css")
+            (web-mode-invalidate-css-region beg end)
+          (web-mode-invalidate-javascript-region beg end (symbol-name (get-text-property beg 'part-language)))
+          )
+        )
+       ((and web-mode-has-any-large-block
+             (= len 0)
+             (= 1 (- end beg))
+             (get-text-property beg 'block-side)
+             (member web-mode-engine '("asp")))
+        (web-mode-invalidate-asp-region beg end)
+        )
+       (t
+        (web-mode-scan-region (or (web-mode-previous-tag-at-bol-pos beg)
+                                  (point-min))
+                              (or (web-mode-next-tag-at-eol-pos end)
+                                  (point-max))))
+       )
       ;;        );save-match-data
 
       ;;-- auto-indentation
@@ -5281,6 +5338,86 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       );if narrowed
     ))
+
+;;todo : créer web-mode-part-beginning|end-position
+(defun web-mode-invalidate-css-region (pos-beg pos-end)
+  "Invalidate css region (only when one char has been inserted)"
+  (save-excursion
+    (let (beg end part-beg part-end)
+      (if (eq web-mode-content-type "css")
+          (setq part-beg (point-min)
+                part-end (point-max))
+        (setq part-beg (web-mode-part-beginning-position pos-beg)
+              part-end (web-mode-part-end-position pos-beg)))
+      (if (and (or (search-backward "{" part-beg t) part-beg)
+               (progn (back-to-indentation) t)
+               (setq beg (point))
+               (>= beg part-beg)
+               (progn (goto-char pos-end) t)
+               (or (re-search-forward "}[ ]*$" part-end t) part-end)
+               (setq end (point))
+               (<= end part-end))
+          (progn
+;;            (message "%S" (buffer-substring-no-properties beg end))
+            (web-mode-scan-part beg end "css")
+            )
+        (web-mode-scan-part part-beg part-end "css")
+        )
+      )))
+
+(defun web-mode-invalidate-javascript-region (pos-beg pos-end lang)
+  "Invalidate javascript region (only when one char has been inserted)"
+  (save-excursion
+    (let (beg end part-beg part-end)
+      (if (member web-mode-content-type '("javascript" "json"))
+          (setq part-beg (point-min)
+                part-end (point-max))
+        (setq part-beg (web-mode-part-beginning-position pos-beg)
+              part-end (web-mode-part-end-position pos-beg)))
+      (if (and (progn (goto-char pos-beg) t) ;;(or (search-backward "{" part-beg t) part-beg)
+               (progn (message "%S %c" pos-beg (char-after)))
+;;               (null (get-text-property pos-beg 'part-token))
+               (not (member (char-after) '(?\" ?\' ?\/)))
+               (progn (back-to-indentation) t)
+               (setq beg (point))
+               (if (>= beg part-beg) beg part-beg)
+               (progn (goto-char pos-end) t)
+               (progn (end-of-line) t) ;;(or (re-search-forward "}[ ]*$" part-end t) part-end)
+               (setq end (point))
+               (if (<= end part-end) end part-end))
+          (progn
+;;            (message "%S" (buffer-substring-no-properties beg end))
+            (web-mode-scan-part beg end lang)
+            )
+;;        (message "%S" (buffer-substring-no-properties part-beg part-end))
+        (web-mode-scan-part part-beg part-end lang)
+        )
+      )))
+
+(defun web-mode-invalidate-asp-region (pos-beg pos-end)
+  "Invalidate asp region."
+  (save-excursion
+    (let (beg end part-beg part-end)
+      (setq part-beg (web-mode-block-beginning-position pos-beg)
+            part-end (web-mode-block-end-position pos-beg))
+      (if (and part-beg part-end
+               (progn (goto-char pos-beg) t)
+               (not (member (char-after) '(?\" ?\' ?\/)))
+               (progn (back-to-indentation) t)
+               (setq beg (point))
+               (if (>= beg part-beg) beg part-beg)
+               (progn (goto-char pos-end) t)
+               (progn (end-of-line) t)
+               (setq end (point))
+               (if (<= end part-end) end part-end))
+          (progn
+            ;;            (message "%S" (buffer-substring-no-properties beg end))
+            (web-mode-scan-block beg end)
+            )
+        ;;        (message "%S" (buffer-substring-no-properties part-beg part-end))
+        (web-mode-scan-block part-beg part-end)
+        )
+      )))
 
 (defun web-mode-apostrophes-replace ()
   "Replace ' with ’."
@@ -5550,6 +5687,39 @@ Must be used in conjunction with web-mode-enable-block-face."
       (setq end nil))
      );cond
     end))
+
+(defun web-mode-part-end-position (&optional pos)
+  "End position of the current part."
+  (unless pos (setq pos (point)))
+  (cond
+   ((member web-mode-content-type '("css" "javascript" "json"))
+    (setq pos (point-max)))
+   ((not (get-text-property pos 'part-side))
+    (setq pos nil))
+   (t
+    (setq pos (next-single-property-change pos 'tag-beg))
+    (if (not (get-text-property pos 'tag-beg))
+        (setq pos nil)
+      (setq pos (1- pos)))
+    )
+   );cond
+  pos)
+
+(defun web-mode-part-beginning-position (&optional pos)
+  "Beginning of pat"
+  (unless pos (setq pos (point)))
+  (cond
+   ((member web-mode-content-type '("css" "javascript" "json"))
+    (setq pos (point-min)))
+   ((not (get-text-property pos 'part-side))
+    (setq pos nil))
+   (t
+    (setq pos (previous-single-property-change pos 'tag-end))
+    (when (or (= pos (point-min))
+              (not (get-text-property (1- pos) 'tag-end)))
+      (setq pos nil)))
+   );cond
+  pos)
 
 (defun web-mode-element-beginning-position (&optional pos)
   "Beginning of element pos."
