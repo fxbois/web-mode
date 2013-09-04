@@ -2375,7 +2375,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq props-end (web-mode-closing-paren-position rules-end end))
           (when (and props-end (< props-end end))
 
-            (goto (1+ props-end))
+            (goto-char (1+ props-end))
             ;;todo: skipper les
             (skip-chars-forward "\s")
             (setq rules-beg (point))
