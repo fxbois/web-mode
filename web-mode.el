@@ -4445,10 +4445,12 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-comment-or-uncomment (&optional pos)
   "Comment or uncomment line(s), block or region at POS."
   (interactive)
-  (unless pos (setq pos (if mark-active (region-beginning) (point))))
-  (if (web-mode-is-comment)
-      (web-mode-uncomment pos)
-    (web-mode-comment pos))
+  (save-excursion
+    (re-search-forward "[^[:space:]]" (line-end-position) t)
+    (unless pos (setq pos (if mark-active (region-beginning) (point))))
+    (if (web-mode-is-comment)
+	(web-mode-uncomment pos)
+      (web-mode-comment pos)))
   (web-mode-scan-region (point-min) (point-max)))
 
 (defun web-mode-comment (pos)
