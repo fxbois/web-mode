@@ -633,7 +633,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    (cons "ctemplate"  "{{[#^/]\\([[:alnum:]_]+\\)")
    (cons "django"     (concat "{%[-]?[ ]+\\(end\\)?" (regexp-opt web-mode-django-active-blocks t)))
    (cons "dust"       "{[#/:?@><+^]\\([[:alpha:]_]+\\)")
-   (cons "erb"        "<%[-]?[ ]+\\(.* do \\|for\\|unless\\|end\\|if\\|else\\)")
+   (cons "erb"        "<%[-=]?[ ]+\\(.* do \\|for\\|unless\\|end\\|if\\|else\\)")
    (cons "freemarker" "</?\\([[:alpha:]]+:[[:alpha:]]+\\)\\|[[<]/?[@#]\\([[:alpha:]]+\\)")
    (cons "go"         (concat "{{[ ]*" (regexp-opt web-mode-go-active-blocks t)))
    (cons "jsp"        "</?\\([[:alpha:]]+:[[:alpha:]]+\\)\\|<%[ ]*+\\(if\\|for\\|while\\|} else {\\)")
