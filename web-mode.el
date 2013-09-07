@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.46
+;; Version: 6.0.47
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -35,6 +35,7 @@
 
 ;; Code goes here
 
+;;todo : auto-pairs deviennent spécifiques à un engine
 ;;todo : reduction des css rules div { ... }
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
@@ -46,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.46"
+  :version "6.0.47"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -456,20 +457,20 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine nil
   "Template engine")
 
-(defvar web-mode-engine-families
+(defvar web-mode-engines
   '(("asp"        . ("asp"))
     ("aspx"       . ("aspx"))
     ("blade"      . ("laravel"))
     ("closure"    . ("soy"))
     ("ctemplate"  . ("mustache" "handlebars" "hapax" "ngtemplate" "ember" "kite"))
     ("django"     . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl"))
-    ("dust"       . ())
+    ("dust"       . ("dustjs"))
     ("erb"        . ("eruby" "erubis"))
     ("go"         . ("gtl"))
     ("jsp"        . ())
     ("python"     . ())
     ("razor"      . ("play" "play2"))
-    ("underscore" . ())
+    ("underscore" . ("underscorejs"))
     ("velocity"   . ("vtl" "cheetah")))
   "Engine name aliases")
 
@@ -1432,17 +1433,66 @@ Must be used in conjunction with web-mode-enable-block-face."
           (< (setq arg (1+ arg)) 0))))
    ))
 
+(defun web-mode-set-engine (engine)
+  "set engine"
+  (interactive
+   (list (completing-read
+          "Engine: "
+          (let (engines elt)
+            (dolist (elt web-mode-engines)
+              (setq engines (append engines (list (car elt)))))
+            engines))))
+  (setq web-mode-content-type "html"
+        web-mode-engine engine)
+  (web-mode-on-engine-setted)
+  (web-mode-scan-buffer)
+  )
+
+(defun web-mode-on-engine-setted ()
+  "engine setted"
+  (when (string= web-mode-engine "razor")
+    (setq web-mode-enable-block-face t))
+  (cond
+   ((member web-mode-content-type '("css" "javascript" "json"))
+    (setq web-mode-has-any-large-part t))
+   ((member web-mode-content-type '("php"))
+    (setq web-mode-has-any-large-block nil)))
+  (setq web-mode-electric-chars nil)
+  (when (string= web-mode-content-type "html")
+    (unless (string= web-mode-engine "none")
+      (setq web-mode-active-block-regexp
+            (cdr (assoc web-mode-engine web-mode-active-block-regexps)))
+      (setq web-mode-close-block-regexp
+            (cdr (assoc web-mode-engine web-mode-close-block-regexps)))
+      (setq web-mode-engine-control-matcher
+            (intern-soft (concat "web-mode-match-" web-mode-engine "-block")))
+      )
+    (setq web-mode-electric-chars
+          (append '(?\<)
+                  (cdr (assoc web-mode-engine web-mode-block-electric-chars)))
+          )
+    );when
+
+    (setq elt (assoc web-mode-engine web-mode-block-regexps))
+    (if elt
+        (setq web-mode-block-regexp (cdr elt))
+      (setq web-mode-engine "none")
+      )
+
+    ;;(message "buffer=%S engine=%S type=%S regexp=%S"
+    ;;          buff-name web-mode-engine web-mode-content-type web-mode-block-regexp)
+
+    ;;  (message "%S\n%S\n%S\n%S" web-mode-active-block-regexp web-mode-close-block-regexp web-mode-engine-control-matcher web-mode-electric-chars)
+
+  )
+
 (defun web-mode-guess-engine-and-content-type ()
   "Try to guess the server engine and the content type."
   (let (buff-name elt found)
-
     (setq buff-name (buffer-file-name))
     (unless buff-name (setq buff-name (buffer-name)))
-
     (setq web-mode-is-scratch (string= buff-name "*scratch*"))
-
     (setq web-mode-content-type nil)
-
     (when (boundp 'web-mode-content-types-alist)
       (setq found nil)
       (dolist (elt web-mode-content-types-alist)
@@ -1451,7 +1501,6 @@ Must be used in conjunction with web-mode-enable-block-face."
                 found t))
         )
       )
-
     (unless web-mode-content-type
       (setq found nil)
       (dolist (elt web-mode-content-types)
@@ -1460,7 +1509,6 @@ Must be used in conjunction with web-mode-enable-block-face."
                 found t))
         )
       )
-
     (when (boundp 'web-mode-engines-alist)
       (setq found nil)
       (dolist (elt web-mode-engines-alist)
@@ -1468,7 +1516,6 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq web-mode-engine (car elt)))
         )
       )
-
     (unless web-mode-engine
       (setq found nil)
       (dolist (elt web-mode-engine-file-regexps)
@@ -1477,54 +1524,15 @@ Must be used in conjunction with web-mode-enable-block-face."
                 found t))
         )
       )
-
     (when web-mode-engine
       (setq found nil)
-      (dolist (elt web-mode-engine-families)
+      (dolist (elt web-mode-engines)
         (when (and (not found) (member web-mode-engine (cdr elt)))
           (setq web-mode-engine (car elt)
                 found t))
         )
       )
-
-    (setq elt (assoc web-mode-engine web-mode-block-regexps))
-    (if elt
-        (setq web-mode-block-regexp (cdr elt))
-      (setq web-mode-engine "none")
-      )
-
-    ;;    (message "buffer=%S engine=%S type=%S regexp=%S"
-    ;;             buff-name web-mode-engine web-mode-content-type web-mode-block-regexp)
-
-    (when (string= web-mode-engine "razor")
-      (setq web-mode-enable-block-face t))
-
-    (cond
-     ((member web-mode-content-type '("css" "javascript" "json"))
-      (setq web-mode-has-any-large-part t))
-     ((member web-mode-content-type '("php"))
-      (setq web-mode-has-any-large-block t))
-     )
-
-    (setq web-mode-electric-chars nil)
-    (when (string= web-mode-content-type "html")
-
-      (when (not (string= web-mode-engine "none"))
-        (setq web-mode-active-block-regexp
-              (cdr (assoc web-mode-engine web-mode-active-block-regexps)))
-        (setq web-mode-close-block-regexp
-              (cdr (assoc web-mode-engine web-mode-close-block-regexps)))
-        (setq web-mode-engine-control-matcher
-              (intern-soft (concat "web-mode-match-" web-mode-engine "-block")))
-        ;;      (message "%S\n%S\n%S" web-mode-active-block-regexp web-mode-close-block-regexp web-mode-engine-control-matcher)
-        )
-
-      (setq web-mode-electric-chars
-            (append '(?\<)
-                    (cdr (assoc web-mode-engine web-mode-block-electric-chars))))
-;;      (message "electric-chars=%S" web-mode-electric-chars)
-      )
-
+    (web-mode-on-engine-setted)
     ))
 
 (defun web-mode-imenu-index ()
@@ -2612,16 +2620,15 @@ Must be used in conjunction with web-mode-enable-block-face."
       );if
     ))
 
-;;todo : ne pas chercher dans des blocks (cf. {} )
 (defun web-mode-css-current-rule (pos min max)
   "current css rule"
   (save-excursion
     (let (beg end)
       (goto-char pos)
-      (if (not (search-backward "{" min t))
+      (if (not (web-mode-sb-client "{" min t))
           (progn
             (setq beg min)
-            (if (search-forward ";" max t)
+            (if (web-mode-sf-client ";" max t)
                 (setq end (1+ (point)))
               (setq end max))
             )
@@ -2637,12 +2644,12 @@ Must be used in conjunction with web-mode-enable-block-face."
             ;;selectors
             (progn
               (goto-char pos)
-              (if (re-search-backward "[};]" min t)
+              (if (web-mode-rsb-client "[};]" min t)
                   (setq beg (1+ (point)))
                 (setq beg min)
                 )
               (goto-char pos)
-              (if (re-search-forward "[{;]" max t)
+              (if (web-mode-rsf-client "[{;]" max t)
                   (cond
                    ((char-equal (char-before) ?\;)
                     (setq end (point))
@@ -2660,7 +2667,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
           ;; declaration
           (goto-char beg)
-          (if (re-search-backward "[}{;]" min t)
+          (if (web-mode-rsb-client "[}{;]" min t)
               (setq beg (1+ (point)))
             (setq beg min)
             )
@@ -6444,6 +6451,18 @@ Must be used in conjunction with web-mode-enable-block-face."
       );while
     ret))
 
+(defun web-mode-sb-client (regexp &optional limit noerror)
+  "search-backward in client."
+  (unless noerror (setq noerror t))
+  (let ((continue t) ret)
+    (while continue
+      (setq ret (search-backward regexp limit noerror))
+      (if (or (null ret)
+              (not (get-text-property (point) 'block-side)))
+          (setq continue nil))
+      )
+    ret))
+
 (defun web-mode-rsb-client (regexp &optional limit noerror)
   "re-search-backward in client."
   (unless noerror (setq noerror t))
@@ -6654,43 +6673,3 @@ Must be used in conjunction with web-mode-enable-block-face."
 (provide 'web-mode)
 
 ;;; web-mode.el ends here
-
-
-
-
-;; (defvar web-mode-php-control-regexp
-;;   (concat "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\)?" (regexp-opt web-mode-php-controls t))
-;;   "PHP control regexp")
-
-;; (defvar web-mode-erb-control-regexp
-;;   "<%[-]?[ ]+\\(.* do \\|for\\|unless\\|end\\|if\\|else\\)"
-;;   "ERB control regexp")
-
-;; (defvar web-mode-go-control-regexp
-;;   (concat "{{[ ]*" (regexp-opt web-mode-go-controls t))
-;;   "Go control regexp")
-
-
-;; (defvar web-mode-blade-control-regexp
-;;   (concat "@\\(end\\)?" (regexp-opt web-mode-blade-controls t))
-;;   "Blade control regexp")
-
-;; (defvar web-mode-django-control-regexp
-;;   (concat "{%[-]?[ ]+\\(end\\)?" (regexp-opt web-mode-django-controls t))
-;;   "Django controls regexp.")
-
-;; (defvar web-mode-ctemplate-control-regexp
-;;   "{{[#^/]\\([[:alnum:]_]+\\)"
-;;   "Ctemplate control regexp.")
-
-;; (defvar web-mode-dust-control-regexp
-;;   "{[#/:?@><+^]\\([[:alpha:]_]+\\)"
-;;   "Dust control regexp.")
-
-;; (defvar web-mode-smarty-control-regexp
-;;   (concat "{/?" (regexp-opt web-mode-smarty-controls t))
-;;   "Smarty control regexp.")
-
-;; (defvar web-mode-velocity-control-regexp
-;;   (concat "#" (regexp-opt web-mode-velocity-controls t))
-;;   "Velocity control regexp.")
