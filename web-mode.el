@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 6.0.47
+;; Version: 6.0.48
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "6.0.47"
+  :version "6.0.48"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -2383,9 +2383,9 @@ Must be used in conjunction with web-mode-enable-block-face."
           (when (and closing-string (web-mode-sf-client closing-string end t))
             (setq open tag-end
                   close (match-beginning 0))
-            ;;(message "open(%S) close(%S) element-content-type(%S)" open close element-content-type)
-            ;;(message "%S" (buffer-substring open close))
-            (web-mode-scan-part open close element-content-type)
+            (if (>= (- close open) 3)
+                (web-mode-scan-part open close element-content-type)
+              (remove-text-properties open close web-mode-text-properties))
             (goto-char close)
             ); when
           ); close-found
@@ -6246,49 +6246,47 @@ Must be used in conjunction with web-mode-enable-block-face."
     (goto-char pos))
   pos)
 
-;; TODO : utiliser property tag-beg
-(defun web-mode-start-tag-previous (&optional regexp)
-  "Fetch previous start tag."
-  (interactive)
-  (unless regexp (setq regexp web-mode-start-tag-regexp))
-  (let ((continue t) ret)
-    (while continue
-      (setq ret (re-search-backward regexp nil t))
-      (if (or (null ret)
-              (get-text-property (point) 'tag-beg)
-              (eq (get-text-property (point) 'tag-type) 'start))
-          (setq continue nil))
-      );while
-    ret))
-
-(defun web-mode-tag-previous (&optional regexp)
+(defun web-mode-tag-previous (&optional pos)
   "Fetch previous tag."
   (interactive)
-  (unless regexp (setq regexp web-mode-tag-regexp))
-;;  (unless regexp (setq regexp "</?[[:alpha:]]"))
-  (let ((continue t) ret)
-    (while continue
-      (setq ret (re-search-backward regexp nil t))
-      (if (or (null ret)
-              (get-text-property (point) 'tag-beg))
-          (setq continue nil))
-      );while
-    ret))
+  (unless pos (setq pos (point)))
+  (if (bobp)
+      (setq pos nil)
+    (when (get-text-property pos 'tag-beg)
+      (setq pos (1- pos)))
+    (setq pos (previous-single-property-change pos 'tag-beg))
+    (when pos
+      (setq pos (1- pos))
+      (goto-char pos))
+    )
+  pos)
 
 (defun web-mode-tag-next (&optional pos)
   "Fetch next tag. Might be HTML comment or server tag (ie. JSP)."
   (interactive)
   (unless pos (setq pos (point)))
-  (when (get-text-property pos 'tag-beg)
-    (setq pos (1+ pos)))
-  (setq pos (next-single-property-change pos 'tag-beg))
-  (when pos (goto-char pos))
+  (if (eobp)
+      (setq pos nil)
+    (when (get-text-property pos 'tag-beg)
+      (setq pos (1+ pos)))
+    (setq pos (next-single-property-change pos 'tag-beg))
+    (when pos (goto-char pos)))
   pos)
 
 (defun web-mode-element-previous ()
   "Fetch previous element."
   (interactive)
-  (web-mode-tag-previous "<[[:alpha:]]"))
+  (let (continue ret (pos (point)) (props '(start void)))
+    (setq continue (not (bobp)))
+    (while continue
+      (setq ret (web-mode-tag-previous))
+      (when (or (null ret)
+                (member (get-text-property (point) 'tag-type) props))
+        (setq continue nil)
+        )
+      );while
+    (unless ret (goto-char pos))
+    ret))
 
 (defun web-mode-element-next ()
   "Fetch next element."
@@ -6673,3 +6671,23 @@ Must be used in conjunction with web-mode-enable-block-face."
 (provide 'web-mode)
 
 ;;; web-mode.el ends here
+
+
+;; ;;todo: a supprimer
+;; (defun web-mode-tag-previous2 (&optional regexp)
+;;   "Fetch previous tag."
+;;   (interactive)
+;;   (unless regexp (setq regexp web-mode-tag-regexp))
+;;   (let ((continue t) ret)
+;;     (while continue
+;;       (setq ret (re-search-backward regexp nil t))
+;;       (if (or (null ret)
+;;               (get-text-property (point) 'tag-beg))
+;;           (setq continue nil))
+;;       );while
+;;     ret))
+;; ;;todo : a supprimer
+;; (defun web-mode-element-previous2 ()
+;;   "Fetch previous element."
+;;   (interactive)
+;;   (web-mode-tag-previous "<[[:alpha:]]"))
