@@ -201,6 +201,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   :type 'list
   :group 'web-mode)
 
+(defcustom web-mode-scan-blocks-maximum 200
+  "The maximum number of blocks allowed by (web-mode-scan-blocks)."
+  :type 'integer
+  :group 'web-mode)
+
 (defface web-mode-warning-face
   '((t :inherit font-lock-warning-face))
   "Face for warning."
@@ -1878,9 +1883,10 @@ Must be used in conjunction with web-mode-enable-block-face."
       (cond
        ((or (null end)
             (> end region-end)
-            (> i 200))
+            (> i web-mode-scan-blocks-maximum))
         (setq continue nil)
-        (if (> i 200) (message "*** invalid loop (web-mode-scan-blocks) ***")))
+        (if (> i web-mode-scan-blocks-maximum)
+            (message "*** invalid loop (web-mode-scan-blocks) ***")))
        (t
         (setq end (1+ end))
         ;;(message "beg=%S end=%S" beg end)
