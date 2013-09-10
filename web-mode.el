@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.1
+;; Version: 7.0.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.1"
+  :version "7.0.2"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -598,7 +598,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Is hl-line-mode enabled ?")
 
 (defvar web-mode-blade-active-blocks
-  '("else" "elseif" "foreach" "forelse" "for" "if" "section" "unless" "while")
+  '("else" "elseif" "foreach" "forelse" "for" "if" "section" "stop" "unless" "while")
   "Blade controls.")
 
 (defvar web-mode-closure-active-blocks
@@ -652,7 +652,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-close-block-regexps
   '(("asp"        . "----")
     ("aspx"       . "----")
-    ("blade"      . "@\\\(end\\|else\\)")
+    ("blade"      . "@\\\(end\\|else\\|stop\\)")
     ("closure"    . "{\\(/\\|else\\|case\\|default\\|ifempty\\)")
     ("ctemplate"  . "{{/")
     ("django"     . "{%[-]?[ ]+\\(end\\|else\\|elseif\\|elif\\)")
@@ -873,26 +873,26 @@ Must be used in conjunction with web-mode-enable-block-face."
        "print" "printf" "println" "urlquery")))
   "Go functions.")
 
-(defvar web-mode-django-filters
-  (eval-when-compile
-    (regexp-opt
-     '("add" "addslashes" "capfirst" "center" "cut"
-       "date" "default" "default_if_none" "dictsort"
-       "dictsortreversed" "divisibleby"
-       "escape" "escapejs" "filesizeformat" "first"
-       "fix_ampersands" "floatformat"
-       "force_escape" "format_integer" "format_number"
-       "get_digit" "humanize" "iriencode" "join"
-       "last" "length" "length_is" "linebreaks" "linebreaksbr" "linenumbers"
-       "ljust" "lower" "make_list"
-       "phonenumeric" "pluralize" "pprint"
-       "random" "random_num" "random_range" "removetags" "rjust"
-       "safe" "safeseq" "slice" "slugify" "stringformat" "striptags"
-       "time" "timesince" "timeuntil" "title" "trans" "truncatechars" "truncatewords"
-       "truncatewords_html" "unordered_list" "upper" "urlencode"
-       "urlize" "urlizetrunc"
-       "wordcount" "wordwrap" "yesno")))
-  "Django filters.")
+;; (defvar web-mode-django-filters
+;;   (eval-when-compile
+;;     (regexp-opt
+;;      '("add" "addslashes" "capfirst" "center" "cut"
+;;        "date" "default" "default_if_none" "dictsort"
+;;        "dictsortreversed" "divisibleby"
+;;        "escape" "escapejs" "filesizeformat" "first"
+;;        "fix_ampersands" "floatformat"
+;;        "force_escape" "format_integer" "format_number"
+;;        "get_digit" "humanize" "iriencode" "join"
+;;        "last" "length" "length_is" "linebreaks" "linebreaksbr" "linenumbers"
+;;        "ljust" "lower" "make_list"
+;;        "phonenumeric" "pluralize" "pprint"
+;;        "random" "random_num" "random_range" "removetags" "rjust"
+;;        "safe" "safeseq" "slice" "slugify" "stringformat" "striptags"
+;;        "time" "timesince" "timeuntil" "title" "trans" "truncatechars" "truncatewords"
+;;        "truncatewords_html" "unordered_list" "upper" "urlencode"
+;;        "urlize" "urlizetrunc"
+;;        "wordcount" "wordwrap" "yesno")))
+;;   "Django filters.")
 
 (defvar web-mode-closure-keywords
   (eval-when-compile
@@ -5104,11 +5104,13 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let (beg end match regexp)
     (looking-at web-mode-active-block-regexp)
     (setq match (match-string-no-properties 2))
-    (setq regexp (concat "@\\(end\\)?\\("
-                         (if (member match '("else" "elseif")) "if" match)
-                         "\\)"))
+    (setq regexp (cond
+                  ((member match '("else" "elseif")) "@\\(end\\)?\\(if\\)")
+                  ((string= match "stop") "@\\(section\\|stop\\)")
+                  ((string= match "section") "@\\(endsection\\|stop\\|section\\)")
+                  (t (concat "@\\(end\\)?\\(" match "\\)"))))
     (if (or (string= "end" (match-string-no-properties 1))
-            (member match '("else" "elseif")))
+            (member match '("else" "elseif" "stop")))
         (web-mode-fetch-opening-blade-block regexp)
       (web-mode-fetch-closing-blade-block regexp))
     t))
@@ -5117,7 +5119,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Fetch blade opening block."
   (let ((counter 1))
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
-      (if (string= "end" (match-string-no-properties 1))
+      (if (member (match-string-no-properties 1) '("end" "endsection" "stop"))
           (setq counter (1+ counter))
         (setq counter (1- counter)))
       )
@@ -5128,7 +5130,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let ((counter 1))
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
-      (if (string= "end" (match-string-no-properties 1))
+      (if (member (match-string-no-properties 1) '("end" "endsection" "stop"))
           (setq counter (1- counter))
         (setq counter (1+ counter)))
       )
