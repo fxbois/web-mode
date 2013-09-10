@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.0
+;; Version: 7.0.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.0"
+  :version "7.0.1"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -423,7 +423,11 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(part-side nil part-token nil part-language nil tag-name nil tag-type nil tag-beg nil tag-end nil block-side nil block-token nil block-beg nil block-end nil face nil)
   "Text properties used for fontification and indentation.")
 
-(defvar web-mode-large-embed-threshold 256
+(defvar web-mode-text-properties2
+  '(part-side nil part-token nil part-language nil tag-name nil tag-type nil tag-beg nil tag-end nil face nil)
+  "Text properties used for fontification and indentation.")
+
+(defvar web-mode-large-embed-threshold 512
   "Threshold for large part/block.")
 
 (defvar web-mode-has-any-large-part nil
@@ -670,7 +674,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("blade"      . "{{\\|^[ \t]*@[[:alpha:]]")
     ("closure"    . "{.\\|/\\*\\| //")
     ("ctemplate"  . "[$]?{{.")
-    ("django"     . "{[#{%]")
+    ("django"     . "{[#{%] ")
     ("dust"       . "{.")
     ("erb"        . "<%\\|^%.")
     ("freemarker" . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#].\\|\\[/?[@#].")
@@ -878,13 +882,13 @@ Must be used in conjunction with web-mode-enable-block-face."
        "escape" "escapejs" "filesizeformat" "first"
        "fix_ampersands" "floatformat"
        "force_escape" "format_integer" "format_number"
-       "get_digit" "iriencode" "join"
+       "get_digit" "humanize" "iriencode" "join"
        "last" "length" "length_is" "linebreaks" "linebreaksbr" "linenumbers"
        "ljust" "lower" "make_list"
        "phonenumeric" "pluralize" "pprint"
        "random" "random_num" "random_range" "removetags" "rjust"
        "safe" "safeseq" "slice" "slugify" "stringformat" "striptags"
-       "time" "timesince" "timeuntil" "title" "truncatechars" "truncatewords"
+       "time" "timesince" "timeuntil" "title" "trans" "truncatechars" "truncatewords"
        "truncatewords_html" "unordered_list" "upper" "urlencode"
        "urlize" "urlizetrunc"
        "wordcount" "wordwrap" "yesno")))
@@ -907,14 +911,20 @@ Must be used in conjunction with web-mode-enable-block-face."
        "endcache" "endcall" "endembed" "endfilter" "endfor" "endif"
        "endifchanged" "endifequal" "endifnotequal" "endmacro" "endrandom" "endraw"
        "endsandbox" "endset" "endspaceless" "endtrans" "endwith"
-       "extends" "false" "filter" "firstof" "flush" "for" "from"
+       "extends" "filter" "firstof" "flush" "for" "from"
        "if" "ifchanged" "ifequal" "ifnotequal" "ignore" "import"
        "in" "include" "is"
        "load" "macro" "missing" "none" "not" "now" "or" "pluralize"
-       "random" "raw" "regroup" "trans" "true"
+       "random" "raw" "regroup" "trans"
        "sandbox" "set" "spaceless" "ssi" "static" "templatetag" "trans"
        "use" "url" "var" "verbatim" "widthratio" "with")))
   "Django keywords.")
+
+(defvar web-mode-django-types
+  (eval-when-compile
+    (regexp-opt
+     '("null" "empty" "false" "true"
+       ))))
 
 (defvar web-mode-directives
   (eval-when-compile
@@ -942,14 +952,6 @@ Must be used in conjunction with web-mode-enable-block-face."
    (append web-mode-extra-razor-keywords
            '("false" "true" "foreach" "if" "in" "var" "for" "display")))
   "Razor keywords.")
-
-(defvar web-mode-django-expr-font-lock-keywords
-  (list
-   '("{{\\|}}" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face))
-   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
-   )
-  "Font lock keywords for dtl expr")
 
 (defvar web-mode-dust-font-lock-keywords
   (list
@@ -989,12 +991,25 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
+(defvar web-mode-django-expr-font-lock-keywords
+  (list
+   '("\\({{\\)[ ]" 1 'web-mode-preprocessor-face)
+   '("[ ]\\(}}\\)" 1 'web-mode-preprocessor-face)
+   '("|[ ]?\\([[:alpha:]]+\\)\\>" 1 'web-mode-function-name-face)
+   (cons (concat "\\<\\(" web-mode-django-types "\\)\\>") '(1 'web-mode-type-face))
+   '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
+   )
+  "Font lock keywords for dtl expr")
+
 (defvar web-mode-django-code-font-lock-keywords
   (list
    '("{%\\|%}" 0 'web-mode-preprocessor-face)
-   (cons (concat "[% ]\\(" web-mode-django-keywords "\\)[ %]") '(1 'web-mode-keyword-face t t))
-   (cons (concat "\\<\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
+   (cons (concat "\\<\\(" web-mode-django-keywords "\\)\\>") '(1 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-django-types "\\)\\>") '(1 'web-mode-type-face))
+   '("|[ ]?\\([[:alpha:]]+\\)\\>" 1 'web-mode-function-name-face)
+;;   (cons (concat "|[ ]?\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
+   '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    ))
 
@@ -1347,7 +1362,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (make-local-variable 'font-lock-keywords)
   (make-local-variable 'font-lock-multiline)
   (make-local-variable 'font-lock-unfontify-buffer-function)
-  (make-local-variable 'forward-sexp-function)
+;;  (make-local-variable 'forward-sexp-function)
   (make-local-variable 'imenu-case-fold-search)
   (make-local-variable 'imenu-create-index-function)
   (make-local-variable 'imenu-generic-expression)
@@ -1378,7 +1393,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
   (setq fill-paragraph-function 'web-mode-fill-paragraph
         font-lock-fontify-buffer-function 'web-mode-scan-buffer
-        forward-sexp-function 'web-mode-forward-sexp
+;;        forward-sexp-function 'web-mode-forward-sexp
         ;;          font-lock-keywords-only t
         font-lock-unfontify-buffer-function 'web-mode-scan-buffer
         imenu-case-fold-search t
@@ -1572,17 +1587,17 @@ Must be used in conjunction with web-mode-enable-block-face."
            (cond
 
             ((member web-mode-content-type '("javascript" "json" "css"))
-             (remove-text-properties beg end web-mode-text-properties)
+             (remove-text-properties beg end web-mode-text-properties2)
              (web-mode-scan-part beg end web-mode-content-type))
 
             ((string= web-mode-engine "none")
-             (remove-text-properties beg end web-mode-text-properties)
+             (remove-text-properties beg end web-mode-text-properties2)
              (web-mode-scan-parts beg end)
              (web-mode-trace "parts scanned")
              )
 
             ((and content-type (member content-type '("css")))
-             (remove-text-properties beg end web-mode-text-properties)
+             (remove-text-properties beg end web-mode-text-properties2)
              (web-mode-mark-blocks beg end)
              (web-mode-scan-part beg end "css")
              (web-mode-scan-blocks beg end)
@@ -1620,7 +1635,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       ;;      (message "%S: %Sx%S" (point) beg end)
       ;;      (message "regexp=%S" web-mode-block-regexp)
-      (while (and (< i 500)
+      (while (and (< i 1200)
                   (> end (point))
                   (re-search-forward web-mode-block-regexp end t))
 
@@ -1651,7 +1666,8 @@ Must be used in conjunction with web-mode-enable-block-face."
          ((string= web-mode-engine "django")
           (cond
            ((string= sub2 "{{")
-            (setq closing-string "}}"))
+            (setq closing-string '("{{" . " }}")))
+;;            (setq closing-string "}}"))
            ((string= sub2 "{%")
             (setq closing-string "%}"))
            (t
@@ -1804,6 +1820,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                 (progn
                   (setq close (match-end 0)
                         pos (point))
+;;                  (message "close=%S pos=%S" close pos)
                   )
               (when (string= "<?" sub2)
                 (setq close (point-max)
@@ -1857,7 +1874,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
         );while
 
-      (when (>= i 500)
+      (when (>= i 1200)
         (message "** strange loop (web-mode-mark-blocks) **"))
 
       )))
@@ -1878,9 +1895,9 @@ Must be used in conjunction with web-mode-enable-block-face."
       (cond
        ((or (null end)
             (> end region-end)
-            (> i 200))
+            (> i 1200))
         (setq continue nil)
-        (if (> i 200) (message "*** invalid loop (web-mode-scan-blocks) ***")))
+        (if (> i 1200) (message "*** invalid loop (web-mode-scan-blocks) ***")))
        (t
         (setq end (1+ end))
         ;;(message "beg=%S end=%S" beg end)
@@ -2385,7 +2402,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                   close (match-beginning 0))
             (if (>= (- close open) 3)
                 (web-mode-scan-part open close element-content-type)
-              (remove-text-properties open close web-mode-text-properties))
+              (remove-text-properties open close web-mode-text-properties2))
             (goto-char close)
             ); when
           ); close-found
@@ -2401,7 +2418,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (save-excursion
     (let (token-re ch-before ch-at ch-next props start continue keywords token-type face)
 
-      (remove-text-properties part-beg part-end web-mode-text-properties)
+      (remove-text-properties part-beg part-end web-mode-text-properties2)
 
       (goto-char part-beg)
 
