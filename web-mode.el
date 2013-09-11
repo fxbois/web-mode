@@ -1417,11 +1417,16 @@ Must be used in conjunction with web-mode-enable-block-face."
                nil)
             t t)
 
-  (when (boundp 'yas-after-exit-snippet-hook)
+  (cond
+   ((boundp 'yas-after-exit-snippet-hook)
     (add-hook 'yas-after-exit-snippet-hook
               '(lambda () (web-mode-buffer-refresh))
-              t t)
-    )
+              t t))
+   ((boundp 'yas/after-exit-snippet-hook)
+    (add-hook 'yas/after-exit-snippet-hook
+              '(lambda () (web-mode-buffer-refresh))
+              t t))
+   )
 
   (when web-mode-enable-whitespaces
     (web-mode-whitespaces-on))
@@ -3333,12 +3338,12 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq indent-offset web-mode-code-indent-offset)
         (cond
          ((string= web-mode-engine "blade")
-          (setq block-beg (+ block-beg 2))
-          (setq block-column (+ block-column 2))
+          (setq block-beg (+ block-beg 2)
+                block-column (+ block-column 2))
           )
          ((string= web-mode-engine "razor")
-          (setq block-beg (+ block-beg 2))
-          (setq block-column (+ block-column 2))
+          (setq block-beg (+ block-beg 2)
+                block-column (+ block-column 2))
           )
          ((and (string= web-mode-engine "jsp")
                (web-mode-looking-at-pos "<%@\\|<[[:alpha:]]" block-beg))
