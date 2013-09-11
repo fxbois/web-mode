@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.2
+;; Version: 7.0.3
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.2"
+  :version "7.0.3"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -132,7 +132,7 @@ See web-mode-part-face."
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-indent-style 1
+(defcustom web-mode-indent-style 2
   "Indentation style.
 with value 2, HTML lines beginning text are also indented (do not forget side effects, ie. content of a textarea)."
   :type 'integer
@@ -3332,6 +3332,10 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq language web-mode-engine)
         (setq indent-offset web-mode-code-indent-offset)
         (cond
+         ((string= web-mode-engine "blade")
+          (setq block-beg (+ block-beg 2))
+          (setq block-column (+ block-column 2))
+          )
          ((string= web-mode-engine "razor")
           (setq block-beg (+ block-beg 2))
           (setq block-column (+ block-column 2))
@@ -3492,7 +3496,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq offset (1+ offset)))
         );case comment
 
-       ((member language '("php" "jsp" "asp" "aspx" "javascript" "code" "python" "erb" "freemarker"))
+       ((member language '("php" "jsp" "asp" "aspx" "javascript" "code" "python" "erb" "freemarker" "blade"))
 
         (cond
 
@@ -3673,10 +3677,14 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((string= web-mode-engine "blade")
           (setq ctrl (match-string-no-properties 2))
-          (if (member ctrl '("else" "elseif"))
-              (setq ctrl nil)
-            (setq state (not (string= "end" (match-string-no-properties 1))))
-            )
+          (cond
+           ((string= ctrl "stop")
+            (setq ctrl "section"))
+           ((member ctrl '("else" "elseif"))
+            (setq ctrl nil))
+           (t
+            (setq state (not (string= "end" (match-string-no-properties 1)))))
+           )
           )
 
          ((string= web-mode-engine "go")
