@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.3
+;; Version: 7.0.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.3"
+  :version "7.0.4"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -2174,27 +2174,27 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq start (match-beginning 0)
               ms (match-string 0)
               continue t)
-        (setq fc (substring ms 0 1))
+        (setq fc (aref ms 0))
         (cond
 
          ((and (string= web-mode-engine "asp")
-               (string= fc "'"))
+               (char-equal fc ?\'))
           (setq props '(block-token comment face web-mode-block-comment-face)
                 token-type "comment")
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
 
-         ((string= fc "'")
+         ((char-equal fc ?\')
           (setq props '(block-token string face web-mode-block-string-face))
           (while (and continue (search-forward "'" end t))
-            (setq continue (char-equal ?\\ (char-before (- (point) 1))))
+            (setq continue (char-equal ?\\ (char-before (1- (point)))))
             )
           )
 
-         ((string= fc "\"")
+         ((char-equal fc ?\")
           (setq props '(block-token string face web-mode-block-string-face))
           (while (and continue (search-forward "\"" end t))
-            (setq continue (char-equal ?\\ (char-before (- (point) 1))))
+            (setq continue (char-equal ?\\ (char-before (1- (point)))))
             )
           )
 
@@ -2210,7 +2210,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (search-forward "*/" end t)
           )
 
-         ((string= fc "<")
+         ((char-equal fc ?\<)
           (when (and web-mode-enable-heredoc-fontification
                      (string-match-p "JS\\|JAVASCRIPT\\|HTM\\|CSS" (match-string 1)))
             (setq hddeb (1+ (point))
@@ -2224,7 +2224,8 @@ Must be used in conjunction with web-mode-enable-block-face."
           (when hddeb (setq hdend (1- (match-beginning 0))))
           )
 
-         ((and (member web-mode-engine '("python" "erb")) (string= fc "#"))
+         ((and (member web-mode-engine '("python" "erb"))
+               (char-equal fc ?\#))
           (setq props '(block-token comment face web-mode-block-comment-face))
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
@@ -2233,6 +2234,12 @@ Must be used in conjunction with web-mode-enable-block-face."
 
         ;;        (message "elt=%S" (buffer-substring start (point)))
         (add-text-properties start (point) props)
+
+        (when (and (char-equal fc ?\")
+                   (member web-mode-engine '("php" "erb"))
+                   (> (- (point) start) 4))
+          (web-mode-interpolate-string start (point))
+          )
 
         (when hddeb
           (web-mode-fontify-region hddeb hdend hdflk)
@@ -2267,6 +2274,28 @@ Must be used in conjunction with web-mode-enable-block-face."
                                web-mode-uel-font-lock-keywords)
       )
     ))
+
+(defun web-mode-interpolate-string (beg end)
+  "Interpolate php/erb strings."
+  (save-excursion
+    (goto-char (1+ beg))
+    (setq end (1- end))
+    (cond
+     ((string= web-mode-engine "php")
+      (while (re-search-forward "$[[:alnum:]]+" end t)
+        (put-text-property (match-beginning 0) (match-end 0)
+                           'face nil)
+        (put-text-property (1+ (match-beginning 0)) (match-end 0)
+                           'face 'web-mode-variable-name-face)
+        ))
+     ((string= web-mode-engine "erb")
+      (while (re-search-forward "${.*}" end t)
+        (put-text-property (match-beginning 0) (match-end 0)
+                           'face 'web-mode-variable-name-face)
+        ))
+     );cond
+    ))
+
 
 (defun web-mode-enhance-comment (beg end block-side)
   "Enhance comment"
