@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.4
+;; Version: 7.0.5
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.4"
+  :version "7.0.5"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -809,7 +809,7 @@ Must be used in conjunction with web-mode-enable-block-face."
              "alias" "and" "begin" "break" "button_to_function"
              "case" "class" "csrf_meta_tag"
              "def" "defined" "do" "else" "elsif" "end"
-             "ensure" "escape_javascript" "false" "for" "form_for" "h" "html_escape"
+             "ensure" "false" "for" "form_for" "h" "html_escape"
              "if" "in" "j" "javascript_include_tag" "javascript_tag"
              "link_to" "link_to_function" "module" "next" "nil" "not"
              "or" "package" "puts" "raw" "redo" "render" "rescue" "retry" "return"
@@ -1197,12 +1197,12 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("-?%>\\|^%\\|<%[=-]?" 0 'web-mode-preprocessor-face)
    '(":\\([[:alnum:]_]+\\)" 1 'web-mode-symbol-face)
    '("\\([[:alnum:]_]+\\):[ ]+" 1 'web-mode-symbol-face)
-   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+;;   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-erb-keywords "\\)\\>") '(0 'web-mode-keyword-face))
    '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
    '("class[ ]+\\(\\sw*\\)" 1 'web-mode-type-face)
    '("def[ ]+\\(\\sw*\\)" 1 'web-mode-function-name-face)
-   '("[[:alpha:]][[:alnum:]_]*" 0 'web-mode-variable-name-face)
+;;   '("[[:alpha:]][[:alnum:]_]*" 0 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-python-font-lock-keywords
@@ -2289,7 +2289,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                            'face 'web-mode-variable-name-face)
         ))
      ((string= web-mode-engine "erb")
-      (while (re-search-forward "${.*}" end t)
+      (while (re-search-forward "#{.*}" end t)
         (put-text-property (match-beginning 0) (match-end 0)
                            'face 'web-mode-variable-name-face)
         ))
