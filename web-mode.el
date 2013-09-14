@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.5
+;; Version: 7.0.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.5"
+  :version "7.0.6"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -805,18 +805,84 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-erb-keywords
   (regexp-opt
    (append web-mode-extra-erb-keywords
-           '("BEGIN" "END" "__FILE__" "__LINE__"
-             "alias" "and" "begin" "break" "button_to_function"
-             "case" "class" "csrf_meta_tag"
-             "def" "defined" "do" "else" "elsif" "end"
-             "ensure" "false" "for" "form_for" "h" "html_escape"
-             "if" "in" "j" "javascript_include_tag" "javascript_tag"
-             "link_to" "link_to_function" "module" "next" "nil" "not"
-             "or" "package" "puts" "raw" "redo" "render" "rescue" "retry" "return"
-             "self" "super" "then" "true" "u" "undef"
-             "unless" "until" "url_encode" "when" "while" "yield"
+           '("alias" "and" "begin" "break" "case" "class"
+             "def" "defined?" "do" "elsif" "else" "end" "ensure"
+             "fail" "for" "if" "in" "module" "next" "not"
+             "or" "redo" "rescue" "retry" "return" "then" "super"
+             "unless" "undef" "until" "when" "while" "yield"
+
+             "__ENCODING__" "__FILE__" "__LINE__" "nil" "false" "true"
+
+             ;; "BEGIN" "END" "__FILE__" "__LINE__"
+             ;;  "alias" "and" "begin" "break" "button_to_function"
+             ;;  "case" "class" "csrf_meta_tag"
+             ;;  "def" "defined" "do" "else" "elsif" "end"
+             ;;  "ensure" "false" "for" "form_for" "h" "html_escape"
+             ;;  "if" "in" "j" "javascript_include_tag" "javascript_tag"
+             ;;  "link_to" "link_to_function" "module" "next" "nil" "not"
+             ;;  "or" "package" "puts"
+             ;;  "raw" "redo" "render" "rescue" "retry" "return"
+             ;;  "self" "super" "then" "true" "u" "undef"
+             ;;  "unless" "until" "url_encode" "when" "while" "yield"
+
              )))
   "ERB keywords.")
+
+(defvar web-mode-erb-builtins
+  (regexp-opt
+   '("__callee__" "__dir__" "__method__"
+     "abort" "at_exit" "autoload" "autoload?"
+     "binding" "block_given?" "caller" "catch"
+     "eval" "exec" "exit" "exit!" "fail" "fork" "format"
+     "lambda" "load" "loop" "open"
+     "p" "print" "printf" "proc" "putc" "puts"
+     "raise" "rand" "readline" "readlines" "require" "require_relative"
+     "sleep" "spawn" "sprintf" "srand" "syscall" "system"
+     "throw" "trap" "warn"
+     "alias_method" "attr" "attr_accessor" "attr_reader" "attr_writer"
+     "define_method" "extend" "include" "module_function"
+     "prepend" "private" "protected" "public"
+     "refine" "using"
+
+     "error_message_on" "error_messages_for" "form" "input"
+     "auto_discovery_link_tag" "image_tag" "javascript_include_tag"
+     "stylesheet_link_tag" "image_path" "path_to_image"" "
+     "javascript_path" "path_to_javascript" "register_javascript_expansion"
+     "register_javascript_include_default" "register_stylesheet_expansion"
+     "stylesheet_path" "path_to_stylesheet" "atom_feed" "entry" "updated"
+     "benchmark" "cache" "capture" "content_for" "distance_of_time_in_words"
+     "distance_of_time_in_words_to_now" "time_ago_in_words" "date_select"
+     "datetime_select" "time_select" "select_date" "select_datetime"
+     "select_day" "select_hour" "select_minute" "select_month" "select_second"
+     "select_time" "select_year" "debug"
+     "check_box" "fields_for" "file_field" "form_for" "hidden_field"
+     "label" "password_field" "radio_button" "text_area" "text_field"
+     "check_box_tag" "field_set_tag" "file_field_tag" "form_tag"
+     "hidden_field_tag" "image_submit_tag" "label_tag" "password_field_tag"
+     "radio_button_tag" "select_tag" "submit_tag" "text_area_tag"
+     "text_field_tag"
+     "collection_select" "country_options_for_select" "country_select"
+     "option_groups_from_collection_for_select" "options_for_select"
+     "options_from_collection_for_select" "select"
+     "time_zone_options_for_select"
+     "time_zone_select" "button_to_function" "define_javascript_functions"
+     "escape_javascript" "javascript_tag" "link_to_function"" "
+     "number_to_currency" "number_to_human_size" "number_to_percentage"
+     "number_to_phone" "number_with_delimiter" "number_with_precision"
+     "evaluate_remote_response" "form_remote_for" "form_remote_tag"
+     "link_to_remote" "observe_field" "observe_field"
+     "periodically_call_remote"
+     "remote_form_for" "remote_function" "submit_to_remote" "update_page"
+     "update_page_tag" "dom_class" "dom_id" "partial_path" "sanitize"
+     "sanitize_css" "strip_links" "strip_tags"
+     "cdata_section" "content_tag" "escape_once" "tag"
+     "auto_link" "concat" "cycle" "excerpt" "highlight" "markdown" "pluralize"
+     "reset_cycle" "simple_format" "textilize" "textilize_without_paragraph"
+     "truncate" "word_wrap" "button_to" "current_page?" "link_to" "link_to_if"
+     "link_to_unless" "link_to_unless_current" "mail_to" "url_for"
+
+     ))
+  "ERB builtins.")
 
 (defvar web-mode-asp-keywords
   (regexp-opt
@@ -1198,9 +1264,12 @@ Must be used in conjunction with web-mode-enable-block-face."
    '(":\\([[:alnum:]_]+\\)" 1 'web-mode-symbol-face)
    '("\\([[:alnum:]_]+\\):[ ]+" 1 'web-mode-symbol-face)
 ;;   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
-   (cons (concat "\\<\\(" web-mode-erb-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-erb-builtins "\\)\\>")
+         '(0 'web-mode-builtin-face))
+   (cons (concat "\\<\\(" web-mode-erb-keywords "\\)\\>")
+         '(0 'web-mode-keyword-face))
    '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
-   '("class[ ]+\\(\\sw*\\)" 1 'web-mode-type-face)
+   '("\\(class[ ]+\\|ClassName\\.\\)\\(\\sw*\\)" 2 'web-mode-type-face)
    '("def[ ]+\\(\\sw*\\)" 1 'web-mode-function-name-face)
 ;;   '("[[:alpha:]][[:alnum:]_]*" 0 'web-mode-variable-name-face)
    ))
