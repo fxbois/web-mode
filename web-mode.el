@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.6
+;; Version: 7.0.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.6"
+  :version "7.0.7"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -1268,10 +1268,12 @@ Must be used in conjunction with web-mode-enable-block-face."
          '(0 'web-mode-builtin-face))
    (cons (concat "\\<\\(" web-mode-erb-keywords "\\)\\>")
          '(0 'web-mode-keyword-face))
-   '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
-   '("\\(class[ ]+\\|ClassName\\.\\)\\(\\sw*\\)" 2 'web-mode-type-face)
-   '("def[ ]+\\(\\sw*\\)" 1 'web-mode-function-name-face)
+   '("[$@]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
+   '("class[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-type-face)
+   '("def[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
 ;;   '("[[:alpha:]][[:alnum:]_]*" 0 'web-mode-variable-name-face)
+   '("\\(?:\\_<\\|::\\)\\([A-Z]+[[:alnum:]_]+\\)"
+     1 (unless (eq ?\( (char-after)) font-lock-type-face))
    ))
 
 (defvar web-mode-python-font-lock-keywords
