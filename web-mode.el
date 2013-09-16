@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.9
+;; Version: 7.0.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.9"
+  :version "7.0.10"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -1184,7 +1184,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-javascript-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   '("\\<new \\([[:alnum:]_.]+\\)\\>" 1 'web-mode-type-face)
+   '("\\<\\(new\\|instanceof\\) \\([[:alnum:]_.]+\\)\\>" 2 'web-mode-type-face)
    '("\\<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
    '("\\<function[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
    '("\\<\\(var\\)\\>[ ]+"
@@ -2020,7 +2020,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         (web-mode-scan-block beg end)
         (when (and (member web-mode-engine '("jsp"))
                    (> (- end beg) 12)
-                   (char-equal ?\< (char-after beg)))
+                   (eq ?\< (char-after beg)))
           (web-mode-scan-jsp-tag beg end))
         (setq beg end)
         )
@@ -2172,7 +2172,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             (member sub3 '("</@" "[/@" "</#" "[/#")))
         (setq regexp "\""
               props '(face nil)
-              keywords (if (char-equal ?\[ (aref sub2 0))
+              keywords (if (eq ?\[ (aref sub2 0))
                            web-mode-freemarker-square-font-lock-keywords
                          web-mode-freemarker-font-lock-keywords))
         )
@@ -2294,23 +2294,23 @@ Must be used in conjunction with web-mode-enable-block-face."
         (cond
 
          ((and (string= web-mode-engine "asp")
-               (char-equal fc ?\'))
+               (eq fc ?\'))
           (setq props '(block-token comment face web-mode-block-comment-face)
                 token-type "comment")
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
 
-         ((char-equal fc ?\')
+         ((eq fc ?\')
           (setq props '(block-token string face web-mode-block-string-face))
           (while (and continue (search-forward "'" end t))
-            (setq continue (char-equal ?\\ (char-before (1- (point)))))
+            (setq continue (eq ?\\ (char-before (1- (point)))))
             )
           )
 
-         ((char-equal fc ?\")
+         ((eq fc ?\")
           (setq props '(block-token string face web-mode-block-string-face))
           (while (and continue (search-forward "\"" end t))
-            (setq continue (char-equal ?\\ (char-before (1- (point)))))
+            (setq continue (eq ?\\ (char-before (1- (point)))))
             )
           )
 
@@ -2333,7 +2333,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (search-forward "*/" end t)
           )
 
-         ((char-equal fc ?\<)
+         ((eq fc ?\<)
           (when (and web-mode-enable-heredoc-fontification
                      (string-match-p "JS\\|JAVASCRIPT\\|HTM\\|CSS" (match-string 1)))
             (setq hddeb (1+ (point))
@@ -2348,7 +2348,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          ((and (member web-mode-engine '("python" "erb"))
-               (char-equal fc ?\#))
+               (eq fc ?\#))
           (setq props '(block-token comment face web-mode-block-comment-face))
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
@@ -2358,7 +2358,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         ;;        (message "elt=%S" (buffer-substring start (point)))
         (add-text-properties start (point) props)
 
-        (when (and (char-equal fc ?\")
+        (when (and (eq fc ?\")
                    (member web-mode-engine '("php" "erb"))
                    (> (- (point) start) 4))
           (web-mode-interpolate-string start (point))
@@ -2474,7 +2474,7 @@ Must be used in conjunction with web-mode-enable-block-face."
          (t
           (setq props '(face web-mode-html-tag-face))
           (cond
-           ((char-equal ?\/ (string-to-char tag-name))
+           ((eq ?\/ (string-to-char tag-name))
             (setq props (plist-put props prop-name (substring tag-name 1)))
             (setq props (plist-put props prop-type 'end))
             (setq expr ">")
@@ -2499,7 +2499,7 @@ Must be used in conjunction with web-mode-enable-block-face."
               (setq attrs-end (- (point) (length expr))
                     tag-end (point)
                     close-found t)
-              (when (char-equal ?\/ (char-after (- (point) 2)))
+              (when (eq ?\/ (char-after (- (point) 2)))
                 (setq attrs-end (1- attrs-end)
                       props (plist-put props prop-type 'void)))
               );progn
@@ -2539,7 +2539,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (add-text-properties tag-beg tag-end '(tag-name "comment" tag-type void part-side t part-token comment face web-mode-comment-face)))
 
          (close-found
-          (when (and (not (char-equal ?\/ (aref tag-name 0)))
+          (when (and (not (eq ?\/ (aref tag-name 0)))
                      (> (- attrs-end tag-stop) 1))
 ;;            (message "tag-stop=%S attrs-end=%S" tag-stop attrs-end)
             (web-mode-scan-attrs tag-stop attrs-end)
@@ -2618,11 +2618,11 @@ Must be used in conjunction with web-mode-enable-block-face."
           ;;        (message "beg=%S :%c%c%c" start ch-before ch-at ch-next)
           (cond
 
-           ((char-equal ?\' ch-at)
-            (unless (char-equal ?\\ ch-before)
+           ((eq ?\' ch-at)
+            (unless (eq ?\\ ch-before)
               (while (and continue (search-forward "'" part-end t))
                 (setq continue (or (get-text-property (1- (point)) 'block-side)
-                                   (char-equal ?\\ (char-before (1- (point))))))
+                                   (eq ?\\ (char-before (1- (point))))))
                 )
               (cond
                ((string= content-type "javascript")
@@ -2637,17 +2637,17 @@ Must be used in conjunction with web-mode-enable-block-face."
               );unless
             )
 
-           ((char-equal ?\" ch-at)
-            (unless (char-equal ?\\ ch-before)
+           ((eq ?\" ch-at)
+            (unless (eq ?\\ ch-before)
               (while (and continue (search-forward "\"" part-end t))
                 (setq continue (or (get-text-property (1- (point)) 'block-side)
-                                   (char-equal ?\\ (char-before (1- (point))))))
+                                   (eq ?\\ (char-before (1- (point))))))
                 )
               (cond
                ((string= content-type "json")
                 (if (looking-at-p "[ ]*:")
                     (cond
-                     ((char-equal ?\@ (char-after (1+ start)))
+                     ((eq ?\@ (char-after (1+ start)))
                       (setq props '(part-token string face web-mode-json-context-face))
                       )
                      (t
@@ -2670,16 +2670,16 @@ Must be used in conjunction with web-mode-enable-block-face."
               );unless
             )
 
-           ((char-equal ?\/ ch-next)
-            (unless (char-equal ?\\ ch-before)
+           ((eq ?\/ ch-next)
+            (unless (eq ?\\ ch-before)
               (setq props '(part-token comment face web-mode-part-comment-face)
                     token-type "comment")
               (goto-char (if (< part-end (line-end-position)) part-end (line-end-position)))
               )
             )
 
-           ((char-equal ?\* ch-next)
-            (unless (char-equal ?\\ ch-before)
+           ((eq ?\* ch-next)
+            (unless (eq ?\\ ch-before)
               (setq props '(part-token comment face web-mode-part-comment-face)
                     token-type "comment")
               (search-forward "*/" part-end t)
@@ -2765,7 +2765,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                (web-mode-rsf-client "[{;]" limit t))
       (setq sel-end (1- (point)))
       (cond
-       ((char-equal (char-before) ?\{)
+       ((eq (char-before) ?\{)
         (setq dec-beg (point))
         (setq dec-end (web-mode-closing-paren-position (1- dec-beg) limit))
         (if dec-end
@@ -2825,7 +2825,7 @@ Must be used in conjunction with web-mode-enable-block-face."
               (goto-char pos)
               (if (web-mode-rsf-client "[{;]" max t)
                   (cond
-                   ((char-equal (char-before) ?\;)
+                   ((eq (char-before) ?\;)
                     (setq end (point))
                     )
                    (t
@@ -2865,7 +2865,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         (forward-char)
         (setq pos (point)
               char (char-after))
-        (setq spaced (char-equal ?\s char))
+        (setq spaced (eq ?\s char))
 ;;        (setq char (buffer-substring-no-properties pos (1+ pos)))
 
         (cond
@@ -2897,7 +2897,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq state 5)
           )
 
-         ((and (char-equal ?\n char) (not (member state '(7 8))))
+         ((and (eq ?\n char) (not (member state '(7 8))))
           (web-mode-propertize-attr state char name-beg name-end val-beg)
           (setq state 1
                 name-beg nil
@@ -2906,8 +2906,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                 val-end nil)
           )
 
-         ((or (and (char-equal ?\" char) (= state 8) (not escaped))
-              (and (char-equal ?\' char) (= state 7) (not escaped))
+         ((or (and (eq ?\" char) (= state 8) (not escaped))
+              (and (eq ?\' char) (= state 7) (not escaped))
               (and (member char '(?\s ?\n ?\>)) (= state 6)))
           (web-mode-propertize-attr state char name-beg name-end val-beg)
           (setq state (if (= state 6) 1 0)
@@ -2922,17 +2922,17 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq name-beg pos)
           )
 
-         ((and (char-equal ?\= char) (member state '(2 3)))
+         ((and (eq ?\= char) (member state '(2 3)))
           (setq name-end pos)
           (setq state 4)
           )
 
-         ((and (char-equal ?\" char) (member state '(4 5)))
+         ((and (eq ?\" char) (member state '(4 5)))
           (setq val-beg pos)
           (setq state 8)
           )
 
-         ((and (char-equal ?\' char) (member state '(4 5)))
+         ((and (eq ?\' char) (member state '(4 5)))
           (setq val-beg pos)
           (setq state 7)
           )
@@ -2950,7 +2950,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
         ;;        (message "point(%S) end(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) val-end(%S)" pos end state char name-beg name-end val-beg val-end)
 
-        (setq escaped (char-equal ?\\ char))
+        (setq escaped (eq ?\\ char))
 
         );;while
 
@@ -2961,21 +2961,21 @@ Must be used in conjunction with web-mode-enable-block-face."
   (unless val-end (setq val-end (point)))
   ;;  (message "point(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) val-end(%S)" (point) state char name-beg name-end val-beg val-end)
   (cond
-   ((and (= state 8) (not (char-equal ?\" char)))
+   ((and (= state 8) (not (eq ?\" char)))
     )
-   ((and (= state 7) (not (char-equal ?\' char)))
+   ((and (= state 7) (not (eq ?\' char)))
     )
    ((= state 4)
     )
    ((null name-beg)
     )
    (t
-    (if (or (and (= state 8) (char-equal ?\" char))
-            (and (= state 7) (char-equal ?\' char)))
+    (if (or (and (= state 8) (eq ?\" char))
+            (and (= state 7) (eq ?\' char)))
         (add-text-properties name-beg (1+ (point)) '(part-token attr face web-mode-html-attr-name-face))
       (add-text-properties name-beg (point) '(part-token attr face web-mode-html-attr-name-face)))
     (when (and val-beg val-end)
-      (setq val-end (if (char-equal ?\> char) val-end (1+ val-end)))
+      (setq val-end (if (eq ?\> char) val-end (1+ val-end)))
       (add-text-properties val-beg val-end '(face web-mode-html-attr-value-face)))
     );t
    );cond
@@ -2985,7 +2985,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "find the end of a velocity block."
   (goto-char pos)
   (let (continue)
-    (when (char-equal ?\# (char-after))
+    (when (eq ?\# (char-after))
       (forward-char))
     ;;(message "pt=%S %c" (point) (char-after))
     (when (member (char-after) '(?\$ ?\@))
@@ -3028,10 +3028,10 @@ Must be used in conjunction with web-mode-enable-block-face."
       (while continue
         (skip-chars-forward " a-zA-Z0-9_-"); caractère 'espace' pour '} else {'
         (cond
-         ((char-equal ?\( (char-after))
+         ((eq ?\( (char-after))
           (search-forward ")")
           )
-         ((char-equal ?\. (char-after))
+         ((eq ?\. (char-after))
           (forward-char))
          ((looking-at-p "[ ]*{")
           (search-forward "}")
@@ -3555,7 +3555,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (setq first-char (if (string= line "") 0 (aref line 0)))
 
       (when (or (member language '("php" "javascript"))
-                (and (string= language "html") (not (char-equal ?\< first-char))))
+                (and (string= language "html") (not (eq ?\< first-char))))
         (cond
          ((member language '("html" "javascript"))
           (setq prev-line (web-mode-previous-usable-client-line))
@@ -3655,7 +3655,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                      pos)))
         (setq offset (current-column))
         (when (and (string= (buffer-substring-no-properties (point) (+ (point) 2)) "/*")
-                   (char-equal ?\* first-char))
+                   (eq ?\* first-char))
           (setq offset (1+ offset)))
         );case comment
 
@@ -3680,7 +3680,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq offset (current-column)))
           )
 
-         ((and (string= language "javascript") (char-equal ?\. first-char))
+         ((and (string= language "javascript") (eq ?\. first-char))
           (when (web-mode-rsb "[[:alnum:][:blank:]]\\.[[:alpha:]]" block-beg)
             (setq offset (1+ (current-column))))
           )
@@ -3810,31 +3810,31 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq ctrl (match-string-no-properties 1))
           (if (member ctrl '("else" "elseif"))
               (setq ctrl nil)
-            (setq state (not (char-equal ?\/ (aref (match-string-no-properties 0) 1))))
+            (setq state (not (eq ?\/ (aref (match-string-no-properties 0) 1))))
             )
           )
 
          ((string= web-mode-engine "dust")
           (setq ctrl (match-string-no-properties 1))
           (if (or (member ctrl '("else"))
-                  (char-equal ?\/ (char-after (1- (web-mode-block-end-position)))))
+                  (eq ?\/ (char-after (1- (web-mode-block-end-position)))))
               (setq ctrl nil)
-            (setq state (not (char-equal ?\/ (aref (match-string-no-properties 0) 1))))
+            (setq state (not (eq ?\/ (aref (match-string-no-properties 0) 1))))
             )
           )
 
          ((string= web-mode-engine "closure")
           (setq ctrl (match-string-no-properties 1))
           (if (or (member ctrl '("else" "elseif" "case" "default"))
-                  (char-equal ?\/ (char-after (1- (web-mode-block-end-position)))))
+                  (eq ?\/ (char-after (1- (web-mode-block-end-position)))))
               (setq ctrl nil)
-            (setq state (not (char-equal ?\/ (aref (match-string-no-properties 0) 1))))
+            (setq state (not (eq ?\/ (aref (match-string-no-properties 0) 1))))
             )
           )
 
          ((string= web-mode-engine "ctemplate")
           (setq ctrl (match-string-no-properties 1))
-          (setq state (not (char-equal ?\/ (aref (match-string-no-properties 0) 2))))
+          (setq state (not (eq ?\/ (aref (match-string-no-properties 0) 2))))
           )
 
          ((string= web-mode-engine "velocity")
@@ -3883,16 +3883,16 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((string= web-mode-engine "jsp")
           (cond
-           ((char-equal (aref (match-string-no-properties 0) 1) ?\%)
+           ((eq (aref (match-string-no-properties 0) 1) ?\%)
             (setq ctrl (match-string-no-properties 2)
                   state t)
             )
            (t
             (setq ctrl (match-string-no-properties 1))
             (if (or (member ctrl '("h:inputtext" "jsp:usebean" "jsp:forward" "struts:property"))
-                    (char-equal ?\/ (char-after (1- (web-mode-block-end-position)))))
+                    (eq ?\/ (char-after (1- (web-mode-block-end-position)))))
                 (setq ctrl nil)
-              (setq state (not (char-equal ?\/ (aref (match-string-no-properties 0) 1))))
+              (setq state (not (eq ?\/ (aref (match-string-no-properties 0) 1))))
               )
             )
            )
@@ -3907,9 +3907,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;          (message "ctrl=%S" ctrl)
           (if (or (member ctrl '("include" "setting" "import" "global" "ftl"
                                  "nested" "return" "local" "flush" "break" "recover"))
-                  (char-equal ?\/ (char-after (1- (web-mode-block-end-position)))))
+                  (eq ?\/ (char-after (1- (web-mode-block-end-position)))))
               (setq ctrl nil)
-            (setq state (not (char-equal ?\/ (aref (match-string-no-properties 0) 1))))
+            (setq state (not (eq ?\/ (aref (match-string-no-properties 0) 1))))
             )
           )
 
@@ -4203,9 +4203,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 
            ((member char '(?\{ ?\( ?\[))
             (cond
-             ((char-equal char ?\() (setq close-char ?\)))
-             ((char-equal char ?\{) (setq close-char ?\}))
-             ((char-equal char ?\[) (setq close-char ?\])))
+             ((eq char ?\() (setq close-char ?\)))
+             ((eq char ?\{) (setq close-char ?\}))
+             ((eq char ?\[) (setq close-char ?\])))
 
             (setq queue (gethash char queues nil))
             (setq queue (push (cons (point) (web-mode-line-number)) queue))
@@ -4296,7 +4296,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Count char in string."
   (let ((n 0))
     (dotimes (i (length string))
-      (if (char-equal (elt string i) char)
+      (if (eq (elt string i) char)
           (setq n (1+ n))))
     n))
 
@@ -4371,7 +4371,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (set-mark (car boundaries))
       (goto-char (cdr boundaries))
       ;;      (message "char=[%c]" (char-before (- (point) 1)))
-      (if (char-equal ?\% (char-before (- (point) 1)))
+      (if (eq ?\% (char-before (- (point) 1)))
           (setq web-mode-expand-previous-state "block-side")
         (setq web-mode-expand-previous-state "server-block"))
       (exchange-point-and-mark)
@@ -4436,7 +4436,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (setq web-mode-expand-previous-state "html-attr"))
 
      ((and mark-active
-           (char-equal ?\< (char-after)))
+           (eq ?\< (char-after)))
 
       (web-mode-element-parent)
       (if (= reg-beg (region-beginning))
@@ -5413,7 +5413,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (looking-at web-mode-active-block-regexp)
     (setq match (match-string-no-properties 1))
     (setq regexp (concat "{/?" (if (string= match "else") "if" match)))
-    (if (or (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+    (if (or (eq ?\/ (aref (match-string-no-properties 0) 1))
             (string= match "else"))
         (web-mode-fetch-opening-smarty-block regexp)
       (web-mode-fetch-closing-smarty-block regexp))
@@ -5423,7 +5423,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Fetch smarty opening block."
   (let ((counter 1))
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
           (setq counter (1+ counter))
         (setq counter (1- counter)))
       )
@@ -5434,7 +5434,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let ((counter 1))
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
           (setq counter (1- counter))
         (setq counter (1+ counter)))
       )
@@ -5458,7 +5458,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      (t
       (setq match (match-string-no-properties 1))
       (setq regexp (concat "{[#/:?@><+^]?" match))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
           (web-mode-fetch-opening-dust-block regexp)
         (web-mode-fetch-closing-dust-block regexp)))
      );cond
@@ -5468,7 +5468,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Fetch dust opening block."
   (let ((counter 1))
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
           (setq counter (1+ counter))
         (setq counter (1- counter)))
       )
@@ -5479,7 +5479,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let ((counter 1))
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
           (setq counter (1- counter))
         (setq counter (1+ counter)))
       )
@@ -5521,7 +5521,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      (t
       (setq match (match-string-no-properties 1))
       (setq regexp (concat "{/?" match))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
           (web-mode-fetch-opening-closure-block regexp)
         (web-mode-fetch-closing-closure-block regexp)))
      );cond
@@ -5531,7 +5531,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Fetch closure opening block."
   (let ((counter 1))
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
           (setq counter (1+ counter))
         (setq counter (1- counter)))
       )
@@ -5542,7 +5542,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let ((counter 1))
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
           (setq counter (1- counter))
         (setq counter (1+ counter)))
       )
@@ -5609,7 +5609,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Fetch ctemplate opening block."
   (let ((counter 1))
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 2))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 2))
           (setq counter (1+ counter))
         (setq counter (1- counter)))
       )
@@ -5620,7 +5620,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let ((counter 1))
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 2))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 2))
           (setq counter (1- counter))
         (setq counter (1+ counter)))
       )
@@ -5690,7 +5690,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      (t
       (looking-at web-mode-active-block-regexp)
       (setq regexp (concat "<\\(/?" (match-string-no-properties 1) "\\)\\>"))
-      (if (char-equal ?\/ (aref (match-string-no-properties 0) 1))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
           (web-mode-fetch-opening-jsp-block regexp)
         (web-mode-fetch-closing-jsp-block regexp)))
      )
@@ -5701,7 +5701,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let ((counter 1))
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
       (cond
-       ((char-equal ?\/ (aref (match-string-no-properties 1) 0))
+       ((eq ?\/ (aref (match-string-no-properties 1) 0))
         (setq counter (1+ counter)))
        (t
         (setq counter (1- counter)))
@@ -5715,7 +5715,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
       (cond
-       ((char-equal ?\/ (aref (match-string-no-properties 1) 0))
+       ((eq ?\/ (aref (match-string-no-properties 1) 0))
         (setq counter (1- counter)))
        (t
         (setq counter (1+ counter)))
@@ -5743,7 +5743,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      );cond
     (setq regexp (concat char "\\(/?" tag "\\)\\>"))
 ;;    (message "tag=%S regexp=%S" tag regexp)
-    (if (char-equal ?\/ (aref match 1))
+    (if (eq ?\/ (aref match 1))
         (web-mode-fetch-opening-freemarker-block regexp)
       (web-mode-fetch-closing-freemarker-block regexp))
     t))
@@ -5753,7 +5753,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let ((counter 1))
     (while (and (> counter 0) (web-mode-rsb regexp nil t))
       (cond
-       ((char-equal ?\/ (aref (match-string-no-properties 1) 0))
+       ((eq ?\/ (aref (match-string-no-properties 1) 0))
         (setq counter (1+ counter)))
        (t
         (setq counter (1- counter)))
@@ -5767,7 +5767,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
       (cond
-       ((char-equal ?\/ (aref (match-string-no-properties 1) 0))
+       ((eq ?\/ (aref (match-string-no-properties 1) 0))
         (setq counter (1- counter)))
        (t
         (setq counter (1+ counter)))
@@ -6845,7 +6845,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (while (and continue (not (eolp)))
         (if (web-mode-is-comment-or-string)
             (setq counter (1+ counter))
-          (when (not (char-equal ?\s (following-char)))
+          (when (not (eq ?\s (following-char)))
             (setq continue nil
                   counter 0))
           );if
@@ -6868,7 +6868,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (while (and continue (not (eolp)))
         (if (web-mode-is-part-token-or-server)
             (setq counter (1+ counter))
-          (when (not (char-equal ?\s (following-char)))
+          (when (not (eq ?\s (following-char)))
             (setq continue nil
                   counter 0))
           );if
