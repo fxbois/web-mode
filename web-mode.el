@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.7
+;; Version: 7.0.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.7"
+  :version "7.0.9"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -486,26 +486,27 @@ Must be used in conjunction with web-mode-enable-block-face."
   "content types")
 
 (defvar web-mode-engine-file-regexps
-  '(("asp"        . "\\.asp\\'")
-    ("aspx"       . "\\.as[cp]x\\'")
-    ("blade"      . "\\.blade")
-    ("closure"    . "\\.soy\\'")
-    ("ctemplate"  . "\\.\\(chtml\\)\\'")
-    ("django"     . "\\.\\(djhtml\\|tmpl\\|dtl\\)\\'")
-    ("django"     . "twig")
-    ("dust"       . "\\.dust\\'")
-    ("erb"        . "\\.\\(erb\\|rhtml\\)\\'")
-    ("freemarker" . "\\.ftl\\'")
-    ("go"         . "\\.go\\(html\\|tmpl\\)\\'")
-    ("handlebars" . "\\(handlebars\\|.\\hbs\\'\\)")
-    ("jsp"        . "\\.jsp\\'")
-    ("mustache"   . "\\.mustache\\'")
-    ("php"        . "\\.\\(php\\|ctp\\|psp\\|inc\\)\\'")
-    ("python"     . "\\.pml\\'")
-    ("razor"      . "play\\|\\.scala\\.\\|\\.cshtml\\'\\|\\.vbhtml\\'")
-    ("smarty"     . "\\.tpl\\'")
-    ("underscore" . "\\.underscore\\'")
-    ("velocity"   . "\\.\\(vsl\\|vtl\\|vm\\)\\'"))
+  '(("asp"              . "\\.asp\\'")
+    ("aspx"             . "\\.as[cp]x\\'")
+    ("blade"            . "\\.blade")
+    ("closure"          . "\\.soy\\'")
+    ("ctemplate"        . "\\.\\(chtml\\)\\'")
+    ("django"           . "\\.\\(djhtml\\|tmpl\\|dtl\\)\\'")
+    ("django"           . "twig")
+    ("dust"             . "\\.dust\\'")
+    ("erb"              . "\\.\\(erb\\|rhtml\\)\\'")
+    ("freemarker"       . "\\.ftl\\'")
+    ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
+    ("handlebars"       . "\\(handlebars\\|.\\hbs\\'\\)")
+    ("jsp"              . "\\.jsp\\'")
+    ("mustache"         . "\\.mustache\\'")
+    ("php"              . "\\.\\(php\\|ctp\\|psp\\|inc\\)\\'")
+    ("python"           . "\\.pml\\'")
+    ("razor"            . "play\\|\\.scala\\.\\|\\.cshtml\\'\\|\\.vbhtml\\'")
+    ("smarty"           . "\\.tpl\\'")
+    ("template-toolkit" . "\\.tt.?\\'")
+    ("underscore"       . "\\.underscore\\'")
+    ("velocity"         . "\\.\\(vsl\\|vtl\\|vm\\)\\'"))
   "Engine file extensions.")
 
 (defvar web-mode-smart-quotes
@@ -573,6 +574,8 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("{{ "  " }}"      "}}"    0)
    '("{% "  " %}"      "%}"    0)
    '("{# "  " #}"      "#}"    0)
+   '("[% "  " %]"      "%]"    0)
+   '("[# "  " #]"      "#]"    0)
    )
   "Auto-Pairs")
 
@@ -645,47 +648,50 @@ Must be used in conjunction with web-mode-enable-block-face."
    (cons "php"        (concat "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\)?" (regexp-opt web-mode-php-active-blocks t)))
    (cons "razor"      "----")
    (cons "smarty"     (concat "{/?" (regexp-opt web-mode-smarty-active-blocks t)))
+   (cons "template-toolkit" (concat "\\[% " (regexp-opt '("foreach" "if" "else" "elsif" "filter" "end") t)))
    (cons "underscore" "<%")
    (cons "velocity"   (concat "#" (regexp-opt web-mode-velocity-active-blocks t))))
   "Engine control regexps")
 
 (defvar web-mode-close-block-regexps
-  '(("asp"        . "----")
-    ("aspx"       . "----")
-    ("blade"      . "@\\\(end\\|else\\|stop\\)")
-    ("closure"    . "{\\(/\\|else\\|case\\|default\\|ifempty\\)")
-    ("ctemplate"  . "{{/")
-    ("django"     . "{%[-]?[ ]+\\(end\\|else\\|elseif\\|elif\\)")
-    ("dust"       . "{\\(/\\|:else\\)")
-    ("erb"        . "<%[-]?[ ]+\\(end\\|else\\)")
-    ("freemarker" . "[<[]\\(/#\\|#els\\|#break\\)")
-    ("go"         . "{{[ ]*\\(end\\|else\\)")
-    ("jsp"        . "</\\|<% }")
-    ("php"        . "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\|}\\)")
-    ("razor"      . "}")
-    ("smarty"     . "{\\(/\\|else\\)")
-    ("underscore" . "<% }")
-    ("velocity"   . "#\\(end\\|else\\)"))
+  '(("asp"              . "----")
+    ("aspx"             . "----")
+    ("blade"            . "@\\\(end\\|else\\|stop\\)")
+    ("closure"          . "{\\(/\\|else\\|case\\|default\\|ifempty\\)")
+    ("ctemplate"        . "{{/")
+    ("django"           . "{%[-]?[ ]+\\(end\\|else\\|elseif\\|elif\\)")
+    ("dust"             . "{\\(/\\|:else\\)")
+    ("erb"              . "<%[-]?[ ]+\\(end\\|else\\)")
+    ("freemarker"       . "[<[]\\(/#\\|#els\\|#break\\)")
+    ("go"               . "{{[ ]*\\(end\\|else\\)")
+    ("jsp"              . "</\\|<% }")
+    ("php"              . "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\|}\\)")
+    ("razor"            . "}")
+    ("smarty"           . "{\\(/\\|else\\)")
+    ("template-toolkit" . "\\[% \\(end\\|els\\)")
+    ("underscore"       . "<% }")
+    ("velocity"         . "#\\(end\\|else\\)"))
   "Close control blocks.")
 
 (defvar web-mode-block-regexps
-  '(("asp"        . "<%")
-    ("aspx"       . "<%")
-    ("blade"      . "{{\\|^[ \t]*@[[:alpha:]]")
-    ("closure"    . "{.\\|/\\*\\| //")
-    ("ctemplate"  . "[$]?{{.")
-    ("django"     . "{[#{%] ")
-    ("dust"       . "{.")
-    ("erb"        . "<%\\|^%.")
-    ("freemarker" . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#].\\|\\[/?[@#].")
-    ("go"         . "{{.")
-    ("jsp"        . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]")
-    ("php"        . "<\\?")
-    ("python"     . "<\\?")
-    ("razor"      . "@.")
-    ("smarty"     . "{[[:alpha:]#$/*\"]")
-    ("underscore" . "<%")
-    ("velocity"   . "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]"))
+  '(("asp"              . "<%")
+    ("aspx"             . "<%")
+    ("blade"            . "{{\\|^[ \t]*@[[:alpha:]]")
+    ("closure"          . "{.\\|/\\*\\| //")
+    ("ctemplate"        . "[$]?{{.")
+    ("django"           . "{[#{%] ")
+    ("dust"             . "{.")
+    ("erb"              . "<%\\|^%.")
+    ("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#].\\|\\[/?[@#].")
+    ("go"               . "{{.")
+    ("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]")
+    ("php"              . "<\\?")
+    ("python"           . "<\\?")
+    ("razor"            . "@.")
+    ("smarty"           . "{[[:alpha:]#$/*\"]")
+    ("template-toolkit" . "\\[[%#]")
+    ("underscore"       . "<%")
+    ("velocity"         . "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]"))
   "Engine block regexps.")
 
 (defvar web-mode-block-electric-chars
@@ -1000,6 +1006,16 @@ Must be used in conjunction with web-mode-enable-block-face."
        "Master" "OutputCache" "Page" "Reference" "Register")))
   "Directives.")
 
+(defvar web-mode-template-toolkit-keywords
+  (regexp-opt
+   '("block" "call" "case" "catch" "clear" "default" "do"
+     "else" "elsif" "end" "filter" "final" "for"
+     "foreach" "get" "if" "in" "include" "insert" "is" "last"
+     "macro" "meta" "or" "perl" "process" "rawperl" "return"
+     "set" "stop" "switch" "tags" "throw" "try"
+     "unless" "use" "while" "wrapper"))
+  "Template-toolkit keywords")
+
 (defvar web-mode-javascript-keywords
   (regexp-opt
    (append web-mode-extra-javascript-keywords
@@ -1028,6 +1044,15 @@ Must be used in conjunction with web-mode-enable-block-face."
      (1 'web-mode-block-attr-name-face)
      (2 'web-mode-block-attr-value-face))
    '("\\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
+   ))
+
+(defvar web-mode-template-toolkit-font-lock-keywords
+  (list
+   '("\\[%[-+]?\\|[-+=]?%\\]" 0 'web-mode-preprocessor-face)
+   (cons (concat "\\<\\(" web-mode-template-toolkit-keywords "\\)\\>")
+         '(1 'web-mode-keyword-face))
+   '("\\\([[:alpha:]][[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\\([[:alpha:]][[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-smarty-font-lock-keywords
@@ -1844,6 +1869,15 @@ Must be used in conjunction with web-mode-enable-block-face."
            )
           );underscore
 
+         ((string= web-mode-engine "template-toolkit")
+          (cond
+           ((string= sub2 "[#")
+            (setq closing-string "#]"))
+           (t
+            (setq closing-string "%]"))
+           )
+          );underscore
+
          ((string= web-mode-engine "freemarker")
           (cond
            ((string= sub1 "<")
@@ -2167,6 +2201,17 @@ Must be used in conjunction with web-mode-enable-block-face."
             keywords web-mode-asp-font-lock-keywords)
       );asp
 
+
+     ((string= web-mode-engine "template-toolkit")
+      (cond
+       ((string= sub2 "[#")
+        (setq props '(block-token comment face web-mode-comment-face)))
+       (t
+        (setq regexp "#\\|\"\\|'"
+              props '(face nil)
+              keywords web-mode-template-toolkit-font-lock-keywords)
+        )));template-toolkit
+
      ((string= web-mode-engine "underscore")
       (setq regexp "/\\*\\|\"\\|'"
             props '(face nil)
@@ -2274,6 +2319,13 @@ Must be used in conjunction with web-mode-enable-block-face."
                 token-type "comment")
           (goto-char (if (< end (line-end-position)) end (line-end-position)))
           )
+
+         ((eq fc ?\#)
+          (setq props '(block-token comment face web-mode-block-comment-face)
+                token-type "comment")
+          (goto-char (if (< end (line-end-position)) end (line-end-position)))
+          )
+
 
          ((string= ms "/*")
           (setq props '(block-token comment face web-mode-block-comment-face)
@@ -3028,7 +3080,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;    (message "beg=%S end=%S" beg end)
     (let ((font-lock-keywords keywords)
           (font-lock-multiline nil)
-          (font-lock-keywords-case-fold-search (string= web-mode-engine "asp"))
+          (font-lock-keywords-case-fold-search (member web-mode-engine
+                                                       '("asp"
+                                                         "template-toolkit")))
           (font-lock-keywords-only t)
           (font-lock-extend-region-functions nil)
           )
@@ -3445,6 +3499,10 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq block-beg (+ block-beg 2)
                 block-column (+ block-column 2))
           )
+         ((string= web-mode-engine "template-toolkit")
+          (setq block-beg (+ block-beg 3)
+                block-column (+ block-column 3))
+          )
          ((and (string= web-mode-engine "jsp")
                (web-mode-looking-at-pos "<%@\\|<[[:alpha:]]" block-beg))
           (save-excursion
@@ -3601,7 +3659,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq offset (1+ offset)))
         );case comment
 
-       ((member language '("php" "jsp" "asp" "aspx" "javascript" "code" "python" "erb" "freemarker" "blade"))
+       ((member language '("php" "jsp" "asp" "aspx" "javascript" "code" "python" "erb" "freemarker" "blade" "template-toolkit"))
 
         (cond
 
@@ -3609,6 +3667,13 @@ Must be used in conjunction with web-mode-enable-block-face."
           (if (web-mode-block-beginning pos)
               (setq offset (current-column)))
           )
+
+         ((and (string-match-p "^[=]?%]" line)
+               (string= web-mode-engine "template-toolkit"))
+          (if (web-mode-block-beginning pos)
+              (setq offset (current-column)))
+          )
+
 
          ((and (string= language "php") (string-match-p "^->" line))
           (when (web-mode-sb "->" block-beg)
@@ -3801,6 +3866,14 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          ((string= web-mode-engine "erb")
+          (setq ctrl (match-string-no-properties 1))
+          (if (member ctrl '("else"))
+              (setq ctrl nil)
+            (setq state (not (string= "end" ctrl)))
+            )
+          )
+
+         ((string= web-mode-engine "template-toolkit")
           (setq ctrl (match-string-no-properties 1))
           (if (member ctrl '("else"))
               (setq ctrl nil)
@@ -5211,6 +5284,54 @@ Must be used in conjunction with web-mode-enable-block-face."
       )
     (web-mode-block-beginning)
     ))
+
+;;tt
+
+(defun web-mode-match-template-toolkit-block ()
+  "Fetch TEMPLATE-TOOLKIT block."
+  (let (regexp chunk)
+    (setq chunk (buffer-substring-no-properties (+ (point) 3)
+                                                (- (web-mode-block-end-position) 2)))
+    (setq regexp web-mode-active-block-regexp)
+    (if (string-match-p "else\\|end\\|END" chunk)
+        (web-mode-fetch-opening-template-toolkit-block regexp)
+      (web-mode-fetch-closing-template-toolkit-block regexp))
+    t))
+
+(defun web-mode-fetch-opening-template-toolkit-block (regexp)
+  "Fetch template-toolkit opening block."
+  (let ((counter 1) match)
+    (while (and (> counter 0) (web-mode-rsb regexp nil t))
+      (setq match (match-string-no-properties 1))
+      (cond
+       ((member match '("else" "ELSE" "elsif" "ELSIF"))
+        )
+       ((not (member match '("end" "END")))
+        (setq counter (1- counter)))
+       (t
+        (setq counter (1+ counter)))
+       )
+      )
+    ))
+
+(defun web-mode-fetch-closing-template-toolkit-block (regexp)
+  "Fetch template-toolkit closing block."
+  (let ((counter 1) match)
+    (web-mode-block-end)
+    (while (and (> counter 0) (web-mode-rsf regexp nil t))
+      (setq match (match-string-no-properties 1))
+      (cond
+       ((member match '("else" "ELSE" "elsif" "ELSIF"))
+        )
+       ((not (member match '("end" "END")))
+        (setq counter (1+ counter)))
+       (t
+        (setq counter (1- counter)))
+       )
+      )
+    (web-mode-block-beginning)
+    ))
+
 
 (defun web-mode-match-blade-block ()
   "Fetch blade block."
