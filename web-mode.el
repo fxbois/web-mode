@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.10
+;; Version: 7.0.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.10"
+  :version "7.0.11"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -816,21 +816,7 @@ Must be used in conjunction with web-mode-enable-block-face."
              "fail" "for" "if" "in" "module" "next" "not"
              "or" "redo" "rescue" "retry" "return" "then" "super"
              "unless" "undef" "until" "when" "while" "yield"
-
-             "__ENCODING__" "__FILE__" "__LINE__" "nil" "false" "true"
-
-             ;; "BEGIN" "END" "__FILE__" "__LINE__"
-             ;;  "alias" "and" "begin" "break" "button_to_function"
-             ;;  "case" "class" "csrf_meta_tag"
-             ;;  "def" "defined" "do" "else" "elsif" "end"
-             ;;  "ensure" "false" "for" "form_for" "h" "html_escape"
-             ;;  "if" "in" "j" "javascript_include_tag" "javascript_tag"
-             ;;  "link_to" "link_to_function" "module" "next" "nil" "not"
-             ;;  "or" "package" "puts"
-             ;;  "raw" "redo" "render" "rescue" "retry" "return"
-             ;;  "self" "super" "then" "true" "u" "undef"
-             ;;  "unless" "until" "url_encode" "when" "while" "yield"
-
+             "__ENCODING__" "__FILE__" "__LINE__"
              )))
   "ERB keywords.")
 
@@ -1191,6 +1177,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      (1 'web-mode-keyword-face)
      ("\\([[:alnum:]_]+\\)\\([ ]*=[^,;]*\\)?[,;]" nil nil (1 'web-mode-variable-name-face)))
    '("\\([[:alnum:]]+\\):" 1 'web-mode-variable-name-face)
+   '("/[^/]+/" 0 'web-mode-string-face)
    ))
 
 (defvar web-mode-underscore-font-lock-keywords
@@ -1288,17 +1275,17 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("-?%>\\|^%\\|<%[=-]?" 0 'web-mode-preprocessor-face)
    '(":\\([[:alnum:]_]+\\)" 1 'web-mode-symbol-face)
    '("\\([[:alnum:]_]+\\):[ ]+" 1 'web-mode-symbol-face)
-;;   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-erb-builtins "\\)\\>")
          '(0 'web-mode-builtin-face))
    (cons (concat "\\<\\(" web-mode-erb-keywords "\\)\\>")
          '(0 'web-mode-keyword-face))
-   '("[$@]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
+   '("\\<\\(self\\|true\\|false\\|nil\\)\\>" 0 'web-mode-variable-name-face)
+   '("[@$]@?\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
    '("class[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-type-face)
    '("def[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
-;;   '("[[:alpha:]][[:alnum:]_]*" 0 'web-mode-variable-name-face)
    '("\\(?:\\_<\\|::\\)\\([A-Z]+[[:alnum:]_]+\\)"
-     1 (unless (eq ?\( (char-after)) font-lock-type-face))
+     1 (unless (eq ?\( (char-after)) 'web-mode-type-face))
+   '("/[^/]+/" 0 'web-mode-string-face)
    ))
 
 (defvar web-mode-python-font-lock-keywords
@@ -2698,7 +2685,9 @@ Must be used in conjunction with web-mode-enable-block-face."
           ));while | when token-re
 
       (when web-mode-enable-part-face
-        (font-lock-append-text-property part-beg part-end 'web-mode-part-face face))
+        (font-lock-append-text-property part-beg part-end
+                                        'web-mode-part-face
+                                        face))
 
       )))
 
