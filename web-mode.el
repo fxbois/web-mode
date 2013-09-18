@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.11
+;; Version: 7.0.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.11"
+  :version "7.0.12"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -168,6 +168,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 (defcustom web-mode-extra-erb-keywords '()
   "A list of additional strings to treat as ERB keywords."
+  :type 'list
+  :group 'web-mode)
+
+(defcustom web-mode-extra-asp-constants '()
+  "A list of additional strings to treat as ASP constants."
   :type 'list
   :group 'web-mode)
 
@@ -876,15 +881,45 @@ Must be used in conjunction with web-mode-enable-block-face."
      ))
   "ERB builtins.")
 
+(defvar web-mode-asp-constants
+  (regexp-opt
+   (append web-mode-extra-asp-constants
+           '("adAsyncExecute" "adAsyncFetch" "adAsyncFetchNonBlocking" "adCmdFile" "adCmdStoredProc" "adCmdTable" "adCmdTableDirect" "adCmdText" "adCmdUnknown"
+             "adCmdUnspecified" "adExecuteNoRecords" "adExecuteRecord" "adExecuteStream" "adLockBatchOptimistic" "adLockOptimistic" "adLockPessimistic"
+             "adLockReadOnly" "adLockUnspecified" "adOpenDynamic" "adOpenForwardOnly" "adOpenKeyset" "adOpenStatic" "adOpenUnspecified" "adOptionUnspecified"
+             "Empty" "Nothing" "Null" "True" "False"
+             "vbBack" "vbCr" "vbCrLf" "vbFormFeed" "vbLf" "vbNewLine" "vbNullChar" "vbNullString" "vbObjectError" "vbScript" "vbTab" "vbVerticalTab")))
+  "ASP constants.")
+
 (defvar web-mode-asp-keywords
   (regexp-opt
    (append web-mode-extra-asp-keywords
-           '("If" "Then" "Each" "End" "Set" "Dim" "On" "For" "Next" "Rem" "Empty"
-             "IsArray" "Erase" "LBound" "UBound" "Let" "Next" "Nothing" "Null" "In"
-             "True" "False" "Do" "Loop" "Each" "Select" "Case"
-             "While" "Wend" "Err"
-             "public" "function" "private" "else" "const" "class" "or" "and" "elseif"
-             "not" "until" "new" "redim" "redim preserve" "sub")))
+           '("Abs" "And" "Array" "Asc" "Atn"
+             "CBool" "CByte" "CCur" "CDate" "CDbl" "CInt" "CLng" "CSng" "CStr"
+             "Call" "Case" "Chr" "Class" "Const" "Cos" "CreateObject"
+             "Date" "DateAdd" "DateDiff" "DatePart" "DateSerial" "DateValue"
+             "Day" "Dim" "Do"
+             "Each" "Else" "ElseIf" "End" "Erase" "Err" "Eval" "Exit" "Exp"
+             "Explicit"
+             "Filter" "Fix" "For" "FormatCurrency" "FormatDateTime"
+             "FormatNumber" "FormatPercent" "Function"
+             "GetLocale" "GetObject" "GetRef" "Hex" "Hour"
+             "If" "In" "InStr" "InStrRev" "InputBox" "Int" "IsArray" "IsDate"
+             "IsEmpty" "IsNull" "IsNumeric" "IsObject" "Join"
+             "LBound" "LCase" "LTrim" "Language" "Left" "Len" "Let"
+             "LoadPicture" "Log" "Loop"
+             "Mid" "Minute" "Month" "MonthName" "MsgBox"
+             "New" "Next" "Not" "Now"
+             "Oct" "On" "Option" "Or" "Preserve" "Private" "Public"
+             "RGB" "RTrim" "Redim" "Rem" "Replace" "Right" "Rnd" "Round"
+             "ScriptEngine" "ScriptEngineBuildVersion"
+             "ScriptEngineMajorVersion" "ScriptEngineMinorVersion"
+             "Second" "Select" "Set" "SetLocale" "Sgn" "Sin" "Space" "Split"
+             "Sqr" "StrComp" "StrReverse" "String" "Sub"
+             "Tan" "Then" "Time" "TimeSerial" "TimeValue" "Timer" "To" "Trim"
+             "TypeName"
+             "UBound" "UCase" "Until" "VarType"
+             "Weekday" "WeekdayName" "Wend" "With" "While" "Year")))
   "ASP keywords.")
 
 (defvar web-mode-asp-types
@@ -1195,15 +1230,21 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-asp-font-lock-keywords
   (list
    '("<%=?\\|%>" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-asp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-asp-types "\\)\\>") '(0 'web-mode-type-face))
+   (cons (concat "\\<\\(" web-mode-asp-keywords "\\)\\>")
+         '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-asp-types "\\)\\>")
+         '(0 'web-mode-type-face))
+   (cons (concat "\\<\\(" web-mode-asp-constants "\\)\\>")
+         '(0 'web-mode-constant-face))
    '("\\(Class\\|new\\) \\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
    '("Const \\([[:alnum:]_]+\\)" 1 'web-mode-constant-face)
    '("\\<dim\\>"
      (0 'web-mode-keyword-face)
      ("[[:alnum:]_]+" nil nil (0 'web-mode-variable-name-face)))
-   '("\\<\\(public\\|private\\|sub\\|function\\)\\> \\([[:alnum:]_]+\\)[ ]*(" 2 'web-mode-function-name-face)
-   '("\\<\\(public\\|private\\|dim\\)\\> \\([[:alnum:]_]+\\)" 2 'web-mode-variable-name-face)
+   '("\\<\\(public\\|private\\|sub\\|function\\)\\> \\([[:alnum:]_]+\\)[ ]*("
+     2 'web-mode-function-name-face)
+   '("\\<\\(public\\|private\\|dim\\)\\> \\([[:alnum:]_]+\\)"
+     2 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-aspx-font-lock-keywords
@@ -4081,18 +4122,33 @@ Must be used in conjunction with web-mode-enable-block-face."
       (setq prev-line (car h))
       (setq prev-indentation (cdr h))
       (cond
-       ((string-match-p "^\\(end \\(if\\|function\\|class\\|sub\\|select\\)\\|else\\|elsif\\|when\\|next\\|loop\\)" line)
-        (setq out (- prev-indentation language-offset))
-        )
-       ((string-match-p "\\(end \\(if\\|function\\|class\\|sub\\|select\\)\\|case else\\)" prev-line)
-        (setq out (+ prev-indentation 0))
-        )
-       ((string-match-p "\\(when\\|select\\|if\\|else\\|elsif\\|unless\\|for\\|while\\|def\\|class\\|do until\\|\\(public\\|private\\) \\(function\\|sub\\|class\\)\\)" prev-line)
-        (setq out (+ prev-indentation language-offset))
-        )
+       ;; ----------------------------------------------------------------------
+       ;; unindent
+       ((string-match-p "\\<\\(\\(end \\(if\\|function\\|class\\|sub\\|with\\)\\)\\|else\\|elseif\\|next\\|loop\\)\\>" line)
+        (setq out (- prev-indentation language-offset)))
+       ;; ----------------------------------------------------------------------
+       ;; select case statement
+       ((string-match-p "\\<\\(select case\\)\\>" line)
+        (setq out (- prev-indentation 0)))
+       ((string-match-p "\\<\\(end select\\)" line)
+        (setq out (- prev-indentation (* 2 language-offset))))
+       ((and (string-match-p "\\<\\(case\\)\\>" line) (not (string-match-p "\\<\\(select case\\)\\>" prev-line)))
+        (setq out (- prev-indentation language-offset)))
+       ;; ----------------------------------------------------------------------
+       ;; do nothing
+       ((string-match-p "\\<\\(\\(end \\(if\\|function\\|class\\|sub\\|select\\|with\\)\\)\\|loop\\( until\\| while\\)?\\)\\>" prev-line)
+        (setq out (+ prev-indentation 0)))
+       ;; indent
+       ((string-match-p "\\<\\(\\(select \\)?case\\|else\\|elseif\\|unless\\|for\\|class\\|with\\|do\\( until\\| while\\)?\\|while\\|\\(public \\|private \\)?\\(function\\|sub\\|class\\)\\)\\>" prev-line)
+        (setq out (+ prev-indentation language-offset)))
+       ;; single line if statement
+       ((string-match-p "\\<if\\>.*\\<then\\>[ \t]*[[:alpha:]]+" prev-line)
+        (setq out (+ prev-indentation 0)))
+       ;; normal if statement
+       ((string-match-p "\\<\\if\\>" prev-line)
+        (setq out (+ prev-indentation language-offset)))
        (t
-        (setq out prev-indentation)
-        )
+        (setq out prev-indentation))
        )
       );when
     out
