@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.12
+;; Version: 7.0.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.12"
+  :version "7.0.13"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -616,7 +616,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-django-active-blocks
   '("assets" "autoescape" "block" "cache" "call"
-    "elif" "else" "elseif" "embed" "filter" "foreach" "for"
+    "elif" "else" "elseif" "embed" "empty" "filter" "foreach" "for"
     "ifchanged" "ifequal" "ifnotequal" "if"
     "macro" "draw" "random" "sandbox" "spaceless" "trans" "with")
   "Django controls.")
@@ -664,7 +664,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("blade"            . "@\\\(end\\|else\\|stop\\)")
     ("closure"          . "{\\(/\\|else\\|case\\|default\\|ifempty\\)")
     ("ctemplate"        . "{{/")
-    ("django"           . "{%[-]?[ ]+\\(end\\|else\\|elseif\\|elif\\)")
+    ("django"           . "{%[-]?[ ]+\\(end\\|else\\|elseif\\|elif\\|empty\\)")
     ("dust"             . "{\\(/\\|:else\\)")
     ("erb"              . "<%[-]?[ ]+\\(end\\|else\\)")
     ("freemarker"       . "[<[]\\(/#\\|#els\\|#break\\)")
@@ -966,27 +966,6 @@ Must be used in conjunction with web-mode-enable-block-face."
        "print" "printf" "println" "urlquery")))
   "Go functions.")
 
-;; (defvar web-mode-django-filters
-;;   (eval-when-compile
-;;     (regexp-opt
-;;      '("add" "addslashes" "capfirst" "center" "cut"
-;;        "date" "default" "default_if_none" "dictsort"
-;;        "dictsortreversed" "divisibleby"
-;;        "escape" "escapejs" "filesizeformat" "first"
-;;        "fix_ampersands" "floatformat"
-;;        "force_escape" "format_integer" "format_number"
-;;        "get_digit" "humanize" "iriencode" "join"
-;;        "last" "length" "length_is" "linebreaks" "linebreaksbr" "linenumbers"
-;;        "ljust" "lower" "make_list"
-;;        "phonenumeric" "pluralize" "pprint"
-;;        "random" "random_num" "random_range" "removetags" "rjust"
-;;        "safe" "safeseq" "slice" "slugify" "stringformat" "striptags"
-;;        "time" "timesince" "timeuntil" "title" "trans" "truncatechars" "truncatewords"
-;;        "truncatewords_html" "unordered_list" "upper" "urlencode"
-;;        "urlize" "urlizetrunc"
-;;        "wordcount" "wordwrap" "yesno")))
-;;   "Django filters.")
-
 (defvar web-mode-closure-keywords
   (eval-when-compile
     (regexp-opt
@@ -1119,7 +1098,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("{%\\|%}" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-django-keywords "\\)\\>") '(1 'web-mode-keyword-face))
    (cons (concat "\\<\\(" web-mode-django-types "\\)\\>") '(1 'web-mode-type-face))
-   '("|[ ]?\\([[:alpha:]]+\\)\\>" 1 'web-mode-function-name-face)
+   '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-function-name-face)
 ;;   (cons (concat "|[ ]?\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
    '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
@@ -1373,6 +1352,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map [menu-bar wm elt] (cons "Html Element" (make-sparse-keymap)))
 
     (define-key map [menu-bar wm sep-1] '(menu-item "--"))
+    (define-key map [menu-bar wm blk blk-sel] '(menu-item "Select" web-mode-block-select))
+    (define-key map [menu-bar wm blk blk-kill] '(menu-item "Kill" web-mode-block-kill))
     (define-key map [menu-bar wm blk blk-next] '(menu-item "Next" web-mode-block-next))
     (define-key map [menu-bar wm blk blk-prev] '(menu-item "Previous" web-mode-block-previous))
     (define-key map [menu-bar wm blk blk-end] '(menu-item "End" web-mode-block-beginning))
@@ -1391,7 +1372,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map [menu-bar wm elt elt-close] '(menu-item "Close" web-mode-element-close))
     (define-key map [menu-bar wm elt elt-trav] '(menu-item "Traverse DOM" web-mode-element-traverse))
     (define-key map [menu-bar wm elt elt-child] '(menu-item "Child" web-mode-element-child))
-    (define-key map [menu-bar wm elt elt-del] '(menu-item "Delete" web-mode-element-delete))
+    (define-key map [menu-bar wm elt elt-del] '(menu-item "Kill" web-mode-element-kill))
     (define-key map [menu-bar wm elt elt-next] '(menu-item "Next" web-mode-element-next))
     (define-key map [menu-bar wm elt elt-prev] '(menu-item "Previous" web-mode-element-previous))
     (define-key map [menu-bar wm elt elt-end] '(menu-item "End" web-mode-element-end))
@@ -1425,15 +1406,17 @@ Must be used in conjunction with web-mode-enable-block-face."
 
     (define-key map (kbd "C-c C-b b") 'web-mode-block-beginning)
     (define-key map (kbd "C-c C-b e") 'web-mode-block-end)
+    (define-key map (kbd "C-c C-b k") 'web-mode-block-kill)
     (define-key map (kbd "C-c C-b n") 'web-mode-block-next)
     (define-key map (kbd "C-c C-b p") 'web-mode-block-previous)
+    (define-key map (kbd "C-c C-b s") 'web-mode-block-select)
 
     (define-key map (kbd "C-c C-e b") 'web-mode-element-beginning)
     (define-key map (kbd "C-c C-e c") 'web-mode-element-clone)
     (define-key map (kbd "C-c C-e d") 'web-mode-element-child)
     (define-key map (kbd "C-c C-e e") 'web-mode-element-end)
     (define-key map (kbd "C-c C-e i") 'web-mode-element-content-select)
-    (define-key map (kbd "C-c C-e k") 'web-mode-element-delete)
+    (define-key map (kbd "C-c C-e k") 'web-mode-element-kill)
     (define-key map (kbd "C-c C-e n") 'web-mode-element-next)
     (define-key map (kbd "C-c C-e p") 'web-mode-element-previous)
     (define-key map (kbd "C-c C-e r") 'web-mode-element-rename)
@@ -3830,7 +3813,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((string= web-mode-engine "django")
           (setq ctrl (match-string-no-properties 2))
-          (if (member ctrl '("else" "elseif" "elif"))
+          (if (member ctrl '("else" "elseif" "elif" "empty"))
               (setq ctrl nil)
             (setq state (not (string= "end" (match-string-no-properties 1))))
             )
@@ -4500,6 +4483,19 @@ Must be used in conjunction with web-mode-enable-block-face."
 
     ))
 
+(defun web-mode-block-select ()
+  "Select the current block."
+  (interactive)
+  (let (beg)
+    (setq beg (web-mode-block-beginning-position (point)))
+    (when beg
+      (goto-char beg)
+      (set-mark (point))
+      (web-mode-block-end)
+      (exchange-point-and-mark)
+      )
+    beg))
+
 (defun web-mode-tag-select ()
   "Select the current HTML tag."
   (interactive)
@@ -4555,12 +4551,19 @@ Must be used in conjunction with web-mode-enable-block-face."
       );if
     ))
 
-(defun web-mode-element-delete ()
+(defun web-mode-element-kill ()
   "Delete the current HTML element."
   (interactive)
   (web-mode-element-select)
   (when mark-active
-    (delete-region (region-beginning) (region-end))))
+    (kill-region (region-beginning) (region-end))))
+
+(defun web-mode-block-kill ()
+  "Delete the current HTML element."
+  (interactive)
+  (web-mode-block-select)
+  (when mark-active
+    (kill-region (region-beginning) (region-end))))
 
 (defun web-mode-element-clone ()
   "Clone the current HTML element."
@@ -5422,10 +5425,13 @@ Must be used in conjunction with web-mode-enable-block-face."
     (looking-at web-mode-active-block-regexp)
     (setq match (match-string-no-properties 2))
     (setq regexp (concat "{%[-]?[ ]+\\(end\\)?\\("
-                         (if (member match '("else" "elseif" "elif")) "if" match)
+                         (cond
+                          ((member match '("else" "elseif" "elif")) "if")
+                          ((member match '("empty")) "for")
+                          (t match))
                          "\\)"))
     (if (or (string= "end" (match-string-no-properties 1))
-            (member match '("else" "elseif" "elif")))
+            (member match '("else" "elseif" "elif" "empty")))
         (web-mode-fetch-opening-django-block regexp)
       (web-mode-fetch-closing-django-block regexp))
     t))
@@ -6989,3 +6995,25 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;   "Fetch previous element."
 ;;   (interactive)
 ;;   (web-mode-tag-previous "<[[:alpha:]]"))
+
+
+;; (defvar web-mode-django-filters
+;;   (eval-when-compile
+;;     (regexp-opt
+;;      '("add" "addslashes" "capfirst" "center" "cut"
+;;        "date" "default" "default_if_none" "dictsort"
+;;        "dictsortreversed" "divisibleby"
+;;        "escape" "escapejs" "filesizeformat" "first"
+;;        "fix_ampersands" "floatformat"
+;;        "force_escape" "format_integer" "format_number"
+;;        "get_digit" "humanize" "iriencode" "join"
+;;        "last" "length" "length_is" "linebreaks" "linebreaksbr" "linenumbers"
+;;        "ljust" "lower" "make_list"
+;;        "phonenumeric" "pluralize" "pprint"
+;;        "random" "random_num" "random_range" "removetags" "rjust"
+;;        "safe" "safeseq" "slice" "slugify" "stringformat" "striptags"
+;;        "time" "timesince" "timeuntil" "title" "trans" "truncatechars" "truncatewords"
+;;        "truncatewords_html" "unordered_list" "upper" "urlencode"
+;;        "urlize" "urlizetrunc"
+;;        "wordcount" "wordwrap" "yesno")))
+;;   "Django filters.")
