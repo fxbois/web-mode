@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.13
+;; Version: 7.0.15
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.13"
+  :version "7.0.15"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -615,7 +615,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Closure controls.")
 
 (defvar web-mode-django-active-blocks
-  '("assets" "autoescape" "block" "cache" "call"
+  '("assets" "autoescape" "block" "cache" "call" "comment"
     "elif" "else" "elseif" "embed" "empty" "filter" "foreach" "for"
     "ifchanged" "ifequal" "ifnotequal" "if"
     "macro" "draw" "random" "sandbox" "spaceless" "trans" "with")
@@ -979,7 +979,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      '("and" "as" "autoescape" "block" "blocktrans" "break"
        "cache" "call" "comment" "context" "continue" "csrf_token" "cycle"
        "debug" "do"
-       "embed" "empty" "else" "elseif" "elif" "endautoescape" "endblock"
+       "embed" "empty" "else" "elseif" "elif" "endautoescape" "endblock" "endcomment"
        "endcache" "endcall" "endembed" "endfilter" "endfor" "endif"
        "endifchanged" "endifequal" "endifnotequal" "endmacro" "endrandom" "endraw"
        "endsandbox" "endset" "endspaceless" "endtrans" "endwith"
@@ -1728,6 +1728,10 @@ Must be used in conjunction with web-mode-enable-block-face."
              (web-mode-trace "parts scanned")
              (web-mode-scan-blocks beg end)
              (web-mode-trace "blocks scanned")
+             (when (string= web-mode-engine "django")
+               (web-mode-scan-django-extra-comments beg end)
+               (web-mode-trace "extra")
+               );when
              )
 
             );cond
@@ -1764,8 +1768,8 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq open (+ open (- l (length tagopen))))
           )
 
-        (setq sub1 (substring tagopen 0 1))
-        (setq sub2 (substring tagopen 0 2))
+        (setq sub1 (substring tagopen 0 1)
+              sub2 (substring tagopen 0 2))
 
         (cond
 
@@ -2000,9 +2004,28 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       )))
 
+(defun web-mode-scan-django-extra-comments (reg-beg reg-end)
+  "Scan extra"
+  (save-excursion
+    (let (beg end)
+      (goto-char reg-beg)
+      (while (and (< (point) reg-end)
+                  (re-search-forward "{% comment %}" reg-end t))
+        ;;        (message "pt=%S" (point))
+        (setq beg (point))
+        (goto-char (1+ (match-beginning 0)))
+        (when (web-mode-match-django-block)
+          (setq end (1- (point)))
+          (remove-text-properties beg end web-mode-text-properties)
+          (add-text-properties beg end '(block-token comment face web-mode-comment-face))
+          )
+        )
+      )))
+
 (defun web-mode-scan-blocks (region-beg region-end)
   "Fontify blocks. The scan relies on the 'block-beg text property."
   (let ((i 0)
+        (comment nil)
         (beg region-beg)
         (end nil)
         (continue t))
@@ -2037,6 +2060,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         )
        );cond
       );while
+
     ))
 
 (defun web-mode-scan-block (beg end)
@@ -3955,12 +3979,13 @@ Must be used in conjunction with web-mode-enable-block-face."
       (setq continue (not (bobp)))
       (when (or (get-text-property (point) 'tag-beg)
                 (and (get-text-property (point) 'block-beg)
-                     (web-mode-is-active-block (point))))
+                     (web-mode-is-active-block (point))
+                     (not (looking-at-p "{% comment"))))
         (setq continue nil
               pos (point))
         )
       );while
-;;    (message "indent-origin=%S" pos)
+    (message "indent-origin=%S" pos)
     pos
     ))
 
@@ -4552,14 +4577,14 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defun web-mode-element-kill ()
-  "Delete the current HTML element."
+  "Kill the current HTML element."
   (interactive)
   (web-mode-element-select)
   (when mark-active
     (kill-region (region-beginning) (region-end))))
 
 (defun web-mode-block-kill ()
-  "Delete the current HTML element."
+  "Kill the current block."
   (interactive)
   (web-mode-block-select)
   (when mark-active
