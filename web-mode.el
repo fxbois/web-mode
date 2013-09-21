@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.15
+;; Version: 7.0.16
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.15"
+  :version "7.0.16"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -618,7 +618,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   '("assets" "autoescape" "block" "cache" "call" "comment"
     "elif" "else" "elseif" "embed" "empty" "filter" "foreach" "for"
     "ifchanged" "ifequal" "ifnotequal" "if"
-    "macro" "draw" "random" "sandbox" "spaceless" "trans" "with")
+    "macro" "draw" "random" "sandbox" "spaceless" "trans" "verbatim" "with")
   "Django controls.")
 
 (defvar web-mode-go-active-blocks
@@ -982,7 +982,7 @@ Must be used in conjunction with web-mode-enable-block-face."
        "embed" "empty" "else" "elseif" "elif" "endautoescape" "endblock" "endcomment"
        "endcache" "endcall" "endembed" "endfilter" "endfor" "endif"
        "endifchanged" "endifequal" "endifnotequal" "endmacro" "endrandom" "endraw"
-       "endsandbox" "endset" "endspaceless" "endtrans" "endwith"
+       "endsandbox" "endset" "endspaceless" "endtrans" "endverbatim" "endwith"
        "extends" "filter" "firstof" "flush" "for" "from"
        "if" "ifchanged" "ifequal" "ifnotequal" "ignore" "import"
        "in" "include" "is"
