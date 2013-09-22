@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.17
+;; Version: 7.0.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -35,6 +35,7 @@
 
 ;; Code goes here
 
+;;todo : indentation des comments {% comment %}
 ;;todo : auto-pairs deviennent spécifiques à un engine
 ;;todo : reduction des css rules div { ... }
 ;;todo : passer les content-types en symboles
@@ -47,7 +48,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.17"
+  :version "7.0.18"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -2223,7 +2224,7 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((string= sub3 "<%#")
         (setq props '(block-token comment face web-mode-comment-face)))
        (t
-        (setq regexp "\"\\|'\\|#"
+        (setq regexp "\"\\|'\\|#\\|<<[-]?['\"]?\\([[:alnum:]]+\\)['\"]?"
               props '(face nil)
               keywords web-mode-erb-font-lock-keywords)
         )
@@ -2378,7 +2379,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             )
           ;;          (message "tag=%s pos=%S" (match-string 1) (point))
           (setq props '(block-token string face web-mode-block-string-face))
-          (re-search-forward (concat "^" (match-string 1)) end t)
+          (re-search-forward (concat "^[ ]*" (match-string 1)) end t)
           (when hddeb (setq hdend (1- (match-beginning 0))))
           )
 
@@ -2406,7 +2407,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         (cond
          ((string= token-type "comment")
           (if web-mode-enable-comment-keywords
-              (web-mode-enhance-comment start (point) t))
+              (web-mode-interpolate-comment start (point) t))
           )
          (t
           )
@@ -2455,7 +2456,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 
-(defun web-mode-enhance-comment (beg end block-side)
+(defun web-mode-interpolate-comment (beg end block-side)
   "Enhance comment"
   (save-excursion
     (let (regexp)
