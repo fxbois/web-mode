@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.18
+;; Version: 7.0.19
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.18"
+  :version "7.0.19"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -3692,9 +3692,15 @@ Must be used in conjunction with web-mode-enable-block-face."
                        'block-token)
                      pos)))
         (setq offset (current-column))
-        (when (and (string= (buffer-substring-no-properties (point) (+ (point) 2)) "/*")
+        (cond
+         ((and (string= (buffer-substring-no-properties (point) (+ (point) 2)) "/*")
                    (eq ?\* first-char))
           (setq offset (1+ offset)))
+         ((and (string= web-mode-engine "django")
+               (looking-back "{% comment %}"))
+          (setq offset (- offset 12))
+          )
+         );cond
         );case comment
 
        ((member language '("php" "jsp" "asp" "aspx" "javascript" "code" "python" "erb" "freemarker" "blade" "template-toolkit"))
