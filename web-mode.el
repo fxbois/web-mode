@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.20
+;; Version: 7.0.21
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.20"
+  :version "7.0.21"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -1019,15 +1019,24 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-javascript-keywords
   (regexp-opt
    (append web-mode-extra-javascript-keywords
-           '("arguments" "break" "case" "catch" "class" "const" "continue"
+           '("break" "case" "catch" "class" "const" "continue"
              "debugger" "default" "delete" "do" "else" "enum" "eval"
-             "export" "extends" "false" "finally" "for" "function" "if"
+             "export" "extends" "finally" "for" "function" "if"
              "implements" "import" "in" "instanceof" "interface" "let"
-             "new" "null" "package" "private" "protected" "public"
-             "return" "static" "super" "switch" "this" "throw"
-             "true" "try" "typeof" "undefined" "var" "void" "while" "with" "yield"
+             "new" "package" "private" "protected" "public"
+             "return" "static" "super" "switch" "throw"
+             "try" "typeof" "var" "void" "while" "with" "yield"
              )))
   "JavaScript keywords.")
+
+(defvar web-mode-javascript-constants
+  (regexp-opt
+   '("false" "null" "undefined"
+     "Infinity" "NaN"
+     "true" "arguments" "this"
+     ))
+  "JavaScript constants.")
+
 
 (defvar web-mode-razor-keywords
   (regexp-opt
@@ -1184,12 +1193,16 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-javascript-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-javascript-constants "\\)\\>") '(0 'web-mode-constant-face))
    '("\\<\\(new\\|instanceof\\) \\([[:alnum:]_.]+\\)\\>" 2 'web-mode-type-face)
    '("\\<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
    '("\\<function[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
    '("\\<\\(var\\)\\>[ ]+"
      (1 'web-mode-keyword-face)
-     ("\\([[:alnum:]_]+\\)\\([ ]*=[^,;]*\\)?[,;]" nil nil (1 'web-mode-variable-name-face)))
+     ("\\([[:alnum:]_]+\\)\\([ ]*=[^,;]*\\)?[,; ]" nil nil (1 'web-mode-variable-name-face)))
+   '("\\<\\(function\\)[ ]*("
+     (1 'web-mode-keyword-face)
+     ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
    '("\\([[:alnum:]]+\\):" 1 'web-mode-variable-name-face)
    '("/[^/]+/" 0 'web-mode-string-face)
    ))
