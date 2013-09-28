@@ -2813,6 +2813,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-css-fontify-rule (sel-beg sel-end dec-beg dec-end)
   "Fontify css rule."
   (save-excursion
+;;    (message "sel-beg=%S sel-end=%S dec-beg=%S dec-end=%S" sel-beg sel-end dec-beg dec-end)
     (web-mode-fontify-region sel-beg sel-end
                              web-mode-selector-font-lock-keywords)
     (when (and dec-beg dec-end)
@@ -2830,7 +2831,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-css-next-rule (limit)
   "next rule"
   (let (at-rule sel-beg sel-end dec-beg dec-end chunk)
-    (skip-chars-forward "[\n\t ]")
+    (skip-chars-forward "\n\t ")
     (setq sel-beg (point))
     (when (and (< (point) limit)
                (web-mode-rsf-client "[{;]" limit t))
