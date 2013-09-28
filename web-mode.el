@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.22
+;; Version: 7.0.23
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.22"
+  :version "7.0.23"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -97,6 +97,11 @@
 
 (defcustom web-mode-disable-auto-pairing (not (display-graphic-p))
   "Disable auto-pairing."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-disable-element-highlight nil
+  "Disable element highlight."
   :type 'boolean
   :group 'web-mode)
 
@@ -414,6 +419,12 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Overlay face for folded."
   :group 'web-mode-faces)
 
+(defface web-mode-highlight-face
+  '((t :bold t))
+  "Overlay face for element highlight."
+  :group 'web-mode-faces)
+
+
 (defface web-mode-comment-keyword-face
   '((t :weight bold :box t))
   "Comment keywords."
@@ -446,6 +457,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-time nil
   "For benchmarking")
+
+(defvar web-mode-start-tag-overlay nil)
+
+(defvar web-mode-end-tag-overlay nil)
 
 (defvar web-mode-expand-initial-pos nil
   "First mark pos.")
@@ -1505,6 +1520,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   (make-local-variable 'web-mode-indent-style)
   (make-local-variable 'web-mode-is-narrowed)
   (make-local-variable 'web-mode-block-regexp)
+  (make-local-variable 'web-mode-start-tag-overlay)
+  (make-local-variable 'web-mode-end-tag-overlay)
   (make-local-variable 'web-mode-time)
 
   (if (and (fboundp 'global-hl-line-mode)
@@ -1519,11 +1536,15 @@ Must be used in conjunction with web-mode-enable-block-face."
         imenu-case-fold-search t
         imenu-create-index-function 'web-mode-imenu-index
         indent-line-function 'web-mode-indent-line
+
 ;;        indent-tabs-mode nil
 ;;        require-final-newline nil
         )
 
   (remove-hook 'after-change-functions 'font-lock-after-change-function t)
+
+;;  (when (not web-mode-disable-element-highlight)
+;;    (add-hook 'post-command-hook 'web-mode-hightlight-current-element nil t))
 
   (add-hook 'after-change-functions 'web-mode-on-after-change t t)
 
@@ -3356,7 +3377,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         );while
       (if (string= line "")
           (progn (goto-char pos) nil)
-        line)
+        (cons line (current-indentation)))
       )))
 
 (defun web-mode-previous-usable-client-line ()
@@ -3376,7 +3397,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         )
       (if (string= line "")
           (progn (goto-char pos) nil)
-        line)
+        (cons line (current-indentation)))
       )))
 
 (defun web-mode-in-code-block (open close &optional prop)
@@ -3475,11 +3496,11 @@ Must be used in conjunction with web-mode-enable-block-face."
     :type (live, comment, string),
     :language (html, php, jsp, aspx, asp + javascript, css),
     :indent-offset
-    :prev-line :prev-char :prev-props"
+    :prev-line :prev-char :prev-props :prev-indentation"
   (save-excursion
     (let (ctx pos-min
               block-beg block-column first-char line type language indent-offset
-              prev-line prev-char prev-props)
+              prev prev-line prev-char prev-props prev-indentation)
 
       (setq pos-min (point-min))
       (setq block-beg pos-min
@@ -3608,15 +3629,19 @@ Must be used in conjunction with web-mode-enable-block-face."
                 (and (string= language "html") (not (eq ?\< first-char))))
         (cond
          ((member language '("html" "javascript"))
-          (setq prev-line (web-mode-previous-usable-client-line))
-;;          (message "prev-line=%S" prev-line)
-          (when prev-line
+          (setq prev (web-mode-previous-usable-client-line))
+          ;;          (message "prev-line=%S" prev-line)
+          (when prev
+            (setq prev-line (car prev)
+                  prev-indentation (cdr prev))
             (setq prev-line (web-mode-clean-client-line prev-line))
             (setq prev-props (text-properties-at (1- (length prev-line)) prev-line)))
           )
          (t
-          (setq prev-line (web-mode-previous-usable-server-line))
-          (when prev-line
+          (setq prev (web-mode-previous-usable-server-line))
+          (when prev
+            (setq prev-line (car prev)
+                  prev-indentation (cdr prev))
             (setq prev-line (web-mode-clean-server-line prev-line)))
           )
          );cond
@@ -3648,7 +3673,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                       :indent-offset indent-offset
                       :prev-line prev-line
                       :prev-char prev-char
-                      :prev-props prev-props))
+                      :prev-props prev-props
+                      :prev-indentation prev-indentation))
 ;;      (message "%S" ctx)
       ctx
       )))
@@ -3668,7 +3694,8 @@ Must be used in conjunction with web-mode-enable-block-face."
         indent-offset
         prev-line
         prev-char
-        prev-props)
+        prev-props
+        prev-indentation)
 
     (save-excursion
       (back-to-indentation)
@@ -3684,6 +3711,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (setq prev-line (plist-get ctx :prev-line))
       (setq prev-char (plist-get ctx :prev-char))
       (setq prev-props (plist-get ctx :prev-props))
+      (setq prev-indentation (plist-get ctx :prev-indentation))
 
       (cond
 
@@ -3734,6 +3762,12 @@ Must be used in conjunction with web-mode-enable-block-face."
          ((and (string= language "php") (string-match-p "^->" line))
           (when (web-mode-sb "->" block-beg)
             (setq offset (current-column)))
+          )
+
+         ((and (string= language "php")
+               (or (string-match-p "^else$" prev-line)
+                   (string-match-p "^if[ ]*(.+)$" prev-line)))
+          (setq offset (+ prev-indentation web-mode-code-indent-offset))
           )
 
          ((and (string= language "javascript") (eq ?\. first-char))
@@ -5898,6 +5932,54 @@ Must be used in conjunction with web-mode-enable-block-face."
     epp
     ))
 
+(defun web-mode-tags-pos ()
+  (save-excursion
+    (let (start-beg start-end end-beg end-end (pos (point)))
+      (cond
+       ((eq (get-text-property pos 'tag-type) 'start)
+        (setq start-beg (web-mode-tag-beginning-position pos)
+              start-end (web-mode-tag-end-position pos))
+        (when (web-mode-match-html-tag)
+          (setq end-beg (point)
+                end-end (web-mode-tag-end-position (point))))
+;;        (message "%S %S %S %S" start-beg start-end end-beg end-end)
+        )
+       ((eq (get-text-property pos 'tag-type) 'end)
+        (setq end-beg (web-mode-tag-beginning-position pos)
+              end-end (web-mode-tag-end-position pos))
+        (when (web-mode-match-html-tag)
+          (setq start-beg (point)
+                start-end (web-mode-tag-end-position (point))))
+        )
+       )
+      (if (and start-beg end-beg)
+          (cons (cons start-beg (1+ start-end))
+                (cons end-beg (1+ end-end)))
+        nil)
+      )))
+
+(defun web-mode-make-tag-overlays ()
+  (unless web-mode-start-tag-overlay
+    (setq web-mode-start-tag-overlay (make-overlay 1 1)
+          web-mode-end-tag-overlay (make-overlay 1 1))
+    (overlay-put web-mode-start-tag-overlay 'face 'web-mode-highlight-face)
+    (overlay-put web-mode-end-tag-overlay 'face 'web-mode-highlight-face)))
+
+(defun web-mode-delete-tag-overlays ()
+  (when web-mode-start-tag-overlay
+    (delete-overlay web-mode-start-tag-overlay)
+    (delete-overlay web-mode-end-tag-overlay)))
+
+(defun web-mode-hightlight-current-element ()
+  (let ((ctx (web-mode-tags-pos)))
+;;    (message "ctx=%S" ctx)
+    (if (null ctx)
+        (web-mode-delete-tag-overlays)
+      (web-mode-make-tag-overlays)
+      (move-overlay web-mode-start-tag-overlay (caar ctx) (cdar ctx))
+      (move-overlay web-mode-end-tag-overlay (cadr ctx) (cddr ctx)))
+    ))
+
 (defun web-mode-on-after-change (beg end len)
   "Handles auto-pairing, auto-closing, and region-refresh after buffer alteration."
 
@@ -6332,6 +6414,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     (cond
      ((get-text-property pos 'tag-beg)
       (setq beg pos))
+     ((and (> pos 1) (get-text-property (1- pos) 'tag-beg))
+      (setq beg (1- pos)))
      ((get-text-property pos 'tag-name)
       (setq beg (1- (previous-single-property-change pos 'tag-beg)))
       (when (not (get-text-property beg 'tag-beg))
