@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.23
+;; Version: 7.0.24
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.23"
+  :version "7.0.24"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -100,7 +100,7 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-disable-element-highlight nil
+(defcustom web-mode-disable-current-element-highlight nil
   "Disable element highlight."
   :type 'boolean
   :group 'web-mode)
@@ -419,8 +419,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Overlay face for folded."
   :group 'web-mode-faces)
 
-(defface web-mode-highlight-face
-  '((t :bold t))
+(defface web-mode-current-element-highlight-face
+  '((t :underline t :bold t))
   "Overlay face for element highlight."
   :group 'web-mode-faces)
 
@@ -1543,8 +1543,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
   (remove-hook 'after-change-functions 'font-lock-after-change-function t)
 
-;;  (when (not web-mode-disable-element-highlight)
-;;    (add-hook 'post-command-hook 'web-mode-hightlight-current-element nil t))
+  (when (not web-mode-disable-current-element-highlight)
+    (add-hook 'post-command-hook 'web-mode-hightlight-current-element nil t))
 
   (add-hook 'after-change-functions 'web-mode-on-after-change t t)
 
@@ -5962,8 +5962,12 @@ Must be used in conjunction with web-mode-enable-block-face."
   (unless web-mode-start-tag-overlay
     (setq web-mode-start-tag-overlay (make-overlay 1 1)
           web-mode-end-tag-overlay (make-overlay 1 1))
-    (overlay-put web-mode-start-tag-overlay 'face 'web-mode-highlight-face)
-    (overlay-put web-mode-end-tag-overlay 'face 'web-mode-highlight-face)))
+    (overlay-put web-mode-start-tag-overlay
+                 'face
+                 'web-mode-current-element-highlight-face)
+    (overlay-put web-mode-end-tag-overlay
+                 'face
+                 'web-mode-current-element-highlight-face)))
 
 (defun web-mode-delete-tag-overlays ()
   (when web-mode-start-tag-overlay
