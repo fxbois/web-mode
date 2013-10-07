@@ -1,8 +1,8 @@
-;;; web-mode.el --- major mode for editing html templates -*- coding: utf-8 -*-
+;;; web-mode.el --- major mode for editing html templates
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.25
+;; Version: 7.0.26
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -35,8 +35,8 @@
 
 ;; Code goes here
 
+;;todo : web-mode-cleanup : ("downcase-tags" "double-quote-attributes")
 ;;todo : auto-pairs deviennent spécifiques à un engine
-;;todo : reduction des css rules div { ... }
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.25"
+  :version "7.0.26"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -1386,12 +1386,14 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map [menu-bar wm blk blk-prev] '(menu-item "Previous" web-mode-block-previous))
     (define-key map [menu-bar wm blk blk-end] '(menu-item "End" web-mode-block-beginning))
     (define-key map [menu-bar wm blk blk-beg] '(menu-item "Beginning" web-mode-block-beginning))
+
     (define-key map [menu-bar wm tag tag-sel] '(menu-item "Select" web-mode-tag-select))
     (define-key map [menu-bar wm tag tag-match] '(menu-item "Match" web-mode-tag-match))
     (define-key map [menu-bar wm tag tag-next] '(menu-item "Next" web-mode-tag-next))
     (define-key map [menu-bar wm tag tag-prev] '(menu-item "Previous" web-mode-tag-previous))
     (define-key map [menu-bar wm tag tag-end] '(menu-item "End" web-mode-tag-beginning))
     (define-key map [menu-bar wm tag tag-beg] '(menu-item "Beginning" web-mode-tag-beginning))
+
     (define-key map [menu-bar wm elt elt-in] '(menu-item "Inner Content" web-mode-element-content-select))
     (define-key map [menu-bar wm elt elt-parent] '(menu-item "Parent" web-mode-element-parent))
     (define-key map [menu-bar wm elt elt-sel] '(menu-item "Select" web-mode-element-select))
@@ -1405,6 +1407,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map [menu-bar wm elt elt-prev] '(menu-item "Previous" web-mode-element-previous))
     (define-key map [menu-bar wm elt elt-end] '(menu-item "End" web-mode-element-end))
     (define-key map [menu-bar wm elt elt-beg] '(menu-item "Beginning" web-mode-element-beginning))
+    (define-key map [menu-bar wm elt elt-van] '(menu-item "Vanish" web-mode-element-vanish))
+
     (define-key map [menu-bar wm err] '(menu-item "Show error(s)" web-mode-errors-show))
     (define-key map [menu-bar wm fold] '(menu-item "Fold/Unfold" web-mode-fold-or-unfold))
     (define-key map [menu-bar wm indent] '(menu-item "Indent buffer" web-mode-buffer-indent))
@@ -1451,6 +1455,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map (kbd "C-c C-e s") 'web-mode-element-select)
     (define-key map (kbd "C-c C-e t") 'web-mode-element-traverse)
     (define-key map (kbd "C-c C-e u") 'web-mode-element-parent)
+    (define-key map (kbd "C-c C-e v") 'web-mode-element-vanish)
 
     (define-key map (kbd "C-c C-t b") 'web-mode-tag-beginning)
     (define-key map (kbd "C-c C-t e") 'web-mode-tag-end)
@@ -4039,7 +4044,7 @@ Must be used in conjunction with web-mode-enable-block-face."
               pos (point))
         )
       );while
-    (message "indent-origin=%S" pos)
+;;    (message "indent-origin=%S" pos)
     pos
     ))
 
@@ -4610,24 +4615,65 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive)
   (let (type (pos (point)))
     (setq type (get-text-property pos 'tag-type))
-    (if type
-        (cond
-         ((member type '(start void))
-          (web-mode-tag-beginning)
-          (set-mark (point))
-          (web-mode-tag-match)
-          (web-mode-tag-end)
-          (exchange-point-and-mark))
-         (t
-          (web-mode-tag-match)
-          (set-mark (point))
-          (web-mode-tag-match)
-          (web-mode-tag-end)
-          (exchange-point-and-mark))
-         );cond
+    (when type
+      (cond
+       ((member type '(start void))
+        (web-mode-tag-beginning)
+        (set-mark (point))
+        (web-mode-tag-match)
+        (web-mode-tag-end)
+        (exchange-point-and-mark))
+       (t
+        (web-mode-tag-match)
+        (set-mark (point))
+        (web-mode-tag-match)
+        (web-mode-tag-end)
+        (exchange-point-and-mark))
+       );cond
       (web-mode-element-parent)
       (unless (= (point) pos) (web-mode-element-select))
-      );if
+      );when
+    ))
+
+(defun web-mode-element-vanish ()
+  "Vanish the current HTML element. The content of the element is kept."
+  (interactive)
+  (let (type (pos (point)) start-b start-e end-b end-e)
+    (setq type (get-text-property pos 'tag-type))
+    (when type
+      (cond
+       ((member type '(void))
+        (web-mode-element-kill)
+        (set-mark (point))
+        (web-mode-tag-match)
+        (web-mode-tag-end)
+        (exchange-point-and-mark))
+       ((member type '(start))
+        (setq start-b (web-mode-tag-beginning-position)
+              start-e (web-mode-tag-end-position))
+        (when (web-mode-tag-match)
+          (setq end-b (web-mode-tag-beginning-position)
+                end-e (web-mode-tag-end-position)))
+        )
+       (t
+        (setq end-b (web-mode-tag-beginning-position)
+              end-e (web-mode-tag-end-position))
+        (when (web-mode-tag-match)
+          (setq start-b (web-mode-tag-beginning-position)
+                start-e (web-mode-tag-end-position)))
+        );t
+       );cond
+      (when (and start-b end-b)
+        (goto-char end-b)
+        (delete-region end-b (1+ end-e))
+        (delete-blank-lines)
+        (goto-char start-b)
+        (delete-region start-b (1+ start-e))
+        (delete-blank-lines)
+        (web-mode-buffer-indent)
+        )
+;;        (message "start %S %S - end %S %S" start-b start-e end-b end-e))
+      );when
     ))
 
 (defun web-mode-element-kill ()
@@ -7106,6 +7152,11 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (provide 'web-mode)
+
+;; Local Variables:
+;; coding: utf-8
+;; indent-tabs-mode: nil
+;; End:
 
 ;;; web-mode.el ends here
 
