@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.26
+;; Version: 7.0.27
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.26"
+  :version "7.0.27"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -3772,7 +3772,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((and (string= language "php")
                (or (string-match-p "^else$" prev-line)
-                   (string-match-p "^if[ ]*(.+)$" prev-line)))
+                   (string-match-p "^if[ ]*(.+)$" prev-line))
+               (not (string-match-p "^{" line)))
           (setq offset (+ prev-indentation web-mode-code-indent-offset))
           )
 
