@@ -1507,6 +1507,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (make-local-variable 'imenu-create-index-function)
   (make-local-variable 'imenu-generic-expression)
   (make-local-variable 'indent-line-function)
+  (make-local-variable 'fill-paragraph-function)
 ;;  (make-local-variable 'indent-tabs-mode)
 ;;  (make-local-variable 'require-final-newline)
 
