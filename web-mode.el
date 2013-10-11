@@ -3098,7 +3098,8 @@ Must be used in conjunction with web-mode-enable-block-face."
       )
      ((looking-at-p "@[(}]")
       (forward-char)
-      (goto-char (web-mode-closing-paren-position (point) (line-end-position)))
+;;      (goto-char (web-mode-closing-paren-position (point) (line-end-position)))
+      (goto-char (web-mode-closing-paren-position (point)))
       )
      (t
       (forward-char)
