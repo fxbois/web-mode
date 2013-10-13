@@ -8,3 +8,7 @@ web-mode.el is compatible with many template engines: PHP, JSP, ASP, Django, Twi
 More infos on http://web-mode.org/
 
 ![ScreenShot](http://web-mode.org/web-mode.png?v=1)
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/fxbois/web-mode/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
