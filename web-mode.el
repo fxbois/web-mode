@@ -4618,24 +4618,24 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive)
   (let (type (pos (point)))
     (setq type (get-text-property pos 'tag-type))
-    (when type
-      (cond
-       ((member type '(start void))
-        (web-mode-tag-beginning)
-        (set-mark (point))
-        (web-mode-tag-match)
-        (web-mode-tag-end)
-        (exchange-point-and-mark))
-       (t
-        (web-mode-tag-match)
-        (set-mark (point))
-        (web-mode-tag-match)
-        (web-mode-tag-end)
-        (exchange-point-and-mark))
-       );cond
+    (if type
+        (cond
+         ((member type '(start void))
+          (web-mode-tag-beginning)
+          (set-mark (point))
+          (web-mode-tag-match)
+          (web-mode-tag-end)
+          (exchange-point-and-mark))
+         (t
+          (web-mode-tag-match)
+          (set-mark (point))
+          (web-mode-tag-match)
+          (web-mode-tag-end)
+          (exchange-point-and-mark))
+         );cond
       (web-mode-element-parent)
       (unless (= (point) pos) (web-mode-element-select))
-      );when
+      );if
     ))
 
 (defun web-mode-element-vanish ()
@@ -4826,14 +4826,12 @@ Must be used in conjunction with web-mode-enable-block-face."
   (= (web-mode-line-number (web-mode-block-beginning-position pos))
      (web-mode-line-number (web-mode-block-end-position pos))))
 
-(defun web-mode-comment-or-uncomment (&optional pos)
+(defun web-mode-comment-or-uncomment ()
   "Comment or uncomment line(s), block or region at POS."
   (interactive)
   (save-excursion
-    (unless pos (setq pos (if mark-active (region-beginning) (point))))
-;;TODO: a reprendre : si curseur en debut de ligne avec qq espaces et un commentaire .. on decommente
-;;    (goto-char pos)
-;;    (skip-chars-forward "[:space:]" (line-end-position))
+    (unless mark-active
+      (skip-chars-forward "[:space:]" (line-end-position)))
     (if (web-mode-is-comment)
 	(web-mode-uncomment (point))
       (web-mode-comment (point))))
@@ -4903,7 +4901,8 @@ Must be used in conjunction with web-mode-enable-block-face."
             (progn
               (setq beg (region-beginning)
                     end (region-end))
-              (message "beg=%S end=%S" beg end))
+;;              (message "beg=%S end=%S" beg end)
+              )
           (if (string= language "html")
               (progn
                 (back-to-indentation)
@@ -4915,15 +4914,13 @@ Must be used in conjunction with web-mode-enable-block-face."
                 end (region-end))
           ); if mark-active
 
-
-
         (when (> (point) (mark))
           (exchange-point-and-mark))
 
         (if (eq (char-before end) ?\n)
             (setq end (1- end)))
 
-        (message "language=%S beg=%S end=%S" language beg end)
+;;        (message "language=%S beg=%S end=%S" language beg end)
         (setq sel (web-mode-trim (buffer-substring-no-properties beg end)))
         ;;      (message "[language=%s] sel=%s" language sel)
         (delete-region beg end)
