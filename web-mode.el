@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.31
+;; Version: 7.0.32
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.31"
+  :version "7.0.32"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -4831,8 +4831,9 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive)
   (save-excursion
     (unless pos (setq pos (if mark-active (region-beginning) (point))))
-    (goto-char pos)
-    (skip-chars-forward "[:space:]" (line-end-position))
+;;TODO: a reprendre : si curseur en debut de ligne avec qq espaces et un commentaire .. on decommente
+;;    (goto-char pos)
+;;    (skip-chars-forward "[:space:]" (line-end-position))
     (if (web-mode-is-comment)
 	(web-mode-uncomment (point))
       (web-mode-comment (point))))
