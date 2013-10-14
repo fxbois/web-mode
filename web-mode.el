@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.28
+;; Version: 7.0.29
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.28"
+  :version "7.0.29"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -1218,9 +1218,9 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\<\\(function\\)[ ]*("
      (1 'web-mode-keyword-face)
      ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
-   '("\\([[:alnum:]]+\\):" 1 'web-mode-variable-name-face)
+   '("\\([[:alnum:]_]+\\):" 1 'web-mode-variable-name-face)
    '("/[^/]+/" 0 'web-mode-string-face)
-   ))
+   ))<
 
 (defvar web-mode-underscore-font-lock-keywords
   (list
@@ -5349,7 +5349,6 @@ Must be used in conjunction with web-mode-enable-block-face."
      );cond
 
     ))
-
 
 (defun web-mode-match-php-block ()
   "Fetch PHP block."
