@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.30
+;; Version: 7.0.31
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.30"
+  :version "7.0.31"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -468,10 +468,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-expand-previous-state ""
   "Last mark state.")
 
-(defvar web-mode-tag-regexp "<\\(/?[[:alpha:]][[:alnum:]]*\\)"
+(defvar web-mode-tag-regexp "<\\(/?[[:alpha:]][[:alnum:]-]*\\)"
   "Regular expression for HTML/XML tag.")
 
-(defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]]*\\)"
+(defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]-]*\\)"
   "Regular expression for HTML/XML start tag.")
 
 (defvar web-mode-whitespaces-regexp
@@ -2521,7 +2521,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       ;; <\\(!--\\|!doctype\\|/?[[:alnum:]]+[:_]?[[:alnum:]]*\\|\?xml\\)
       ;; <\\(/?[[:alnum:]]+\\|!--\\|!doctype\\|\?xml\\)
       ;; <[[:alpha:]/!?]
-      (while (web-mode-rsf-client "<\\(/?[[:alnum:]]+\\|!--\\|!doctype\\|\?xml\\)" end t)
+      (while (web-mode-rsf-client "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!doctype\\|\?xml\\)" end t)
         (setq tag-name (downcase (match-string 1))
               tag-beg (match-beginning 0)
               tag-end nil
@@ -4899,8 +4899,10 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq language (plist-get ctx :language))
 
         (if mark-active
-            (setq beg (region-beginning)
-                  end (region-end))
+            (progn
+              (setq beg (region-beginning)
+                    end (region-end))
+              (message "beg=%S end=%S" beg end))
           (if (string= language "html")
               (progn
                 (back-to-indentation)
@@ -4912,13 +4914,15 @@ Must be used in conjunction with web-mode-enable-block-face."
                 end (region-end))
           ); if mark-active
 
+
+
         (when (> (point) (mark))
           (exchange-point-and-mark))
 
         (if (eq (char-before end) ?\n)
             (setq end (1- end)))
 
-        ;;     (message "language=%S beg=%S end=%S" language beg end)
+        (message "language=%S beg=%S end=%S" language beg end)
         (setq sel (web-mode-trim (buffer-substring-no-properties beg end)))
         ;;      (message "[language=%s] sel=%s" language sel)
         (delete-region beg end)
