@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.32
+;; Version: 7.0.33
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.32"
+  :version "7.0.33"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -2088,7 +2088,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
         (when (and (not web-mode-has-any-large-block)
                    (> (- end beg) web-mode-large-embed-threshold))
-          (message "** large block detected [ %S - %S ] **" beg end)
+;;          (message "** large block detected [ %S - %S ] **" beg end)
           (setq web-mode-has-any-large-block t))
 
         (web-mode-scan-block beg end)
@@ -2263,7 +2263,7 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((string= sub3 "<%#")
         (setq props '(block-token comment face web-mode-comment-face)))
        (t
-        (setq regexp "\"\\|'\\|#\\|<<[-]?['\"]?\\([[:alnum:]]+\\)['\"]?"
+        (setq regexp "\"\\|'\\|#\\|<<[-]?['\"]?\\([[:alnum:]_]+\\)['\"]?"
               props '(face nil)
               keywords web-mode-erb-font-lock-keywords)
         )
@@ -2480,7 +2480,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq end (1- end))
     (cond
      ((string= web-mode-engine "php")
-      (while (re-search-forward "$[[:alnum:]]+" end t)
+      (while (re-search-forward "$[[:alnum:]_]+" end t)
         (put-text-property (match-beginning 0) (match-end 0)
                            'face nil)
         (put-text-property (1+ (match-beginning 0)) (match-end 0)
@@ -2570,7 +2570,9 @@ Must be used in conjunction with web-mode-enable-block-face."
          );cond
 
         (if (web-mode-sf-client expr limit t)
+;;        (if (skip-chars-forward "^>" limit)
             (progn
+;;              (forward-char)
               (setq attrs-end (- (point) (length expr))
                     tag-end (point)
                     close-found t)
@@ -2656,7 +2658,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       (when (and (not web-mode-has-any-large-part)
                  (> (- part-end part-beg) web-mode-large-embed-threshold))
-        (message "** large part detected [ %S - %S ] **" part-beg part-end)
+;;        (message "** large part detected [ %S - %S ] **" part-beg part-end)
         (setq web-mode-has-any-large-part t))
 
       (cond
@@ -3088,7 +3090,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defun web-mode-razor-skip-forward (pos)
-  "find the end of a razor block."
+  "Find the end of a razor block."
   (goto-char pos)
   ;;            (message "pt=%S %c" (point) (char-after))
   (let (continue)
@@ -3163,16 +3165,13 @@ Must be used in conjunction with web-mode-enable-block-face."
                                                        '("asp"
                                                          "template-toolkit")))
           (font-lock-keywords-only t)
-          (font-lock-extend-region-functions nil)
-          )
+          (font-lock-extend-region-functions nil))
       (font-lock-fontify-region beg end)
       ))
-
   ;; UGLY HACK / workaround (help needed)
   (unless web-mode-buffer-highlighted
     (setq web-mode-buffer-highlighted t)
-    (web-mode-fontify-region beg end keywords)
-    )
+    (web-mode-fontify-region beg end keywords))
   )
 
 (defun web-mode-fill-paragraph (&optional justify)
