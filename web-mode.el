@@ -1277,6 +1277,12 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
    ))
 
+(defvar web-mode-php-var-interpolation-font-lock-keywords
+  (list
+   '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
+   '("\".+\"\\|'.*'" 0 'web-mode-string-face)
+   ))
+
 (defvar web-mode-freemarker-square-font-lock-keywords
   (list
    '("\\[/?[#@]\\|/?>\\|/?\\]" 0 'web-mode-preprocessor-face)
@@ -2489,11 +2495,17 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq end (1- end))
     (cond
      ((string= web-mode-engine "php")
-      (while (re-search-forward "$[[:alnum:]_]+" end t)
-        (put-text-property (match-beginning 0) (match-end 0)
-                           'face nil)
-        (put-text-property (1+ (match-beginning 0)) (match-end 0)
-                           'face 'web-mode-variable-name-face)
+      (while (re-search-forward "$[[:alnum:]_]+\\(->[[:alnum:]_]+\\)*\\|{$.+}" end t)
+        ;;web-mode-php-var-interpolation-font-lock-keywords
+
+        (web-mode-fontify-region (match-beginning 0) (match-end 0)
+                                 web-mode-php-var-interpolation-font-lock-keywords)
+
+        ;; (put-text-property (match-beginning 0) (match-end 0)
+        ;;                    'face nil)
+        ;; (put-text-property (1+ (match-beginning 0)) (match-end 0)
+        ;;                    'face 'web-mode-variable-name-face)
+
         ))
      ((string= web-mode-engine "erb")
       (while (re-search-forward "#{.*}" end t)
