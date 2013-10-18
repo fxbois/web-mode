@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.33
+;; Version: 7.0.34
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.33"
+  :version "7.0.34"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -424,7 +424,6 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Overlay face for element highlight."
   :group 'web-mode-faces)
 
-
 (defface web-mode-comment-keyword-face
   '((t :weight bold :box t))
   "Comment keywords."
@@ -744,6 +743,15 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-electric-chars nil
   "electric chars")
+
+(defvar web-mode-normalization-rules
+  '(("tag-case"         . "lower-case")
+    ("attr-case"        . "lower-case") ;; todo
+    ("special-chars"    . "unicode") ;; or html-entities
+    ("smart-apostrophe" . t)
+    ("smart-quotes"     . t)
+    ("indentation"      . t))
+  "Normalization rules")
 
 (defvar web-mode-comment-keywords
   (regexp-opt
@@ -2433,7 +2441,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         ;;        (message "elt=%S" (buffer-substring start (point)))
         (add-text-properties start (point) props)
 
-        (when (and (eq fc ?\")
+        (when (and (member fc '(?\" ?\<))
                    (member web-mode-engine '("php" "erb"))
                    (> (- (point) start) 4))
           (web-mode-interpolate-string start (point))
@@ -2473,6 +2481,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       )
     ))
 
+;; todo : parsing plus compliqué: {$obj->values[3]->name}
 (defun web-mode-interpolate-string (beg end)
   "Interpolate php/erb strings."
   (save-excursion
@@ -3366,6 +3375,30 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive)
   (web-mode-scan-buffer)
   (web-mode-buffer-indent))
+
+(defun web-mode-buffer-normalize ()
+  "Normalize buffer"
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (let ((continue t))
+      (when (and (not (get-text-property (point) 'tag-beg))
+                 (not (web-mode-tag-next)))
+        (setq continue nil)
+        )
+      (while continue
+        (skip-chars-forward "<!/")
+
+        (if (looking-at "\\([[:alnum:]_]+\\)")
+            (replace-match (downcase (match-string 0)) t))
+
+        (message "tag: %S (%S)"
+                 (get-text-property (point) 'tag-name)
+                 (point))
+        (unless (web-mode-tag-next)
+          (setq continue nil))
+        )
+      )))
 
 (defun web-mode-previous-usable-server-line ()
   "Return previous non blank/comment/string line and return this line (trimmed)."
