@@ -1,8 +1,9 @@
 ;;; web-mode.el --- major mode for editing html templates
+;;; -*- Coding: utf-8 -*-
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.34
+;; Version: 7.0.35
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +48,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.34"
+  :version "7.0.35"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -2495,7 +2496,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq end (1- end))
     (cond
      ((string= web-mode-engine "php")
-      (while (re-search-forward "$[[:alnum:]_]+\\(->[[:alnum:]_]+\\)*\\|{$.+}" end t)
+      (while (re-search-forward "$[[:alnum:]_]+\\(->[[:alnum:]_]+\\)*\\|{[ ]*$.+}" end t)
         ;;web-mode-php-var-interpolation-font-lock-keywords
 
         (web-mode-fontify-region (match-beginning 0) (match-end 0)
