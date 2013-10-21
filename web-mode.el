@@ -1,9 +1,9 @@
 ;;; web-mode.el --- major mode for editing html templates
-;;; -*- Coding: utf-8 -*-
+;;; -*- coding: utf-8 -*-
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.35
+;; Version: 7.0.37
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.35"
+  :version "7.0.37"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -1228,7 +1228,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      (1 'web-mode-keyword-face)
      ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
    '("\\([[:alnum:]_]+\\):" 1 'web-mode-variable-name-face)
-   '("/[^/]+/" 0 'web-mode-string-face)
+;;   '("/[^/]+/" 0 'web-mode-string-face)
    ))
 
 (defvar web-mode-underscore-font-lock-keywords
@@ -1632,28 +1632,29 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-on-engine-setted ()
   "engine setted"
-  (when (string= web-mode-engine "razor")
-    (setq web-mode-enable-block-face t))
-  (cond
-   ((member web-mode-content-type '("css" "javascript" "json"))
-    (setq web-mode-has-any-large-part t))
-   ((member web-mode-content-type '("php"))
-    (setq web-mode-has-any-large-block nil)))
-  (setq web-mode-electric-chars nil)
-  (when (string= web-mode-content-type "html")
-    (unless (string= web-mode-engine "none")
-      (setq web-mode-active-block-regexp
-            (cdr (assoc web-mode-engine web-mode-active-block-regexps)))
-      (setq web-mode-close-block-regexp
-            (cdr (assoc web-mode-engine web-mode-close-block-regexps)))
-      (setq web-mode-engine-control-matcher
-            (intern-soft (concat "web-mode-match-" web-mode-engine "-block")))
-      )
-    (setq web-mode-electric-chars
-          (append '(?\<)
-                  (cdr (assoc web-mode-engine web-mode-block-electric-chars)))
-          )
-    );when
+  (let (elt)
+    (when (string= web-mode-engine "razor")
+      (setq web-mode-enable-block-face t))
+    (cond
+     ((member web-mode-content-type '("css" "javascript" "json"))
+      (setq web-mode-has-any-large-part t))
+     ((member web-mode-content-type '("php"))
+      (setq web-mode-has-any-large-block nil)))
+    (setq web-mode-electric-chars nil)
+    (when (string= web-mode-content-type "html")
+      (unless (string= web-mode-engine "none")
+        (setq web-mode-active-block-regexp
+              (cdr (assoc web-mode-engine web-mode-active-block-regexps)))
+        (setq web-mode-close-block-regexp
+              (cdr (assoc web-mode-engine web-mode-close-block-regexps)))
+        (setq web-mode-engine-control-matcher
+              (intern-soft (concat "web-mode-match-" web-mode-engine "-block")))
+        )
+      (setq web-mode-electric-chars
+            (append '(?\<)
+                    (cdr (assoc web-mode-engine web-mode-block-electric-chars)))
+            )
+      );when
 
     (setq elt (assoc web-mode-engine web-mode-block-regexps))
     (if elt
@@ -1666,7 +1667,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
     ;;  (message "%S\n%S\n%S\n%S" web-mode-active-block-regexp web-mode-close-block-regexp web-mode-engine-control-matcher web-mode-electric-chars)
 
-  )
+    ))
 
 (defun web-mode-guess-engine-and-content-type ()
   "Try to guess the server engine and the content type."
@@ -2685,7 +2686,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       (cond
        ((string= content-type "javascript")
-        (setq token-re "//\\|/\\*\\|\"\\|'"
+;;        (setq token-re "//\\|/\\*\\|\"\\|'"
+        (setq token-re "/.\\|\"\\|'"
               keywords web-mode-javascript-font-lock-keywords
               props '(part-language javascript part-side t)))
        ((string= content-type "json")
@@ -2783,6 +2785,22 @@ Must be used in conjunction with web-mode-enable-block-face."
                     token-type "comment")
               (search-forward "*/" part-end t)
               )
+            )
+
+           ((and (string= content-type "javascript")
+                 (eq ?\/ ch-at))
+;;            (backward-char)
+;;            (message "> %S" (point))
+            (while (and continue (search-forward "/" part-end t))
+;;              (message "%S %S %c" (point)
+;;                       (get-text-property (1- (point)) 'part-side)
+;;                       (char-before (1- (point))))
+              (setq continue (or (get-text-property (1- (point)) 'block-side)
+                                 (eq ?\\ (char-before (1- (point))))))
+              )
+            (setq props '(part-token string face web-mode-part-string-face))
+            (skip-chars-forward "gimy")
+;;            (message "#%S" (point))
             )
 
            );cond
@@ -3402,7 +3420,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (while continue
         (skip-chars-forward "<!/")
 
-        (if (looking-at "\\([[:alnum:]_]+\\)")
+        (if (looking-at "\\([[:alnum:]-]+\\)")
             (replace-match (downcase (match-string 0)) t))
 
         (message "tag: %S (%S)"
@@ -3651,8 +3669,9 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((and (get-text-property pos 'part-side)
              (get-text-property pos 'part-language))
         (setq block-beg (or (previous-single-property-change pos 'part-side) pos-min))
+;;        (message "%S" block-beg)
         (goto-char block-beg)
-        (search-backward "<")
+        (search-backward "<" nil t)
         (setq block-column (current-column))
         (setq language (symbol-name (get-text-property pos 'part-language)))
         (cond
