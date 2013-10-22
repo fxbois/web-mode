@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.38
+;; Version: 7.0.39
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.38"
+  :version "7.0.39"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -1588,11 +1588,11 @@ Must be used in conjunction with web-mode-enable-block-face."
   (cond
    ((boundp 'yas-after-exit-snippet-hook)
     (add-hook 'yas-after-exit-snippet-hook
-              '(lambda () (web-mode-buffer-refresh))
+              'web-mode-yasnippet-exit-hook
               t t))
    ((boundp 'yas/after-exit-snippet-hook)
     (add-hook 'yas/after-exit-snippet-hook
-              '(lambda () (web-mode-buffer-refresh))
+              'web-mode-yasnippet-exit-hook
               t t))
    )
 
@@ -1603,6 +1603,10 @@ Must be used in conjunction with web-mode-enable-block-face."
   (web-mode-scan-buffer)
 
   )
+
+(defun web-mode-yasnippet-exit-hook ()
+  "Yasnippet exit hook"
+  (web-mode-buffer-refresh))
 
 (defun web-mode-forward-sexp (&optional arg)
   "Move forward."
@@ -3417,8 +3421,9 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Normalize buffer"
   (interactive)
   (save-excursion
-    (goto-char (point-min))
+
     (let ((continue t))
+      (goto-char (point-min))
       (when (and (not (get-text-property (point) 'tag-beg))
                  (not (web-mode-tag-next)))
         (setq continue nil)
@@ -3434,7 +3439,21 @@ Must be used in conjunction with web-mode-enable-block-face."
                  (point))
         (unless (web-mode-tag-next)
           (setq continue nil))
-        )
+        );while
+
+      ;; (goto-char (point-min))
+      ;; (setq continue t)
+      ;; (while continue
+      ;;   (if (web-mode-attr-next)
+      ;;       (progn
+      ;;         (replace-match (downcase (match-string 0)) t)
+      ;;         (message "tag: %S (%S)"
+      ;;                  (get-text-property (point) 'tag-name)
+      ;;                  (point))
+      ;;         )
+      ;;     (setq continue nil))
+      ;;   );while
+
       )))
 
 (defun web-mode-previous-usable-server-line ()
@@ -6829,6 +6848,17 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq pos (next-single-property-change pos 'tag-beg))
     (when pos (goto-char pos)))
   pos)
+
+(defun web-mode-attr-next (&optional pos)
+  "Fetch next tag. Might be HTML comment or server tag (ie. JSP)."
+  (interactive)
+  (let ((continue t))
+    (unless pos (setq pos (point)))
+    (if (eobp)
+        (setq pos nil)
+      (setq pos (next-single-property-change pos 'part-token))
+      (when pos (goto-char pos)))
+    pos))
 
 (defun web-mode-element-previous ()
   "Fetch previous element."
