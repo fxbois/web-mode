@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.37
+;; Version: 7.0.38
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.37"
+  :version "7.0.38"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -614,7 +614,13 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-buffer-highlighted nil
   "Is buffer highlighted.")
 
-(defvar web-mode-display-table nil
+;;    http://webdesign.about.com/od/localization/l/blhtmlcodes-ascii.htm
+(defvar web-mode-display-table
+  (let ((table (make-display-table)))
+    (aset table 9  (vector ?\xBB ?\t)) ;tab
+    (aset table 10 (vector ?\xB6 ?\n)) ;line feed
+    (aset table 32 (vector ?\xB7))
+    table)
   "Display table.")
 
 (defvar web-mode-hl-line-mode-flag nil
@@ -3376,16 +3382,16 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-whitespaces-on ()
   "Show whitespaces."
   (interactive)
-  (when (null web-mode-display-table)
-    ;;    http://webdesign.about.com/od/localization/l/blhtmlcodes-ascii.htm
-    (setq web-mode-display-table (make-display-table))
-    (aset web-mode-display-table 9  (vector ?\xBB ?\t)) ;tab
-    (aset web-mode-display-table 10 (vector ?\xB6 ?\n)) ;line feed
-    (aset web-mode-display-table 32 (vector ?\xB7)) ;space
-    );when
+  ;;  (when (null web-mode-display-table)
+  ;;    (setq web-mode-display-table (make-display-table))
+  ;;    (aset web-mode-display-table 9  (vector ?\xBB ?\t)) ;tab
+  ;;    (aset web-mode-display-table 10 (vector ?\xB6 ?\n)) ;line feed
+  ;;    (aset web-mode-display-table 32 (vector ?\xB7)) ;space
+  ;;    );when
   (when web-mode-hl-line-mode-flag
     (global-hl-line-mode -1))
-  (setq buffer-display-table web-mode-display-table)
+  (when web-mode-display-table
+    (setq buffer-display-table web-mode-display-table))
   (setq web-mode-enable-whitespaces t))
 
 (defun web-mode-whitespaces-off ()
