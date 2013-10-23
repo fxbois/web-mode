@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.39
+;; Version: 7.0.40
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.39"
+  :version "7.0.40"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -487,7 +487,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("blade"      . ("laravel"))
     ("closure"    . ("soy"))
     ("ctemplate"  . ("mustache" "handlebars" "hapax" "ngtemplate" "ember" "kite"))
-    ("django"     . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl"))
+    ("django"     . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl" "liquid"))
     ("dust"       . ("dustjs"))
     ("erb"        . ("eruby" "erubis"))
     ("go"         . ("gtl"))
@@ -511,7 +511,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("blade"            . "\\.blade")
     ("closure"          . "\\.soy\\'")
     ("ctemplate"        . "\\.\\(chtml\\)\\'")
-    ("django"           . "\\.\\(djhtml\\|tmpl\\|dtl\\)\\'")
+    ("django"           . "\\.\\(djhtml\\|tmpl\\|dtl\\|liquid\\)\\'")
     ("django"           . "twig")
     ("dust"             . "\\.dust\\'")
     ("erb"              . "\\.\\(erb\\|rhtml\\)\\'")
@@ -636,10 +636,10 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Closure controls.")
 
 (defvar web-mode-django-active-blocks
-  '("assets" "autoescape" "block" "cache" "call" "comment"
-    "elif" "else" "elseif" "embed" "empty" "filter" "foreach" "for"
+  '("assets" "autoescape" "block" "blocktrans" "cache" "call" "comment"
+    "elif" "else" "elseif" "elsif" "embed" "empty" "filter" "foreach" "for"
     "ifchanged" "ifequal" "ifnotequal" "if"
-    "macro" "draw" "random" "sandbox" "spaceless" "trans" "verbatim" "with")
+    "macro" "draw" "random" "sandbox" "spaceless" "verbatim" "with")
   "Django controls.")
 
 (defvar web-mode-go-active-blocks
@@ -685,7 +685,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("blade"            . "@\\\(end\\|else\\|stop\\)")
     ("closure"          . "{\\(/\\|else\\|case\\|default\\|ifempty\\)")
     ("ctemplate"        . "{{/")
-    ("django"           . "{%[-]?[ ]+\\(end\\|else\\|elseif\\|elif\\|empty\\)")
+    ("django"           . "{%[-]?[ ]+\\(end\\|else\\|elseif\\|elsif\\|elif\\|empty\\)")
     ("dust"             . "{\\(/\\|:else\\)")
     ("erb"              . "<%[-]?[ ]+\\(end\\|else\\)")
     ("freemarker"       . "[<[]\\(/#\\|#els\\|#break\\)")
@@ -1009,7 +1009,8 @@ Must be used in conjunction with web-mode-enable-block-face."
      '("and" "as" "autoescape" "block" "blocktrans" "break"
        "cache" "call" "comment" "context" "continue" "csrf_token" "cycle"
        "debug" "do"
-       "embed" "empty" "else" "elseif" "elif" "endautoescape" "endblock" "endcomment"
+       "embed" "empty" "else" "elseif" "elsif" "elif"
+       "endautoescape" "endblock" "endblocktrans" "endcomment"
        "endcache" "endcall" "endembed" "endfilter" "endfor" "endif"
        "endifchanged" "endifequal" "endifnotequal" "endmacro" "endrandom" "endraw"
        "endsandbox" "endset" "endspaceless" "endtrans" "endverbatim" "endwith"
@@ -1019,7 +1020,12 @@ Must be used in conjunction with web-mode-enable-block-face."
        "load" "macro" "missing" "none" "not" "now" "or" "pluralize"
        "random" "raw" "regroup" "trans"
        "sandbox" "set" "spaceless" "ssi" "static" "templatetag" "trans"
-       "use" "url" "var" "verbatim" "widthratio" "with")))
+       "use" "url" "var" "verbatim" "widthratio" "with"
+
+       "assign" "capture" "endcapture" "case" "layout" "tablerow" "endtablerow" ;;liquid
+       "unless" "endunless" ;; liquid
+
+       )))
   "Django keywords.")
 
 (defvar web-mode-django-types
@@ -1125,7 +1131,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("\\({{\\)[ ]?" 1 'web-mode-preprocessor-face)
    '("[ ]?\\(}}\\)" 1 'web-mode-preprocessor-face)
-   '("|[ ]?\\([[:alpha:]]+\\)\\>" 1 'web-mode-function-name-face)
+   '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-django-types "\\)\\>") '(1 'web-mode-type-face))
    '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
@@ -3988,7 +3994,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((string= web-mode-engine "django")
           (setq ctrl (match-string-no-properties 2))
-          (if (member ctrl '("else" "elseif" "elif" "empty"))
+          (if (member ctrl '("else" "elseif" "elsif" "elif" "empty"))
               (setq ctrl nil)
             (setq state (not (string= "end" (match-string-no-properties 1))))
             )
@@ -5644,12 +5650,13 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq match (match-string-no-properties 2))
     (setq regexp (concat "{%[-]?[ ]+\\(end\\)?\\("
                          (cond
-                          ((member match '("else" "elseif" "elif")) "if")
+                          ((member match '("else" "elseif" "elsif" "elif")) "if")
                           ((member match '("empty")) "for")
                           (t match))
                          "\\)"))
+;;    (message "%S" regexp)
     (if (or (string= "end" (match-string-no-properties 1))
-            (member match '("else" "elseif" "elif" "empty")))
+            (member match '("else" "elseif" "elsif" "elif" "empty")))
         (web-mode-fetch-opening-django-block regexp)
       (web-mode-fetch-closing-django-block regexp))
     t))
@@ -6850,14 +6857,22 @@ Must be used in conjunction with web-mode-enable-block-face."
   pos)
 
 (defun web-mode-attr-next (&optional pos)
-  "Fetch next tag. Might be HTML comment or server tag (ie. JSP)."
+  "Fetch next attr."
   (interactive)
   (let ((continue t))
     (unless pos (setq pos (point)))
-    (if (eobp)
-        (setq pos nil)
+    (while continue
       (setq pos (next-single-property-change pos 'part-token))
-      (when pos (goto-char pos)))
+      (cond
+       ((null pos)
+        (setq continue nil
+              pos nil))
+       ((eq (get-text-property pos 'part-token) 'attr)
+        (setq continue nil)
+        )
+       )
+      );while
+    (when pos (goto-char pos))
     pos))
 
 (defun web-mode-element-previous ()
