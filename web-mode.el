@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.40
+;; Version: 7.0.41
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.40"
+  :version "7.0.41"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -247,9 +247,29 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   "Face for HTML tags."
   :group 'web-mode-faces)
 
+(defface web-mode-html-custom-tag-face
+  '((t :inherit web-mode-html-tag-face))
+  "Face for HTML custom tags (e.g. <polymer-element>)."
+  :group 'web-mode-faces)
+
+(defface web-mode-html-tag-angle-bracket-face
+  '((t :inherit web-mode-html-tag-face))
+  "Face for HTML tags angle brackets (< and >)."
+  :group 'web-mode-faces)
+
 (defface web-mode-html-attr-name-face
   '((t :foreground "Snow3"))
-  "Face for HTML attribute names (including =)."
+  "Face for HTML attribute names."
+  :group 'web-mode-faces)
+
+(defface web-mode-html-attr-data-name-face
+  '((t :inherit web-mode-html-attr-name-face))
+  "Face for HTML data attribute names."
+  :group 'web-mode-faces)
+
+(defface web-mode-html-attr-equal-face
+  '((t :inherit web-mode-html-attr-name-face))
+  "Face for the = character between name and value."
   :group 'web-mode-faces)
 
 (defface web-mode-html-attr-value-face
@@ -310,6 +330,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defface web-mode-function-name-face
   '((t :inherit font-lock-function-name-face))
   "Face for function names."
+  :group 'web-mode-faces)
+
+(defface web-mode-function-call-face
+  '((t :inherit font-lock-function-name-face))
+  "Face for function calls."
   :group 'web-mode-faces)
 
 (defface web-mode-string-face
@@ -1096,7 +1121,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\[%[-+]?\\|[-+=]?%\\]" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-template-toolkit-keywords "\\)\\>")
          '(1 'web-mode-keyword-face))
-   '("\\\([[:alpha:]][[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\\([[:alpha:]][[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("\\\([[:alpha:]][[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
    ))
 
@@ -1106,12 +1131,12 @@ Must be used in conjunction with web-mode-enable-block-face."
    (cons (concat "[ ]\\(" web-mode-smarty-keywords "\\)[ ]") '(1 'web-mode-keyword-face))
    '("{/?\\([[:alpha:]_]+\\)" 1 'web-mode-block-control-face)
    '("\\<\\([$]\\)\\([[:alnum:]_]+\\)" (1 nil) (2 'web-mode-variable-name-face))
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
    '(" \\(\\sw+[ ]?=\\)" 1 'web-mode-param-name-face)
    '(" \\(\\sw+\\)[ }]" 1 'web-mode-param-name-face)
-   '("|\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
+   '("|\\([[:alnum:]_]+\\)" 1 'web-mode-function-call-face)
    '("\\(->\\)\\(\\sw+\\)" (1 nil) (2 'web-mode-variable-name-face))
-   '("[.]\\([[:alnum:]_-]+\\)[ ]?(" (1 'web-mode-function-name-face))
+   '("[.]\\([[:alnum:]_-]+\\)[ ]?(" (1 'web-mode-function-call-face))
    '("[.]\\([[:alnum:]_]+\\)" (1 'web-mode-variable-name-face))
    '("#\\([[:alnum:]_]+\\)#" 1 'web-mode-variable-name-face)
    ))
@@ -1131,9 +1156,9 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("\\({{\\)[ ]?" 1 'web-mode-preprocessor-face)
    '("[ ]?\\(}}\\)" 1 'web-mode-preprocessor-face)
-   '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-function-name-face)
+   '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-function-call-face)
    (cons (concat "\\<\\(" web-mode-django-types "\\)\\>") '(1 'web-mode-type-face))
-   '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    )
   "Font lock keywords for dtl expr")
@@ -1143,9 +1168,9 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("{%\\|%}" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-django-keywords "\\)\\>") '(1 'web-mode-keyword-face))
    (cons (concat "\\<\\(" web-mode-django-types "\\)\\>") '(1 'web-mode-type-face))
-   '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-function-name-face)
+   '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-function-call-face)
 ;;   (cons (concat "|[ ]?\\(" web-mode-django-filters "\\)\\>") '(1 'web-mode-function-name-face t t))
-   '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    ))
 
@@ -1155,14 +1180,14 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("{{[#/>][ ]*\\([[:alnum:]_]+\\)" 1 'web-mode-block-control-face)
    '("[[:alnum:]_]" 0 'web-mode-variable-name-face)
    '("[ ]+\\([[:alnum:]_]+=\\)" 1 'web-mode-param-name-face t t)
-   '("[:=]\\([[:alpha:]_]+\\)" 1 'web-mode-function-name-face t t)
+   '("[:=]\\([[:alpha:]_]+\\)" 1 'web-mode-function-call-face t t)
    ))
 
 (defvar web-mode-razor-font-lock-keywords
   (list
    '("@" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
-   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("<\\([[:alnum:]_]+\\)>" 1 'web-mode-type-face)
    '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
@@ -1177,8 +1202,8 @@ Must be used in conjunction with web-mode-enable-block-face."
    (cons (concat "\\<\\(" web-mode-closure-keywords "\\)\\>") '(1 'web-mode-keyword-face))
    '("{\\(alias\\|call\\|delcall\\|delpackage\\|deltemplate\\|namespace\\|template\\)[ ]+\\([[:alnum:].]+\\)" 2 'web-mode-constant-face)
    '("\\(allowemptydefault\\|data\\|desc\\|meaning\\|autoescape\\|private\\|variant\\)=" 0 'web-mode-block-attr-name-face)
-   '("|\\([[:alpha:]]+\\)" 1 'web-mode-function-name-face)
-   '("\\<\\([[:alnum:]]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("|\\([[:alpha:]]+\\)" 1 'web-mode-function-call-face)
+   '("\\<\\([[:alnum:]]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("$\\([[:alnum:]._]+\\)" 1 'web-mode-variable-name-face)
    ))
 
@@ -1187,7 +1212,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("{{\\|}}" 0 'web-mode-preprocessor-face)
    '("{{\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
    (cons (concat "\\<\\(" web-mode-go-keywords "\\)\\>") '(1 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-go-functions "\\)\\>") '(1 'web-mode-function-name-face))
+   (cons (concat "\\<\\(" web-mode-go-functions "\\)\\>") '(1 'web-mode-function-call-face))
    '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
 
    ))
@@ -1247,7 +1272,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("<%[-=]?\\|%>" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   '("\\<\\(_\.[[:alpha:]]+\\)(" 1 'web-mode-function-name-face)
+   '("\\<\\(_\.[[:alpha:]]+\\)(" 1 'web-mode-function-call-face)
    '("\\<new \\([[:alnum:]_.]+\\)\\>" 1 'web-mode-type-face)
    '("\\<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
    '("\\<\\(var\\)\\>[ ]+\\([[:alnum:]_]+\\)"
@@ -1286,7 +1311,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-uel-font-lock-keywords
   (list
    '("[$#{]{\\|}" 0 'web-mode-preprocessor-face)
-   '("\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
    ))
 
@@ -1302,7 +1327,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\[/?[#@]\\([[:alpha:]_.]*\\)" 1 'web-mode-block-control-face)
    '("#\\(macro\\|function\\) \\([[:alpha:]]+\\)" 2 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-freemarker-keywords "\\)\\>") '(1 'web-mode-keyword-face))
-   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alpha:]]\\([[:alnum:]_]+\\)?" 0 'web-mode-variable-name-face)
    ))
 
@@ -1312,7 +1337,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("</?[#@]\\([[:alpha:]_.]*\\)" 1 'web-mode-block-control-face)
    '("#\\(macro\\|function\\) \\([[:alpha:]]+\\)" 2 'web-mode-function-name-face)
    (cons (concat "\\<\\(" web-mode-freemarker-keywords "\\)\\>") '(1 'web-mode-keyword-face))
-   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alpha:]]\\([[:alnum:]_]+\\)?" 0 'web-mode-variable-name-face)
    ))
 
@@ -1331,7 +1356,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("-?%>\\|<%\\(!\\|=\\|#=\\)?" 0 'web-mode-preprocessor-face)
    '("\\(throws\\|new\\|extends\\)[ ]+\\([[:alnum:].]+\\)" 2 'web-mode-type-face)
    (cons (concat "\\<\\(" web-mode-jsp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
    '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
    ))
@@ -1375,7 +1400,8 @@ Must be used in conjunction with web-mode-enable-block-face."
    (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") '(0 'web-mode-keyword-face))
    (cons (concat "(\\<\\(" web-mode-php-types "\\)\\>") '(1 'web-mode-type-face))
    (cons (concat "\\<\\(" web-mode-php-constants "\\)\\>") '(0 'web-mode-constant-face))
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-name-face)
+   '("function[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
+   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_][ ]?::[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-constant-face)
    '("->[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    '("\\<\\([[:alnum:]_]+\\)[ ]?::" 1 'web-mode-type-face)
@@ -1590,7 +1616,6 @@ Must be used in conjunction with web-mode-enable-block-face."
                  )
                nil)
             t t)
-
   (cond
    ((boundp 'yas-after-exit-snippet-hook)
     (add-hook 'yas-after-exit-snippet-hook
@@ -2586,7 +2611,9 @@ Must be used in conjunction with web-mode-enable-block-face."
          ((string= tag-name "?xml")
           (setq expr "?>"))
          (t
-          (setq props '(face web-mode-html-tag-face))
+          (setq props (if (string-match-p "-" tag-name)
+                          '(face web-mode-html-custom-tag-face)
+                        '(face web-mode-html-tag-face)))
           (cond
            ((eq ?\/ (string-to-char tag-name))
             (setq props (plist-put props prop-name (substring tag-name 1)))
@@ -2643,8 +2670,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 ;;        (message "tag=%S (%S > %S)\n%S" tag-name tag-beg tag-end props)
         (add-text-properties tag-beg tag-end props)
-        (put-text-property tag-beg (1+ tag-beg) 'tag-beg t)
-        (put-text-property (1- tag-end) tag-end 'tag-end t)
+        (add-text-properties tag-beg (1+ tag-beg) '(tag-beg t face web-mode-html-tag-angle-bracket-face))
+        (add-text-properties (1- tag-end) tag-end '(tag-end t face web-mode-html-tag-angle-bracket-face))
 
         (cond
 
@@ -3108,7 +3135,14 @@ Must be used in conjunction with web-mode-enable-block-face."
    (t
     (if (or (and (= state 8) (eq ?\" char))
             (and (= state 7) (eq ?\' char)))
-        (add-text-properties name-beg (1+ (point)) '(part-token attr face web-mode-html-attr-name-face))
+        (progn
+          (add-text-properties name-beg (point)
+                               (list 'part-token 'attr 'face
+                                     (if (and (>= (- name-end name-beg) 5)
+                                              (string= (buffer-substring-no-properties name-beg (+ name-beg 5)) "data-"))
+                                         'web-mode-html-attr-data-name-face
+                                       'web-mode-html-attr-name-face)))
+          (put-text-property name-end val-beg 'face 'web-mode-html-attr-equal-face))
       (add-text-properties name-beg (point) '(part-token attr face web-mode-html-attr-name-face)))
     (when (and val-beg val-end)
       (setq val-end (if (eq ?\> char) val-end (1+ val-end)))
