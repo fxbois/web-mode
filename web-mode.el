@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.41
+;; Version: 7.0.42
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.41"
+  :version "7.0.42"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -247,12 +247,12 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   "Face for HTML tags."
   :group 'web-mode-faces)
 
-(defface web-mode-html-custom-tag-face
+(defface web-mode-html-tag-custom-face
   '((t :inherit web-mode-html-tag-face))
   "Face for HTML custom tags (e.g. <polymer-element>)."
   :group 'web-mode-faces)
 
-(defface web-mode-html-tag-angle-bracket-face
+(defface web-mode-html-tag-bracket-face
   '((t :inherit web-mode-html-tag-face))
   "Face for HTML tags angle brackets (< and >)."
   :group 'web-mode-faces)
@@ -262,7 +262,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   "Face for HTML attribute names."
   :group 'web-mode-faces)
 
-(defface web-mode-html-attr-data-name-face
+(defface web-mode-html-attr-data-face
   '((t :inherit web-mode-html-attr-name-face))
   "Face for HTML data attribute names."
   :group 'web-mode-faces)
@@ -446,7 +446,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   :group 'web-mode-faces)
 
 (defface web-mode-current-element-highlight-face
-  '((t :underline t :bold t))
+  '((t :background "#000000"))
   "Overlay face for element highlight."
   :group 'web-mode-faces)
 
@@ -2612,7 +2612,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq expr "?>"))
          (t
           (setq props (if (string-match-p "-" tag-name)
-                          '(face web-mode-html-custom-tag-face)
+                          '(face web-mode-html-tag-custom-face)
                         '(face web-mode-html-tag-face)))
           (cond
            ((eq ?\/ (string-to-char tag-name))
@@ -2670,8 +2670,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 ;;        (message "tag=%S (%S > %S)\n%S" tag-name tag-beg tag-end props)
         (add-text-properties tag-beg tag-end props)
-        (add-text-properties tag-beg (1+ tag-beg) '(tag-beg t face web-mode-html-tag-angle-bracket-face))
-        (add-text-properties (1- tag-end) tag-end '(tag-end t face web-mode-html-tag-angle-bracket-face))
+        (add-text-properties tag-beg (1+ tag-beg) '(tag-beg t face web-mode-html-tag-bracket-face))
+        (add-text-properties (1- tag-end) tag-end '(tag-end t face web-mode-html-tag-bracket-face))
 
         (cond
 
@@ -3140,13 +3140,14 @@ Must be used in conjunction with web-mode-enable-block-face."
                                (list 'part-token 'attr 'face
                                      (if (and (>= (- name-end name-beg) 5)
                                               (string= (buffer-substring-no-properties name-beg (+ name-beg 5)) "data-"))
-                                         'web-mode-html-attr-data-name-face
+                                         'web-mode-html-attr-data-face
                                        'web-mode-html-attr-name-face)))
-          (put-text-property name-end val-beg 'face 'web-mode-html-attr-equal-face))
+)
       (add-text-properties name-beg (point) '(part-token attr face web-mode-html-attr-name-face)))
     (when (and val-beg val-end)
       (setq val-end (if (eq ?\> char) val-end (1+ val-end)))
-      (add-text-properties val-beg val-end '(face web-mode-html-attr-value-face)))
+      (add-text-properties val-beg val-end '(face web-mode-html-attr-value-face))
+      (put-text-property name-end val-beg 'face 'web-mode-html-attr-equal-face))
     );t
    );cond
   )
