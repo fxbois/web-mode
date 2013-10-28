@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.44
+;; Version: 7.0.45
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.44"
+  :version "7.0.45"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -533,6 +533,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-file-regexps
   '(("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
+    ("angular"          . "angular")
     ("blade"            . "\\.blade")
     ("closure"          . "\\.soy\\'")
     ("ctemplate"        . "\\.\\(chtml\\)\\'")
@@ -2856,7 +2857,8 @@ Must be used in conjunction with web-mode-enable-block-face."
             )
 
            ((and (string= content-type "javascript")
-                 (eq ?\/ ch-at))
+                 (eq ?\/ ch-at)
+                 (not (eq ?\s ch-next)))
 ;;            (backward-char)
 ;;            (message "> %S" (point))
             (while (and continue (search-forward "/" part-end t))
