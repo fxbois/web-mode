@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.43
+;; Version: 7.0.44
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -47,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.43"
+  :version "7.0.44"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -261,9 +261,9 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   "Face for HTML attribute names."
   :group 'web-mode-faces)
 
-(defface web-mode-html-attr-data-face
+(defface web-mode-html-attr-custom-face
   '((t :inherit web-mode-html-attr-name-face))
-  "Face for HTML data attribute names."
+  "Face for custom attribute names."
   :group 'web-mode-faces)
 
 (defface web-mode-html-attr-equal-face
@@ -3184,7 +3184,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                                             (string-match-p "-"
                                              (buffer-substring-no-properties
                                               name-beg name-end)))
-                                       'web-mode-html-attr-data-face
+                                       'web-mode-html-attr-custom-face
                                      'web-mode-html-attr-name-face)))
       (add-text-properties name-beg name-end
                            '(part-token attr face web-mode-html-attr-name-face)))
