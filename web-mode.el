@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.42
+;; Version: 7.0.43
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,6 @@
 
 ;; Code goes here
 
-;;todo : web-mode-cleanup : ("downcase-tags" "double-quote-attributes")
 ;;todo : auto-pairs deviennent spécifiques à un engine
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
@@ -48,7 +47,7 @@
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
    and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
-  :version "7.0.42"
+  :version "7.0.43"
   :group 'languages)
 
 (defgroup web-mode-faces nil
@@ -507,7 +506,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Template engine")
 
 (defvar web-mode-engines
-  '(("asp"        . ("asp"))
+  '(("angular"    . ("angular" "angular.js" "angularjs"))
+    ("asp"        . ("asp"))
     ("aspx"       . ("aspx"))
     ("blade"      . ("laravel"))
     ("closure"    . ("soy"))
@@ -565,20 +565,28 @@ Must be used in conjunction with web-mode-enable-block-face."
   "XML chars")
 
 (defvar web-mode-html-entities
-  '(("eacute" . "é")
-    ("egrave" . "è")
-    ("middot" . "·")
-    ("quot"   . "\"")
-    ("amp"    . "&")
-    ("lt"     . "<")
-    ("gt"     . ">")
-    ("laquo"  . "«")
-    ("raquo"  . "»")
-    ("lsquo"  . "‘")
-    ("rsquo"  . "’")
-    ("ldquo"  . "“")
-    ("rdquo"  . "”")
-    ("apos"   . "'"))
+  '(("eacute" . 233)
+    ("egrave" . 232)
+    ("quot"   . 34)
+    ("amp"    . 38)
+    ("lt"     . 60)
+    ("gt"     . 62)
+    ("laquo"  . 171)
+    ("raquo"  . 187)
+    ("lsquo"  . 8249)
+    ("rsquo"  . 8250)
+    ("ldquo"  . 8220)
+    ("rdquo"  . 8221)
+    ("apos"   . 39)
+    ("frac14" . 188)
+    ("frac12" . 189)
+    ("frac34" . 190)
+    ("para"   . 182)
+    ("middot" . 183)
+    ("ndash"  . 8211)
+    ("mdash"  . 8212)
+    ("ellip"  . 8230)
+    )
   "HTML entities")
 
 (defvar web-mode-snippets
@@ -725,7 +733,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Close control blocks.")
 
 (defvar web-mode-block-regexps
-  '(("asp"              . "<%")
+  '(("angular"          . "{{")
+    ("asp"              . "<%")
     ("aspx"             . "<%")
     ("blade"            . "{{\\|^[ \t]*@[[:alpha:]]")
     ("closure"          . "{.\\|/\\*\\| //")
@@ -777,12 +786,12 @@ Must be used in conjunction with web-mode-enable-block-face."
   "electric chars")
 
 (defvar web-mode-normalization-rules
-  '(("tag-case"         . "lower-case")
-    ("attr-case"        . "lower-case") ;; todo
-    ("special-chars"    . "unicode") ;; or html-entities
-    ("smart-apostrophe" . t)
-    ("smart-quotes"     . t)
-    ("indentation"      . t))
+  '(("tag-case"          . "lower-case")
+    ("attr-case"         . "lower-case")
+    ("special-chars"     . "unicode") ;; "unicode" "entities"
+    ("smart-apostrophes" . t)
+    ("smart-quotes"      . t)
+    ("indentation"       . t))
   "Normalization rules")
 
 (defvar web-mode-comment-keywords
@@ -1223,6 +1232,12 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
    ))
 
+(defvar web-mode-angular-font-lock-keywords
+  (list
+   '("{{\\|}}" 0 'web-mode-preprocessor-face)
+   '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
+   ))
+
 (defvar web-mode-selector-font-lock-keywords
   (list
    (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>") '(1 'web-mode-css-at-rule-face))
@@ -1479,7 +1494,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map (kbd "C-c C-f")   'web-mode-fold-or-unfold)
     (define-key map (kbd "C-c C-i")   'web-mode-buffer-indent)
     (define-key map (kbd "C-c C-m")   'web-mode-mark-and-expand)
-    (define-key map (kbd "C-c C-n")   'web-mode-tag-match)
+    (define-key map (kbd "C-c C-n")   'web-mode-buffer-normalize)
     (define-key map (kbd "C-c C-r")   'web-mode-entities-replace)
     (define-key map (kbd "C-c C-s")   'web-mode-snippet-insert)
     (define-key map (kbd "C-c C-x")   'web-mode-xpath)
@@ -1954,6 +1969,10 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq closing-string "}}")
           );go
 
+         ((string= web-mode-engine "angular")
+          (setq closing-string "}}")
+          );go
+
          ((string= web-mode-engine "erb")
           (cond
            ((string= sub2 "<%")
@@ -2069,6 +2088,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
            ((string= closing-string "EOR")
             (web-mode-razor-skip-forward open)
+;;            (message "%S > %S" open (point))
             (setq close (point)
                   pos (point)))
 
@@ -2349,6 +2369,11 @@ Must be used in conjunction with web-mode-enable-block-face."
             props '(face nil)
             keywords web-mode-underscore-font-lock-keywords)
       );underscore
+
+     ((string= web-mode-engine "angular")
+      (setq props '(face nil)
+            keywords web-mode-angular-font-lock-keywords)
+      );angular
 
      ((string= web-mode-engine "aspx")
       (cond
@@ -2654,7 +2679,7 @@ Must be used in conjunction with web-mode-enable-block-face."
          ((string= tag-name "script")
           (setq tag (buffer-substring-no-properties tag-beg tag-end))
           (cond
-           ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|html\\)" tag)
+           ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|html\\|ng-template\\)" tag)
             (setq element-content-type "html"))
            ((string-match-p " type[ ]*=[ ]*[\"']application/\\(ld\\+json\\|json\\)" tag)
             (setq element-content-type "json"))
@@ -3014,6 +3039,8 @@ Must be used in conjunction with web-mode-enable-block-face."
       (cons beg end)
       )))
 
+;;todo : PB après : <DIV CLASS="couc" READOOLY ID=sx>xsx</DIV>
+
 ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-attributes
 ;; states:
 ;; nil(0) space(1) name(2) space-before(3) equal(4) space-after(5) value-uq(6) value-sq(7) value-dq(8)
@@ -3060,9 +3087,23 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq state 5)
           )
 
+         ((and (= state 3)
+;;               (progn (message "pt=%S state=%S char=%c" (point) state char) t)
+               (or (and (>= char 65) (<= char 90)) ;; A - Z
+                   (and (>= char 97) (<= char 122)))) ;; a - z
+;;          (message "name-beg=%S name-end=%S char=%c" name-beg (- pos 1) char)
+;;          (message "%S %S - %S %S" ?a ?z ?A ?Z)
+          (web-mode-propertize-attr state char name-beg (- pos 1) val-beg)
+          (setq state 2
+                name-beg pos
+                name-end nil
+                val-beg nil
+                val-end nil)
+          )
+
          ((and (eq ?\n char) (not (member state '(7 8))))
           (web-mode-propertize-attr state char name-beg name-end val-beg)
-          (setq state 1
+          (setq state 2
                 name-beg nil
                 name-end nil
                 val-beg nil
@@ -3133,17 +3174,20 @@ Must be used in conjunction with web-mode-enable-block-face."
    ((null name-beg)
     )
    (t
-    (if (or (and (= state 8) (eq ?\" char))
+    (setq name-end (if name-end name-end (point)))
+    (if (or (= state 3)
+            (and (= state 8) (eq ?\" char))
             (and (= state 7) (eq ?\' char)))
-        (progn
-          (add-text-properties name-beg (point)
-                               (list 'part-token 'attr 'face
-                                     (if (and (>= (- name-end name-beg) 5)
-                                              (string= (buffer-substring-no-properties name-beg (+ name-beg 5)) "data-"))
-                                         'web-mode-html-attr-data-face
-                                       'web-mode-html-attr-name-face)))
-)
-      (add-text-properties name-beg (point) '(part-token attr face web-mode-html-attr-name-face)))
+        (add-text-properties name-beg name-end
+                             (list 'part-token 'attr 'face
+                                   (if (and (>= (- name-end name-beg) 5)
+                                            (string-match-p "-"
+                                             (buffer-substring-no-properties
+                                              name-beg name-end)))
+                                       'web-mode-html-attr-data-face
+                                     'web-mode-html-attr-name-face)))
+      (add-text-properties name-beg name-end
+                           '(part-token attr face web-mode-html-attr-name-face)))
     (when (and val-beg val-end)
       (setq val-end (if (eq ?\> char) val-end (1+ val-end)))
       (add-text-properties val-beg val-end '(face web-mode-html-attr-value-face))
@@ -3186,7 +3230,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   ;;            (message "pt=%S %c" (point) (char-after))
   (let (continue)
     (cond
-     ((looking-at-p "@\\(if\\|for\\|section\\)")
+     ((looking-at-p "@\\(main\\|if\\|for\\|section\\)")
       (search-forward "{")
       )
      ((looking-at-p "@[(}]")
@@ -3458,44 +3502,69 @@ Must be used in conjunction with web-mode-enable-block-face."
   (web-mode-scan-buffer)
   (web-mode-buffer-indent))
 
-(defun web-mode-buffer-normalize ()
-  "Normalize buffer"
+(defun web-mode-buffer-change-tag-case (&optional type)
+  "alter tag case"
   (interactive)
   (save-excursion
-
-    (let ((continue t))
-      (goto-char (point-min))
+    (goto-char (point-min))
+    (let ((continue t) f)
+      (setq f (if (member type '("uppercase" "upper-case")) 'uppercase 'downcase))
       (when (and (not (get-text-property (point) 'tag-beg))
                  (not (web-mode-tag-next)))
-        (setq continue nil)
-        )
+        (setq continue nil))
       (while continue
         (skip-chars-forward "<!/")
-
         (if (looking-at "\\([[:alnum:]-]+\\)")
-            (replace-match (downcase (match-string 0)) t))
-
-        (message "tag: %S (%S)"
-                 (get-text-property (point) 'tag-name)
-                 (point))
+            (replace-match (funcall f (match-string 0)) t))
+;;        (message "tag: %S (%S)"
+;;                 (get-text-property (point) 'tag-name)
+;;                 (point))
         (unless (web-mode-tag-next)
           (setq continue nil))
         );while
-
-      ;; (goto-char (point-min))
-      ;; (setq continue t)
-      ;; (while continue
-      ;;   (if (web-mode-attr-next)
-      ;;       (progn
-      ;;         (replace-match (downcase (match-string 0)) t)
-      ;;         (message "tag: %S (%S)"
-      ;;                  (get-text-property (point) 'tag-name)
-      ;;                  (point))
-      ;;         )
-      ;;     (setq continue nil))
-      ;;   );while
-
       )))
+
+(defun web-mode-buffer-change-attr-case (&optional type)
+  "alter tag case"
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (let ((continue t) f)
+      (setq f (if (member type '("uppercase" "upper-case")) 'uppercase 'downcase))
+      (while continue
+        (if (web-mode-attr-next)
+            (when (looking-at "\\([[:alnum:]-]+\\)")
+              (replace-match (funcall f (match-string 0)) t)
+;;              (message "tag: %S (%S)" (match-string 0) (point))
+              );when
+          (setq continue nil))
+        );while
+      )))
+
+
+;; tag-case=lower|upper-case , attr-case=lower|upper-case
+;; special-chars=unicode|html-entities
+;; smart-apostrophes=bool , smart-quotes=bool , indentation=bool
+(defun web-mode-buffer-normalize ()
+  "Normalize buffer"
+  (interactive)
+  (let ((rules web-mode-normalization-rules) elt)
+    (when (setq elt (cdr (assoc "tag-case" rules)))
+      (web-mode-buffer-change-tag-case elt))
+    (when (setq elt (cdr (assoc "attr-case" rules)))
+      (web-mode-buffer-change-attr-case elt))
+    (when (setq elt (cdr (assoc "smart-apostrophes" rules)))
+      (web-mode-apostrophes-replace))
+    (when (setq elt (cdr (assoc "smart-quotes" rules)))
+      (web-mode-quotes-replace))
+    (when (setq elt (cdr (assoc "special-chars" rules)))
+      (if (string= elt "entities")
+          (web-mode-entities-encode)
+        (web-mode-entities-replace))
+      );when
+    (when (setq elt (cdr (assoc "indentation" rules)))
+      (web-mode-buffer-indent))
+      ))
 
 (defun web-mode-previous-usable-server-line ()
   "Return previous non blank/comment/string line and return this line (trimmed)."
@@ -6364,22 +6433,61 @@ Must be used in conjunction with web-mode-enable-block-face."
         );while
       )))
 
-(defun web-mode-entities-replace ()
-  "Replace HTML entities ie. &eacute; becomes é"
-  (interactive)
+(defun web-mode-entities-encode ()
+  "Replace special chars with HTML entities (e.g. é becomes &eacute;)"
   (save-excursion
-    (let (name pair (min (point-min)) (max (point-max)))
+    (let (regexp ms pair elt (min (point-min)) (max (point-max)))
       (when mark-active
         (setq min (region-beginning)
               max (region-end))
         (deactivate-mark))
       (goto-char min)
-      (while (web-mode-rsf-content "&\\([[:alpha:]]\\{2,8\\}\\);" max)
-        (setq name (match-string 1))
-        (setq pair (assoc name web-mode-html-entities))
-;;        (message "pos=%S name=%S pair=%S" (point) name pair)
-        (when pair
-          (replace-match (cdr pair)))
+      (setq regexp "[")
+      (dolist (pair web-mode-html-entities)
+        (setq regexp (concat regexp (char-to-string (cdr pair))))
+        )
+      (setq regexp (concat regexp "]"))
+      (while (web-mode-rsf-content regexp max)
+        (setq elt (match-string-no-properties 0))
+        (setq elt (aref elt 0))
+        (setq elt (car (rassoc elt web-mode-html-entities)))
+;;        (message "%S" elt)
+        (replace-match (concat "&" elt ";"))
+        );while
+      )))
+
+;; ½ &frac12; &#189; &#x00BD;
+(defun web-mode-entities-replace ()
+  "Replace HTML entities e.g. entities &eacute; &#233; &#x00E9; become é"
+  (interactive)
+  (save-excursion
+    (let (ms pair elt (min (point-min)) (max (point-max)))
+      (when mark-active
+        (setq min (region-beginning)
+              max (region-end))
+        (deactivate-mark))
+      (goto-char min)
+      (while (web-mode-rsf-content "&\\([#]?[[:alnum:]]\\{2,8\\}\\);" max)
+        (setq elt nil)
+;;        (message "E=%S" (match-string 1))
+        (setq ms (match-string-no-properties 1))
+        (if (eq (aref ms 0) ?\#)
+            (if (eq (aref ms 1) ?x)
+                (progn
+                  (setq elt (substring ms 2))
+                  (setq elt (downcase elt))
+                  (setq elt (string-to-number elt 16))
+                  (setq elt (char-to-string elt))
+                  )
+              (setq elt (substring ms 1))
+              (setq elt (char-to-string (string-to-number elt)))
+              )
+          (setq pair (assoc ms web-mode-html-entities))
+          ;;        (message "pos=%S name=%S pair=%S" (point) name pair)
+          (if pair (setq elt (cdr pair)))
+          (if elt (setq elt (char-to-string elt)))
+          );if
+        (if elt (replace-match elt))
         );while
       )))
 
@@ -6898,6 +7006,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (unless pos (setq pos (point)))
     (while continue
       (setq pos (next-single-property-change pos 'part-token))
+;;      (message "pos=%S" pos)
       (cond
        ((null pos)
         (setq continue nil
@@ -7208,7 +7317,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (while continue
       (setq ret (re-search-forward regexp limit noerror)
             beg (if (null ret) (point) (match-beginning 0))
-            end (if (null ret) (point) (match-end 0)))
+            end (if (null ret) (point) (1- (match-end 0))))
 ;;      (message "pt=%S" pos)
       (if (or (null ret)
               (and (web-mode-is-html-text beg)
