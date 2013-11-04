@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.47
+;; Version: 7.0.49
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,6 +36,7 @@
 
 ;; Code goes here
 
+;;todo : screenshot : http://www.cockos.com/licecap/
 ;;todo : better default colors for tags & attrs
 ;;todo : auto-pairs deviennent spécifiques à un engine
 ;;todo : passer les content-types en symboles
@@ -44,7 +45,7 @@
 ;;todo : ne mettre tag-type et tag-name que sur le '<'
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.47"
+(defconst web-mode-version "7.0.49"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -145,7 +146,7 @@ See web-mode-part-face."
 
 (defcustom web-mode-indent-style 2
   "Indentation style.
-with value 2, HTML lines beginning text are also indented (do not forget side effects, ie. content of a textarea)."
+with value 2, HTML lines beginning text are also indented (do not forget side effects, e.g. content of a textarea)."
   :type 'integer
   :group 'web-mode)
 
@@ -600,6 +601,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-html-entities
   '(("egrave" . 232)
     ("eacute" . 233)
+    ("ecirc"  . 234)
+    ("euml"   . 235)
     ("agrave" . 224)
     ("aacute" . 225)
     ("aelig"  . 230)
@@ -1170,11 +1173,10 @@ Must be used in conjunction with web-mode-enable-block-face."
      ))
   "JavaScript constants.")
 
-
 (defvar web-mode-razor-keywords
   (regexp-opt
    (append web-mode-extra-razor-keywords
-           '("false" "true" "foreach" "if" "in" "var" "for" "display" "main"
+           '("false" "true" "foreach" "if" "else" "in" "var" "for" "display" "main"
              "Html")))
   "Razor keywords.")
 
@@ -1261,10 +1263,11 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("@" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
    '("\\([[:alnum:]]+\\):" 1 'web-mode-symbol-face)
-   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("@\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("@\\([[:alnum:]_.]+\\)" 1 'web-mode-variable-name-face)
    '("<\\([[:alnum:]_]+\\)>" 1 'web-mode-type-face)
    '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
-   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
+;;   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-closure-font-lock-keywords
@@ -1288,7 +1291,6 @@ Must be used in conjunction with web-mode-enable-block-face."
    (cons (concat "\\<\\(" web-mode-go-keywords "\\)\\>") '(1 'web-mode-keyword-face))
    (cons (concat "\\<\\(" web-mode-go-functions "\\)\\>") '(1 'web-mode-function-call-face))
    '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
-
    ))
 
 (defvar web-mode-expression-font-lock-keywords
@@ -1628,7 +1630,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 ;;;###autoload
 (define-derived-mode web-mode web-mode-prog-mode "Web"
-  "Major mode for editing web templates."
+  "Major mode for editing web templates (HTML documents with embedded parts and blocks)."
 
   (make-local-variable 'after-change-functions)
   (make-local-variable 'fill-paragraph-function)
@@ -2033,7 +2035,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((string= web-mode-engine "angular")
           (setq closing-string "}}")
-          );go
+          );angular
 
          ((string= web-mode-engine "erb")
           (cond
@@ -2056,10 +2058,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           );jsp
 
          ((string= web-mode-engine "underscore")
-          (cond
-           (t
-            (setq closing-string "%>"))
-           )
+          (setq closing-string "%>")
           );underscore
 
          ((string= web-mode-engine "template-toolkit")
@@ -2661,138 +2660,159 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 ;; start-tag, end-tag, tag-name, element (<a>xsx</a>, an element is delimited by tags), void-element
 ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
-;;<#include "toto">
 (defun web-mode-scan-parts (beg end)
   "Scan client side blocks (JavaScript / CSS / HTML Comments) and identifies strings and comments."
   (save-excursion
-    (let (open limit close ms expr props closing-string start tag tag-name tag-beg tag-end tag-stop element-content-type attrs-end close-found pos prop-type prop-name)
+    (let (open limit close expr props closing-string tname tbeg tend tstop tface element-content-type attrs-end close-found is-tag)
 
       (goto-char beg)
 
-      ;; <\\(!--\\|!doctype\\|/?[[:alnum:]]+[:_]?[[:alnum:]]*\\|\?xml\\)
-      ;; <\\(/?[[:alnum:]]+\\|!--\\|!doctype\\|\?xml\\)
-      ;; <[[:alpha:]/!?]
       (while (web-mode-rsf-client "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!doctype\\|\?xml\\)" end t)
-        (setq tag-name (downcase (match-string 1))
-              tag-beg (match-beginning 0)
-              tag-end nil
+        (setq tname (downcase (match-string-no-properties 1))
+              tbeg (match-beginning 0)
+              tend nil
+              tstop (point)
               element-content-type nil
-              tag-stop (point)
-              prop-name 'tag-name
-              prop-type 'tag-type
+
               open nil
               limit end
               close nil
-              pos nil
               props nil
-              expr nil
+              expr ">"
               closing-string nil
-              close-found nil)
+              close-found nil
+              is-tag nil)
 
         (cond
-         ((string= tag-name "!--")
-          (setq expr "-->"))
-         ((string= tag-name "!doctype")
-          (setq expr ">"))
-         ((string= tag-name "?xml")
-          (setq expr "?>"))
+         ((string= tname "!--")
+          (setq expr "-->"
+                props '(tag-name "comment" tag-type void part-side t part-token comment face web-mode-comment-face)))
+         ((string= tname "?xml")
+          (setq expr "?>"
+                props '(tag-name "doctype" tag-type void face web-mode-doctype-face)))
+         ((string= tname "!doctype")
+          (setq props '(tag-name "doctype" tag-type void face web-mode-doctype-face))
+;;          (setq expr ">")
+          )
          (t
-          (setq props (if (string-match-p "-" tag-name)
-                          '(face web-mode-html-tag-custom-face)
-                        '(face web-mode-html-tag-face)))
+          (setq is-tag t
+                tface (if (string-match-p "-" tname)
+                             'web-mode-html-tag-custom-face
+                           'web-mode-html-tag-face)
+;;                props (if (string-match-p "-" tname)
+;;                          '(face web-mode-html-tag-custom-face)
+;;                        '(face web-mode-html-tag-face))
+                )
           (cond
-           ((eq ?\/ (string-to-char tag-name))
-            (setq props (plist-put props prop-name (substring tag-name 1)))
-            (setq props (plist-put props prop-type 'end))
-            (setq expr ">")
+           ((eq ?\/ (string-to-char tname))
+            (setq props (list 'face tface 'tag-name (substring tname 1) 'tag-type 'end))
+;;            (setq props (plist-put props 'tag-name (substring tname 1)))
+;;            (setq props (plist-put props 'tag-type 'end))
             (setq limit (if (> end (line-end-position)) (line-end-position) end))
             )
-           ((web-mode-is-void-element tag-name)
-            (setq props (plist-put props prop-name tag-name))
-            (setq props (plist-put props prop-type 'void))
-            (setq expr ">")
+           ((web-mode-is-void-element tname)
+            (setq props (list 'face tface 'tag-name tname 'tag-type 'void))
+;;            (setq props (plist-put props 'tag-name tname))
+;;            (setq props (plist-put props 'tag-type 'void))
             )
            (t
-            (setq props (plist-put props prop-name tag-name))
-            (setq props (plist-put props prop-type 'start))
-            (setq expr ">")
+            (setq props (list 'face tface 'tag-name tname 'tag-type 'start))
+;;            (setq props (plist-put props 'tag-name tname))
+;;            (setq props (plist-put props 'tag-type 'start))
             )
            );cond
           );t
          );cond
 
         (if (web-mode-sf-client expr limit t)
+;;        (if (skip-chars-forward "^>" limit)
             (progn
+;;              (forward-char)
+;;              (message "OK(%S): %S %S" limit tname (point))
               (setq attrs-end (- (point) (length expr))
-                    tag-end (point)
+                    tend (point)
                     close-found t)
               (when (eq ?\/ (char-after (- (point) 2)))
                 (setq attrs-end (1- attrs-end)
-                      props (plist-put props prop-type 'void)))
+                      props (plist-put props 'tag-type 'void)))
               );progn
           (setq attrs-end (line-end-position)
-                tag-end (line-end-position))
+                tend (line-end-position))
+;;          (message "KO(%S): %S %S" limit tname (point))
           );if
 
         (cond
-         ((string= tag-name "script")
-          (setq tag (buffer-substring-no-properties tag-beg tag-end))
-          (cond
-           ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|html\\|ng-template\\)" tag)
-            (setq element-content-type "html"))
-           ((string-match-p " type[ ]*=[ ]*[\"']application/\\(ld\\+json\\|json\\)" tag)
-            (setq element-content-type "json"))
-           (t
-            (setq element-content-type "javascript"))
-           )
-;;          (message "tag=%S : %S" tag element-content-type)
+         ((string= tname "script")
+          (let (script)
+            (setq script (buffer-substring-no-properties tbeg tend))
+            (cond
+             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|html\\|ng-template\\)" script)
+              (setq element-content-type "html"))
+             ((string-match-p " type[ ]*=[ ]*[\"']application/\\(ld\\+json\\|json\\)" script)
+              (setq element-content-type "json"))
+             (t
+              (setq element-content-type "javascript"))
+             )
+            ;;          (message "tag=%S : %S" tname element-content-type)
+            )
           );case script
-         ((string= tag-name "style")
+         ((string= tname "style")
           (setq element-content-type "css")
           )
          )
 
-;;        (message "tag=%S (%S > %S)\n%S" tag-name tag-beg tag-end props)
-        (add-text-properties tag-beg tag-end props)
-        (add-text-properties tag-beg (1+ tag-beg) '(tag-beg t face web-mode-html-tag-bracket-face))
-        (add-text-properties (1- tag-end) tag-end '(tag-end t face web-mode-html-tag-bracket-face))
+        ;;        (message "tag=%S (%S > %S)\n%S" tname tbeg tend props)
+        (add-text-properties tbeg tend props)
 
-        (cond
+        (if is-tag
+            (progn
+              (add-text-properties tbeg (1+ tbeg) '(tag-beg t face web-mode-html-tag-bracket-face))
+              (add-text-properties (1- tend) tend '(tag-end t face web-mode-html-tag-bracket-face)))
+          (add-text-properties tbeg (1+ tbeg) '(tag-beg t))
+          (add-text-properties (1- tend) tend '(tag-end t))
+          )
 
-         ((or (string= tag-name "!doctype") (string= tag-name "?xml"))
-          (add-text-properties tag-beg tag-end
-                               '(tag-name "doctype" tag-type void face web-mode-doctype-face)))
+;;        (cond
 
-         ((string= tag-name "!--")
-          (add-text-properties tag-beg tag-end
-                               '(tag-name "comment" tag-type void part-side t part-token comment face web-mode-comment-face)))
+;;         ((member tname '("!doctype" "?xml"))
+          ;;          (add-text-properties tbeg tend
+          ;;                               '(tag-name "doctype" tag-type void face web-mode-doctype-face))
+;;          )
 
-         (close-found
-          (when (and (not (eq ?\/ (aref tag-name 0)))
-                     (> (- attrs-end tag-stop) 1))
-;;            (message "tag-stop=%S attrs-end=%S" tag-stop attrs-end)
-            (web-mode-scan-attrs tag-stop attrs-end)
+;;         ((string= tname "!--")
+;;          (add-text-properties tbeg tend
+          ;;                               '(tag-name "comment" tag-type void part-side t part-token comment face web-mode-comment-face))
+;;          )
+
+        (when (and is-tag close-found)
+
+          (when (and (not (eq ?\/ (aref tname 0)))
+                     (> (- attrs-end tstop) 2))
+            ;;            (message "tstop=%S attrs-end=%S" tstop attrs-end)
+            (web-mode-scan-attrs tstop attrs-end)
             )
+
           (cond
-           ((and (string= tag-name "script")
+           ((and (string= tname "script")
                  (member element-content-type '("javascript" "json")))
             (setq closing-string "</script>"))
-           ((string= tag-name "style")
+           ((string= tname "style")
             (setq closing-string "</style>"))
            )
 
           ;; si <script type="document/html"> on ne fait pas la suite
 
           (when (and closing-string (web-mode-sf-client closing-string end t))
-            (setq open tag-end
+            (setq open tend
                   close (match-beginning 0))
             (if (>= (- close open) 3)
                 (web-mode-scan-part open close element-content-type)
               (remove-text-properties open close web-mode-text-properties2))
             (goto-char close)
             ); when
-          ); close-found
-         ); cond tag
+
+          );when
+        ;;         ); cond tag
 
         ); while
 
@@ -2952,15 +2972,13 @@ Must be used in conjunction with web-mode-enable-block-face."
       )))
 
 (defun web-mode-css-scan-rules (part-beg part-end)
-  "Fontify css rule."
+  "Scan CSS rules."
   (save-excursion
     (goto-char part-beg)
     (let (rule (continue t) (i 0) at-rule)
       (while continue
         (setq i (1+ i))
         (setq rule (web-mode-css-next-rule part-end))
-;;        (if (< (point) 328) (message "pt=%S" (point)))
-;;        (if (and (< i 6) rule) (message "%S rule=%S (%S)" i rule (point)))
         (cond
          ((> i 1000)
           (message "*** too much css rules ***")
@@ -3005,7 +3023,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         )
       )))
 
-;; css rule = selectors + declaration (properties)
+;; css rule = selector(s) + declaration (properties)
 (defun web-mode-css-next-rule (limit)
   "next rule"
   (let (at-rule sel-beg sel-end dec-beg dec-end chunk)
@@ -7504,33 +7522,46 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-trace (msg)
   "Benchmark."
   (interactive)
-  (when nil
-    (when (null web-mode-time) (setq web-mode-time (current-time)))
-    (setq sub (time-subtract (current-time) web-mode-time))
-    (message "%18s: time elapsed = %Ss %9Sµs" msg (nth 1 sub) (nth 2 sub))
-    ))
+  (let (sub)
+    (when nil
+      (when (null web-mode-time) (setq web-mode-time (current-time)))
+      (setq sub (time-subtract (current-time) web-mode-time))
+      (message "%18s: time elapsed = %Ss %9Sµs" msg (nth 1 sub) (nth 2 sub))
+      )))
 
 (defun web-mode-debug ()
   "Display informations useful for debuging"
   (interactive)
-  (message "\n")
-  (message "--- WEB-MODE [BEG] ---")
-  (message "versions: emacs(%S.%S) web-mode(%S)"
-           emacs-major-version emacs-minor-version web-mode-version)
-  (message "system: window(%S) config(%S)" window-system system-configuration)
-  (message "colors: fg(%S) bg(%S) "
-           (cdr (assoc 'foreground-color default-frame-alist))
-           (cdr (assoc 'background-color default-frame-alist)))
-  (message "modes: whitespace-mode(%S) rainbow-mode(%S)"
-           (if (boundp 'whitespace-mode) whitespace-mode nil)
-           (if (boundp 'rainbow-mode) rainbow-mode nil))
-  (message "--- WEB-MODE [END] ---")
-  (message "\n")
-  (switch-to-buffer "*Messages*")
-  (end-of-buffer)
-  (recenter)
-  )
-
+  (let (modes)
+    (message "\n")
+    (message "--- WEB-MODE [BEG] ---")
+    (message "versions: emacs(%S.%S) web-mode(%S)"
+             emacs-major-version emacs-minor-version web-mode-version)
+    (message "vars: engine(%S) file(%S)"
+             web-mode-engine
+             (or (buffer-file-name) (buffer-name)))
+    (message "system: window(%S) config(%S)" window-system system-configuration)
+    (message "colors: fg(%S) bg(%S) "
+             (cdr (assoc 'foreground-color default-frame-alist))
+             (cdr (assoc 'background-color default-frame-alist)))
+    (message "modes: whitespace-mode(%S) rainbow-mode(%S) idle-highlight-mode(%S)"
+             (if (boundp 'whitespace-mode) whitespace-mode nil)
+             (if (boundp 'rainbow-mode) rainbow-mode nil)
+             (if (boundp 'idle-highlight-mode) idle-highlight-mode nil)
+             )
+    (mapc (lambda (mode)
+            (condition-case nil
+                (if (and (symbolp mode) (symbol-value mode))
+                    (add-to-list 'modes mode))
+              (error nil))
+            );lambda
+          minor-mode-list)
+    (message "%S" modes)
+    (message "--- WEB-MODE [END] ---")
+    (switch-to-buffer "*Messages*")
+    (goto-char (point-max))
+    (recenter)
+  ))
 
 (provide 'web-mode)
 
@@ -7540,45 +7571,3 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;; End:
 
 ;;; web-mode.el ends here
-
-
-;; ;;todo: a supprimer
-;; (defun web-mode-tag-previous2 (&optional regexp)
-;;   "Fetch previous tag."
-;;   (interactive)
-;;   (unless regexp (setq regexp web-mode-tag-regexp))
-;;   (let ((continue t) ret)
-;;     (while continue
-;;       (setq ret (re-search-backward regexp nil t))
-;;       (if (or (null ret)
-;;               (get-text-property (point) 'tag-beg))
-;;           (setq continue nil))
-;;       );while
-;;     ret))
-;; ;;todo : a supprimer
-;; (defun web-mode-element-previous2 ()
-;;   "Fetch previous element."
-;;   (interactive)
-;;   (web-mode-tag-previous "<[[:alpha:]]"))
-
-
-;; (defvar web-mode-django-filters
-;;   (eval-when-compile
-;;     (regexp-opt
-;;      '("add" "addslashes" "capfirst" "center" "cut"
-;;        "date" "default" "default_if_none" "dictsort"
-;;        "dictsortreversed" "divisibleby"
-;;        "escape" "escapejs" "filesizeformat" "first"
-;;        "fix_ampersands" "floatformat"
-;;        "force_escape" "format_integer" "format_number"
-;;        "get_digit" "humanize" "iriencode" "join"
-;;        "last" "length" "length_is" "linebreaks" "linebreaksbr" "linenumbers"
-;;        "ljust" "lower" "make_list"
-;;        "phonenumeric" "pluralize" "pprint"
-;;        "random" "random_num" "random_range" "removetags" "rjust"
-;;        "safe" "safeseq" "slice" "slugify" "stringformat" "striptags"
-;;        "time" "timesince" "timeuntil" "title" "trans" "truncatechars" "truncatewords"
-;;        "truncatewords_html" "unordered_list" "upper" "urlencode"
-;;        "urlize" "urlizetrunc"
-;;        "wordcount" "wordwrap" "yesno")))
-;;   "Django filters.")
