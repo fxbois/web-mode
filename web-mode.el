@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.49
+;; Version: 7.0.50
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -38,20 +38,19 @@
 
 ;;todo : screenshot : http://www.cockos.com/licecap/
 ;;todo : better default colors for tags & attrs
-;;todo : auto-pairs deviennent spécifiques à un engine
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : ne mettre tag-type et tag-name que sur le '<'
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.49"
+(defconst web-mode-version "7.0.50"
   "Web Mode version.")
 
 (defgroup web-mode nil
   "Major mode for editing web templates:
    HTML files embedding parts (CSS/JavaScript)
-   and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)."
+   and blocks (PHP, Erb, Django/Twig, Smarty, JSP, ASP, etc.)"
   :group 'languages
   :prefix "web-"
   :link '(url-link :tag "Site" "http://web-mode.org")
@@ -666,38 +665,6 @@ Must be used in conjunction with web-mode-enable-block-face."
    )
   "Code snippets")
 
-;; todo : dynamically construct according to engine
-(defvar web-mode-auto-pairs
-  ;; '(("<?p" . ("hp " . " ?>"))
-  ;;   ("<? " . "?>")
-  ;;   ("<?=" . "?>")
-  ;;   ("<!-" . ("- " . " -->"))
-  ;;   ("<%@" . " %>")
-  ;;   ("<%=" . "%>")
-  ;;   ("<% " . " %>")
-  ;;   ("{{ " . " }}")
-  ;;   ("{% " . " %}")
-  ;;   ("{# " . " #]")
-  ;;   ("[% " . " %]")
-  ;;   ("[# " . " #]"))
-  (list
-   '("<?p"  "hp  ?>"   "\\?>"  3)
-   '("<? "  "?>"       "\\?>"  0)
-   '("<?="  "?>"       "\\?>"  0)
-   '("<!-"  "-  -->"   "--"    2)
-;; underscrore js conflict
-;;   '("<%-"  "-  --%>"  "--"    2)
-   '("<%@"  "  %>"     "%>"    1)
-   '("<%="  "%>"       "%>"    0)
-   '("<% "  " %>"      "%>"    0)
-   '("{{ "  " }}"      "}}"    0)
-   '("{% "  " %}"      "%}"    0)
-   '("{# "  " #}"      "#}"    0)
-   '("[% "  " %]"      "%]"    0)
-   '("[# "  " #]"      "#]"    0)
-   )
-  "Auto-Pairs")
-
 (defvar web-mode-content-type ""
   "Buffer file type.")
 
@@ -797,6 +764,47 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("underscore"       . "<% }")
     ("velocity"         . "#\\(end\\|else\\)"))
   "Close control blocks.")
+
+(defvar web-mode-auto-pairs nil
+  "Auto-Pairs")
+
+(defvar web-mode-engines-auto-pairs
+  '(
+    ("angular"    . (("{{ " " }}")))
+    ("asp"        . (("<% " " %>")))
+    ("aspx"       . (("<% " " %>")
+                     ("<%=" "%>")
+                     ("<%#" "%>")
+                     ("<%$" "%>")
+                     ("<%@" "%>")
+                     ("<%:" "%>")
+                     ("<%-" "- " " --%>")))
+    ("blade"      . (("{{ " " }}")
+                     ("{{-" "-- " " --}}")))
+    ("django"     . (("{{ " " }}")
+                     ("{% " " %}")
+                     ("{# " " #}")))
+    ("erb"        . (("<% " " %>")
+                     ("<%=" "%>")
+                     ("<%#" "%>")))
+    ("freemarker" . (("<% " " %>")
+                     ("${ " " }")
+                     ("[% " " %]")
+                     ("[# " " #]")
+                     ("[#-" "- " " --]")))
+    ("jsp"        . (("<% " " %>")
+                     ("<%-" "- " " %>")
+                     ("<%=" "%>")
+                     ("<%!" "%>")
+                     ("<%@" "%>")
+                     ("${ " " }")))
+    ("php"        . (("<?p" "hp " " ?>")
+                     ("<? " " ?>")
+                     ("<?=" "?>")))
+    ("underscore" . (("<% " " %>")))
+    (nil          . (("<!-" "- " " -->")))
+    )
+  "Engines auto-pairs")
 
 (defvar web-mode-block-regexps
   '(("angular"          . "{{")
@@ -1643,6 +1651,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (make-local-variable 'imenu-generic-expression)
   (make-local-variable 'indent-line-function)
 
+  (make-local-variable 'web-mode-auto-pairs)
   (make-local-variable 'web-mode-buffer-highlighted)
   (make-local-variable 'web-mode-comment-style)
   (make-local-variable 'web-mode-content-type)
@@ -1778,6 +1787,11 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq web-mode-block-regexp (cdr elt))
       (setq web-mode-engine "none")
       )
+
+    (setq web-mode-auto-pairs (append
+                               (cdr (assoc web-mode-engine web-mode-engines-auto-pairs))
+                               (cdr (assoc nil web-mode-engines-auto-pairs))))
+;;    (message "%S" web-mode-auto-pairs)
 
     ;;(message "buffer=%S engine=%S type=%S regexp=%S"
     ;;          buff-name web-mode-engine web-mode-content-type web-mode-block-regexp)
@@ -6384,7 +6398,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         ;;-- auto-pairing
         (when (and (not web-mode-disable-auto-pairing)
                    (not self-insertion))
-          (let ((i 0) expr after pos-end (l (length web-mode-auto-pairs)))
+          (let ((i 0) expr p after pos-end (l (length web-mode-auto-pairs)))
             (setq pos-end (if (> (+ end 10) (line-end-position))
                               (line-end-position)
                             (+ end 10)))
@@ -6392,13 +6406,19 @@ Must be used in conjunction with web-mode-enable-block-face."
                   after (buffer-substring-no-properties end pos-end))
             (while (and (< i l) (not self-insertion))
               (setq expr (elt web-mode-auto-pairs i))
-              (when (string= (elt expr 0) chunk)
-                (unless (string-match-p (elt expr 2) after)
-                  (insert (elt expr 1))
-                  (goto-char (+ pos (elt expr 3)))
-                  (setq self-insertion t))
-                );when
               (setq i (1+ i))
+;;              (message "%S" expr)
+;;              (when (string= (elt expr 0) chunk)
+              (when (and (string= (elt expr 0) chunk)
+                         (not (string-match-p (elt expr 1) after)))
+                (setq self-insertion t)
+                (insert (elt expr 1))
+                (if (not (elt expr 2))
+                    (goto-char pos)
+                  (setq p (point))
+                  (insert (elt expr 2))
+                  (goto-char p))
+                );when
               );while
             );let
           );when
@@ -7534,11 +7554,12 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive)
   (let (modes)
     (message "\n")
-    (message "--- WEB-MODE [BEG] ---")
+    (message "--- WEB-MODE DEBUG BEG ---")
     (message "versions: emacs(%S.%S) web-mode(%S)"
              emacs-major-version emacs-minor-version web-mode-version)
-    (message "vars: engine(%S) file(%S)"
+    (message "vars: engine(%S) content-type(%S) file(%S)"
              web-mode-engine
+             web-mode-content-type
              (or (buffer-file-name) (buffer-name)))
     (message "system: window(%S) config(%S)" window-system system-configuration)
     (message "colors: fg(%S) bg(%S) "
@@ -7557,7 +7578,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             );lambda
           minor-mode-list)
     (message "%S" modes)
-    (message "--- WEB-MODE [END] ---")
+    (message "--- WEB-MODE DEBUG END ---")
     (switch-to-buffer "*Messages*")
     (goto-char (point-max))
     (recenter)
