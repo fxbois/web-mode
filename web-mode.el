@@ -652,13 +652,16 @@ Must be used in conjunction with web-mode-enable-block-face."
      "</li>\n<li></li>\n</ul>")
    '("if"
      "<?php if ( as ): ?>\n"
-     "\n<?php endif; ?>")
+     "\n<?php endif; ?>"
+     "php")
    '("for"
      "<?php for ( ; ; ): ?>\n"
-     "\n<?php endfor; ?>")
+     "\n<?php endfor; ?>"
+     "php")
    '("foreach"
      "<?php foreach ( as ): ?>\n"
-     "\n<?php endforeach; ?>")
+     "\n<?php endforeach; ?>"
+     "php")
    '("html5"
      "<!doctype html>\n<html>\n<head>\n<title></title>\n<meta charset=\"utf-8\" />\n</head>\n<body>\n"
      "\n</body>\n</html>")
@@ -5505,15 +5508,18 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-snippet-names ()
   "Return list a snippet names."
   (interactive)
-  (let (codes
-        (counter 0)
-        snippet
-        (l (length web-mode-snippets)))
-    (while (< counter l)
-      (setq snippet (nth counter web-mode-snippets))
-      (setq counter (1+ counter))
-      (add-to-list 'codes (list (nth 0 snippet) counter)))
-    ;;    (message "%S" codes)
+  (let (codes snippet)
+    (dolist (snippet web-mode-snippets)
+;;    (while (< counter l)
+;;      (setq snippet (nth counter web-mode-snippets))
+;;      (setq snippet (elt web-mode-snippets 0))
+;;      (setq counter (1+ counter))
+;;      (add-to-list 'codes (list (elt snippet 1) counter))
+      (when (or (null (elt snippet 3))
+                (string= (elt snippet 3) web-mode-engine))
+        (add-to-list 'codes (car snippet) t))
+      )
+    (message "%S" codes)
     codes))
 
 (defun web-mode-snippet-insert (code)
