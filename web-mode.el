@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.50
+;; Version: 7.0.51
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -44,7 +44,7 @@
 ;;todo : ne mettre tag-type et tag-name que sur le '<'
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.50"
+(defconst web-mode-version "7.0.51"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -155,6 +155,16 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 1=auto-close with </
 2=auto-close with > and </."
   :type 'integer
+  :group 'web-mode)
+
+(defcustom web-mode-extra-snippets '()
+  "A list of snippets."
+  :type 'list
+  :group 'web-mode)
+
+(defcustom web-mode-extra-auto-pairs '()
+  "A list of auto-pairs."
+  :type 'list
   :group 'web-mode)
 
 (defcustom web-mode-extra-php-constants '()
@@ -642,32 +652,6 @@ Must be used in conjunction with web-mode-enable-block-face."
     )
   "HTML entities")
 
-(defvar web-mode-snippets
-  (list
-   '("table"
-     "<table><tbody>\n<tr>\n<td>"
-     "</td>\n<td></td>\n</tr>\n</tbody></table>")
-   '("ul"
-     "<ul>\n<li>"
-     "</li>\n<li></li>\n</ul>")
-   '("if"
-     "<?php if ( as ): ?>\n"
-     "\n<?php endif; ?>"
-     "php")
-   '("for"
-     "<?php for ( ; ; ): ?>\n"
-     "\n<?php endfor; ?>"
-     "php")
-   '("foreach"
-     "<?php foreach ( as ): ?>\n"
-     "\n<?php endforeach; ?>"
-     "php")
-   '("html5"
-     "<!doctype html>\n<html>\n<head>\n<title></title>\n<meta charset=\"utf-8\" />\n</head>\n<body>\n"
-     "\n</body>\n</html>")
-   )
-  "Code snippets")
-
 (defvar web-mode-content-type ""
   "Buffer file type.")
 
@@ -808,6 +792,22 @@ Must be used in conjunction with web-mode-enable-block-face."
     (nil          . (("<!-" "- " " -->")))
     )
   "Engines auto-pairs")
+
+(defvar web-mode-snippets nil
+  "Snippets")
+
+(defvar web-mode-engines-snippets
+  '(("erb" . (("if" . ("<% if " . " %>\n\n<% end %>"))))
+    ("php" . (("if"      . ("<?php if ("      . "): ?>\n\n<?php endif; ?>"))
+              ("while"   . ("<?php while ("   . "): ?>\n\n<?php endwhile; ?>"))
+              ("for"     . ("<?php for ("     . " ; ; ): ?>\n\n<?php endfor; ?>"))
+              ("foreach" . ("<?php foreach (" . " as ): ?>\n\n<?php endforeach; ?>"))
+              ("switch"  . ("<?php switch ("  . "): ?>\n<?php case 1: ?>\n\n<?php break ;?>\n<?php case 2: ?>\n\n<?php break ;?>\n<?php endswitch;?>"))))
+    (nil . (("html5" . ("<!doctype html>\n<html>\n<head>\n<title></title>\n<meta charset=\"utf-8\" />\n</head>\n<body>\n" . "\n</body>\n</html>"))
+            ("table" . ("<table><tbody>\n<tr>\n<td>" . "</td>\n<td></td>\n</tr>\n</tbody></table>"))
+            ("ul"    . ("<ul>\n<li>" . "</li>\n<li></li>\n</ul>"))))
+    )
+  "Engines snippets")
 
 (defvar web-mode-block-regexps
   '(("angular"          . "{{")
@@ -1720,7 +1720,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
   (web-mode-guess-engine-and-content-type)
   (web-mode-scan-buffer)
-
+;;  (message "%S" web-mode-extra-snippets)
   )
 
 (defun web-mode-yasnippet-exit-hook ()
@@ -1793,7 +1793,20 @@ Must be used in conjunction with web-mode-enable-block-face."
 
     (setq web-mode-auto-pairs (append
                                (cdr (assoc web-mode-engine web-mode-engines-auto-pairs))
-                               (cdr (assoc nil web-mode-engines-auto-pairs))))
+                               (cdr (assoc nil web-mode-engines-auto-pairs))
+                               (cdr (assoc web-mode-engine web-mode-extra-auto-pairs))
+                               (cdr (assoc nil web-mode-extra-auto-pairs))
+                               ))
+
+    (setq web-mode-snippets (append
+                             (cdr (assoc web-mode-engine web-mode-engines-snippets))
+                             (cdr (assoc nil web-mode-engines-snippets))
+                             (cdr (assoc web-mode-engine web-mode-extra-snippets))
+                             (cdr (assoc nil web-mode-extra-snippets))
+                             ))
+
+;;    (message "%S" web-mode-extra-snippets)
+
 ;;    (message "%S" web-mode-auto-pairs)
 
     ;;(message "buffer=%S engine=%S type=%S regexp=%S"
@@ -5506,28 +5519,18 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defun web-mode-snippet-names ()
-  "Return list a snippet names."
+  "Return the snippet names."
   (interactive)
   (let (codes snippet)
     (dolist (snippet web-mode-snippets)
-;;    (while (< counter l)
-;;      (setq snippet (nth counter web-mode-snippets))
-;;      (setq snippet (elt web-mode-snippets 0))
-;;      (setq counter (1+ counter))
-;;      (add-to-list 'codes (list (elt snippet 1) counter))
-      (when (or (null (elt snippet 3))
-                (string= (elt snippet 3) web-mode-engine))
-        (add-to-list 'codes (car snippet) t))
-      )
-    (message "%S" codes)
+      (add-to-list 'codes (car snippet) t))
     codes))
 
 (defun web-mode-snippet-insert (code)
   "Insert snippet."
   (interactive
    (list (completing-read
-          "Snippet: "
-          (web-mode-snippet-names))))
+          "Snippet: " (web-mode-snippet-names))))
   (let (beg
         (continue t)
         (counter 0)
@@ -5543,20 +5546,20 @@ Must be used in conjunction with web-mode-enable-block-face."
       (delete-region (region-beginning) (region-end)))
     (while (and continue (< counter l))
       (setq snippet (nth counter web-mode-snippets))
-      (when (string= (nth 0 snippet) code)
+      (when (string= (car snippet) code)
         (setq continue nil))
       (setq counter (1+ counter)))
-    (when (and (null continue)
-               (nth 1 snippet))
+    (when snippet
+      (setq snippet (cdr snippet))
       (setq beg (point-at-bol))
-      (insert (nth 1 snippet))
+      (insert (car snippet))
       (setq pos (point))
       (when sel
         (insert sel)
         (setq pos (point)))
-      (if (nth 2 snippet) (insert (nth 2 snippet)))
+      (if (cdr snippet) (insert (cdr snippet)))
       (setq end (point-at-eol))
-      (goto-char pos)
+      (unless sel (goto-char pos))
       (indent-region beg end))
     ))
 
