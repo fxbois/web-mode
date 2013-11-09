@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.51
+;; Version: 7.0.52
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -44,7 +44,7 @@
 ;;todo : ne mettre tag-type et tag-name que sur le '<'
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.51"
+(defconst web-mode-version "7.0.52"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3336,38 +3336,38 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Find the end of a razor block."
   (goto-char pos)
   ;;            (message "pt=%S %c" (point) (char-after))
-  (let (continue)
-    (cond
-     ((looking-at-p "@\\(main\\|if\\|for\\|section\\)")
-      (search-forward "{")
-      )
-     ((looking-at-p "@[({]")
-      (forward-char)
-      (goto-char (web-mode-closing-paren-position (point)))
-      (forward-char)
-      )
-     (t
-      (forward-char)
-      (setq continue t)
-      (while continue
-        (skip-chars-forward " =@a-zA-Z0-9_-"); caractère 'espace' pour '} else {'
-        (cond
-         ((eq ?\( (char-after))
-;;          (search-forward ")")
-          (goto-char (web-mode-closing-paren-position))
-          (forward-char)
-          )
-         ((eq ?\. (char-after))
-          (forward-char))
-         ((looking-at-p "[ ]*{")
+  (let ((continue t))
+;;      (forward-char)
+    ;;      (message "%S" (point))
+    (while continue
+      (skip-chars-forward " =@a-zA-Z0-9_-"); caractère 'espace' pour '} else {'
+      (cond
+
+       ((looking-at-p "@[({]")
+        (forward-char)
+        (goto-char (web-mode-closing-paren-position (point)))
+        (forward-char)
+        )
+
+       ((eq ?\( (char-after))
+        ;;          (search-forward ")")
+        (goto-char (web-mode-closing-paren-position))
+        (forward-char)
+        )
+       ((eq ?\. (char-after))
+        (forward-char))
+       ((looking-at-p "[ ]*{")
+        (search-forward "{")
+        ;;          (message "%S" (point))
+        (if (looking-at-p "[ \n\t]*<")
+            (setq continue nil)
           (search-forward "}")
           )
-         (t
-          (setq continue nil))
-         );cond
-        );while
-      )
-     );cond
+        )
+       (t
+        (setq continue nil))
+       );cond
+      );while
     ))
 
 (defun web-mode-colorize-foreground (color)
