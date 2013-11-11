@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.52
+;; Version: 7.0.54
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,6 +36,7 @@
 
 ;; Code goes here
 
+;;todo : effets bizarres quand on édite de l'html
 ;;todo : screenshot : http://www.cockos.com/licecap/
 ;;todo : better default colors for tags & attrs
 ;;todo : passer les content-types en symboles
@@ -44,7 +45,7 @@
 ;;todo : ne mettre tag-type et tag-name que sur le '<'
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.52"
+(defconst web-mode-version "7.0.54"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -590,7 +591,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("mustache"         . "\\.mustache\\'")
     ("php"              . "\\.\\(php\\|ctp\\|psp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
-    ("razor"            . "play\\|scala\\|\\.cshtml\\'\\|\\.vbhtml\\'")
+    ("razor"            . "play\\|scala\\|\\.razor\\'\\|\\.cshtml\\'\\|\\.vbhtml\\'")
     ("smarty"           . "\\.tpl\\'")
     ("template-toolkit" . "\\.tt.?\\'")
     ("underscore"       . "\\.underscore\\'")
@@ -2341,7 +2342,7 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((string= sub2 "@*")
         (setq props '(block-token comment face web-mode-comment-face)))
        (t
-        (setq regexp "\"\\|'"
+        (setq regexp "//\\|\"\\|'"
               props '(face nil)
               keywords web-mode-razor-font-lock-keywords))
        )
@@ -3342,13 +3343,11 @@ Must be used in conjunction with web-mode-enable-block-face."
     (while continue
       (skip-chars-forward " =@a-zA-Z0-9_-"); caractère 'espace' pour '} else {'
       (cond
-
        ((looking-at-p "@[({]")
         (forward-char)
         (goto-char (web-mode-closing-paren-position (point)))
         (forward-char)
         )
-
        ((eq ?\( (char-after))
         ;;          (search-forward ")")
         (goto-char (web-mode-closing-paren-position))
@@ -7574,10 +7573,11 @@ Must be used in conjunction with web-mode-enable-block-face."
     (message "colors: fg(%S) bg(%S) "
              (cdr (assoc 'foreground-color default-frame-alist))
              (cdr (assoc 'background-color default-frame-alist)))
-    (message "modes: whitespace-mode(%S) rainbow-mode(%S) idle-highlight-mode(%S)"
+    (message "modes: whitespace-mode(%S) rainbow-mode(%S) idle-highlight-mode(%S) fic-mode(%S)"
              (if (boundp 'whitespace-mode) whitespace-mode nil)
              (if (boundp 'rainbow-mode) rainbow-mode nil)
              (if (boundp 'idle-highlight-mode) idle-highlight-mode nil)
+             (if (boundp 'fic-mode) fic-mode nil)
              )
     (mapc (lambda (mode)
             (condition-case nil
