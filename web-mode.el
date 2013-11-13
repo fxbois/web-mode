@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.54
+;; Version: 7.0.55
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,6 @@
 
 ;; Code goes here
 
-;;todo : effets bizarres quand on édite de l'html
 ;;todo : screenshot : http://www.cockos.com/licecap/
 ;;todo : better default colors for tags & attrs
 ;;todo : passer les content-types en symboles
@@ -45,7 +44,7 @@
 ;;todo : ne mettre tag-type et tag-name que sur le '<'
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.54"
+(defconst web-mode-version "7.0.55"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1331,7 +1330,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>") '(1 'web-mode-css-at-rule-face))
    '("url(\\([^)]+\\)" 1 'web-mode-string-face)
-   '("\\([[:alpha:]-]\\{3,\\}\\)[ ]?:" 1 'web-mode-css-property-name-face)
+   '("\\([[:alpha:]-]+\\)[ ]?:" 1 'web-mode-css-property-name-face)
    '("\\([[:alpha:]-]+\\)[ ]?(" 1 'web-mode-css-function-face)
    '("#[[:alnum:]]\\{1,6\\}" 0 'web-mode-css-color-face t t)
    '("![ ]?important" 0 'web-mode-css-priority-face t t)
@@ -1662,6 +1661,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   (make-local-variable 'web-mode-display-table)
   (make-local-variable 'web-mode-engine)
   (make-local-variable 'web-mode-block-regexps)
+  (make-local-variable 'web-mode-enable-block-face)
+  (make-local-variable 'web-mode-enable-part-face)
   (make-local-variable 'web-mode-engine-file-regexps)
   (make-local-variable 'web-mode-expand-initial-pos)
   (make-local-variable 'web-mode-expand-previous-state)
@@ -2694,7 +2695,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-scan-parts (beg end)
   "Scan client side blocks (JavaScript / CSS / HTML Comments) and identifies strings and comments."
   (save-excursion
-    (let (open limit close expr props closing-string tname tbeg tend tstop tface element-content-type attrs-end close-found is-tag)
+    (let (open limit close expr props closing-string tname tbeg tend tstop tface element-content-type attrs-end close-found is-tag slash-beg slash-end)
 
       (goto-char beg)
 
@@ -2704,7 +2705,6 @@ Must be used in conjunction with web-mode-enable-block-face."
               tend nil
               tstop (point)
               element-content-type nil
-
               open nil
               limit end
               close nil
@@ -2712,7 +2712,9 @@ Must be used in conjunction with web-mode-enable-block-face."
               expr ">"
               closing-string nil
               close-found nil
-              is-tag nil)
+              is-tag nil
+              slash-beg nil
+              slash-end nil)
 
         (cond
          ((string= tname "!--")
@@ -2736,7 +2738,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                 )
           (cond
            ((eq ?\/ (string-to-char tname))
-            (setq props (list 'face tface 'tag-name (substring tname 1) 'tag-type 'end))
+            (setq props (list 'face tface 'tag-name (substring tname 1) 'tag-type 'end)
+                  slash-beg t)
 ;;            (setq props (plist-put props 'tag-name (substring tname 1)))
 ;;            (setq props (plist-put props 'tag-type 'end))
             (setq limit (if (> end (line-end-position)) (line-end-position) end))
@@ -2765,7 +2768,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                     close-found t)
               (when (eq ?\/ (char-after (- (point) 2)))
                 (setq attrs-end (1- attrs-end)
-                      props (plist-put props 'tag-type 'void)))
+                      props (plist-put props 'tag-type 'void)
+                      slash-end t))
               );progn
           (setq attrs-end (line-end-position)
                 tend (line-end-position))
@@ -2798,7 +2802,9 @@ Must be used in conjunction with web-mode-enable-block-face."
         (if is-tag
             (progn
               (add-text-properties tbeg (1+ tbeg) '(tag-beg t face web-mode-html-tag-bracket-face))
-              (add-text-properties (1- tend) tend '(tag-end t face web-mode-html-tag-bracket-face)))
+              (if slash-beg (add-text-properties (+ tbeg 1) (+ tbeg 2) '(face web-mode-html-tag-bracket-face)))
+              (add-text-properties (1- tend) tend '(tag-end t face web-mode-html-tag-bracket-face))
+              (if slash-end (add-text-properties (- tend 2) (- tend 1) '(face web-mode-html-tag-bracket-face))))
           (add-text-properties tbeg (1+ tbeg) '(tag-beg t))
           (add-text-properties (1- tend) tend '(tag-end t))
           )
