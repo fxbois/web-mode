@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.55
+;; Version: 7.0.56
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -41,10 +41,9 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
-;;todo : ne mettre tag-type et tag-name que sur le '<'
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.55"
+(defconst web-mode-version "7.0.56"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -803,6 +802,12 @@ Must be used in conjunction with web-mode-enable-block-face."
               ("for"     . ("<?php for ("     . " ; ; ): ?>\n\n<?php endfor; ?>"))
               ("foreach" . ("<?php foreach (" . " as ): ?>\n\n<?php endforeach; ?>"))
               ("switch"  . ("<?php switch ("  . "): ?>\n<?php case 1: ?>\n\n<?php break ;?>\n<?php case 2: ?>\n\n<?php break ;?>\n<?php endswitch;?>"))))
+    ("django" . (("block"   . ("{% block "   . " %}\n\n{% endblock %}"))
+                 ("comment" . ("{% comment " . " %}\n\n{% endcomment %}"))
+                 ("cycle"   . ("{% cycle "   . " as  %}\n\n{% endcycle  %}"))
+                 ("filter"  . ("{% filter "  . " %}\n\n{% endfilter %}"))
+                 ("for"     . ("{% for "     . " in  %}\n\n{% endfor %}"))
+                 ("if"      . ("{% if "      . " %}\n\n{% endif %}"))))
     (nil . (("html5" . ("<!doctype html>\n<html>\n<head>\n<title></title>\n<meta charset=\"utf-8\" />\n</head>\n<body>\n" . "\n</body>\n</html>"))
             ("table" . ("<table><tbody>\n<tr>\n<td>" . "</td>\n<td></td>\n</tr>\n</tbody></table>"))
             ("ul"    . ("<ul>\n<li>" . "</li>\n<li></li>\n</ul>"))))
@@ -1273,7 +1278,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("@" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
-   '("\\([[:alnum:]]+\\):" 1 'web-mode-symbol-face)
+;;   '("\\([[:alnum:]]+\\):" 1 'web-mode-symbol-face)
    '("@\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("@\\([[:alnum:]_.]+\\)" 1 'web-mode-variable-name-face)
    '("<\\([[:alnum:]_]+\\)>" 1 'web-mode-type-face)
@@ -1764,8 +1769,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-on-engine-setted ()
   "engine setted"
   (let (elt)
-    (when (string= web-mode-engine "razor")
-      (setq web-mode-enable-block-face t))
+;;    (when (string= web-mode-engine "razor") (setq web-mode-enable-block-face t))
     (cond
      ((member web-mode-content-type '("css" "javascript" "json"))
       (setq web-mode-has-any-large-part t))
@@ -2201,6 +2205,9 @@ Must be used in conjunction with web-mode-enable-block-face."
             (add-text-properties open close '(block-side t))
             (put-text-property open (1+ open) 'block-beg t)
             (put-text-property (1- close) close 'block-end t)
+            (when (string= web-mode-engine "razor")
+              (web-mode-razor-tag-exclude open close)
+              )
             )
 
           (if pos (goto-char pos))
@@ -2276,7 +2283,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-scan-block (beg end)
   "Fontify a block."
   (let ((sub1 "") (sub2 "") (sub3 "") regexp props start ms continue fc keywords tag token-type hddeb hdend hdflk)
-
+;;    (message "beg=%S end=%S" beg end)
 ;;    (remove-text-properties beg end web-mode-text-properties)
 
     (goto-char beg)
@@ -3339,6 +3346,27 @@ Must be used in conjunction with web-mode-enable-block-face."
       );if
     ))
 
+(defun web-mode-razor-tag-exclude (block-beg block-end)
+  "Exclude HTML"
+  (save-excursion
+    (goto-char block-beg)
+;;    (message "block-beg(%S) block-end(%S)" block-beg block-end)
+    (let ((continue t) beg end)
+
+      (while (re-search-forward "</?[[:alpha:]].*?>" block-end t)
+        (setq beg (1- (match-beginning 0))
+              end (match-end 0))
+;;        (message "beg(%S) end(%S)" beg end)
+        (remove-text-properties beg end '(block-side))
+        (put-text-property beg (1+ beg) 'block-end t)
+        (put-text-property (1- end) end 'block-beg t)
+        )
+
+      ;;    (while continue
+      ;;      (when
+      ;;      )
+      )))
+
 (defun web-mode-razor-skip-forward (pos)
   "Find the end of a razor block."
   (goto-char pos)
@@ -3361,7 +3389,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         )
        ((eq ?\. (char-after))
         (forward-char))
-       ((looking-at-p "[ ]*{")
+       ((looking-at-p "[ \n]*{")
         (search-forward "{")
         ;;          (message "%S" (point))
         (if (looking-at-p "[ \n\t]*<")
@@ -3948,7 +3976,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                                                                 (line-end-position))))
       (setq first-char (if (string= line "") 0 (aref line 0)))
 
-      (when (or (member language '("php" "javascript"))
+      (when (or (member language '("php" "javascript" "razor"))
                 (and (string= language "html") (not (eq ?\< first-char))))
         (cond
          ((member language '("html" "javascript"))
@@ -4075,6 +4103,19 @@ Must be used in conjunction with web-mode-enable-block-face."
          ((string-match-p "^[?%]>" line)
           (if (web-mode-block-beginning pos)
               (setq offset (current-column)))
+          )
+
+         ((and (string= language "razor")
+;;               (progn (message "%S %S" line prev-line) t)
+               (string-match-p "^\\." line)
+               (string-match-p "^\\." prev-line))
+          (setq offset prev-indentation)
+          )
+
+         ((and (string= language "razor")
+               (string-match-p "^}" line))
+          (web-mode-opening-paren-position (point))
+          (setq offset (current-column))
           )
 
          ((and (string-match-p "^[=]?%]" line)
