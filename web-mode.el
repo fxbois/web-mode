@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.56
+;; Version: 7.0.57
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.56"
+(defconst web-mode-version "7.0.57"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1193,6 +1193,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   (regexp-opt
    (append web-mode-extra-razor-keywords
            '("false" "true" "foreach" "if" "else" "in" "var" "for" "display" "main"
+             ;; scala
+             "match" "case"
              "Html")))
   "Razor keywords.")
 
@@ -1281,8 +1283,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;   '("\\([[:alnum:]]+\\):" 1 'web-mode-symbol-face)
    '("@\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("@\\([[:alnum:]_.]+\\)" 1 'web-mode-variable-name-face)
-   '("<\\([[:alnum:]_]+\\)>" 1 'web-mode-type-face)
-   '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
+;;   '("<\\([[:alnum:]_]+\\)>" 1 'web-mode-type-face)
+;;   '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
 ;;   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    ))
 
@@ -3352,30 +3354,23 @@ Must be used in conjunction with web-mode-enable-block-face."
     (goto-char block-beg)
 ;;    (message "block-beg(%S) block-end(%S)" block-beg block-end)
     (let ((continue t) beg end)
-
       (while (re-search-forward "</?[[:alpha:]].*?>" block-end t)
-        (setq beg (1- (match-beginning 0))
+        (setq beg (match-beginning 0)
               end (match-end 0))
 ;;        (message "beg(%S) end(%S)" beg end)
         (remove-text-properties beg end '(block-side))
-        (put-text-property beg (1+ beg) 'block-end t)
-        (put-text-property (1- end) end 'block-beg t)
+        (put-text-property (1- beg) beg 'block-end t)
+        (put-text-property end (1+ end) 'block-beg t)
         )
-
-      ;;    (while continue
-      ;;      (when
-      ;;      )
       )))
 
 (defun web-mode-razor-skip-forward (pos)
   "Find the end of a razor block."
   (goto-char pos)
   ;;            (message "pt=%S %c" (point) (char-after))
-  (let ((continue t))
-;;      (forward-char)
-    ;;      (message "%S" (point))
+  (let ((continue t) pt)
     (while continue
-      (skip-chars-forward " =@a-zA-Z0-9_-"); caractère 'espace' pour '} else {'
+      (skip-chars-forward " =@a-zA-Z0-9_-")
       (cond
        ((looking-at-p "@[({]")
         (forward-char)
@@ -3383,7 +3378,6 @@ Must be used in conjunction with web-mode-enable-block-face."
         (forward-char)
         )
        ((eq ?\( (char-after))
-        ;;          (search-forward ")")
         (goto-char (web-mode-closing-paren-position))
         (forward-char)
         )
@@ -3391,11 +3385,9 @@ Must be used in conjunction with web-mode-enable-block-face."
         (forward-char))
        ((looking-at-p "[ \n]*{")
         (search-forward "{")
-        ;;          (message "%S" (point))
-        (if (looking-at-p "[ \n\t]*<")
-            (setq continue nil)
-          (search-forward "}")
-          )
+        (backward-char)
+        (goto-char (web-mode-closing-paren-position))
+        (forward-char)
         )
        (t
         (setq continue nil))
@@ -3994,6 +3986,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq prev-line (car prev)
                   prev-indentation (cdr prev))
             (setq prev-line (web-mode-clean-server-line prev-line)))
+            ;; (message "pl=%s" prev-line)
           )
          );cond
         (when (>= (length prev-line) 1)
@@ -4114,9 +4107,18 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((and (string= language "razor")
                (string-match-p "^}" line))
-          (web-mode-opening-paren-position (point))
+;;          (message "%S" (point))
+          (goto-char (web-mode-opening-paren-position (point)))
+          (back-to-indentation)
           (setq offset (current-column))
           )
+
+        ((and (string= language "razor")
+              (string-match-p "^case " line)
+              (string-match-p "^case " prev-line))
+         (search-backward "case ")
+         (setq offset (current-column))
+         )
 
          ((and (string-match-p "^[=]?%]" line)
                (string= web-mode-engine "template-toolkit"))
