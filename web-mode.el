@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.57
+;; Version: 7.0.58
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.57"
+(defconst web-mode-version "7.0.58"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3353,14 +3353,20 @@ Must be used in conjunction with web-mode-enable-block-face."
   (save-excursion
     (goto-char block-beg)
 ;;    (message "block-beg(%S) block-end(%S)" block-beg block-end)
-    (let ((continue t) beg end)
-      (while (re-search-forward "</?[[:alpha:]].*?>" block-end t)
+    (let ((continue t) beg end tag-beg tag-end)
+      (while (re-search-forward "[ \t]*\\(</?[[:alpha:]].*?>\\)[ \n]*" block-end t)
         (setq beg (match-beginning 0)
-              end (match-end 0))
+              end (match-end 0)
+              tag-beg (match-beginning 1)
+              tag-end (match-end 1))
 ;;        (message "beg(%S) end(%S)" beg end)
         (remove-text-properties beg end '(block-side))
-        (put-text-property (1- beg) beg 'block-end t)
-        (put-text-property end (1+ end) 'block-beg t)
+        (put-text-property (1- tag-beg) tag-beg 'block-end t)
+        (put-text-property tag-end (1+ tag-end) 'block-beg t)
+        (when (and (looking-at "\\(.+\\)<")
+                   (not (string-match-p "@" (match-string-no-properties 1))))
+          (remove-text-properties (match-beginning 1) (match-end 1) '(block-side))
+          )
         )
       )))
 
