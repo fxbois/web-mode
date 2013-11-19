@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.58
+;; Version: 7.0.59
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.58"
+(defconst web-mode-version "7.0.59"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -304,7 +304,7 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 (defface web-mode-html-attr-custom-face
   '((t :inherit web-mode-html-attr-name-face))
-  "Face for custom attribute names."
+  "Face for custom attribute names (e.g. data-*)."
   :group 'web-mode-faces)
 
 (defface web-mode-html-attr-equal-face
@@ -829,7 +829,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]")
     ("php"              . "<\\?")
     ("python"           . "<\\?")
-    ("razor"            . "@.") ;;"@.\\|^[ \t]*}") ;; -> pb du '} else {' dans du js
+    ("razor"            . "@.")
     ("smarty"           . "{[[:alpha:]#$/*\"]")
     ("template-toolkit" . "\\[[%#]")
     ("underscore"       . "<%")
@@ -2741,27 +2741,18 @@ Must be used in conjunction with web-mode-enable-block-face."
                 tface (if (string-match-p "-" tname)
                              'web-mode-html-tag-custom-face
                            'web-mode-html-tag-face)
-;;                props (if (string-match-p "-" tname)
-;;                          '(face web-mode-html-tag-custom-face)
-;;                        '(face web-mode-html-tag-face))
                 )
           (cond
            ((eq ?\/ (string-to-char tname))
             (setq props (list 'face tface 'tag-name (substring tname 1) 'tag-type 'end)
                   slash-beg t)
-;;            (setq props (plist-put props 'tag-name (substring tname 1)))
-;;            (setq props (plist-put props 'tag-type 'end))
             (setq limit (if (> end (line-end-position)) (line-end-position) end))
             )
            ((web-mode-is-void-element tname)
             (setq props (list 'face tface 'tag-name tname 'tag-type 'void))
-;;            (setq props (plist-put props 'tag-name tname))
-;;            (setq props (plist-put props 'tag-type 'void))
             )
            (t
             (setq props (list 'face tface 'tag-name tname 'tag-type 'start))
-;;            (setq props (plist-put props 'tag-name tname))
-;;            (setq props (plist-put props 'tag-type 'start))
             )
            );cond
           );t
@@ -3612,12 +3603,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-whitespaces-on ()
   "Show whitespaces."
   (interactive)
-  ;;  (when (null web-mode-display-table)
-  ;;    (setq web-mode-display-table (make-display-table))
-  ;;    (aset web-mode-display-table 9  (vector ?\xBB ?\t)) ;tab
-  ;;    (aset web-mode-display-table 10 (vector ?\xB6 ?\n)) ;line feed
-  ;;    (aset web-mode-display-table 32 (vector ?\xB7)) ;space
-  ;;    );when
   (when web-mode-hl-line-mode-flag
     (global-hl-line-mode -1))
   (when web-mode-display-table
@@ -3649,7 +3634,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (save-excursion
     (goto-char (point-min))
     (let ((continue t) f)
-      (setq f (if (member type '("uppercase" "upper-case")) 'uppercase 'downcase))
+      (setq f (if (member type '("upper" "uppercase" "upper-case")) 'uppercase 'downcase))
       (when (and (not (get-text-property (point) 'tag-beg))
                  (not (web-mode-tag-next)))
         (setq continue nil))
@@ -3671,7 +3656,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (save-excursion
     (goto-char (point-min))
     (let ((continue t) f)
-      (setq f (if (member type '("uppercase" "upper-case")) 'uppercase 'downcase))
+      (setq f (if (member type '("upper" "uppercase" "upper-case")) 'uppercase 'downcase))
       (while continue
         (if (web-mode-attr-next)
             (when (looking-at "\\([[:alnum:]-]+\\)")
@@ -4105,7 +4090,6 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          ((and (string= language "razor")
-;;               (progn (message "%S %S" line prev-line) t)
                (string-match-p "^\\." line)
                (string-match-p "^\\." prev-line))
           (setq offset prev-indentation)
@@ -4113,7 +4097,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((and (string= language "razor")
                (string-match-p "^}" line))
-;;          (message "%S" (point))
           (goto-char (web-mode-opening-paren-position (point)))
           (back-to-indentation)
           (setq offset (current-column))
@@ -4183,7 +4166,6 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          (t
-
           (setq offset (web-mode-bracket-indentation pos
                                                      block-column
                                                      indent-offset
@@ -5780,8 +5762,8 @@ Must be used in conjunction with web-mode-enable-block-face."
       (if (string= "end" (match-string-no-properties 2))
           (setq counter (1- counter))
         (setq counter (1+ counter))
-        )
-      )
+        );if
+      );while
     (web-mode-block-beginning)
     ))
 
@@ -5829,8 +5811,6 @@ Must be used in conjunction with web-mode-enable-block-face."
       )
     (web-mode-block-beginning)
     ))
-
-;;tt
 
 (defun web-mode-match-template-toolkit-block ()
   "Fetch TEMPLATE-TOOLKIT block."
@@ -6097,7 +6077,6 @@ Must be used in conjunction with web-mode-enable-block-face."
       )
     (web-mode-block-beginning)
     ))
-
 
 (defun web-mode-match-velocity-block ()
   "Fetch velocity block."
