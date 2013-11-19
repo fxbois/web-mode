@@ -1728,13 +1728,14 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;  (when (boundp 'rainbow-mode) (rainbow-mode -1))
 
   (web-mode-guess-engine-and-content-type)
-  (web-mode-scan-buffer)
+  (web-mode-scan-buffer)
 ;;  (message "%S" web-mode-extra-snippets)
   )
 
 (defun web-mode-yasnippet-exit-hook ()
   "Yasnippet exit hook"
-  (web-mode-buffer-refresh))
+  (web-mode-scan-region yas-snippet-beg yas-snippet-end)
+  (indent-region yas-snippet-beg yas-snippet-end))
 
 (defun web-mode-forward-sexp (&optional arg)
   "Move forward."
