@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.59
+;; Version: 7.0.60
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.59"
+(defconst web-mode-version "7.0.60"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1728,7 +1728,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;  (when (boundp 'rainbow-mode) (rainbow-mode -1))
 
   (web-mode-guess-engine-and-content-type)
-  (web-mode-scan-buffer)
+  (web-mode-scan-buffer)
 ;;  (message "%S" web-mode-extra-snippets)
   )
 
@@ -4134,7 +4134,8 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq offset (1+ (current-column))))
           )
 
-         ((member first-char '(?\? ?\. ?\:))
+         ((and (member first-char '(?\? ?\. ?\:))
+               (not (string= language "erb")))
           (web-mode-rsb "[^!=][=(]" block-beg)
           (setq offset (1+ (current-column)))
           (when (and (string= web-mode-engine "php")
@@ -4518,24 +4519,32 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Calc indent column."
   (interactive)
   (unless limit (setq limit nil))
-  (let (h out prev-line prev-indentation)
-    (setq h (web-mode-previous-line pos limit))
-    (setq out initial-column)
-    (when h
-      (setq prev-line (car h))
-      (setq prev-indentation (cdr h))
-      (cond
-       ((string-match-p "^\\(end\\|else\\|elsif\\|when\\)" line)
-        (setq out (- prev-indentation language-offset))
-        )
-       ((string-match-p "\\(when\\|if\\|else\\|elsif\\|unless\\|for\\|while\\|def\\|class\\)" prev-line)
-        (setq out (+ prev-indentation language-offset))
-        )
-       (t
-        (setq out prev-indentation)
-        )
-       )
-      );when
+  (let (h out prev-line prev-indentation ctx)
+    (setq ctx (web-mode-count-opened-blocks pos limit))
+    (if (cddr ctx)
+        (progn
+;;          (message "ctx=%S" (car (cdr ctx)))
+          (setq out (cadr ctx))
+;;          (message "out=%S" out)
+          )
+      (setq h (web-mode-previous-line pos limit))
+      (setq out initial-column)
+      (when h
+        (setq prev-line (car h))
+        (setq prev-indentation (cdr h))
+        (cond
+         ((string-match-p "^\\(end\\|else\\|elsif\\|when\\)" line)
+          (setq out (- prev-indentation language-offset))
+          )
+         ((string-match-p "\\(when\\|if\\|else\\|elsif\\|unless\\|for\\|while\\|def\\|class\\)" prev-line)
+          (setq out (+ prev-indentation language-offset))
+          )
+         (t
+          (setq out prev-indentation)
+          )
+         )
+        );when
+      );if
     out
     ))
 
