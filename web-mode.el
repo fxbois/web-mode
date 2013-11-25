@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.60
+;; Version: 7.0.61
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.60"
+(defconst web-mode-version "7.0.61"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4672,14 +4672,20 @@ Must be used in conjunction with web-mode-enable-block-face."
           (queues (make-hash-table :test 'equal))
           (opened-blocks 0)
           (col-num 0)
-          (regexp "[\]\[}{)(]\\|\\(break\\|case\\|default\\)")
+          (regexp "[\]\[}{)(]\\|[ \t]\\(break\\|case\\|default\\)[ :]")
           (num-opened 0)
           close-char n queue arg-inline arg-inline-checked char lines)
 
       (while (and continue (re-search-backward regexp limit t))
+;;        (message "%S: %c" (point) (char-before))
         (unless (web-mode-is-comment-or-string)
-          (setq match (match-string-no-properties 0)
-                char (char-after))
+          (setq match (match-string-no-properties 0))
+          (when (> (length match) 1)
+            (skip-chars-forward "[ \t]")
+            (setq match (replace-regexp-in-string "\\`[ \t]*" "" (replace-regexp-in-string "[ :]*\\'" "" match)))
+            )
+          (setq char (aref match 0))
+;;          (message "match:%S" match)
 
           (cond
 
@@ -7184,6 +7190,88 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq pos (next-single-property-change pos 'tag-beg))
     (when pos (goto-char pos)))
   pos)
+
+(defun web-mode-skip-html-tag (&optional back bound context)
+  "Skip html tag. (smartparens helper)"
+  (interactive)
+  (let ((pos (point)) mb me skipped back delim)
+;;    (setq back t)
+    (cond
+     (back
+      (unless (or (bobp)
+                  (get-text-property (1- pos) 'tag-end))
+        (when (web-mode-tag-previous)
+          (web-mode-tag-end)
+          )
+        );unless
+      )
+     (t
+      (unless (or (eobp)
+                  (get-text-property pos 'tag-beg))
+        (web-mode-tag-next))
+      )
+     );cond
+
+    (cond
+     ((get-text-property (point) 'tag-beg)
+      (setq mb (point)
+            me (1+ (web-mode-tag-end-position)))
+      )
+     ((and (not (bobp))
+           (get-text-property (1- (point)) 'tag-end))
+      (setq mb (point)
+            me (web-mode-tag-beginning-position (1- point)))
+      )
+     );cond
+
+    (unless (= pos (point))
+      (setq skipped (- (point) pos))
+      );unless
+
+    (when (and mb me)
+      (setq delim (buffer-substring-no-properties mb me))
+      );when
+
+;;    (message "%S" (list :mb mb :me me :skipped skipped :back back :delim delim))
+
+    (list :mb mb :me me :skipped skipped :back back :delim delim)
+
+    ))
+
+(defun web-mode-get-html-tag (&optional back bound context)
+  "Get html tag. (smartparens helper)"
+  (let (beg end op cl prefix suffix from (pos (point)))
+    (cond
+     ((get-text-property pos 'tag-beg)
+      (setq beg pos
+            end (1+ (web-mode-tag-end-position)))
+      (setq op (web-mode-tag-get))
+      (when (web-mode-tag-match)
+        (setq op (web-mode-tag-get))
+        )
+      )
+     ((get-text-property (1- pos) 'tag-end)
+      )
+     )
+    (setq op "<"
+          cl ">")
+    ))
+
+(defun web-mode-tag-get (&optional pos)
+  "Tag get"
+  (unless pos (setq pos (point)))
+  (let (out)
+    (cond
+     ((get-text-property pos 'tag-name)
+      (setq out (buffer-substring-no-properties (web-mode-tag-beginning-position)
+                                                (web-mode-tag-end-position)))
+      )
+     (t
+      (setq out "")
+      )
+     );cond
+    out
+    ))
 
 (defun web-mode-attr-next (&optional pos)
   "Fetch next attr."
