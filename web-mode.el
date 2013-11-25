@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.63
+;; Version: 7.0.64
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.63"
+(defconst web-mode-version "7.0.64"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4126,7 +4126,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((and (string= language "php")
                (or (string-match-p "^else$" prev-line)
-                   (string-match-p "^if[ ]*(.+)$" prev-line))
+                   (string-match-p "^\\(if\\|for\\|foreach\\|while\\)[ ]*(.+)$" prev-line))
                (not (string-match-p "^{" line)))
           (setq offset (+ prev-indentation web-mode-code-indent-offset))
           )
@@ -4674,7 +4674,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (queues (make-hash-table :test 'equal))
           (opened-blocks 0)
           (col-num 0)
-          (regexp "[\]\[}{)(]\\|[ \t]\\(break[ ;]\\|case[ :]\\|default[ :]\\)")
+          (regexp "[\]\[}{)(]\\|[ ;\t]\\(break[ ;]\\|case[ :]\\|default[ :]\\)")
           (num-opened 0)
           close-char n queue arg-inline arg-inline-checked char lines)
 
@@ -4684,7 +4684,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq match (match-string-no-properties 0))
           (when (> (length match) 1)
             (skip-chars-forward "[ \t]")
-            (setq match (replace-regexp-in-string "\\`[ \t]*" "" (replace-regexp-in-string "[ :;]*\\'" "" match)))
+            (setq match (replace-regexp-in-string "\\`[ ;\t]*" "" (replace-regexp-in-string "[ :;]*\\'" "" match)))
             )
           (setq char (aref match 0))
 ;;          (message "match:%S" match)
@@ -7409,14 +7409,15 @@ Must be used in conjunction with web-mode-enable-block-face."
   )
 
 (defun web-mode-block-close (&optional pos)
-  "Close a control block."
+  "Close the first opened control block."
   (interactive)
   (unless pos (setq pos (point)))
-  (message "TODO")
+  (while (web-mode-block-previous)
+    )
   )
 
 (defun web-mode-block-previous (&optional pos)
-  "web-mode-prev-server-block"
+  "Move point to the beginning of the previous block."
   (interactive)
   (unless pos (setq pos (point)))
   (setq pos (web-mode-block-previous-position pos))
@@ -7424,7 +7425,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   pos)
 
 (defun web-mode-block-next (&optional pos)
-  "web-mode-next-server-block"
+  "Move point to the beginning of the next block."
   (interactive)
   (unless pos (setq pos (point)))
   (setq pos (web-mode-block-next-position pos))
@@ -7432,7 +7433,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   pos)
 
 (defun web-mode-block-beginning (&optional pos)
-  "web-mode-block-beg"
+  "Move point to the beginning of the current block."
   (interactive)
   (unless pos (setq pos (point)))
   (setq pos (web-mode-block-beginning-position pos))
