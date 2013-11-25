@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.62
+;; Version: 7.0.63
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.62"
+(defconst web-mode-version "7.0.63"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1539,6 +1539,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map [menu-bar wm blk blk-prev] '(menu-item "Previous" web-mode-block-previous))
     (define-key map [menu-bar wm blk blk-end] '(menu-item "End" web-mode-block-beginning))
     (define-key map [menu-bar wm blk blk-beg] '(menu-item "Beginning" web-mode-block-beginning))
+    (define-key map [menu-bar wm blk blk-close] '(menu-item "Close" web-mode-block-close))
 
     (define-key map [menu-bar wm tag tag-sel] '(menu-item "Select" web-mode-tag-select))
     (define-key map [menu-bar wm tag tag-match] '(menu-item "Match" web-mode-tag-match))
@@ -1589,6 +1590,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map (kbd "C-c <")     'web-mode-element-beginning)
     (define-key map (kbd "C-c >")     'web-mode-element-end)
 
+    (define-key map (kbd "C-c C-b c") 'web-mode-block-close)
     (define-key map (kbd "C-c C-b b") 'web-mode-block-beginning)
     (define-key map (kbd "C-c C-b e") 'web-mode-block-end)
     (define-key map (kbd "C-c C-b k") 'web-mode-block-kill)
@@ -4672,7 +4674,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (queues (make-hash-table :test 'equal))
           (opened-blocks 0)
           (col-num 0)
-          (regexp "[\]\[}{)(]\\|[ \t]\\(break\\|case\\|default\\)[ :]")
+          (regexp "[\]\[}{)(]\\|[ \t]\\(break[ ;]\\|case[ :]\\|default[ :]\\)")
           (num-opened 0)
           close-char n queue arg-inline arg-inline-checked char lines)
 
@@ -4682,7 +4684,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq match (match-string-no-properties 0))
           (when (> (length match) 1)
             (skip-chars-forward "[ \t]")
-            (setq match (replace-regexp-in-string "\\`[ \t]*" "" (replace-regexp-in-string "[ :]*\\'" "" match)))
+            (setq match (replace-regexp-in-string "\\`[ \t]*" "" (replace-regexp-in-string "[ :;]*\\'" "" match)))
             )
           (setq char (aref match 0))
 ;;          (message "match:%S" match)
@@ -7404,6 +7406,13 @@ Must be used in conjunction with web-mode-enable-block-face."
       (goto-char (point-min)))
     )
    );cond
+  )
+
+(defun web-mode-block-close (&optional pos)
+  "Close a control block."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (message "TODO")
   )
 
 (defun web-mode-block-previous (&optional pos)
