@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.61
+;; Version: 7.0.62
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.61"
+(defconst web-mode-version "7.0.62"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -7195,7 +7195,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Skip html tag. (smartparens helper)"
   (interactive)
   (let ((pos (point)) mb me skipped back delim)
-;;    (setq back t)
+
     (cond
      (back
       (unless (or (bobp)
@@ -7224,37 +7224,40 @@ Must be used in conjunction with web-mode-enable-block-face."
       )
      );cond
 
-    (unless (= pos (point))
-      (setq skipped (- (point) pos))
-      );unless
-
-    (when (and mb me)
-      (setq delim (buffer-substring-no-properties mb me))
-      );when
-
-;;    (message "%S" (list :mb mb :me me :skipped skipped :back back :delim delim))
-
-    (list :mb mb :me me :skipped skipped :back back :delim delim)
+    (if (and mb me)
+        (progn
+          (setq skipped (- (point) pos))
+          (setq delim (buffer-substring-no-properties mb me))
+          ;;    (message "%S" (list :mb mb :me me :skipped skipped :back back :delim delim))
+          (list :mb mb :me me :skipped skipped :back back :delim delim)
+          )
+      nil)
 
     ))
 
 (defun web-mode-get-html-tag (&optional back bound context)
   "Get html tag. (smartparens helper)"
-  (let (beg end op cl prefix suffix from (pos (point)))
+  (interactive)
+  (let (ctx beg end (pos (point)))
+    (message "pos=%S" pos)
+    (setq ctx (web-mode-skip-html-tag back bound context))
+    (message "ctx=%S" ctx)
     (cond
-     ((get-text-property pos 'tag-beg)
-      (setq beg pos
-            end (1+ (web-mode-tag-end-position)))
-      (setq op (web-mode-tag-get))
-      (when (web-mode-tag-match)
-        (setq op (web-mode-tag-get))
-        )
+     ((null ctx)
+;;      (message "ici")
       )
-     ((get-text-property (1- pos) 'tag-end)
+     ((get-text-property (point) 'tag-beg)
+      (setq beg (point)
+            end (1+ (web-mode-tag-end-position)))
+      )
+     ((get-text-property (1- (point)) 'tag-end)
+      (setq beg (web-mode-tag-end-position (1- (point)))
+            end (point))
       )
      )
-    (setq op "<"
-          cl ">")
+    (if (null ctx) nil
+;;      (message "%S" (list :beg beg :end end :op "<" :cl ">" :prefix "" :suffix "" :from pos))
+      (list :beg beg :end end :op "<" :cl ">" :prefix "" :suffix "" :from pos))
     ))
 
 (defun web-mode-tag-get (&optional pos)
