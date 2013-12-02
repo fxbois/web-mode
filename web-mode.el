@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.64
+;; Version: 7.0.66
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.64"
+(defconst web-mode-version "7.0.66"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -547,12 +547,13 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Template engine")
 
 (defvar web-mode-engines
-  '(("angular"    . ("angular" "angular.js" "angularjs"))
-    ("asp"        . ("asp"))
-    ("aspx"       . ("aspx"))
+  '(("angular"    . ("angular.js" "angularjs"))
+    ("asp"        . ())
+    ("aspx"       . ())
     ("blade"      . ("laravel"))
     ("closure"    . ("soy"))
-    ("ctemplate"  . ("mustache" "handlebars" "hapax" "ngtemplate" "ember" "kite"))
+    ("ctemplate"  . ("mustache" "handlebars" "hapax" "ngtemplate" "ember"
+                     "kite" "meteor"))
     ("django"     . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl" "liquid"))
     ("dust"       . ("dustjs"))
     ("erb"        . ("eruby" "erubis"))
@@ -753,6 +754,21 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-auto-pairs nil
   "Auto-Pairs")
+
+(defvar web-mode-closing-blocks nil
+  "Snippets")
+
+(defvar web-mode-engines-closing-blocks
+  '(
+
+    ("php"       . (("if"      . "<?php endif; ?>")
+                    ("for"     . "<?php endfor; ?>")
+                    ("foreach" . "<?php endforeach; ?>")
+                    ("while"   . "<?php endwhile; ?>")))
+
+    )
+  "Closing blocks (see web-mode-block-close)"
+  )
 
 (defvar web-mode-engines-auto-pairs
   '(
@@ -1521,6 +1537,13 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-syntax-table
   (let ((table (make-syntax-table)))
     (modify-syntax-entry ?_ "w" table)
+
+    (modify-syntax-entry ?< "." table)
+    (modify-syntax-entry ?> "." table)
+    (modify-syntax-entry ?& "." table)
+    (modify-syntax-entry ?/ "." table)
+    (modify-syntax-entry ?= "." table)
+
     table)
   "Syntax table in use in web-mode buffers.")
 
@@ -1576,6 +1599,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map (kbd "C-;")       'web-mode-comment-or-uncomment)
     (define-key map (kbd "M-;")       'web-mode-comment-or-uncomment)
 
+    (define-key map (kbd "C-c C-c")   'web-mode-block-close)
     (define-key map (kbd "C-c C-d")   'web-mode-errors-show)
     (define-key map (kbd "C-c C-f")   'web-mode-fold-or-unfold)
     (define-key map (kbd "C-c C-i")   'web-mode-buffer-indent)
@@ -1768,8 +1792,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (setq web-mode-content-type "html"
         web-mode-engine engine)
   (web-mode-on-engine-setted)
-  (web-mode-scan-buffer)
-  )
+  (web-mode-scan-buffer))
 
 (defun web-mode-on-engine-setted ()
   "engine setted"
@@ -1799,8 +1822,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq elt (assoc web-mode-engine web-mode-block-regexps))
     (if elt
         (setq web-mode-block-regexp (cdr elt))
-      (setq web-mode-engine "none")
-      )
+      (setq web-mode-engine "none"))
 
     (setq web-mode-auto-pairs (append
                                (cdr (assoc web-mode-engine web-mode-engines-auto-pairs))
@@ -1815,6 +1837,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                              (cdr (assoc web-mode-engine web-mode-extra-snippets))
                              (cdr (assoc nil web-mode-extra-snippets))
                              ))
+
+    (setq web-mode-closing-blocks (cdr (assoc web-mode-engine web-mode-engines-closing-blocks)))
 
 ;;    (message "%S" web-mode-extra-snippets)
 
@@ -1875,6 +1899,14 @@ Must be used in conjunction with web-mode-enable-block-face."
                 found t))
         )
       )
+    (when (and (null found)
+               (string-match-p "php" (buffer-substring-no-properties
+                                      (line-beginning-position)
+                                      (line-end-position))))
+      (setq web-mode-engine "php"
+            found t)
+      )
+
     (web-mode-on-engine-setted)
     ))
 
@@ -6538,6 +6570,15 @@ Must be used in conjunction with web-mode-enable-block-face."
         (indent-for-tab-command)
         )
 
+      (when (and (string= web-mode-engine "none")
+                 (< (point) 16)
+                 (eq (char-after 1) ?\#)
+                 (string-match-p "php" (buffer-substring-no-properties
+                                        (line-beginning-position)
+                                        (line-end-position))))
+        (web-mode-set-engine "php")
+        )
+
       );if narrowed
     ))
 
@@ -7412,8 +7453,48 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Close the first opened control block."
   (interactive)
   (unless pos (setq pos (point)))
-  (while (web-mode-block-previous)
-    )
+  (let ((continue t) ctx h ctrl n closing-block)
+    (save-excursion
+      (setq h (make-hash-table :test 'equal))
+      (while (and continue (web-mode-block-previous))
+        (when (setq ctx (web-mode-is-active-block (point)))
+          (setq ctrl (car ctx))
+          (setq n (gethash ctrl h 0))
+          (if (cdr ctx)
+              (puthash ctrl (1+ n) h)
+            (puthash ctrl (1- n) h)
+            )
+          (when (> (gethash ctrl h) 0)
+            (setq continue nil))
+;;          (if ctx (message "(%S) %S : %S" (point) ctrl (gethash ctrl h)))
+          )
+        );while
+      );save-excursion
+    (when (and (null continue)
+               (setq closing-block (web-mode-closing-block ctrl)))
+      (insert closing-block)
+      (indent-for-tab-command)
+      )
+    ))
+
+(defun web-mode-closing-block (type)
+  "Return the closing block corresponding to TYPE"
+  (cond
+   ((string= web-mode-engine "django")
+    (concat "{% end" type " %}"))
+   ((string= web-mode-engine "ctemplate")
+    (concat "{{/" type "}}"))
+   ((string= web-mode-engine "blade")
+    (concat "@end" type))
+   ((string= web-mode-engine "dust")
+    (concat "{/" type "}"))
+   ((string= web-mode-engine "underscore")
+    "<% } %>")
+   ((string= web-mode-engine "erb")
+    "<% end %>")
+   (t
+    (cdr (assoc type web-mode-closing-blocks)))
+   );cond
   )
 
 (defun web-mode-block-previous (&optional pos)
