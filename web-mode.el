@@ -1506,7 +1506,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-erb-font-lock-keywords
   (list
    '("-?%>\\|^%\\|<%[=-]?" 0 'web-mode-preprocessor-face)
-   '("\\(:[[:alnum:]_]+\\)" 1 'web-mode-symbol-face)
+   '("[^:]\\(:[[:alnum:]_]+\\)" 1 'web-mode-symbol-face)
    '("\\([[:alnum:]_]+:\\)[ ]+" 1 'web-mode-symbol-face)
    (cons (concat "\\<\\(" web-mode-erb-builtins "\\)\\>")
          '(0 'web-mode-builtin-face))
