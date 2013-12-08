@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.66
+;; Version: 7.0.67
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.66"
+(defconst web-mode-version "7.0.67"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -782,7 +782,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                      ("<%:" "%>")
                      ("<%-" "- " " --%>")))
     ("blade"      . (("{{ " " }}")
-                     ("{{-" "-- " " --}}")))
+                     ("{{-" "- " " --}}")))
     ("django"     . (("{{ " " }}")
                      ("{% " " %}")
                      ("{# " " #}")))
@@ -834,7 +834,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(("angular"          . "{{")
     ("asp"              . "<%")
     ("aspx"             . "<%")
-    ("blade"            . "{{\\|^[ \t]*@[[:alpha:]]")
+    ("blade"            . "{{.\\|^[ \t]*@[[:alpha:]]")
     ("closure"          . "{.\\|/\\*\\| //")
     ("ctemplate"        . "[$]?{{.")
     ("django"           . "{[#{%].")
@@ -2010,7 +2010,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (save-excursion
 
     (let ((i 0)
-          open close closing-string start sub1 sub2 sub3 pos tagopen l tmp)
+          open close closing-string start sub1 sub2 pos tagopen l tmp)
 
       (goto-char beg)
 
@@ -2068,6 +2068,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((string= web-mode-engine "blade")
           (cond
+           ((string= tagopen "{{-")
+            (setq closing-string "--}}"))
            ((string= sub2 "{{")
             (setq closing-string "}}"))
            ((string= sub1 "@")
@@ -2112,7 +2114,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((string= web-mode-engine "ctemplate")
           (cond
-           ((string= sub3 "{{{")
+           ((string= tagopen "{{{")
             (setq closing-string "}}}"))
            (t
             (setq closing-string "}}"))
