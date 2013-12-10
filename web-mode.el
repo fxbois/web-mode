@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.67
+;; Version: 7.0.68
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.67"
+(defconst web-mode-version "7.0.68"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3897,6 +3897,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (cond
 
        ((bobp)
+        (setq language "html")
         )
 
        ((string= web-mode-content-type "css")
@@ -5320,7 +5321,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
         (setq ctx (web-mode-point-context
                    (if mark-active (region-beginning) (line-beginning-position))))
-        ;;        (message "ctx=%S" ctx)
+;;        (message "ctx=%S" ctx)
         (setq language (plist-get ctx :language))
 
         (if mark-active
@@ -5329,10 +5330,13 @@ Must be used in conjunction with web-mode-enable-block-face."
                     end (region-end))
 ;;              (message "beg=%S end=%S" beg end)
               )
-          (if (string= language "html")
-              (progn
-                (back-to-indentation)
-                (web-mode-element-select))
+          (if (and (string= language "html")
+                   (progn (back-to-indentation) t)
+                   (get-text-property (point) 'tag-beg))
+              ;;              (progn
+              ;;                (back-to-indentation)
+              (web-mode-element-select)
+            ;;            )
             (end-of-line)
             (set-mark (line-beginning-position))
             );if
