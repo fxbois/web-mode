@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.68
+;; Version: 7.0.69
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.68"
+(defconst web-mode-version "7.0.69"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -138,7 +138,7 @@ See web-mode-part-face."
   :group 'web-mode)
 
 (defcustom web-mode-comment-style 1
-  "Comment style : 2 = server comments."
+  "Comment style : 1 = default, 2 = force server comments outside a block."
   :type 'integer
   :group 'web-mode)
 
@@ -1813,7 +1813,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-on-engine-setted ()
   "engine setted"
-  (let (elt)
+  (let (elt tmp)
 ;;    (when (string= web-mode-engine "razor") (setq web-mode-enable-block-face t))
     (cond
      ((member web-mode-content-type '("css" "javascript" "json"))
@@ -1848,6 +1848,11 @@ Must be used in conjunction with web-mode-enable-block-face."
                                (cdr (assoc nil web-mode-extra-auto-pairs))
                                ))
 
+    (setq tmp (list (cdr (assoc web-mode-engine web-mode-extra-snippets))
+                    (cdr (assoc nil             web-mode-extra-snippets))
+                    (cdr (assoc web-mode-engine web-mode-engines-snippets))
+                    (cdr (assoc nil             web-mode-engines-snippets))))
+
     (setq web-mode-snippets (append
                              (cdr (assoc web-mode-engine web-mode-engines-snippets))
                              (cdr (assoc nil web-mode-engines-snippets))
@@ -1857,7 +1862,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
     (setq web-mode-closing-blocks (cdr (assoc web-mode-engine web-mode-engines-closing-blocks)))
 
-;;    (message "%S" web-mode-extra-snippets)
+;;    (message "%S" web-mode-snippets)
 
 ;;    (message "%S" web-mode-auto-pairs)
 
@@ -1867,6 +1872,12 @@ Must be used in conjunction with web-mode-enable-block-face."
     ;;  (message "%S\n%S\n%S\n%S" web-mode-active-block-regexp web-mode-close-block-regexp web-mode-engine-control-matcher web-mode-electric-chars)
 
     ))
+
+(defun web-mode-append-unique (l)
+  "append replace"
+  (dolist (elt l)
+    )
+)
 
 (defun web-mode-guess-engine-and-content-type ()
   "Try to guess the server engine and the content type."
@@ -5256,17 +5267,21 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-comment-or-uncomment ()
   "Comment or uncomment line(s), block or region at POS."
   (interactive)
+;;  (message "%S" (point))
   (save-excursion
     (unless mark-active
       (skip-chars-forward "[:space:]" (line-end-position)))
     (if (web-mode-is-comment)
 	(web-mode-uncomment (point))
       (web-mode-comment (point))))
-  (web-mode-scan-region (point-min) (point-max)))
+;;  (message "%S" (point))
+  (web-mode-scan-region (point-min) (point-max))
+  )
 
 (defun web-mode-comment (pos)
   "Comment line(s) at point."
   (interactive)
+;;  (message "pt=%S" pos)
   (save-excursion
     (let (ctx language sel beg end tmp block-side single-line-block)
 
@@ -5403,7 +5418,11 @@ Must be used in conjunction with web-mode-enable-block-face."
         );t
        );cond
 
-      )))
+      )
+    );save-excursion
+;;  (message "%S" (point))
+;;  (goto-char pos)
+  )
 
 (defun web-mode-looking-at-pos (regexp pos)
   "Performs a looking-at at POS."
@@ -5419,10 +5438,10 @@ Must be used in conjunction with web-mode-enable-block-face."
     (insert text)
     ))
 
-(defun web-mode-remove-text-at-pos (n pos)
+(defun web-mode-remove-text-at-pos (n &optional pos)
   "Remove N chars at POS."
-  (delete-region pos (+ pos n))
-  )
+  (unless pos (setq pos (point)))
+  (delete-region pos (+ pos n)))
 
 (defun web-mode-uncomment-erb-block (pos)
   "Uncomment an erb block."
@@ -5445,8 +5464,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let (beg end)
     (setq beg (web-mode-block-beginning-position pos)
           end (web-mode-block-end-position pos))
-    (web-mode-remove-text-at-pos 1 (1- end))
-    (web-mode-remove-text-at-pos 1 (1+ beg))
+    (web-mode-remove-text-at-pos 2 (1- end))
+    (web-mode-remove-text-at-pos 2 beg)
     ))
 
 (defun web-mode-comment-django-block (pos)
@@ -5625,6 +5644,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         );;when
 
       ))
+    (indent-for-tab-command)
     ))
 
 (defun web-mode-snippet-names ()
