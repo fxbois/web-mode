@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.69
+;; Version: 7.0.70
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.69"
+(defconst web-mode-version "7.0.70"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -156,15 +156,15 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-extra-snippets '()
-  "A list of snippets."
-  :type 'list
-  :group 'web-mode)
+;; (defcustom web-mode-extra-snippets '()
+;;   "A list of snippets."
+;;   :type 'list
+;;   :group 'web-mode)
 
-(defcustom web-mode-extra-auto-pairs '()
-  "A list of auto-pairs."
-  :type 'list
-  :group 'web-mode)
+;; (defcustom web-mode-extra-auto-pairs '()
+;;   "A list of auto-pairs."
+;;   :type 'list
+;;   :group 'web-mode)
 
 (defcustom web-mode-extra-php-constants '()
   "A list of additional strings to treat as PHP constants."
@@ -1770,9 +1770,12 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;  (when (boundp 'whitespace-mode) (whitespace-mode -1))
 ;;  (when (boundp 'rainbow-mode) (rainbow-mode -1))
 
+;;  (message "web-mode-extra-snippets=%S" web-mode-extra-snippets)
+  ;; (message "web-mode-extra-php-constants=%S" web-mode-extra-php-constants)
+
   (web-mode-guess-engine-and-content-type)
   (web-mode-scan-buffer)
-;;  (message "%S" web-mode-extra-snippets)
+
   )
 
 (defun web-mode-yasnippet-exit-hook ()
@@ -1813,7 +1816,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-on-engine-setted ()
   "engine setted"
-  (let (elt tmp)
+  (let (elt elts)
 ;;    (when (string= web-mode-engine "razor") (setq web-mode-enable-block-face t))
     (cond
      ((member web-mode-content-type '("css" "javascript" "json"))
@@ -1841,6 +1844,9 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq web-mode-block-regexp (cdr elt))
       (setq web-mode-engine "none"))
 
+    (unless (boundp 'web-mode-extra-auto-pairs)
+      (setq web-mode-extra-auto-pairs nil))
+
     (setq web-mode-auto-pairs (append
                                (cdr (assoc web-mode-engine web-mode-engines-auto-pairs))
                                (cdr (assoc nil web-mode-engines-auto-pairs))
@@ -1848,17 +1854,36 @@ Must be used in conjunction with web-mode-enable-block-face."
                                (cdr (assoc nil web-mode-extra-auto-pairs))
                                ))
 
-    (setq tmp (list (cdr (assoc web-mode-engine web-mode-extra-snippets))
-                    (cdr (assoc nil             web-mode-extra-snippets))
-                    (cdr (assoc web-mode-engine web-mode-engines-snippets))
-                    (cdr (assoc nil             web-mode-engines-snippets))))
+    ;; (setq web-mode-snippets (append
+    ;;                          (cdr (assoc web-mode-engine web-mode-engines-snippets))
+    ;;                          (cdr (assoc nil web-mode-engines-snippets))
+    ;;                          (cdr (assoc web-mode-engine web-mode-extra-snippets))
+    ;;                          (cdr (assoc nil web-mode-extra-snippets))
+    ;;                          ))
 
-    (setq web-mode-snippets (append
-                             (cdr (assoc web-mode-engine web-mode-engines-snippets))
-                             (cdr (assoc nil web-mode-engines-snippets))
-                             (cdr (assoc web-mode-engine web-mode-extra-snippets))
-                             (cdr (assoc nil web-mode-extra-snippets))
-                             ))
+;;    (message "es=%S" web-mode-extra-snippets)
+
+    (unless (boundp 'web-mode-extra-snippets)
+      (setq web-mode-extra-snippets nil))
+
+    (setq elts (append (cdr (assoc web-mode-engine web-mode-extra-snippets))
+                      (cdr (assoc nil             web-mode-extra-snippets))
+                      (cdr (assoc web-mode-engine web-mode-engines-snippets))
+                      (cdr (assoc nil             web-mode-engines-snippets))))
+
+;;    (message "tmp=%S" tmp)
+
+    (dolist (elt elts)
+;;      (message "elt=%S %S" (car elt) (assoc (car elt) web-mode-snippets))
+      ;;      (dolist (elt elts)
+;;        (message "elt=%S" elt)
+      ;;        (setq web-mode-snippets (append web-mode-snippets elt)))
+      ;;        (message "elt=%S" elt)
+      (unless (assoc (car elt) web-mode-snippets)
+        (setq web-mode-snippets (append (list elt) web-mode-snippets)))
+      )
+
+;;    (message "wms=%S" web-mode-snippets)
 
     (setq web-mode-closing-blocks (cdr (assoc web-mode-engine web-mode-engines-closing-blocks)))
 
@@ -1872,12 +1897,6 @@ Must be used in conjunction with web-mode-enable-block-face."
     ;;  (message "%S\n%S\n%S\n%S" web-mode-active-block-regexp web-mode-close-block-regexp web-mode-engine-control-matcher web-mode-electric-chars)
 
     ))
-
-(defun web-mode-append-unique (l)
-  "append replace"
-  (dolist (elt l)
-    )
-)
 
 (defun web-mode-guess-engine-and-content-type ()
   "Try to guess the server engine and the content type."
