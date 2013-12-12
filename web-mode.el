@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.70
+;; Version: 7.0.72
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.70"
+(defconst web-mode-version "7.0.72"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -102,6 +102,11 @@
 
 (defcustom web-mode-disable-auto-pairing (not (display-graphic-p))
   "Disable auto-pairing."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-disable-auto-opening (not (display-graphic-p))
+  "Disable html element auto-opening."
   :type 'boolean
   :group 'web-mode)
 
@@ -1822,7 +1827,9 @@ Must be used in conjunction with web-mode-enable-block-face."
      ((member web-mode-content-type '("css" "javascript" "json"))
       (setq web-mode-has-any-large-part t))
      ((member web-mode-content-type '("php"))
-      (setq web-mode-has-any-large-block nil)))
+      (setq web-mode-has-any-large-block nil))
+     );cond
+
     (setq web-mode-electric-chars nil)
     (when (string= web-mode-content-type "html")
       (unless (string= web-mode-engine "none")
@@ -1847,38 +1854,24 @@ Must be used in conjunction with web-mode-enable-block-face."
     (unless (boundp 'web-mode-extra-auto-pairs)
       (setq web-mode-extra-auto-pairs nil))
 
-    (setq web-mode-auto-pairs (append
-                               (cdr (assoc web-mode-engine web-mode-engines-auto-pairs))
-                               (cdr (assoc nil web-mode-engines-auto-pairs))
-                               (cdr (assoc web-mode-engine web-mode-extra-auto-pairs))
-                               (cdr (assoc nil web-mode-extra-auto-pairs))
-                               ))
-
-    ;; (setq web-mode-snippets (append
-    ;;                          (cdr (assoc web-mode-engine web-mode-engines-snippets))
-    ;;                          (cdr (assoc nil web-mode-engines-snippets))
-    ;;                          (cdr (assoc web-mode-engine web-mode-extra-snippets))
-    ;;                          (cdr (assoc nil web-mode-extra-snippets))
-    ;;                          ))
-
-;;    (message "es=%S" web-mode-extra-snippets)
+    (setq web-mode-auto-pairs
+          (append
+           (cdr (assoc web-mode-engine web-mode-engines-auto-pairs))
+           (cdr (assoc nil web-mode-engines-auto-pairs))
+           (cdr (assoc web-mode-engine web-mode-extra-auto-pairs))
+           (cdr (assoc nil web-mode-extra-auto-pairs))))
 
     (unless (boundp 'web-mode-extra-snippets)
       (setq web-mode-extra-snippets nil))
 
-    (setq elts (append (cdr (assoc web-mode-engine web-mode-extra-snippets))
-                      (cdr (assoc nil             web-mode-extra-snippets))
-                      (cdr (assoc web-mode-engine web-mode-engines-snippets))
-                      (cdr (assoc nil             web-mode-engines-snippets))))
-
-;;    (message "tmp=%S" tmp)
+    (setq elts
+          (append
+           (cdr (assoc web-mode-engine web-mode-extra-snippets))
+           (cdr (assoc nil             web-mode-extra-snippets))
+           (cdr (assoc web-mode-engine web-mode-engines-snippets))
+           (cdr (assoc nil             web-mode-engines-snippets))))
 
     (dolist (elt elts)
-;;      (message "elt=%S %S" (car elt) (assoc (car elt) web-mode-snippets))
-      ;;      (dolist (elt elts)
-;;        (message "elt=%S" elt)
-      ;;        (setq web-mode-snippets (append web-mode-snippets elt)))
-      ;;        (message "elt=%S" elt)
       (unless (assoc (car elt) web-mode-snippets)
         (setq web-mode-snippets (append (list elt) web-mode-snippets)))
       )
@@ -1886,13 +1879,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;    (message "wms=%S" web-mode-snippets)
 
     (setq web-mode-closing-blocks (cdr (assoc web-mode-engine web-mode-engines-closing-blocks)))
-
-;;    (message "%S" web-mode-snippets)
-
-;;    (message "%S" web-mode-auto-pairs)
-
-    ;;(message "buffer=%S engine=%S type=%S regexp=%S"
-    ;;          buff-name web-mode-engine web-mode-content-type web-mode-block-regexp)
 
     ;;  (message "%S\n%S\n%S\n%S" web-mode-active-block-regexp web-mode-close-block-regexp web-mode-engine-control-matcher web-mode-electric-chars)
 
@@ -2885,10 +2871,25 @@ Must be used in conjunction with web-mode-enable-block-face."
 
         (if is-tag
             (progn
-              (add-text-properties tbeg (1+ tbeg) '(tag-beg t face web-mode-html-tag-bracket-face))
-              (if slash-beg (add-text-properties (+ tbeg 1) (+ tbeg 2) '(face web-mode-html-tag-bracket-face)))
-              (add-text-properties (1- tend) tend '(tag-end t face web-mode-html-tag-bracket-face))
-              (if slash-end (add-text-properties (- tend 2) (- tend 1) '(face web-mode-html-tag-bracket-face))))
+              (add-text-properties
+               tbeg (1+ tbeg)
+               '(tag-beg t face web-mode-html-tag-bracket-face))
+              (when slash-beg
+                (add-text-properties
+                 (+ tbeg 1) (+ tbeg 2)
+                 '(face web-mode-html-tag-bracket-face))
+                );when
+              (when close-found
+                (add-text-properties
+                 (1- tend) tend
+                 '(tag-end t face web-mode-html-tag-bracket-face))
+                );when
+              (when slash-end
+                (add-text-properties
+                 (- tend 2) (- tend 1)
+                 '(face web-mode-html-tag-bracket-face))
+                );when
+              );progn
           (add-text-properties tbeg (1+ tbeg) '(tag-beg t))
           (add-text-properties (1- tend) tend '(tag-end t))
           )
@@ -6524,7 +6525,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (setq web-mode-expand-initial-pos nil
         web-mode-expand-previous-state "")
 
-  (let ((pos (point)) self-insertion chunk auto-closed atomic-insertion)
+  (let ((pos (point)) self-insertion chunk auto-closed auto-opened atomic-insertion)
 
     (setq atomic-insertion (and (= len 0)
                                 (= 1 (- end beg))))
@@ -6538,9 +6539,24 @@ Must be used in conjunction with web-mode-enable-block-face."
                  (not (get-text-property pos 'part-side))
                  atomic-insertion)
 
+        (setq chunk (buffer-substring-no-properties (- beg 1) end))
+
+        ;;-- auto-opening
+        (when (and (not web-mode-disable-auto-opening)
+                   (string= ">\n" chunk)
+                   (not (eobp))
+                   (eq (get-text-property (- beg 1) 'tag-type) 'start)
+                   (eq (get-text-property end 'tag-type) 'end)
+                   (string= (get-text-property (- beg 1) 'tag-name)
+                            (get-text-property end 'tag-name)))
+          (setq auto-opened t)
+          (newline)
+          (indent-for-tab-command)
+          (forward-line -1)
+          (indent-for-tab-command))
+
         ;;-- auto-closing
         (when (and (> web-mode-tag-auto-close-style 0)
-                   (setq chunk (buffer-substring-no-properties (- beg 1) end))
                    (or (and (= web-mode-tag-auto-close-style 2)
                             (string-match-p "[[:alnum:]]>" chunk))
                        (string= "</" chunk)))
@@ -6625,6 +6641,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       ;;-- auto-indentation
       (when (and (not web-mode-disable-auto-indentation)
+                 (not auto-opened)
                  (or auto-closed
                      (and (> end (point-min))
                           (get-text-property (1- end) 'tag-end)
