@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.72
+;; Version: 7.0.73
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.72"
+(defconst web-mode-version "7.0.73"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1772,11 +1772,12 @@ Must be used in conjunction with web-mode-enable-block-face."
   (when web-mode-enable-whitespaces
     (web-mode-whitespaces-on))
 
-;;  (when (boundp 'whitespace-mode) (whitespace-mode -1))
-;;  (when (boundp 'rainbow-mode) (rainbow-mode -1))
-
-;;  (message "web-mode-extra-snippets=%S" web-mode-extra-snippets)
-  ;; (message "web-mode-extra-php-constants=%S" web-mode-extra-php-constants)
+  (when (boundp 'esk-pretty-lambdas) (esk-pretty-lambdas -1))
+  (when (boundp 'esk-add-watchwords) (esk-add-watchwords -1))
+  (when (boundp 'global-whitespace-mode) (global-whitespace-mode -1))
+  (when (boundp 'idle-highlight-mode) (idle-highlight-mode -1))
+  (when (boundp 'rainbow-mode) (rainbow-mode -1))
+  (when (boundp 'whitespace-mode) (whitespace-mode -1))
 
   (web-mode-guess-engine-and-content-type)
   (web-mode-scan-buffer)
@@ -7878,8 +7879,9 @@ Must be used in conjunction with web-mode-enable-block-face."
     (message "colors: fg(%S) bg(%S) "
              (cdr (assoc 'foreground-color default-frame-alist))
              (cdr (assoc 'background-color default-frame-alist)))
-    (message "modes: whitespace-mode(%S) rainbow-mode(%S) idle-highlight-mode(%S) fic-mode(%S)"
+    (message "modes: whitespace-mode(%S) global-whitespace-mode(%S) rainbow-mode(%S) idle-highlight-mode(%S) fic-mode(%S)"
              (if (boundp 'whitespace-mode) whitespace-mode nil)
+             (if (boundp 'global-whitespace-mode) global-whitespace-mode nil)
              (if (boundp 'rainbow-mode) rainbow-mode nil)
              (if (boundp 'idle-highlight-mode) idle-highlight-mode nil)
              (if (boundp 'fic-mode) fic-mode nil)
