@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.74
+;; Version: 7.0.75
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.74"
+(defconst web-mode-version "7.0.75"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -161,15 +161,15 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   :type 'integer
   :group 'web-mode)
 
-;; (defcustom web-mode-extra-snippets '()
-;;   "A list of snippets."
-;;   :type 'list
-;;   :group 'web-mode)
+(defcustom web-mode-extra-auto-pairs '()
+  "A list of additional snippets."
+  :type 'list
+  :group 'web-mode)
 
-;; (defcustom web-mode-extra-auto-pairs '()
-;;   "A list of auto-pairs."
-;;   :type 'list
-;;   :group 'web-mode)
+(defcustom web-mode-extra-snippets '()
+  "A list of additional snippets."
+  :type 'list
+  :group 'web-mode)
 
 (defcustom web-mode-extra-php-constants '()
   "A list of additional strings to treat as PHP constants."
@@ -892,8 +892,10 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(("tag-case"          . "lower-case")
     ("attr-case"         . "lower-case")
     ("special-chars"     . "unicode") ;; "unicode" "entities"
+    ("css-indentation"   . t)
     ("smart-apostrophes" . t)
     ("smart-quotes"      . t)
+    ("whitespaces"       . t)
     ("indentation"       . t))
   "Normalization rules")
 
@@ -1317,7 +1319,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-razor-font-lock-keywords
   (list
    '("@" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
+   (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>")
+         '(1 'web-mode-keyword-face t t))
 ;;   '("\\([[:alnum:]]+\\):" 1 'web-mode-symbol-face)
    '("@\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("@\\([[:alnum:]_.]+\\)" 1 'web-mode-variable-name-face)
@@ -1332,7 +1335,8 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("{/?\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
    '("{param[ ]+\\([[:alnum:]]+\\)" 1 'web-mode-symbol-face)
    '("\\<\\(true\\|false\\|null\\)\\>" 1 'web-mode-type-face)
-   (cons (concat "\\<\\(" web-mode-closure-keywords "\\)\\>") '(1 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-closure-keywords "\\)\\>")
+         '(1 'web-mode-keyword-face))
    '("{\\(alias\\|call\\|delcall\\|delpackage\\|deltemplate\\|namespace\\|template\\)[ ]+\\([[:alnum:].]+\\)" 2 'web-mode-constant-face)
    '("\\(allowemptydefault\\|data\\|desc\\|meaning\\|autoescape\\|private\\|variant\\)=" 0 'web-mode-block-attr-name-face)
    '("|\\([[:alpha:]]+\\)" 1 'web-mode-function-call-face)
@@ -1344,8 +1348,10 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("{{\\|}}" 0 'web-mode-preprocessor-face)
    '("{{\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
-   (cons (concat "\\<\\(" web-mode-go-keywords "\\)\\>") '(1 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-go-functions "\\)\\>") '(1 'web-mode-function-call-face))
+   (cons (concat "\\<\\(" web-mode-go-keywords "\\)\\>")
+         '(1 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-go-functions "\\)\\>")
+         '(1 'web-mode-function-call-face))
    '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
    ))
 
@@ -1363,9 +1369,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-selector-font-lock-keywords
   (list
-   (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>") '(1 'web-mode-css-at-rule-face))
+   (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>")
+         '(1 'web-mode-css-at-rule-face))
    '("\\<\\(all\|braille\\|embossed\\|handheld\\|print\\|projection\\|screen\\|speech\\|tty\\|tv\\|and\\|or\\)\\>" 1 'web-mode-keyword-face)
-   (cons (concat ":\\(" web-mode-css-pseudo-classes "\\)\\>") '(1 'web-mode-css-pseudo-class-face))
+   (cons (concat ":\\(" web-mode-css-pseudo-classes "\\)\\>")
+         '(1 'web-mode-css-pseudo-class-face))
    '("[[:alnum:]-]+" 0 'web-mode-css-selector-face)
    '("\\[.*?\\]\\|(.*?)" 0 nil t t)
    '("url(\\(.+?\\))" 1 'web-mode-string-face)
@@ -1391,8 +1399,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-javascript-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-javascript-constants "\\)\\>") '(0 'web-mode-constant-face))
+   (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>")
+         '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-javascript-constants "\\)\\>")
+         '(0 'web-mode-constant-face))
    '("\\<\\(new\\|instanceof\\) \\([[:alnum:]_.]+\\)\\>" 2 'web-mode-type-face)
    '("\\<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
    '("\\<function[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
@@ -1409,7 +1419,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-underscore-font-lock-keywords
   (list
    '("<%[-=]?\\|%>" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>")
+         '(0 'web-mode-keyword-face))
    '("\\<\\(_\.[[:alpha:]]+\\)(" 1 'web-mode-function-call-face)
    '("\\<new \\([[:alnum:]_.]+\\)\\>" 1 'web-mode-type-face)
    '("\\<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
@@ -1464,7 +1475,8 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\[/?[#@]\\|/?>\\|/?\\]" 0 'web-mode-preprocessor-face)
    '("\\[/?[#@]\\([[:alpha:]_.]*\\)" 1 'web-mode-block-control-face)
    '("#\\(macro\\|function\\) \\([[:alpha:]]+\\)" 2 'web-mode-function-name-face)
-   (cons (concat "\\<\\(" web-mode-freemarker-keywords "\\)\\>") '(1 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-freemarker-keywords "\\)\\>")
+         '(1 'web-mode-keyword-face))
    '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alpha:]]\\([[:alnum:]_]+\\)?" 0 'web-mode-variable-name-face)
    ))
@@ -1774,6 +1786,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
   (when (boundp 'esk-pretty-lambdas) (esk-pretty-lambdas -1))
   (when (boundp 'esk-add-watchwords) (esk-add-watchwords -1))
+  (when (boundp 'fic-mode) (fic-mode -1))
   (when (boundp 'global-whitespace-mode) (global-whitespace-mode -1))
   (when (boundp 'idle-highlight-mode) (idle-highlight-mode -1))
   (when (boundp 'rainbow-mode) (rainbow-mode -1))
@@ -1786,8 +1799,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-yasnippet-exit-hook ()
   "Yasnippet exit hook"
-  (web-mode-scan-region yas-snippet-beg yas-snippet-end)
-  (indent-region yas-snippet-beg yas-snippet-end))
+  (when (and (boundp 'yas-snippet-beg) (boundp 'yas-snippet-end))
+    (web-mode-scan-region yas-snippet-beg yas-snippet-end)
+    (indent-region yas-snippet-beg yas-snippet-end))
+  )
 
 (defun web-mode-forward-sexp (&optional arg)
   "Move forward."
@@ -2830,10 +2845,7 @@ Must be used in conjunction with web-mode-enable-block-face."
          );cond
 
         (if (web-mode-sf-client expr limit t)
-;;        (if (skip-chars-forward "^>" limit)
             (progn
-;;              (forward-char)
-;;              (message "OK(%S): %S %S" limit tname (point))
               (setq attrs-end (- (point) (length expr))
                     tend (point)
                     close-found t)
@@ -2844,7 +2856,6 @@ Must be used in conjunction with web-mode-enable-block-face."
               );progn
           (setq attrs-end (line-end-position)
                 tend (line-end-position))
-;;          (message "KO(%S): %S %S" limit tname (point))
           );if
 
         (cond
@@ -2935,7 +2946,6 @@ Must be used in conjunction with web-mode-enable-block-face."
             ); when
 
           );when
-        ;;         ); cond tag
 
         ); while
 
@@ -3753,29 +3763,60 @@ Must be used in conjunction with web-mode-enable-block-face."
         );while
       )))
 
+;; todo : passer de règle en règle et mettre un \n à la fin
+(defun web-mode-css-indent ()
+  "Indent CSS parts"
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (let ((continue t) rule part-end)
+      (while continue
+        (if (web-mode-part-next)
+            (when (eq (get-text-property (point) 'part-language) 'css)
+              (setq part-end (web-mode-part-end-position))
+              (while (setq rule (web-mode-css-next-rule part-end))
+                (when (not (looking-at-p "[[:space:]]*\\($\\|<\\)"))
+                  (newline)
+                  (indent-for-tab-command)
+                  (setq part-end (web-mode-part-end-position)))
+                )
+              )
+          (setq continue nil)
+          )
+        )
+      )))
+
 ;; tag-case=lower|upper-case , attr-case=lower|upper-case
 ;; special-chars=unicode|html-entities
 ;; smart-apostrophes=bool , smart-quotes=bool , indentation=bool
 (defun web-mode-buffer-normalize ()
   "Normalize buffer"
   (interactive)
-  (let ((rules web-mode-normalization-rules) elt)
-    (when (setq elt (cdr (assoc "tag-case" rules)))
-      (web-mode-buffer-change-tag-case elt))
-    (when (setq elt (cdr (assoc "attr-case" rules)))
-      (web-mode-buffer-change-attr-case elt))
-    (when (setq elt (cdr (assoc "smart-apostrophes" rules)))
-      (web-mode-apostrophes-replace))
-    (when (setq elt (cdr (assoc "smart-quotes" rules)))
-      (web-mode-quotes-replace))
-    (when (setq elt (cdr (assoc "special-chars" rules)))
-      (if (string= elt "entities")
-          (web-mode-entities-encode)
-        (web-mode-entities-replace))
-      );when
-    (when (setq elt (cdr (assoc "indentation" rules)))
-      (web-mode-buffer-indent))
-      ))
+  (save-excursion
+    (let ((rules web-mode-normalization-rules) elt)
+      (when (setq elt (cdr (assoc "tag-case" rules)))
+        (web-mode-buffer-change-tag-case elt))
+      (when (setq elt (cdr (assoc "attr-case" rules)))
+        (web-mode-buffer-change-attr-case elt))
+      (when (setq elt (cdr (assoc "css-indentation" rules)))
+        (web-mode-css-indent))
+      (when (setq elt (cdr (assoc "smart-apostrophes" rules)))
+        (web-mode-apostrophes-replace))
+      (when (setq elt (cdr (assoc "smart-quotes" rules)))
+        (web-mode-quotes-replace))
+      (when (setq elt (cdr (assoc "special-chars" rules)))
+        (if (string= elt "entities")
+            (web-mode-entities-encode)
+          (web-mode-entities-replace)))
+      (when (setq elt (cdr (assoc "whitespaces" rules)))
+        (goto-char (point-min))
+        (while (not (eobp))
+          (forward-line)
+          (delete-blank-lines))
+        (delete-trailing-whitespace))
+      (when (setq elt (cdr (assoc "indentation" rules)))
+        (web-mode-buffer-indent))
+      )))
 
 (defun web-mode-previous-usable-server-line ()
   "Return previous non blank/comment/string line and return this line (trimmed)."
@@ -7265,6 +7306,22 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq pos (next-single-property-change pos 'block-side)))
   pos)
 
+(defun web-mode-part-next-position (&optional pos)
+  "web-mode-part-next-position"
+  (unless pos (setq pos (point)))
+  (if (get-text-property pos 'part-side)
+      (if (= pos (point-min))
+          (set pos (point-min))
+        (setq pos (web-mode-part-end-position pos))
+        (when (and pos (> (point-max) pos))
+          (setq pos (1+ pos))
+          (if (not (get-text-property pos 'part-side))
+              (setq pos (next-single-property-change pos 'part-side)))
+          );when
+        )
+    (setq pos (next-single-property-change pos 'part-side)))
+  pos)
+
 ;;--- /positions
 
 ;;--- nav
@@ -7343,7 +7400,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      ((and (not (bobp))
            (get-text-property (1- (point)) 'tag-end))
       (setq mb (point)
-            me (web-mode-tag-beginning-position (1- point)))
+            me (web-mode-tag-beginning-position (1- (point))))
       )
      );cond
 
@@ -7593,6 +7650,15 @@ Must be used in conjunction with web-mode-enable-block-face."
   (when pos (goto-char pos))
   pos)
 
+(defun web-mode-part-next (&optional pos)
+  "Move point to the beginning of the next part."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (setq pos (web-mode-part-next-position pos))
+  (when pos (goto-char pos))
+  pos)
+
+
 (defun web-mode-block-beginning (&optional pos)
   "Move point to the beginning of the current block."
   (interactive)
@@ -7656,7 +7722,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ret))
 
 (defun web-mode-rsb-client (regexp &optional limit noerror)
-  "re-search-backward in client."
+  "re-search-backward outside blocks."
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
@@ -7668,7 +7734,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ret))
 
 (defun web-mode-rsf-client (regexp &optional limit noerror)
-  "re-search-forward in client."
+  "re-search-forward outside blocks."
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
@@ -7676,11 +7742,11 @@ Must be used in conjunction with web-mode-enable-block-face."
       (if (or (null ret)
               (not (get-text-property (match-beginning 0) 'block-side)))
           (setq continue nil))
-      );while
+      )
     ret))
 
 (defun web-mode-sf-client (expr &optional limit noerror)
-  "search-forward in client."
+  "search-forward outside blocks."
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
