@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.75
+;; Version: 7.0.76
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.75"
+(defconst web-mode-version "7.0.76"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -6499,9 +6499,12 @@ Must be used in conjunction with web-mode-enable-block-face."
       (insert ins)
       (save-excursion
         (search-backward "<")
-        (setq jump (looking-back (concat "<" tag ">"))))
-      (when jump
-        (search-backward "<"))
+        (setq jump (and (eq (char-before) ?\>)
+                        (string= (get-text-property (1- (point)) 'tag-name) tag)))
+        (if jump (setq jump (point)))
+;;        (setq jump (looking-back (concat "<" tag ">")))
+        );save-excursion
+      (if jump (goto-char jump))
       );when epp
     epp
     ))
