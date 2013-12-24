@@ -1630,7 +1630,6 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map [menu-bar wm snippet] '(menu-item "Insert snippet" web-mode-snippet-insert))
     (define-key map [menu-bar wm entities] '(menu-item "Replace HTML entities" web-mode-entities-replace))
 
-    (define-key map (kbd "C-;")       'web-mode-comment-or-uncomment)
     (define-key map (kbd "M-;")       'web-mode-comment-or-uncomment)
 
     (define-key map (kbd "C-c C-c")   'web-mode-block-close)
