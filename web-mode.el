@@ -1413,7 +1413,6 @@ Must be used in conjunction with web-mode-enable-block-face."
      (1 'web-mode-keyword-face)
      ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
    '("\\([[:alnum:]_]+\\):" 1 'web-mode-variable-name-face)
-;;   '("/[^/]+/" 0 'web-mode-string-face)
    ))
 
 (defvar web-mode-underscore-font-lock-keywords
