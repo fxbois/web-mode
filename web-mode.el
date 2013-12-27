@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.78
+;; Version: 7.0.79
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.78"
+(defconst web-mode-version "7.0.79"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1769,6 +1769,9 @@ Must be used in conjunction with web-mode-enable-block-face."
                  )
                nil)
             t t)
+
+
+
   (cond
    ((boundp 'yas-after-exit-snippet-hook)
     (add-hook 'yas-after-exit-snippet-hook
@@ -1783,19 +1786,31 @@ Must be used in conjunction with web-mode-enable-block-face."
   (when web-mode-enable-whitespaces
     (web-mode-whitespaces-on))
 
-  (when (boundp 'esk-pretty-lambdas) (esk-pretty-lambdas -1))
-  (when (boundp 'esk-add-watchwords) (esk-add-watchwords -1))
-  (when (boundp 'fic-mode) (fic-mode -1))
-  (when (boundp 'fic-ext-mode) (fic-ext-mode -1))
-  (when (boundp 'global-whitespace-mode) (global-whitespace-mode -1))
-  (when (boundp 'idle-highlight-mode) (idle-highlight-mode -1))
-  (when (boundp 'rainbow-mode) (rainbow-mode -1))
-  (when (boundp 'whitespace-mode) (whitespace-mode -1))
-
   (web-mode-guess-engine-and-content-type)
   (web-mode-scan-buffer)
 
   )
+
+(add-hook 'web-mode-hook
+          (lambda()
+            (let (mode modes found)
+              (setq modes '(esk-add-watchwords
+                            esk-pretty-lambdas
+                            fic-ext-mode
+                            fic-mode
+                            global-whitespace-mode
+                            idle-highlight-mode
+                            rainbow-mode
+                            whitespace-mode))
+              (dolist (mode modes)
+                (when (boundp mode)
+                  (message "=> %S has been disabled" mode)
+                  (setq found t)
+                  (funcall mode -1))
+                );dolist
+              (when found
+                (web-mode-scan-buffer))
+              )))
 
 (defun web-mode-yasnippet-exit-hook ()
   "Yasnippet exit hook"
