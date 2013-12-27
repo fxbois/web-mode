@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.77
+;; Version: 7.0.78
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.77"
+(defconst web-mode-version "7.0.78"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1786,6 +1786,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (when (boundp 'esk-pretty-lambdas) (esk-pretty-lambdas -1))
   (when (boundp 'esk-add-watchwords) (esk-add-watchwords -1))
   (when (boundp 'fic-mode) (fic-mode -1))
+  (when (boundp 'fic-ext-mode) (fic-ext-mode -1))
   (when (boundp 'global-whitespace-mode) (global-whitespace-mode -1))
   (when (boundp 'idle-highlight-mode) (idle-highlight-mode -1))
   (when (boundp 'rainbow-mode) (rainbow-mode -1))
