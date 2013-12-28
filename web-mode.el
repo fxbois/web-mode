@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.79
+;; Version: 7.0.80
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -43,7 +43,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.79"
+(defconst web-mode-version "7.0.80"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -765,12 +765,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engines-closing-blocks
   '(
-
     ("php"       . (("if"      . "<?php endif; ?>")
                     ("for"     . "<?php endfor; ?>")
                     ("foreach" . "<?php endforeach; ?>")
                     ("while"   . "<?php endwhile; ?>")))
-
     )
   "Closing blocks (see web-mode-block-close)"
   )
@@ -1802,14 +1800,21 @@ Must be used in conjunction with web-mode-enable-block-face."
                             idle-highlight-mode
                             rainbow-mode
                             whitespace-mode))
+
+;;              (message "==> %S" column-number-mode)
+
+;;              (when (and (boundp 'global-whitespace-mode) global-whitespace-mode)
+;;                (message "==> %S" global-whitespace-mode))
               (dolist (mode modes)
-                (when (boundp mode)
-                  (message "=> %S has been disabled" mode)
+;;                (message "> %S (%S) has been disabled" mode (symbol-value mode))
+                (when (and (boundp mode) (symbol-value mode))
+                  (message "=> %S (%S) has been disabled" mode (symbol-value mode))
                   (setq found t)
                   (funcall mode -1))
                 );dolist
               (when found
-                (web-mode-scan-buffer))
+;;                (web-mode-scan-buffer)
+                )
               )))
 
 (defun web-mode-yasnippet-exit-hook ()
@@ -2809,11 +2814,16 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-scan-parts (beg end)
   "Scan client side blocks (JavaScript / CSS / HTML Comments) and identifies strings and comments."
   (save-excursion
-    (let (open limit close expr props closing-string tname tbeg tend tstop tface element-content-type attrs-end close-found is-tag slash-beg slash-end)
+    (let (open limit close expr props closing-string tname tbeg tend tstop tface element-content-type attrs-end close-found is-tag slash-beg slash-end regexp regexp1 regexp2)
+
+      (setq regexp1 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!doctype\\|\?xml\\)"
+            regexp2 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\)")
+
+      (setq regexp regexp1)
 
       (goto-char beg)
 
-      (while (web-mode-rsf-client "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!doctype\\|\?xml\\)" end t)
+      (while (web-mode-rsf-client regexp end t)
         (setq tname (downcase (match-string-no-properties 1))
               tbeg (match-beginning 0)
               tend nil
@@ -2835,10 +2845,12 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq expr "-->"
                 props '(tag-name "comment" tag-type void part-side t part-token comment face web-mode-comment-face)))
          ((string= tname "?xml")
-          (setq expr "?>"
+          (setq regexp regexp2
+                expr "?>"
                 props '(tag-name "doctype" tag-type void face web-mode-doctype-face)))
          ((string= tname "!doctype")
-          (setq props '(tag-name "doctype" tag-type void face web-mode-doctype-face))
+          (setq regexp regexp2
+                props '(tag-name "doctype" tag-type void face web-mode-doctype-face))
 ;;          (setq expr ">")
           )
          (t
@@ -7946,8 +7958,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-trace (msg)
   "Benchmark."
   (interactive)
-  (let (sub)
-    (when nil
+  (let (sub trace)
+;;    (setq trace t)
+    (when trace
       (when (null web-mode-time) (setq web-mode-time (current-time)))
       (setq sub (time-subtract (current-time) web-mode-time))
       (message "%18s: time elapsed = %Ss %9Sµs" msg (nth 1 sub) (nth 2 sub))
