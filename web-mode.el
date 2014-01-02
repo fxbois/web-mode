@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2013 François-Xavier Bois
 
-;; Version: 7.0.80
+;; Version: 7.0.82
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,6 +36,7 @@
 
 ;; Code goes here
 
+;;todo : finir filling
 ;;todo : screenshot : http://www.cockos.com/licecap/
 ;;todo : better default colors for tags & attrs
 ;;todo : passer les content-types en symboles
@@ -43,7 +44,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.80"
+(defconst web-mode-version "7.0.82"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -144,8 +145,9 @@ See web-mode-part-face."
 
 (defcustom web-mode-comment-style 1
   "Comment style : 1 = default, 2 = force server comments outside a block."
-  :type 'integer
-  :group 'web-mode)
+  :group 'web-mode
+  :type '(choice (const :tag "default" 1)
+                 (const :tag "force engine comments" 2)))
 
 (defcustom web-mode-indent-style 2
   "Indentation style.
@@ -1581,69 +1583,63 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-map
   (let ((map (make-sparse-keymap)))
 
-    (define-key map [menu-bar wm] (cons "Web-Mode" (make-sparse-keymap)))
-    (define-key map [menu-bar wm blk] (cons "Block" (make-sparse-keymap)))
-    (define-key map [menu-bar wm tag] (cons "Html Tag" (make-sparse-keymap)))
-    (define-key map [menu-bar wm elt] (cons "Html Element" (make-sparse-keymap)))
+    (define-key map [menu-bar wm]             (cons "Web-Mode" (make-sparse-keymap)))
+    (define-key map [menu-bar wm dom]         (cons "Dom" (make-sparse-keymap)))
+    (define-key map [menu-bar wm blk]         (cons "Block" (make-sparse-keymap)))
+    (define-key map [menu-bar wm tag]         (cons "Html Tag" (make-sparse-keymap)))
+    (define-key map [menu-bar wm elt]         (cons "Html Element" (make-sparse-keymap)))
 
-    (define-key map [menu-bar wm sep-1] '(menu-item "--"))
+    (define-key map [menu-bar wm sep-1]       '(menu-item "--"))
+
+    (define-key map [menu-bar wm dom dom-apo] '(menu-item "Replace apostrophes" web-mode-dom-apostrophes-replace))
+    (define-key map [menu-bar wm dom dom-nor] '(menu-item "Normalise" web-mode-dom-normalize))
+    (define-key map [menu-bar wm dom dom-quo] '(menu-item "Replace dumb quotes" web-mode-dom-quotes-replace))
+    (define-key map [menu-bar wm dom dom-ent] '(menu-item "Replace HTML entities" web-mode-dom-entities-replace))
+    (define-key map [menu-bar wm dom dom-err] '(menu-item "Show error(s)" web-mode-dom-errors-show))
+    (define-key map [menu-bar wm dom dom-tra] '(menu-item "Traverse" web-mode-dom-traverse))
+    (define-key map [menu-bar wm dom dom-xpa] '(menu-item "XPath" web-mode-dom-xpath))
+
     (define-key map [menu-bar wm blk blk-sel] '(menu-item "Select" web-mode-block-select))
-    (define-key map [menu-bar wm blk blk-kill] '(menu-item "Kill" web-mode-block-kill))
-    (define-key map [menu-bar wm blk blk-next] '(menu-item "Next" web-mode-block-next))
-    (define-key map [menu-bar wm blk blk-prev] '(menu-item "Previous" web-mode-block-previous))
+    (define-key map [menu-bar wm blk blk-kil] '(menu-item "Kill" web-mode-block-kill))
+    (define-key map [menu-bar wm blk blk-nex] '(menu-item "Next" web-mode-block-next))
+    (define-key map [menu-bar wm blk blk-pre] '(menu-item "Previous" web-mode-block-previous))
     (define-key map [menu-bar wm blk blk-end] '(menu-item "End" web-mode-block-beginning))
     (define-key map [menu-bar wm blk blk-beg] '(menu-item "Beginning" web-mode-block-beginning))
-    (define-key map [menu-bar wm blk blk-close] '(menu-item "Close" web-mode-block-close))
+    (define-key map [menu-bar wm blk blk-clo] '(menu-item "Close" web-mode-block-close))
 
     (define-key map [menu-bar wm tag tag-sel] '(menu-item "Select" web-mode-tag-select))
-    (define-key map [menu-bar wm tag tag-match] '(menu-item "Match" web-mode-tag-match))
-    (define-key map [menu-bar wm tag tag-next] '(menu-item "Next" web-mode-tag-next))
-    (define-key map [menu-bar wm tag tag-prev] '(menu-item "Previous" web-mode-tag-previous))
+    (define-key map [menu-bar wm tag tag-mat] '(menu-item "Match" web-mode-tag-match))
+    (define-key map [menu-bar wm tag tag-nex] '(menu-item "Next" web-mode-tag-next))
+    (define-key map [menu-bar wm tag tag-pre] '(menu-item "Previous" web-mode-tag-previous))
     (define-key map [menu-bar wm tag tag-end] '(menu-item "End" web-mode-tag-beginning))
     (define-key map [menu-bar wm tag tag-beg] '(menu-item "Beginning" web-mode-tag-beginning))
 
-    (define-key map [menu-bar wm elt elt-in] '(menu-item "Inner Content" web-mode-element-content-select))
-    (define-key map [menu-bar wm elt elt-parent] '(menu-item "Parent" web-mode-element-parent))
     (define-key map [menu-bar wm elt elt-sel] '(menu-item "Select" web-mode-element-select))
     (define-key map [menu-bar wm elt elt-ren] '(menu-item "Rename" web-mode-element-rename))
+    (define-key map [menu-bar wm elt elt-par] '(menu-item "Parent" web-mode-element-parent))
+    (define-key map [menu-bar wm elt elt-inn] '(menu-item "Content (select)" web-mode-element-content-select))
     (define-key map [menu-bar wm elt elt-dup] '(menu-item "Clone" web-mode-element-clone))
-    (define-key map [menu-bar wm elt elt-close] '(menu-item "Close" web-mode-element-close))
-    (define-key map [menu-bar wm elt elt-trav] '(menu-item "Traverse DOM" web-mode-element-traverse))
-    (define-key map [menu-bar wm elt elt-child] '(menu-item "Child" web-mode-element-child))
-    (define-key map [menu-bar wm elt elt-del] '(menu-item "Kill" web-mode-element-kill))
-    (define-key map [menu-bar wm elt elt-next] '(menu-item "Next" web-mode-element-next))
-    (define-key map [menu-bar wm elt elt-prev] '(menu-item "Previous" web-mode-element-previous))
-    (define-key map [menu-bar wm elt elt-end] '(menu-item "End" web-mode-element-end))
-    (define-key map [menu-bar wm elt elt-beg] '(menu-item "Beginning" web-mode-element-beginning))
+    (define-key map [menu-bar wm elt elt-clo] '(menu-item "Close" web-mode-element-close))
+
+    (define-key map [menu-bar wm elt elt-wra] '(menu-item "Wrap" web-mode-element-wrap))
     (define-key map [menu-bar wm elt elt-van] '(menu-item "Vanish" web-mode-element-vanish))
+    (define-key map [menu-bar wm elt elt-pre] '(menu-item "Previous" web-mode-element-previous))
+    (define-key map [menu-bar wm elt elt-nex] '(menu-item "Next" web-mode-element-next))
+    (define-key map [menu-bar wm elt elt-exc] '(menu-item "Transpose" web-mode-element-transpose))
+    (define-key map [menu-bar wm elt elt-end] '(menu-item "End" web-mode-element-end))
+    (define-key map [menu-bar wm elt elt-del] '(menu-item "Kill" web-mode-element-kill))
+    (define-key map [menu-bar wm elt elt-chi] '(menu-item "Child" web-mode-element-child))
+    (define-key map [menu-bar wm elt elt-beg] '(menu-item "Beginning" web-mode-element-beginning))
 
-    (define-key map [menu-bar wm err] '(menu-item "Show error(s)" web-mode-errors-show))
-    (define-key map [menu-bar wm fold] '(menu-item "Fold/Unfold" web-mode-fold-or-unfold))
-    (define-key map [menu-bar wm indent] '(menu-item "Indent buffer" web-mode-buffer-indent))
-    (define-key map [menu-bar wm nav] '(menu-item "Tag/Block navigation" web-mode-tag-match))
-    (define-key map [menu-bar wm expand] '(menu-item "Mark and Expand" web-mode-mark-and-expand))
-    (define-key map [menu-bar wm space] '(menu-item "Toggle whitespaces" web-mode-whitespaces-show))
-    (define-key map [menu-bar wm xpath] '(menu-item "XPath" web-mode-xpath))
-    (define-key map [menu-bar wm snippet] '(menu-item "Insert snippet" web-mode-snippet-insert))
-    (define-key map [menu-bar wm entities] '(menu-item "Replace HTML entities" web-mode-entities-replace))
+    (define-key map [menu-bar wm fol]         '(menu-item "Fold/Unfold" web-mode-fold-or-unfold))
+    (define-key map [menu-bar wm ind]         '(menu-item "Indent buffer" web-mode-buffer-indent))
+    (define-key map [menu-bar wm nav]         '(menu-item "Tag/Block navigation" web-mode-tag-match))
+    (define-key map [menu-bar wm exp]         '(menu-item "Mark and Expand" web-mode-mark-and-expand))
+    (define-key map [menu-bar wm spa]         '(menu-item "Toggle whitespaces" web-mode-whitespaces-show))
+    (define-key map [menu-bar wm sni]         '(menu-item "Insert snippet" web-mode-snippet-insert))
 
-    (define-key map (kbd "C-;")       'web-mode-comment-or-uncomment)
-    (define-key map (kbd "M-;")       'web-mode-comment-or-uncomment)
-
-    (define-key map (kbd "C-c C-c")   'web-mode-block-close)
-    (define-key map (kbd "C-c C-d")   'web-mode-errors-show)
-    (define-key map (kbd "C-c C-f")   'web-mode-fold-or-unfold)
-    (define-key map (kbd "C-c C-i")   'web-mode-buffer-indent)
-    (define-key map (kbd "C-c C-m")   'web-mode-mark-and-expand)
-    (define-key map (kbd "C-c C-n")   'web-mode-buffer-normalize)
-    (define-key map (kbd "C-c C-r")   'web-mode-entities-replace)
-    (define-key map (kbd "C-c C-s")   'web-mode-snippet-insert)
-    (define-key map (kbd "C-c C-x")   'web-mode-xpath)
-    (define-key map (kbd "C-c C-w")   'web-mode-whitespaces-show)
-
-    (define-key map (kbd "C-c /")     'web-mode-element-close)
-    (define-key map (kbd "C-c <")     'web-mode-element-beginning)
-    (define-key map (kbd "C-c >")     'web-mode-element-end)
+    ;;--------------------------------------------------------------------------
+    ;; "C-c letter"  are reserved for users
 
     (define-key map (kbd "C-c C-b c") 'web-mode-block-close)
     (define-key map (kbd "C-c C-b b") 'web-mode-block-beginning)
@@ -1652,6 +1648,14 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map (kbd "C-c C-b n") 'web-mode-block-next)
     (define-key map (kbd "C-c C-b p") 'web-mode-block-previous)
     (define-key map (kbd "C-c C-b s") 'web-mode-block-select)
+
+    (define-key map (kbd "C-c C-d a") 'web-mode-dom-apostrophes-replace)
+    (define-key map (kbd "C-c C-d n") 'web-mode-dom-normalize)
+    (define-key map (kbd "C-c C-d d") 'web-mode-dom-errors-show)
+    (define-key map (kbd "C-c C-d e") 'web-mode-dom-entities-replace)
+    (define-key map (kbd "C-c C-d q") 'web-mode-dom-quotes-replace)
+    (define-key map (kbd "C-c C-d t") 'web-mode-dom-traverse)
+    (define-key map (kbd "C-c C-d x") 'web-mode-dom-xpath)
 
     (define-key map (kbd "C-c C-e b") 'web-mode-element-beginning)
     (define-key map (kbd "C-c C-e c") 'web-mode-element-clone)
@@ -1663,9 +1667,10 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map (kbd "C-c C-e p") 'web-mode-element-previous)
     (define-key map (kbd "C-c C-e r") 'web-mode-element-rename)
     (define-key map (kbd "C-c C-e s") 'web-mode-element-select)
-    (define-key map (kbd "C-c C-e t") 'web-mode-element-traverse)
+    (define-key map (kbd "C-c C-e t") 'web-mode-element-transpose)
     (define-key map (kbd "C-c C-e u") 'web-mode-element-parent)
     (define-key map (kbd "C-c C-e v") 'web-mode-element-vanish)
+    (define-key map (kbd "C-c C-e w") 'web-mode-element-wrap)
 
     (define-key map (kbd "C-c C-t b") 'web-mode-tag-beginning)
     (define-key map (kbd "C-c C-t e") 'web-mode-tag-end)
@@ -1674,11 +1679,35 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map (kbd "C-c C-t p") 'web-mode-tag-previous)
     (define-key map (kbd "C-c C-t s") 'web-mode-tag-select)
 
+    ;;--------------------------------------------------------------------------
+
+    (define-key map (kbd "C-;")       'web-mode-comment-or-uncomment)
+    (define-key map (kbd "M-;")       'web-mode-comment-or-uncomment)
+
+    ;;C-c C-b : block
+    ;;C-c C-d : dom
+    ;;C-c C-e : element
+    (define-key map (kbd "C-c C-f")   'web-mode-fold-or-unfold)
+    (define-key map (kbd "C-c C-i")   'web-mode-buffer-indent)
+    (define-key map (kbd "C-c C-m")   'web-mode-mark-and-expand)
+    (define-key map (kbd "C-c C-s")   'web-mode-snippet-insert)
+    ;;C-c C-t : tag
+    (define-key map (kbd "C-c C-w")   'web-mode-whitespaces-show)
+
     ;; compatibility with nxml
-    (define-key map (kbd "M-C-u")     'web-mode-element-parent)
-    (define-key map (kbd "M-C-d")     'web-mode-element-child)
-    (define-key map (kbd "M-C-n")     'web-mode-element-next)
-    (define-key map (kbd "M-C-p")     'web-mode-element-previous)
+    ;;(define-key map (kbd "M-C-u")     'web-mode-element-parent)
+    ;;(define-key map (kbd "M-C-d")     'web-mode-element-child)
+    ;;(define-key map (kbd "M-C-n")     'web-mode-element-next)
+    ;;(define-key map (kbd "M-C-p")     'web-mode-element-previous)
+
+    ;;(define-key map (kbd "C-c /")     'web-mode-element-close)
+    ;;(define-key map (kbd "C-c <")     'web-mode-element-beginning)
+    ;;(define-key map (kbd "C-c >")     'web-mode-element-end)
+
+    ;;(define-key map (kbd "C-c C-c")   'web-mode-block-close)
+    ;;(define-key map (kbd "C-c C-n")   'web-mode-tag-match)
+    ;;(define-key map (kbd "C-c C-p")   'web-mode-element-parent)
+    ;;(define-key map (kbd "C-c C-v")   'web-mode-dom-traverse)
 
     map)
   "Keymap for `web-mode'.")
@@ -3591,7 +3620,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                   delim-end "EOL"))
            ((string= chunk "/*")
             (setq delim-beg "/*"
-                 delim-end "*/"))
+                  delim-end "*/"))
            ((string= chunk "{#")
             (setq delim-beg "{#"
                   delim-end "#}"))
@@ -3646,7 +3675,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       );while
     ))
 
-(defun web-mode-errors-show ()
+(defun web-mode-dom-errors-show ()
   "Show unclosed tags."
   (interactive)
   (let (beg end tag pos l n tags i cont cell overlay overlays first
@@ -3832,13 +3861,13 @@ Must be used in conjunction with web-mode-enable-block-face."
       (when (setq elt (cdr (assoc "css-indentation" rules)))
         (web-mode-css-indent))
       (when (setq elt (cdr (assoc "smart-apostrophes" rules)))
-        (web-mode-apostrophes-replace))
+        (web-mode-dom-apostrophes-replace))
       (when (setq elt (cdr (assoc "smart-quotes" rules)))
-        (web-mode-quotes-replace))
+        (web-mode-dom-quotes-replace))
       (when (setq elt (cdr (assoc "special-chars" rules)))
         (if (string= elt "entities")
-            (web-mode-entities-encode)
-          (web-mode-entities-replace)))
+            (web-mode-dom-entities-encode)
+          (web-mode-dom-entities-replace)))
       (when (setq elt (cdr (assoc "whitespaces" rules)))
         (goto-char (point-min))
         (while (not (eobp))
@@ -5169,6 +5198,82 @@ Must be used in conjunction with web-mode-enable-block-face."
       );if
     ))
 
+(defun web-mode-element-transpose ()
+  "Transpose two HTML elements."
+  (interactive)
+  (let (pos start1 end1 start2 end2)
+    (save-excursion
+      (setq pos (point))
+      (cond
+       ((get-text-property pos 'tag-type)
+        (setq start1 (web-mode-element-beginning-position pos)
+            end1 (1+ (web-mode-element-end-position pos)))
+        )
+       ((setq start1 (web-mode-element-parent-position pos))
+        (setq end1 (1+ (web-mode-element-end-position pos)))
+        )
+       );cond
+      (when (and start1 end1 (> end1 0))
+        (goto-char end1)
+        (unless (get-text-property (point) 'tag-beg)
+          (skip-chars-forward "\n\t "))
+        (when (get-text-property (point) 'tag-beg)
+          (setq start2 (web-mode-element-beginning-position (point))
+                end2 (1+ (web-mode-element-end-position (point))))
+          )
+        )
+      (transpose-regions start1 end1 start2 end2)
+      );save-excursion
+    start2
+    ))
+
+(defun web-mode-element-mute-blanks ()
+  "Mute blanks."
+  (interactive)
+  (let (beg end pos close)
+    (setq pos (point))
+    (save-excursion
+      (when (eq (get-text-property pos 'tag-type) 'end)
+        (web-mode-match-html-tag))
+      (when (and (eq (get-text-property pos 'tag-type) 'start)
+                 (setq close (web-mode-html-tag-match-position pos))
+                 (web-mode-element-child))
+        (setq beg (1+ (web-mode-tag-end-position)))
+
+        )
+
+      )))
+
+(defun web-mode-element-wrap ()
+  "Wrap current REGION with start and end tags."
+  (interactive)
+  (let (beg end pos tag sep)
+    (save-excursion
+      (setq tag (read-from-minibuffer "Tag name? "))
+      (setq pos (point))
+      (cond
+       (mark-active
+        (setq beg (region-beginning)
+              end (region-end)))
+       ((get-text-property pos 'tag-type)
+        (setq beg (web-mode-element-beginning-position pos)
+              end (1+ (web-mode-element-end-position pos)))
+        )
+       ((setq beg (web-mode-element-parent-position pos))
+        (setq end (1+ (web-mode-element-end-position pos)))
+        )
+       )
+      ;;      (message "beg(%S) end(%S)" beg end)
+      (when (and beg end (> end 0))
+        (setq sep (if (get-text-property beg 'tag-beg) "\n" ""))
+        (web-mode-insert-text-at-pos (concat sep "</" tag ">") end)
+        (web-mode-insert-text-at-pos (concat "<" tag ">" sep) beg)
+        (when (string= sep "\n") (indent-region beg (+ end (* (+ 3 (length tag)) 2))))
+        )
+      );save-excursion
+    (if beg (goto-char beg))
+    beg))
+
 (defun web-mode-element-vanish ()
   "Vanish the current HTML element. The content of the element is kept."
   (interactive)
@@ -5822,9 +5927,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-match-html-tag (&optional pos)
   "Fetch HTML block."
   (unless pos (setq pos (point)))
-  (let (tag regexp)
-    (setq tag (get-text-property pos 'tag-name))
-    (setq regexp (concat "</?" tag))
+  (let (regexp)
+    (setq regexp (concat "</?" (get-text-property pos 'tag-name)))
     (if (eq (get-text-property pos 'tag-type) 'end)
         (web-mode-fetch-html-opening-tag regexp pos)
       (web-mode-fetch-html-closing-tag regexp pos))
@@ -6626,10 +6730,12 @@ Must be used in conjunction with web-mode-enable-block-face."
                    (string= (get-text-property (- beg 1) 'tag-name)
                             (get-text-property end 'tag-name)))
           (setq auto-opened t)
-          (newline)
-          (indent-for-tab-command)
+          (newline-and-indent)
+          ;;(newline)
+          ;;(indent-for-tab-command)
           (forward-line -1)
-          (indent-for-tab-command))
+          (indent-for-tab-command)
+          )
 
         ;;-- auto-closing
         (when (and (> web-mode-tag-auto-close-style 0)
@@ -6806,7 +6912,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         )
       )))
 
-(defun web-mode-apostrophes-replace ()
+(defun web-mode-dom-apostrophes-replace ()
   "Replace ' with ’."
   (interactive)
   (save-excursion
@@ -6821,7 +6927,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         );while
       )))
 
-(defun web-mode-entities-encode ()
+(defun web-mode-dom-entities-encode ()
   "Replace special chars with HTML entities (e.g. é becomes &eacute;)"
   (save-excursion
     (let (regexp ms pair elt (min (point-min)) (max (point-max)))
@@ -6845,7 +6951,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       )))
 
 ;; ½ &frac12; &#189; &#x00BD;
-(defun web-mode-entities-replace ()
+(defun web-mode-dom-entities-replace ()
   "Replace HTML entities e.g. entities &eacute; &#233; &#x00E9; become é"
   (interactive)
   (save-excursion
@@ -6879,7 +6985,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         );while
       )))
 
-(defun web-mode-xml-replace ()
+(defun web-mode-dom-xml-replace ()
   "Replace &, > and < in HTML content."
   (interactive)
   (save-excursion
@@ -6893,7 +6999,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         (replace-match (cdr (assq (char-before) web-mode-xml-chars)) t t))
       )))
 
-(defun web-mode-quotes-replace ()
+(defun web-mode-dom-quotes-replace ()
   "Replace dumb quotes."
   (interactive)
   (save-excursion
@@ -7084,6 +7190,13 @@ Must be used in conjunction with web-mode-enable-block-face."
         );while
       pos)))
 
+(defun web-mode-html-tag-match-position (&optional pos)
+  "Html tag match position."
+  (unless pos (setq pos (point)))
+  (save-excursion
+    (web-mode-match-html-tag pos)
+    (if (= pos (point)) nil (point))))
+
 (defun web-mode-tag-match-position (&optional pos)
   "Match tag position."
   (unless pos (setq pos (point)))
@@ -7167,7 +7280,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    ((null (get-text-property pos 'tag-type))
     (setq pos (web-mode-element-parent-position)))
    ((eq (get-text-property pos 'tag-type) 'end)
-    (setq pos (web-mode-tag-match-position pos))
+    (setq pos (web-mode-html-tag-match-position pos))
     (setq pos (if (get-text-property pos 'tag-beg) pos nil)))
    ((member (get-text-property pos 'tag-type) '(start void))
     (setq pos (web-mode-tag-beginning-position pos)))
@@ -7183,7 +7296,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    ((null (get-text-property pos 'tag-type))
     (setq pos (web-mode-element-parent-position pos))
     (when pos
-      (setq pos (web-mode-tag-match-position pos))
+      (setq pos (web-mode-html-tag-match-position pos))
       (when pos (setq pos (web-mode-tag-end-position pos)))
       )
     )
@@ -7191,7 +7304,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq pos (web-mode-tag-end-position pos))
     )
    ((member (get-text-property pos 'tag-type) '(start))
-    (setq pos (web-mode-tag-match-position pos))
+    (setq pos (web-mode-html-tag-match-position pos))
     (when pos (setq pos (web-mode-tag-end-position pos))))
    (t
     (setq pos nil))
@@ -7607,7 +7720,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (when pos (goto-char pos))
   pos)
 
-(defun web-mode-element-traverse ()
+(defun web-mode-dom-traverse ()
   "Traverse html dom tree."
   (interactive)
   (cond
