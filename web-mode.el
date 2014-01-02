@@ -1,9 +1,9 @@
 ;;; web-mode.el --- major mode for editing html templates
 ;;; -*- coding: utf-8 -*-
 
-;; Copyright 2011-2013 François-Xavier Bois
+;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 7.0.82
+;; Version: 7.0.83
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -44,7 +44,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.82"
+(defconst web-mode-version "7.0.83"
   "Web Mode version.")
 
 (defgroup web-mode nil
