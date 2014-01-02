@@ -1796,8 +1796,6 @@ Must be used in conjunction with web-mode-enable-block-face."
                nil)
             t t)
 
-
-
   (cond
    ((boundp 'yas-after-exit-snippet-hook)
     (add-hook 'yas-after-exit-snippet-hook
@@ -1828,9 +1826,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                             idle-highlight-mode
                             rainbow-mode
                             whitespace-mode))
-
 ;;              (message "==> %S" column-number-mode)
-
 ;;              (when (and (boundp 'global-whitespace-mode) global-whitespace-mode)
 ;;                (message "==> %S" global-whitespace-mode))
               (dolist (mode modes)
@@ -1841,7 +1837,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                   (funcall mode -1))
                 );dolist
               (when found
-;;                (web-mode-scan-buffer)
+                (web-mode-scan-buffer)
                 )
               )))
 
