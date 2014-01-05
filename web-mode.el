@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 7.0.83
+;; Version: 7.0.84
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -44,7 +44,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.83"
+(defconst web-mode-version "7.0.84"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -287,7 +287,21 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
   :group 'web-mode-faces)
 
 (defface web-mode-html-tag-bracket-face
-  '((t :inherit web-mode-html-tag-face))
+;;  '((t :inherit web-mode-html-tag-face))
+  '((((class color) (min-colors 88) (background dark))
+     :foreground "Snow3")
+    (((class color) (min-colors 88) (background light))
+     :foreground "grey14")
+    (((class color) (min-colors 16) (background dark))
+     :foreground "Snow3")
+    (((class color) (min-colors 16) (background light))
+     :foreground "grey14")
+    (((class color) (min-colors 8))
+     :foreground "Snow3")
+    (((type tty) (class mono))
+     :inverse-video t)
+    (t
+     :foreground "Snow3"))
   "Face for HTML tags angle brackets (< and >)."
   :group 'web-mode-faces)
 
@@ -1622,11 +1636,13 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map [menu-bar wm elt elt-pre] '(menu-item "Previous" web-mode-element-previous))
     (define-key map [menu-bar wm elt elt-par] '(menu-item "Parent" web-mode-element-parent))
     (define-key map [menu-bar wm elt elt-nex] '(menu-item "Next" web-mode-element-next))
+    (define-key map [menu-bar wm elt elt-mut] '(menu-item "Mute blanks" web-mode-element-mute-blanks))
     (define-key map [menu-bar wm elt elt-del] '(menu-item "Kill" web-mode-element-kill))
     (define-key map [menu-bar wm elt elt-end] '(menu-item "End" web-mode-element-end))
     (define-key map [menu-bar wm elt elt-inn] '(menu-item "Content (select)" web-mode-element-content-select))
     (define-key map [menu-bar wm elt elt-clo] '(menu-item "Close" web-mode-element-close))
     (define-key map [menu-bar wm elt elt-dup] '(menu-item "Clone" web-mode-element-clone))
+    (define-key map [menu-bar wm elt elt-cfo] '(menu-item "Children fold" web-mode-element-children-fold-or-unfold))
     (define-key map [menu-bar wm elt elt-chi] '(menu-item "Child" web-mode-element-child))
     (define-key map [menu-bar wm elt elt-beg] '(menu-item "Beginning" web-mode-element-beginning))
 
@@ -1660,8 +1676,10 @@ Must be used in conjunction with web-mode-enable-block-face."
     (define-key map (kbd "C-c C-e c") 'web-mode-element-clone)
     (define-key map (kbd "C-c C-e d") 'web-mode-element-child)
     (define-key map (kbd "C-c C-e e") 'web-mode-element-end)
+    (define-key map (kbd "C-c C-e f") 'web-mode-element-children-fold-or-unfold)
     (define-key map (kbd "C-c C-e i") 'web-mode-element-content-select)
     (define-key map (kbd "C-c C-e k") 'web-mode-element-kill)
+    (define-key map (kbd "C-c C-e m") 'web-mode-element-mute-blanks)
     (define-key map (kbd "C-c C-e n") 'web-mode-element-next)
     (define-key map (kbd "C-c C-e p") 'web-mode-element-previous)
     (define-key map (kbd "C-c C-e r") 'web-mode-element-rename)
@@ -4380,7 +4398,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          ((or (and (eq (get-text-property pos 'tag-type) 'end)
-                   (web-mode-match-html-tag))
+                   (web-mode-html-tag-match))
               (and (string= web-mode-engine "razor")
                    (string-match-p "^[ \t]*}" line)
                    (funcall web-mode-engine-control-matcher))
@@ -4689,7 +4707,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;      (message "last-tag=%S" last-tag)
       (save-excursion
         (goto-char (cdr last-tag))
-        (web-mode-match-html-tag)
+        (web-mode-html-tag-match)
         (when (not (= (point) (cdr last-tag)))
           (setq n (point))
           (back-to-indentation)
@@ -5159,7 +5177,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (when mark-active
       (setq pos (point))
       (deactivate-mark)
-      (web-mode-tag-match)
+      (web-mode-html-tag-match)
       (setq end (point))
       (goto-char pos)
       (web-mode-tag-end)
@@ -5222,22 +5240,121 @@ Must be used in conjunction with web-mode-enable-block-face."
     start2
     ))
 
+(defun web-mode-element-children-fold-or-unfold (&optional pos)
+  "Un/fold all the children of the current element."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (let (child children)
+    (save-excursion
+      (setq children (reverse (web-mode-element-children-position pos)))
+      (dolist (child children)
+        (message "child(%S)" child)
+        (goto-char child)
+        (web-mode-fold-or-unfold)
+        )
+      )))
+
+;;todo : verif q il n y a pas deja un commentaire à l endroit de l insertion
 (defun web-mode-element-mute-blanks ()
   "Mute blanks."
   (interactive)
-  (let (beg end pos close)
+  (let (pos parent beg end child children)
     (setq pos (point))
     (save-excursion
-      (when (eq (get-text-property pos 'tag-type) 'end)
-        (web-mode-match-html-tag))
-      (when (and (eq (get-text-property pos 'tag-type) 'start)
-                 (setq close (web-mode-html-tag-match-position pos))
-                 (web-mode-element-child))
-        (setq beg (1+ (web-mode-tag-end-position)))
+      (when (and (setq parent (web-mode-element-boundaries pos))
+                 (setq child (web-mode-element-child-position (point))))
+        (setq children (reverse (web-mode-element-children-position)))
+;;        (message "%S %S" parent children)
+        ;;        (setq end (car (cdr parent)))
+        ;;        (message "end=%S" end)
+        (goto-char (car (cdr parent)))
+        (dolist (child children)
+          (setq elt (web-mode-element-boundaries child))
+          ;;          (message "child=%S elt=%S" child elt)
+          (when (> (point) (1+ (cddr elt)))
+            ;;(message "%S-->" (point))
+            ;;(message "%S<!--" (1+ (cddr elt)))
+            (when (and (not (eq (get-text-property (point) 'part-token) 'comment))
+                       (not (eq (get-text-property (1+ (cddr elt)) 'part-token) 'comment)))
+              (web-mode-insert-text-at-pos "-->" (point))
+              (web-mode-insert-text-at-pos "<!--" (1+ (cddr elt))))
+            )
+          (goto-char child)
+          )
+        (when (and (> (point) (1+ (cdr (car parent))))
+                   (not (eq (get-text-property (point) 'part-token) 'comment))
+                   (not (eq (get-text-property (1+ (cdr (car parent))) 'part-token) 'comment)))
+          (web-mode-insert-text-at-pos "-->" (point))
+          (web-mode-insert-text-at-pos "<!--" (1+ (cdr (car parent)))))
 
-        )
-
+        );when
       )))
+
+(defun web-mode-element-children-position (&optional pos)
+  (unless pos (setq pos (point)))
+  (let ((continue t) (i 0) children)
+    (save-excursion
+      (when (and (member (get-text-property pos 'tag-type) '(start end))
+                 (setq child (web-mode-element-child-position pos)))
+        (while continue
+          (setq i (1+ i))
+          (cond
+           ((= i 1)
+            (goto-char child)
+            )
+           ((web-mode-element-sibling-next)
+            )
+           (t
+            (setq continue nil)
+            )
+           );cond
+          (when (> i 100)
+            (message "** invalid loop **")
+            (setq continue nil))
+          (when continue
+;;            (message "child(%S)" (point))
+            (setq children (append children (list (point)))))
+          );while
+        );when
+      );save-excursion
+    children
+    ))
+
+;; return ((start-tag-beg . start-tag-end) . (end-tag-beg end-tag-end))
+;; car and cdr are the same with void elements
+(defun web-mode-element-boundaries (&optional pos)
+  "pos should be in a tag"
+  (unless pos (setq pos (point)))
+  (let (start-tag-beg start-tag-end end-tag-beg end-tag-end)
+    (save-excursion
+      (cond
+       ((eq (get-text-property pos 'tag-type) 'start)
+        (setq start-tag-beg (web-mode-tag-beginning-position pos)
+              start-tag-end (web-mode-tag-end-position pos))
+        (web-mode-html-tag-match pos)
+;;        (message "pos=%S point=%S" pos (point))
+        (setq end-tag-beg (point)
+              end-tag-end (web-mode-tag-end-position (point)))
+        )
+       ((eq (get-text-property pos 'tag-type) 'end)
+        (setq end-tag-beg (web-mode-tag-beginning-position pos)
+              end-tag-end (web-mode-tag-end-position pos))
+        (web-mode-html-tag-match pos)
+        (setq start-tag-beg (point)
+              start-tag-end (web-mode-tag-end-position (point)))
+        )
+       ((eq (get-text-property pos 'tag-type) 'void)
+        (setq start-tag-beg (web-mode-tag-beginning-position pos)
+              start-tag-end (web-mode-tag-end-position pos))
+        (setq end-tag-beg start-tag-beg
+              end-tag-end start-tag-end)
+        )
+       );cond
+      )
+    (if (and start-tag-beg start-tag-end end-tag-beg end-tag-end)
+        (cons (cons start-tag-beg start-tag-end) (cons end-tag-beg end-tag-end))
+      nil)
+    ))
 
 (defun web-mode-element-wrap ()
   "Wrap current REGION with start and end tags."
@@ -5377,13 +5494,15 @@ Must be used in conjunction with web-mode-enable-block-face."
     (eq (get-text-property (point) 'tag-type) 'void)
     ))
 
-(defun web-mode-fold-or-unfold ()
+(defun web-mode-fold-or-unfold (&optional pos)
   "Toggle folding on an HTML element or a control block."
   (interactive)
   (web-mode-with-silent-modifications
    (save-excursion
+     (if pos (goto-char pos))
      (let (beg-inside beg-outside end-inside end-outside overlay overlays regexp)
-       (back-to-indentation)
+       (when (looking-back "^[\t ]*")
+         (back-to-indentation))
        (setq overlays (overlays-at (point)))
        (cond
         ;; *** unfolding
@@ -5395,12 +5514,16 @@ Must be used in conjunction with web-mode-enable-block-face."
          (put-text-property beg-inside end-inside 'invisible nil)
          )
         ;; *** tag folding
-        ((eq (get-text-property (point) 'tag-type) 'start)
+        ((member (get-text-property (point) 'tag-type) '(start end))
+         (web-mode-tag-beginning)
+         (when (eq (get-text-property (point) 'tag-type) 'end)
+           (web-mode-html-tag-match)
+           )
          (setq beg-outside (point))
          (web-mode-tag-end)
          (setq beg-inside (point))
          (goto-char beg-outside)
-         (when (web-mode-tag-match)
+         (when (web-mode-html-tag-match)
            (setq end-inside (point))
            (web-mode-tag-end)
            (setq end-outside (point)))
@@ -5411,7 +5534,7 @@ Must be used in conjunction with web-mode-enable-block-face."
          (web-mode-block-end)
          (setq beg-inside (point))
          (goto-char beg-outside)
-         (when (web-mode-tag-match)
+         (when (web-mode-html-tag-match)
            (setq end-inside (point))
            (web-mode-block-end)
            (setq end-outside (point)))
@@ -5913,13 +6036,13 @@ Must be used in conjunction with web-mode-enable-block-face."
       (funcall web-mode-engine-control-matcher))
      ((member (get-text-property pos 'tag-type) '(start end))
       (web-mode-tag-beginning)
-      (web-mode-match-html-tag))
+      (web-mode-html-tag-match))
      (t
       (goto-char init))
      )
     ))
 
-(defun web-mode-match-html-tag (&optional pos)
+(defun web-mode-html-tag-match (&optional pos)
   "Fetch HTML block."
   (unless pos (setq pos (point)))
   (let (regexp)
@@ -5932,6 +6055,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-fetch-html-opening-tag (regexp pos)
   "Fetch opening HTML block."
   (let ((counter 1) (n 0))
+    (goto-char pos)
     (while (and (> counter 0) (re-search-backward regexp nil t))
       (when (get-text-property (point) 'tag-beg)
         (setq n (1+ n))
@@ -5945,6 +6069,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-fetch-html-closing-tag (regexp pos)
   "Fetch closing HTML closing block."
   (let ((counter 1) (n 0))
+;;    (message "regexp=%S pos=%S" regexp pos)
+    (goto-char pos)
     (web-mode-tag-end)
     (while (and (> counter 0) (re-search-forward regexp nil t))
       (when (get-text-property (match-beginning 0) 'tag-beg)
@@ -5953,6 +6079,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq counter (1- counter))
           (setq counter (1+ counter))))
       )
+;;    (message "n=%S" n)
     (if (> n 0)
         (web-mode-tag-beginning)
       (goto-char pos))
@@ -6646,7 +6773,7 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((eq (get-text-property pos 'tag-type) 'start)
         (setq start-beg (web-mode-tag-beginning-position pos)
               start-end (web-mode-tag-end-position pos))
-        (when (web-mode-match-html-tag)
+        (when (web-mode-html-tag-match)
           (setq end-beg (point)
                 end-end (web-mode-tag-end-position (point))))
 ;;        (message "%S %S %S %S" start-beg start-end end-beg end-end)
@@ -6654,7 +6781,7 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((eq (get-text-property pos 'tag-type) 'end)
         (setq end-beg (web-mode-tag-beginning-position pos)
               end-end (web-mode-tag-end-position pos))
-        (when (web-mode-match-html-tag)
+        (when (web-mode-html-tag-match)
           (setq start-beg (point)
                 start-end (web-mode-tag-end-position (point))))
         )
@@ -7189,7 +7316,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Html tag match position."
   (unless pos (setq pos (point)))
   (save-excursion
-    (web-mode-match-html-tag pos)
+    (web-mode-html-tag-match pos)
     (if (= pos (point)) nil (point))))
 
 (defun web-mode-tag-match-position (&optional pos)
@@ -7314,7 +7441,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (goto-char pos)
       (cond
        ((eq (get-text-property pos 'tag-type) 'start)
-        (web-mode-match-html-tag)
+        (web-mode-html-tag-match)
         (setq close (point))
         (goto-char pos)
         )
@@ -7323,11 +7450,11 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((eq (get-text-property pos 'tag-type) 'end)
         (web-mode-tag-beginning)
         (setq close (point))
-        (web-mode-match-html-tag)
+        (web-mode-html-tag-match)
         )
        ((web-mode-element-parent-position pos)
         (setq pos (point))
-        (web-mode-match-html-tag)
+        (web-mode-html-tag-match)
         (setq close (point))
         (goto-char pos)
         )
@@ -7658,13 +7785,13 @@ Must be used in conjunction with web-mode-enable-block-face."
       (cond
        ((not (get-text-property pos 'tag-type))
         (when (and (web-mode-element-parent)
-                   (web-mode-match-html-tag)
+                   (web-mode-html-tag-match)
                    (web-mode-element-next))
           (setq ret (point))
           )
         )
        ((eq (get-text-property pos 'tag-type) 'start)
-        (when (and (web-mode-match-html-tag)
+        (when (and (web-mode-html-tag-match)
                    (web-mode-element-next))
           (setq ret (point))
           )
