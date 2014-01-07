@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 7.0.85
+;; Version: 7.0.87
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -44,7 +44,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.85"
+(defconst web-mode-version "7.0.87"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3534,25 +3534,36 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Find the end of a razor block."
   (goto-char pos)
   ;;            (message "pt=%S %c" (point) (char-after))
-  (let ((continue t) pt)
+  (let ((continue t) tmp (i 0))
     (while continue
+      (setq i (1+ i))
+;;      (message "i=%S (%S)" i (point))
       (skip-chars-forward " =@a-zA-Z0-9_-")
       (cond
+       ((> i 500)
+        (message "*** invalid razor loop at (%S) ***" pos)
+        (setq continue nil))
        ((looking-at-p "@[({]")
         (forward-char)
-        (goto-char (web-mode-closing-paren-position (point)))
+        (setq tmp (web-mode-closing-paren-position (point)))
+        (when tmp
+          (goto-char tmp))
         (forward-char)
         )
-       ((eq ?\( (char-after))
-        (goto-char (web-mode-closing-paren-position))
+       ((and (not (eobp)) (eq ?\( (char-after)))
+        (setq tmp (web-mode-closing-paren-position))
+        (when tmp
+          (goto-char tmp))
         (forward-char)
         )
-       ((eq ?\. (char-after))
+       ((and (not (eobp)) (eq ?\. (char-after)))
         (forward-char))
        ((looking-at-p "[ \n]*{")
         (search-forward "{")
         (backward-char)
-        (goto-char (web-mode-closing-paren-position))
+        (setq tmp (web-mode-closing-paren-position))
+        (when tmp
+          (goto-char tmp))
         (forward-char)
         )
        (t
@@ -5213,6 +5224,18 @@ Must be used in conjunction with web-mode-enable-block-face."
       );if
     ))
 
+(defun web-mode-element-is-collapsed (&optional pos)
+  "Is the HTML element collapsed ?"
+  (unless pos (setq pos (point)))
+  (let (boundaries ret)
+    (setq boundaries (web-mode-element-boundaries pos))
+    (setq ret (and boundaries
+                   (or (= (car (car boundaries)) (car (cdr boundaries)))
+                       (= (cdr (car boundaries)) (1- (car (cdr boundaries)))))
+                   ))
+;;    (when ret (message "elt(%S) is collapsed" pos))
+    ret))
+
 (defun web-mode-element-transpose ()
   "Transpose two HTML elements."
   (interactive)
@@ -5237,26 +5260,27 @@ Must be used in conjunction with web-mode-enable-block-face."
                 end2 (1+ (web-mode-element-end-position (point))))
           )
         )
+;;      (message "start1(%S) end1(%S) start2(%S) end2(%S)"
+;;               start1 end1 start2 end2)
       (transpose-regions start1 end1 start2 end2)
       );save-excursion
     start2
     ))
 
 (defun web-mode-element-children-fold-or-unfold (&optional pos)
-  "Un/fold all the children of the current element."
+  "Fold/Unfold all the children of the current HTML element."
   (interactive)
   (unless pos (setq pos (point)))
   (let (child children)
     (save-excursion
       (setq children (reverse (web-mode-element-children-position pos)))
       (dolist (child children)
-        (message "child(%S)" child)
+;;        (message "child(%S)" child)
         (goto-char child)
         (web-mode-fold-or-unfold)
         )
       )))
 
-;;todo : verif q il n y a pas deja un commentaire à l endroit de l insertion
 (defun web-mode-element-mute-blanks ()
   "Mute blanks."
   (interactive)
@@ -5517,18 +5541,19 @@ Must be used in conjunction with web-mode-enable-block-face."
          )
         ;; *** tag folding
         ((member (get-text-property (point) 'tag-type) '(start end))
-         (web-mode-tag-beginning)
-         (when (eq (get-text-property (point) 'tag-type) 'end)
-           (web-mode-html-tag-match)
-           )
-         (setq beg-outside (point))
-         (web-mode-tag-end)
-         (setq beg-inside (point))
-         (goto-char beg-outside)
-         (when (web-mode-html-tag-match)
-           (setq end-inside (point))
+         (when (not (web-mode-element-is-collapsed (point)))
+           (web-mode-tag-beginning)
+           (when (eq (get-text-property (point) 'tag-type) 'end)
+             (web-mode-html-tag-match))
+           (setq beg-outside (point))
            (web-mode-tag-end)
-           (setq end-outside (point)))
+           (setq beg-inside (point))
+           (goto-char beg-outside)
+           (when (web-mode-html-tag-match)
+             (setq end-inside (point))
+             (web-mode-tag-end)
+             (setq end-outside (point)))
+           )
          )
         ;; *** block folding
         ((cdr (web-mode-is-active-block (point)))
