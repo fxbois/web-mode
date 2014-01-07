@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 7.0.87
+;; Version: 7.0.88
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -44,7 +44,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.87"
+(defconst web-mode-version "7.0.88"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -580,6 +580,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("erb"        . ("eruby" "erubis"))
     ("go"         . ("gtl"))
     ("jsp"        . ())
+    ("mason"      . ())
     ("python"     . ())
     ("razor"      . ("play" "play2"))
     ("underscore" . ("underscorejs"))
@@ -608,6 +609,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
     ("handlebars"       . "\\(handlebars\\|.\\hbs\\'\\)")
     ("jsp"              . "\\.jsp\\'")
+    ("mason"            . "\\.mas\\'")
     ("mustache"         . "\\.mustache\\'")
     ("php"              . "\\.\\(php\\|ctp\\|psp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
@@ -819,6 +821,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                      ("<%!" "%>")
                      ("<%@" "%>")
                      ("${ " " }")))
+    ("mason"      . (("<% " " %>")))
     ("php"        . (("<?p" "hp " " ?>")
                      ("<? " " ?>")
                      ("<?=" "?>")))
@@ -862,6 +865,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#].\\|\\[/?[@#].")
     ("go"               . "{{.")
     ("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]")
+    ("mason"            . "<%\\|^%.")
     ("php"              . "<\\?")
     ("python"           . "<\\?")
     ("razor"            . "@.")
@@ -1555,6 +1559,13 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("<\\?\\|\\?>" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-python-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   ))
+
+(defvar web-mode-mason-font-lock-keywords
+  (list
+   '("<%|\\%>" 0 'web-mode-preprocessor-face)
+   '("^\\(%\\)" 1 'web-mode-preprocessor-face)
+   '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
 (defvar web-mode-php-font-lock-keywords
@@ -2596,6 +2607,18 @@ Must be used in conjunction with web-mode-enable-block-face."
         )
        )
       );erb
+
+     ((string= web-mode-engine "mason")
+      (cond
+       ((string= sub3 "<%#")
+        (setq props '(block-token comment face web-mode-comment-face)))
+       (t
+        (setq regexp "\"\\|'"
+              props '(face nil)
+              keywords web-mode-mason-font-lock-keywords)
+        )
+       )
+      );mason
 
      ((string= web-mode-engine "asp")
       (setq regexp "//\\|/\\*\\|\"\\|'"
@@ -3899,7 +3922,8 @@ Must be used in conjunction with web-mode-enable-block-face."
         (while (not (eobp))
           (forward-line)
           (delete-blank-lines))
-        (delete-trailing-whitespace))
+        (delete-trailing-whitespace)
+        (untabify (point-min) (point-max)))
       (when (setq elt (cdr (assoc "indentation" rules)))
         (web-mode-buffer-indent))
       )))
@@ -6937,9 +6961,10 @@ Must be used in conjunction with web-mode-enable-block-face."
        ;;  (message "no invalidation %c" (char-before))
        ;;  )
 
-       ((and web-mode-has-any-large-part
+       ((and nil ;;github:issue163
+             web-mode-has-any-large-part
              atomic-insertion
-             (not (eq (char-before) ?\}))
+             (not (member (char-before) '(?\} ?\n)))
              (not self-insertion)
              (or (member (get-text-property beg 'part-language)
                          '(css
