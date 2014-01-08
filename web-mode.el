@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 7.0.89
+;; Version: 7.0.90
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,6 +36,7 @@
 
 ;; Code goes here
 
+;;todo : web-mode-engine-real-name
 ;;todo : finir filling
 ;;todo : screenshot : http://www.cockos.com/licecap/
 ;;todo : better default colors for tags & attrs
@@ -44,7 +45,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "7.0.89"
+(defconst web-mode-version "7.0.90"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -195,6 +196,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 
 (defcustom web-mode-extra-erb-keywords '()
   "A list of additional strings to treat as ERB keywords."
+  :type 'list
+  :group 'web-mode)
+
+(defcustom web-mode-extra-mason-keywords '()
+  "A list of additional strings to treat as Mason keywords."
   :type 'list
   :group 'web-mode)
 
@@ -580,7 +586,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("erb"        . ("eruby" "erubis"))
     ("go"         . ("gtl"))
     ("jsp"        . ())
-    ("mason"      . ())
+    ("mason"      . ("poet"))
     ("python"     . ())
     ("razor"      . ("play" "play2"))
     ("underscore" . ("underscorejs"))
@@ -767,6 +773,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("freemarker"       . "[<[]\\(/#\\|#els\\|#break\\)")
     ("go"               . "{{[ ]*\\(end\\|else\\)")
     ("jsp"              . "</\\|<% }")
+    ("mason"            . "<[%&] }")
     ("php"              . "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\|}\\)")
     ("razor"            . "}")
     ("smarty"           . "{\\(/\\|else\\)")
@@ -865,7 +872,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#].\\|\\[/?[@#].")
     ("go"               . "{{.")
     ("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]")
-    ("mason"            . "<%\\|^%.")
+    ("mason"            . "<[%&]\\|^%.\\|<%perl>\\|<%args>\\|<%init>")
     ("php"              . "<\\?")
     ("python"           . "<\\?")
     ("razor"            . "@.")
@@ -1011,6 +1018,13 @@ Must be used in conjunction with web-mode-enable-block-face."
              "__ENCODING__" "__FILE__" "__LINE__"
              )))
   "ERB keywords.")
+
+(defvar web-mode-mason-keywords
+  (regexp-opt
+   (append web-mode-extra-mason-keywords
+           '("my" "foreach" "length" "grep"
+             )))
+  "Mason keywords.")
 
 (defvar web-mode-erb-builtins
   (regexp-opt
@@ -1563,9 +1577,15 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-mason-font-lock-keywords
   (list
-   '("<%|\\%>" 0 'web-mode-preprocessor-face)
-   '("^\\(%\\)" 1 'web-mode-preprocessor-face)
-   '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
+   '("<%perl>\\|</%perl>\\|<%args>\\|</%args>\\|<%init>\\|</%init>" 0 'web-mode-preprocessor-face)
+   '("<[%&]\\|^%\\|[%&]>" 0 'web-mode-preprocessor-face)
+   (cons (concat "\\<\\(" web-mode-mason-keywords "\\)\\>")
+         '(0 'web-mode-keyword-face))
+   '("\\([@]\\)\\([[:alnum:]#_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
+   '("\\<\\([$]\\)\\([[:alnum:]#_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
+   '("{\\([[:alnum:]_]+\\)}" 1 'web-mode-variable-name-face)
+   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("->[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-php-font-lock-keywords
@@ -2242,6 +2262,25 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq closing-string "EOL"))
            )
           );erb
+
+         ((string= web-mode-engine "mason")
+          (cond
+           ((string= tagopen "<%perl>")
+            (setq closing-string "</%perl>"))
+           ((string= tagopen "<%args>")
+            (setq closing-string "</%args>"))
+           ((string= tagopen "<%init>")
+            (setq closing-string "</%init>"))
+           ((string= tagopen "<%init>")
+            (setq closing-string "</%init>"))
+           ((string= sub2 "<%")
+            (setq closing-string "%>"))
+           ((string= sub2 "<&")
+            (setq closing-string "&>"))
+           (t
+            (setq closing-string "EOL"))
+           )
+          );mason
 
          ((string= web-mode-engine "jsp")
           (cond
@@ -5974,11 +6013,13 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       (if (and (not (bobp))
                (eq (get-text-property pos prop) (get-text-property (- pos 1) prop)))
-          (setq beg (previous-single-property-change pos prop)))
+          (setq beg (or (previous-single-property-change pos prop)
+                        (point-min))))
 
       (if (and (not (eobp))
                (eq (get-text-property pos prop) (get-text-property (+ pos 1) prop)))
-          (setq end (next-single-property-change pos prop)))
+          (setq end (or (next-single-property-change pos prop)
+                        (point-max))))
 
       ;;    (message "beg(%d) end(%d)" beg end)
 
