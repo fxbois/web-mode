@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.0
+;; Version: 8.0.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -45,7 +45,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.0"
+(defconst web-mode-version "8.0.1"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -753,6 +753,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    (cons "freemarker" "</?\\([[:alpha:]]+:[[:alpha:]]+\\)\\|[[<]/?[@#]\\([[:alpha:]]+\\)")
    (cons "go"         (concat "{{[ ]*" (regexp-opt web-mode-go-active-blocks t)))
    (cons "jsp"        "</?\\([[:alpha:]]+:[[:alpha:]]+\\)\\|<%[ ]*+\\(if\\|for\\|while\\|} else {\\)")
+   (cons "mason"      "</?%\\(method\\|def\\)")
    (cons "php"        (concat "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\)?" (regexp-opt web-mode-php-active-blocks t)))
    (cons "razor"      "@\\(main\\|if\\|for\\)")
    (cons "smarty"     (concat "{/?" (regexp-opt web-mode-smarty-active-blocks t)))
@@ -773,7 +774,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("freemarker"       . "[<[]\\(/#\\|#els\\|#break\\)")
     ("go"               . "{{[ ]*\\(end\\|else\\)")
     ("jsp"              . "</\\|<% }")
-    ("mason"            . "<[%&] }")
+    ("mason"            . "</%\\(method\\|def\\)")
+;;    ("mason"            . "</%\\([[:alpha:]]+\\)")
     ("php"              . "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\|else\\|}\\)")
     ("razor"            . "}")
     ("smarty"           . "{\\(/\\|else\\)")
@@ -872,7 +874,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#].\\|\\[/?[@#].")
     ("go"               . "{{.")
     ("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]")
-    ("mason"            . "<[%&]\\|^%.\\|<%perl>\\|<%args>\\|<%init>")
+    ("mason"            . "</&>\\|</%def\\|</%method\\|<%[[:alpha:]]+\\|<[%&]\\|^%.")
     ("php"              . "<\\?")
     ("python"           . "<\\?")
     ("razor"            . "@.")
@@ -1022,7 +1024,12 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-mason-keywords
   (regexp-opt
    (append web-mode-extra-mason-keywords
-           '("my" "foreach" "length" "grep"
+           '("and" "base" "close" "die" "each" "else" "elsif" "eval" "exists"
+             "foreach" "grep" "if" "length" "local"
+             "my" "next" "open" "or" "package" "pop"
+             "ref" "return" "stat" "sub"
+             "tie" "undef" "unless" "use"
+             "while"
              )))
   "Mason keywords.")
 
@@ -1577,14 +1584,19 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-mason-font-lock-keywords
   (list
-   '("<%perl>\\|</%perl>\\|<%args>\\|</%args>\\|<%init>\\|</%init>" 0 'web-mode-preprocessor-face)
-   '("<[%&]\\|^%\\|[%&]>" 0 'web-mode-preprocessor-face)
+   '("^\\(%\\)" 1 'web-mode-preprocessor-face)
+   '("<%\\(def\\|method\\).*>" 0 'web-mode-preprocessor-face)
+   '("</&>\\|</?%[[:alpha:]]+>\\|<[%&]|?\\|[%&]>" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-mason-keywords "\\)\\>")
          '(0 'web-mode-keyword-face))
+   '("sub[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
+   '(" | \\([hun]+\\) " 1 'web-mode-function-name-face)
+   '("\\<\\([[:alnum:]_]+\\)[ ]?::" 1 'web-mode-type-face)
    '("\\([@]\\)\\([[:alnum:]#_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
-   '("\\<\\([$]\\)\\([[:alnum:]#_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
+   '("\\<\\([$%]\\)\\([[:alnum:]@#_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    '("{\\([[:alnum:]_]+\\)}" 1 'web-mode-variable-name-face)
    '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("[[:alnum:]_][ ]?::[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    '("->[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    ))
 
@@ -2155,6 +2167,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
         (when (member (string-to-char tagopen) '(?\s ?\t))
           (setq tagopen (replace-regexp-in-string "\\`[ \t]*" "" tagopen))
+;;          (message "tagopen=%s (%S)" tagopen (point))
           (setq open (+ open (- l (length tagopen))))
           (setq l (length tagopen))
           )
@@ -2265,14 +2278,13 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((string= web-mode-engine "mason")
           (cond
-           ((string= tagopen "<%perl>")
-            (setq closing-string "</%perl>"))
-           ((string= tagopen "<%args>")
-            (setq closing-string "</%args>"))
-           ((string= tagopen "<%init>")
-            (setq closing-string "</%init>"))
-           ((string= tagopen "<%init>")
-            (setq closing-string "</%init>"))
+           ((member tagopen '("<%def" "</%def" "<%method" "</%method"))
+            (setq closing-string ">")
+            )
+           ((> (length tagopen) 4)
+            (setq closing-string (concat "</" (substring tagopen 1 (length tagopen)) ">"))
+;;            (message "%S" closing-string)
+            )
            ((string= sub2 "<%")
             (setq closing-string "%>"))
            ((string= sub2 "<&")
@@ -2649,10 +2661,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 
      ((string= web-mode-engine "mason")
       (cond
-       ((string= sub3 "<%#")
-        (setq props '(block-token comment face web-mode-comment-face)))
+;;       ((string= sub3 "<%#")
+;;        (setq props '(block-token comment face web-mode-comment-face)))
        (t
-        (setq regexp "\"\\|'"
+        (setq regexp "\"\\|'\\|#"
               props '(face nil)
               keywords web-mode-mason-font-lock-keywords)
         )
@@ -4357,11 +4369,17 @@ Must be used in conjunction with web-mode-enable-block-face."
 
        ((member language '("php" "jsp" "asp" "aspx" "javascript" "code"
                            "python" "erb" "freemarker" "blade"
-                           "template-toolkit" "razor"))
+                           "template-toolkit" "razor" "mason"))
 
         (cond
 
          ((string-match-p "^[?%]>" line)
+          (if (web-mode-block-beginning pos)
+              (setq offset (current-column)))
+          )
+
+         ((and (string= language "mason")
+               (string-match-p "</%" line))
           (if (web-mode-block-beginning pos)
               (setq offset (current-column)))
           )
@@ -4473,6 +4491,11 @@ Must be used in conjunction with web-mode-enable-block-face."
               ))
           )
 
+         ((and (string= web-mode-engine "mason")
+               (string-match-p "^%" line))
+          (setq offset 0)
+          )
+
          ((or (and (eq (get-text-property pos 'tag-type) 'end)
                    (web-mode-html-tag-match))
               (and (string= web-mode-engine "razor")
@@ -4505,6 +4528,12 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq offset (max 0 offset))
         (indent-line-to offset)
         (if (> diff 0) (forward-char diff))
+
+        (when (and (string= web-mode-engine "mason")
+                   (= offset 0)
+                   (string-match-p "^%" line))
+          (web-mode-scan-region (line-beginning-position) (line-end-position)))
+
         );let
       );when
 
@@ -4533,6 +4562,11 @@ Must be used in conjunction with web-mode-enable-block-face."
               (setq ctrl nil)
             (setq state (not (string= "end" (match-string-no-properties 1))))
             )
+          )
+
+         ((string= web-mode-engine "mason")
+          (setq ctrl (match-string-no-properties 1))
+          (setq state (not (eq ?\/ (aref (match-string-no-properties 0) 1))))
           )
 
          ((string= web-mode-engine "smarty")
@@ -6468,6 +6502,39 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-fetch-closing-smarty-block (regexp)
   "Fetch smarty closing block."
+  (let ((counter 1))
+    (web-mode-block-end)
+    (while (and (> counter 0) (web-mode-rsf regexp nil t))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
+          (setq counter (1- counter))
+        (setq counter (1+ counter)))
+      )
+    (web-mode-block-beginning)
+    ))
+
+(defun web-mode-match-mason-block ()
+  "Fetch mason block."
+  (let (match regexp)
+    (looking-at web-mode-active-block-regexp)
+    (setq match (match-string-no-properties 1))
+    (setq regexp (concat "</?%" match))
+    (if (eq ?\/ (aref (match-string-no-properties 0) 1))
+        (web-mode-fetch-opening-smarty-block regexp)
+      (web-mode-fetch-closing-smarty-block regexp))
+    t))
+
+(defun web-mode-fetch-opening-mason-block (regexp)
+  "Fetch mason opening block."
+  (let ((counter 1))
+    (while (and (> counter 0) (web-mode-rsb regexp nil t))
+      (if (eq ?\/ (aref (match-string-no-properties 0) 1))
+          (setq counter (1+ counter))
+        (setq counter (1- counter)))
+      )
+    ))
+
+(defun web-mode-fetch-closing-mason-block (regexp)
+  "Fetch mason closing block."
   (let ((counter 1))
     (web-mode-block-end)
     (while (and (> counter 0) (web-mode-rsf regexp nil t))
