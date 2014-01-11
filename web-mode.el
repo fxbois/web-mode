@@ -2031,8 +2031,13 @@ Must be used in conjunction with web-mode-enable-block-face."
     (when (boundp 'web-mode-engines-alist)
       (setq found nil)
       (dolist (elt web-mode-engines-alist)
-        (when (string-match-p (cdr elt) buff-name)
-          (setq web-mode-engine (car elt)))
+        (cond
+         ((stringp (cdr elt))
+          (when (string-match-p (cdr elt) buff-name)
+            (setq web-mode-engine (car elt))))
+         ((functionp (cdr elt))
+          (when (funcall (cdr elt))
+            (setq web-mode-engine (car elt)))))
         )
       )
     (unless web-mode-engine
