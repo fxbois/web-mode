@@ -4549,7 +4549,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   (save-excursion
     (let (ctrl state)
       (goto-char pos) ;;(message "pos=%S" pos)
-      (when (looking-at web-mode-active-block-regexp)
+      (when (and (stringp 'web-mode-active-block-regexp)
+                 (looking-at web-mode-active-block-regexp))
 
         (cond
 
