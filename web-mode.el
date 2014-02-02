@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.4
+;; Version: 8.0.5
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -62,7 +62,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.4"
+(defconst web-mode-version "8.0.5"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -553,6 +553,9 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Comment keywords."
   :group 'web-mode-faces)
 
+(defvar font-lock-beg)
+(defvar font-lock-end)
+
 (defvar web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
     "link" "meta" "param" "source" "track" "wbr")
@@ -837,7 +840,8 @@ Must be used in conjunction with web-mode-enable-block-face."
    (cons "mako"       "</?%\\([[:alpha:]]+\\(?:[:][[:alpha:]]+\\)?\\)\\|%[ ]+\\(end\\)?\\(if\\|for\\|elif\\|else\\)")
    (cons "mason"      "</?%\\(method\\|def\\)")
    (cons "php"        (concat "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\)?" (regexp-opt web-mode-php-active-blocks t)))
-   (cons "razor"      "@\\(main\\|if\\|for\\)")
+   (cons "razor"      ".")
+;;   (cons "razor"      "@\\(main\\|if\\|for\\)")
    (cons "smarty"     (concat (web-mode-engine-delimiter-open "smarty" "{") "/?" (regexp-opt web-mode-smarty-active-blocks t)))
    (cons "template-toolkit" (concat "\\[% " (regexp-opt '("foreach" "if" "else" "elsif" "filter" "end") t)))
    (cons "underscore" "<%")
@@ -2288,7 +2292,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-scan-region (beg end &optional content-type)
   "Identify nodes/parts/blocks and syntactic symbols (strings/comments)."
   (interactive)
-
 ;;  (message "lexing buffer from %d to %d" beg end)
   (web-mode-with-silent-modifications
    (save-excursion
@@ -2325,8 +2328,6 @@ Must be used in conjunction with web-mode-enable-block-face."
             ) ;cond
            (web-mode-trace "web-mode-scan-region")
            ))))))
-
-;;(defvar web-mode-aa t)
 
 (defun web-mode-highlight-region (beg end &optional content-type)
   "Identify code blocks (clientside and serverside) and syntactic symbols (strings/comments)."
@@ -2371,7 +2372,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (goto-char reg-beg)
 
       ;;     (message "%S: %Sx%S" (point) reg-beg reg-end)
-      ;;      (message "regexp=%S" web-mode-block-regexp)
+      ;;     (message "regexp=%S" web-mode-block-regexp)
       (while (and (< i 1200)
                   (> reg-end (point))
                   (re-search-forward web-mode-block-regexp reg-end t))
@@ -2388,7 +2389,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
         (when (member (string-to-char tagopen) '(?\s ?\t))
           (setq tagopen (replace-regexp-in-string "\\`[ \t]*" "" tagopen))
-;;          (message "tagopen=%s (%S)" tagopen (point))
+          (message "tagopen=%s (%S)" tagopen (point))
           (setq open (+ open (- l (length tagopen))))
           (setq l (length tagopen))
           )
@@ -2601,6 +2602,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           ) ;velocity
 
          ((string= web-mode-engine "razor")
+;;          (message "sub2=%S" sub2)
           (cond
            ((string= sub2 "@@")
             (forward-char 2)
@@ -2671,8 +2673,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 
            ((string= closing-string "EOR")
             (web-mode-razor-skip-forward open)
-            (setq close (point)
-                  pos (point)))
+            (setq close (if (> (point) reg-end) reg-end (point))
+                  pos (if (> (point) reg-end) reg-end (point))) ;; (point))
+            (goto-char pos)
+;;            (message "pos=%S close=%S" pos close)
+            )
 
            ((string= closing-string "EOV")
             (web-mode-velocity-skip-forward open)
@@ -2817,9 +2822,18 @@ Must be used in conjunction with web-mode-enable-block-face."
 
     (goto-char reg-beg)
 
-    (setq sub1 (buffer-substring-no-properties reg-beg (+ reg-beg 1))
-          sub2 (buffer-substring-no-properties reg-beg (+ reg-beg 2))
-          sub3 (buffer-substring-no-properties reg-beg (+ reg-beg (if (>= (point-max) (+ reg-beg 3)) 3 2))))
+    (setq sub1 (buffer-substring-no-properties reg-beg (+ reg-beg 1)))
+    (setq sub2 sub1
+          sub3 sub1)
+    (when (>= (point-max) (+ reg-beg 2))
+      (setq sub2 (buffer-substring-no-properties reg-beg (+ reg-beg 2)))
+      (setq sub3 sub2)
+      (when (>= (point-max) (+ reg-beg 3))
+        (setq sub3 (buffer-substring-no-properties reg-beg (+ reg-beg 3)))
+        )
+      )
+;;    (setq sub2 (buffer-substring-no-properties reg-beg (+ reg-beg (if (>= (point-max) (+ reg-beg 2)) 2 1))))
+;;    (setq sub3 (buffer-substring-no-properties reg-beg (+ reg-beg (if (>= (point-max) (+ reg-beg 3)) 3 2))))
 
     (cond
 
@@ -4174,7 +4188,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (goto-char block-beg)
 ;;    (message "block-beg(%S) block-end(%S)" block-beg block-end)
     (let ((continue t) beg end tag-beg tag-end)
-      (while (re-search-forward "[ \t]*\\(</?[[:alpha:]].*?>\\)[ \n]*" block-end t)
+      (while (re-search-forward "[ \t]*\\(</?[[:alpha:]].*?>\\|<!--.*?-->\\)[ \n]*" block-end t)
         (setq beg (match-beginning 0)
               end (match-end 0)
               tag-beg (match-beginning 1)
@@ -4187,7 +4201,9 @@ Must be used in conjunction with web-mode-enable-block-face."
                    (not (string-match-p "@" (match-string-no-properties 1))))
           (remove-text-properties (match-beginning 1) (match-end 1) '(block-side))
           )
-        )
+        (when (string-match-p "@" (buffer-substring-no-properties beg end))
+          (web-mode-scan-blocks beg end))
+        ) ;while
       )))
 
 (defun web-mode-razor-skip-forward (pos)
@@ -5216,17 +5232,23 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq offset 0)
           )
 
+         ((and (string= web-mode-engine "razor")
+;;               (get-text-property pos 'block-side)
+               (string-match-p "^}" line))
+;;          (message "ici")
+          (goto-char (web-mode-opening-paren-position (point)))
+          (back-to-indentation)
+          (setq offset (current-column))
+          )
+
          ((or (and (eq (get-text-property pos 'tag-type) 'end)
                    (web-mode-html-tag-match))
-              (and (string= web-mode-engine "razor")
-                   (string-match-p "^[ \t]*}" line)
-                   (web-mode-block-match))
+;;              (and (string= web-mode-engine "razor")
+;;                   (string-match-p "^[ \t]*}" line)
+;;                   (web-mode-block-match))
               (and (get-text-property pos 'block-beg)
                    (looking-at-p web-mode-close-block-regexp)
-                   ;;(progn (message "%S %S" (point) web-mode-close-block-regexp) t)
-                   ;;(funcall web-mode-engine-control-matcher)
-                   (web-mode-block-match))
-              )
+                   (web-mode-block-match)))
           (setq offset (current-indentation))
           )
 
@@ -5438,8 +5460,14 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          ((string= web-mode-engine "razor")
-          (setq ctrl (match-string-no-properties 1)
-                state t)
+          (cond
+           ((web-mode-block-ends-with "{[ \n]*")
+            (setq ctrl "ctrl"
+                  state t))
+           ((web-mode-block-starts-with "}")
+            (setq ctrl "ctrl"
+                  state nil))
+           )
           )
 
          ) ;cond
@@ -8296,10 +8324,17 @@ Must be used in conjunction with web-mode-enable-block-face."
       )))
 
 (defun web-mode-block-ends-with (regexp)
-  "Check if current ends with regexp"
+  "Check if current block ends with regexp"
   (save-excursion
     (and (web-mode-block-end)
          (looking-back regexp))
+    ))
+
+(defun web-mode-block-starts-with (regexp)
+  "Check if current block starts with regexp"
+  (save-excursion
+    (and (web-mode-block-beginning)
+         (looking-at regexp))
     ))
 
 ;;-- position -----------------------------------------------------------------------
