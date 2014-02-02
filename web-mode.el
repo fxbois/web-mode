@@ -2229,22 +2229,16 @@ Must be used in conjunction with web-mode-enable-block-face."
           (when (string-match-p (cdr elt) buff-name)
             (setq web-mode-engine (car elt))))
          ((functionp (cdr elt))
-<<<<<<< HEAD
-          (setq web-mode-engine (car elt)))
+          (when (funcall (cdr elt))
+            (setq web-mode-engine (car elt))))
          ) ;cond
         ) ;dolist
-=======
-          (when (funcall (cdr elt))
-            (setq web-mode-engine (car elt)))))
-        )
->>>>>>> 596c17e50b0d95be1524746589eeaf9acd834a9f
-      )
+      ) ;when
     (unless web-mode-engine
       (setq found nil)
       (dolist (elt web-mode-engine-file-regexps)
 ;;          (message "%S %S" (cdr elt) buff-name)
         (when (and (not found) (string-match-p (cdr elt) buff-name))
-
           (setq web-mode-engine (car elt)
                 found t))
         )
