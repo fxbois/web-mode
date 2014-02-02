@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.3
+;; Version: 8.0.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -62,7 +62,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.3"
+(defconst web-mode-version "8.0.4"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -2092,7 +2092,6 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Yasnippet exit hook"
   (when (and (boundp 'yas-snippet-beg) (boundp 'yas-snippet-end))
 ;;    (web-mode-highlight-region yas-snippet-beg yas-snippet-end)
-;;    (redisplay)
     (indent-region yas-snippet-beg yas-snippet-end)))
 
 (defun web-mode-forward-sexp (&optional arg)
@@ -6323,7 +6322,6 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq sep (if (get-text-property beg 'tag-beg) "\n" ""))
         (web-mode-insert-text-at-pos (concat sep "</" tag ">") end)
         (web-mode-insert-text-at-pos (concat "<" tag ">" sep) beg)
-;;        (redisplay)
         (when (string= sep "\n") (indent-region beg (+ end (* (+ 3 (length tag)) 2))))
         )
       ) ;save-excursion
@@ -6410,6 +6408,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                  (web-mode-element-beginning)
                  (looking-at "<\\([[:alnum:]]+\\(:?[-][[:alpha:]]+\\)?\\)"))
         (setq pos (point))
+;;        (message "match=%S" (match-string-no-properties 1))
         (unless (web-mode-is-void-element)
             (save-match-data
               (web-mode-tag-match)
@@ -6486,7 +6485,7 @@ Must be used in conjunction with web-mode-enable-block-face."
          )
         ) ;cond
        (when end-outside
-         ;;          (message "beg-out(%d) beg-in(%d) end-in(%d) end-out(%d)" beg-outside beg-inside end-inside end-outside)
+         ;;(message "beg-out(%d) beg-in(%d) end-in(%d) end-out(%d)" beg-outside beg-inside end-inside end-outside)
          (setq overlay (make-overlay beg-outside end-outside))
          (overlay-put overlay 'font-lock-face 'web-mode-folded-face)
          (put-text-property beg-inside end-inside 'invisible t)
@@ -6962,7 +6961,6 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq pos (point)))
       (if (cdr snippet) (insert (cdr snippet)))
 ;;      (message "insert[2] (%S)" (point))
-;;      (redisplay)
       (setq end (point-at-eol))
       (unless sel (goto-char pos))
       (indent-region beg end))
@@ -6976,7 +6974,6 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq beg (point-at-bol))
     (insert text)
     (setq end (point-at-eol))
-;;    (redisplay)
     (indent-region beg end)))
 
 (defun web-mode-tag-match (&optional pos)
@@ -7881,7 +7878,6 @@ Must be used in conjunction with web-mode-enable-block-face."
       (unless (looking-at-p "[ ]*>")
         (setq ins (concat ins ">")))
       (insert ins)
-;;      (redisplay)
       (save-excursion
         (search-backward "<")
         (setq jump (and (eq (char-before) ?\>)
