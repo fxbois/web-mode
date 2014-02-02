@@ -41,6 +41,7 @@
 ;;engine compatibility : web2py (python), mako (python), mason (perl)
 ;;jshint compatibility : web-mode-jshint
 ;;alertnative delimiters can be defined for smarty (see web-mode-engines-alternate-delimiters)
+;;delimiters highlighting is more robust (same loop than string/comment highlighting)
 
 ;;todo :
 ;;       essayer de réduire la zone à scanner / repeindre
@@ -963,7 +964,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("ctemplate"        . "[$]?{{.")
    '("django"           . "{[#{%].")
    '("dust"             . "{.")
-   '("erb"              . "<%\\|^%.")
+   '("erb"              . "<%.\\|^%.")
    '("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#].\\|\\[/?[@#].")
    '("go"               . "{{.")
    '("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]")
@@ -1462,18 +1463,17 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-django-expr-font-lock-keywords
   (list
-   '("\\({{\\)[ ]?" 1 'web-mode-preprocessor-face)
-   '("[ ]?\\(}}\\)" 1 'web-mode-preprocessor-face)
+;;   '("\\({{\\)[ ]?" 1 'web-mode-preprocessor-face)
+;;   '("[ ]?\\(}}\\)" 1 'web-mode-preprocessor-face)
    '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-function-call-face)
    (cons (concat "\\<\\(" web-mode-django-types "\\)\\>") '(1 'web-mode-type-face))
    '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
-   )
-  "Font lock keywords for dtl expr")
+   ))
 
 (defvar web-mode-django-code-font-lock-keywords
   (list
-   '("{%\\|%}" 0 'web-mode-preprocessor-face)
+;;   '("{%\\|%}" 0 'web-mode-preprocessor-face)
    (cons (concat "\\<\\(" web-mode-django-keywords "\\)\\>") '(1 'web-mode-keyword-face))
    (cons (concat "\\<\\(" web-mode-django-types "\\)\\>") '(1 'web-mode-type-face))
    '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-function-call-face)
@@ -1698,19 +1698,16 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-erb-font-lock-keywords
   (list
-   '("-?%>\\|^%\\|<%[=-]?" 0 'web-mode-preprocessor-face)
+;;   '("-?%>\\|^%\\|<%[=-]?" 0 'web-mode-preprocessor-face)
    '("[^:]\\(:[[:alnum:]_]+\\)" 1 'web-mode-symbol-face)
    '("\\([[:alnum:]_]+:\\)[ ]+" 1 'web-mode-symbol-face)
-   (cons (concat "\\<\\(" web-mode-erb-builtins "\\)\\>")
-         '(0 'web-mode-builtin-face))
-   (cons (concat "\\<\\(" web-mode-erb-keywords "\\)\\>")
-         '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-erb-builtins "\\)\\>") '(0 'web-mode-builtin-face))
+   (cons (concat "\\<\\(" web-mode-erb-keywords "\\)\\>") '(0 'web-mode-keyword-face))
    '("\\<\\(self\\|true\\|false\\|nil\\)\\>" 0 'web-mode-variable-name-face)
    '("[@$]@?\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
    '("class[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-type-face)
    '("def[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
-   '("\\(?:\\_<\\|::\\)\\([A-Z]+[[:alnum:]_]+\\)"
-     1 (unless (eq ?\( (char-after)) 'web-mode-type-face))
+   '("\\(?:\\_<\\|::\\)\\([A-Z]+[[:alnum:]_]+\\)" 1 (unless (eq (char-after) ?\() 'web-mode-type-face))
    '("/[^/]+/" 0 'web-mode-string-face)
    ))
 
@@ -2000,7 +1997,9 @@ Must be used in conjunction with web-mode-enable-block-face."
   (make-local-variable 'after-change-functions)
   (make-local-variable 'change-major-mode-hook)
   (make-local-variable 'fill-paragraph-function)
+;;  (make-local-variable 'font-lock-beg)
   (make-local-variable 'font-lock-defaults)
+;;  (make-local-variable 'font-lock-end)
   (make-local-variable 'font-lock-extend-region-functions)
   (make-local-variable 'font-lock-maximum-size)
   (make-local-variable 'font-lock-support-mode)
@@ -2384,7 +2383,7 @@ Must be used in conjunction with web-mode-enable-block-face."
               tagopen (match-string 0)
               open (match-beginning 0)
               delim-open nil
-              delim-open close
+              delim-close nil
               pos nil)
         (setq l (length tagopen))
 
@@ -2417,13 +2416,35 @@ Must be used in conjunction with web-mode-enable-block-face."
          ((string= web-mode-engine "django")
           (cond
            ((string= sub2 "{{")
-            (setq closing-string '("{{" . "}}")))
+            (setq closing-string '("{{" . "}}")
+                  delim-open "{{"
+                  delim-close "}}"))
            ((string= sub2 "{%")
-            (setq closing-string "%}"))
+            (setq closing-string "%}"
+                  delim-open "{%"
+                  delim-close "%}"))
            (t
             (setq closing-string "#}"))
            )
           ) ;django
+
+         ((string= web-mode-engine "erb")
+          (cond
+           ((string= sub2 "<%")
+            (setq closing-string "%>")
+            (cond
+             ((eq (char-before) ?\=) (setq delim-open "<%="))
+             ((eq (char-before) ?\-) (setq delim-open "<%-"))
+             (t                      (setq delim-open "<%"))
+             ) ;cond
+;;            (message "%S %S" (point) delim-open)
+            (setq delim-close "%>")
+            )
+           (t
+            (setq closing-string "EOL"
+                  delim-open "%"))
+           )
+          ) ;erb
 
          ((string= web-mode-engine "mako")
           (cond
@@ -2516,15 +2537,6 @@ Must be used in conjunction with web-mode-enable-block-face."
          ((string= web-mode-engine "angular")
           (setq closing-string "}}")
           ) ;angular
-
-         ((string= web-mode-engine "erb")
-          (cond
-           ((string= sub2 "<%")
-            (setq closing-string "%>"))
-           (t
-            (setq closing-string "EOL"))
-           )
-          ) ;erb
 
          ((string= web-mode-engine "mason")
           (cond
@@ -2670,7 +2682,14 @@ Must be used in conjunction with web-mode-enable-block-face."
 
            ((search-forward closing-string reg-end t)
             (setq close (match-end 0)
-                  pos (point)))
+                  pos (point))
+            (cond
+             ((and (string= web-mode-engine "erb")
+                   (eq (char-before (match-beginning 0)) ?\-))
+              (setq delim-close (concat "-" delim-close))
+              )
+             ) ;cond
+            )
 
            ) ;cond
 
@@ -3145,8 +3164,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 
     (when keywords
       (web-mode-fontify-region reg-beg reg-end keywords)
+;;      (message "reg-beg(%S) reg-end(%S)" reg-beg reg-end)
       (setq flags (get-text-property reg-beg 'block-beg))
-      (setq continue (> (logand flags 1) 0))
+      (setq continue (not (null flags))) ;;(> (logand flags 1) 0))
       (setq end reg-beg)
       (while continue
 ;;        (message "end=%S %S" end (get-text-property end 'block-token))
@@ -3167,6 +3187,7 @@ Must be used in conjunction with web-mode-enable-block-face."
               (setq end (next-single-property-change beg 'block-token))
               (if (and end (<= end reg-end))
                   (progn
+;;                    (message "%S > %S face(%S)" beg end face)
                     (remove-text-properties beg end '(face nil))
                     (put-text-property beg end 'font-lock-face face))
                 (setq continue nil
@@ -4386,7 +4407,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;    (message "%d %d" line column)
 ;;    (beginning-of-buffer)
 ;;    (forward-line line)
-    (goto-line line)
+    (goto-char (point-min))
+    (forward-line (1- line))
     (move-to-column (1- column))
     (point))
   )
@@ -4702,6 +4724,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         ret)
       )))
 
+;; voir line-number-at-pos
 (defun web-mode-line-number (&optional pos)
   "Return line number at point."
   (unless pos (setq pos (point)))
@@ -5096,7 +5119,6 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq offset (current-column))
             )
            ((string-match-p "^['\"$0-9]" prev-line)
-;;            (message "ici")
             (setq offset prev-indentation)
             )
            (t
@@ -6179,7 +6201,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-element-mute-blanks ()
   "Mute blanks."
   (interactive)
-  (let (pos parent beg end child children)
+  (let (pos parent beg end child children elt)
     (setq pos (point))
     (save-excursion
       (when (and (setq parent (web-mode-element-boundaries pos))
@@ -6213,7 +6235,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-element-children-position (&optional pos)
   (unless pos (setq pos (point)))
-  (let ((continue t) (i 0) children)
+  (let ((continue t) (i 0) child children)
     (save-excursion
       (when (and (member (get-text-property pos 'tag-type) '(start end))
                  (setq child (web-mode-element-child-position pos)))
@@ -6386,12 +6408,12 @@ Must be used in conjunction with web-mode-enable-block-face."
       (setq tag-name (read-from-minibuffer "Tag name? "))
       (when (and (> (length tag-name) 0)
                  (web-mode-element-beginning)
-                 (looking-at "<\\([[:alnum:]]+\\)"))
+                 (looking-at "<\\([[:alnum:]]+\\(:?[-][[:alpha:]]+\\)?\\)"))
         (setq pos (point))
         (unless (web-mode-is-void-element)
             (save-match-data
               (web-mode-tag-match)
-              (if (looking-at "</[ ]*\\([[:alnum:]]+\\)")
+              (if (looking-at "</[ ]*\\([[:alnum:]]+\\(:?[-][[:alpha:]]+\\)?\\)")
                   (replace-match (concat "</" tag-name))
                 )))
         (goto-char pos)
@@ -7715,7 +7737,6 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq counter (1+ counter)))
        ) ;cond
       ) ;while
-;;    (message "ici")
     (backward-char)
     (web-mode-block-beginning)
     ))
