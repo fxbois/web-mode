@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.6
+;; Version: 8.0.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -62,7 +62,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.6"
+(defconst web-mode-version "8.0.7"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -869,7 +869,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("razor"            . "}")
    (cons "smarty"      (concat (web-mode-engine-delimiter-open "smarty" "{") "\\(/\\|else\\)"))
    '("template-toolkit" . "\\[% \\(end\\|els\\)")
-   '("underscore"       . "<% }")
+   '("underscore"       . "<%[ ]*}")
    '("velocity"         . "#\\(end\\|else\\)")
    '("web2py"           . "{{[ ]*\\(pass\\|elif\\|else\\|except\\|finally\\|return\\|end\\)")
    )
