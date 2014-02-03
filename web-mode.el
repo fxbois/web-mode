@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.5
+;; Version: 8.0.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -62,7 +62,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.5"
+(defconst web-mode-version "8.0.6"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1376,7 +1376,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-razor-keywords
   (regexp-opt
    (append web-mode-extra-razor-keywords
-           '("false" "true" "foreach" "if" "else" "in" "var" "for" "display" "main"
+           '("false" "true" "foreach" "if" "else" "in" "var" "for" "display"
+             ;;"main"
              ;; scala
              "match" "case"
              "Html")))
@@ -1498,10 +1499,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-razor-font-lock-keywords
   (list
    '("@" 0 'web-mode-preprocessor-face)
-   (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>")
-         '(1 'web-mode-keyword-face t t))
+   '("@\\([[:alnum:]_.]+\\)[ ]*[({]" 1 'web-mode-block-control-face)
+   (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>") '(1 'web-mode-keyword-face))
 ;;   '("\\([[:alnum:]]+\\):" 1 'web-mode-symbol-face)
-   '("@\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-call-face)
+;;   '("@\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("@\\([[:alnum:]_.]+\\)" 1 'web-mode-variable-name-face)
 ;;   '("<\\([[:alnum:]_]+\\)>" 1 'web-mode-type-face)
 ;;   '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
@@ -1952,17 +1953,26 @@ Must be used in conjunction with web-mode-enable-block-face."
 
   ) ;eval-and-compile
 
+(defvar web-mode-buffer-highlighted nil)
+
 (defvar web-mode-font-lock-keywords
   '(web-mode-font-lock-highlight))
 
 (defun web-mode-font-lock-extend-region ()
   (save-excursion
 ;;    (message "before : font-lock-beg=%S - font-lock-end=%S" font-lock-beg font-lock-end)
-    (setq font-lock-beg (or (web-mode-previous-tag-at-bol-pos font-lock-beg)
-                            (point-min))
-          font-lock-end (or (web-mode-next-tag-at-eol-pos font-lock-end)
-                            (point-max)))
-;;    (message "after : font-lock-beg=%S - font-lock-end=%S" font-lock-beg font-lock-end)
+    (if (not web-mode-buffer-highlighted)
+        (progn
+          (setq web-mode-buffer-highlighted t)
+          (setq font-lock-beg (point-min)
+                font-lock-end (point-max))
+          )
+      (setq font-lock-beg (or (web-mode-previous-tag-at-bol-pos font-lock-beg)
+                              (point-min))
+            font-lock-end (or (web-mode-next-tag-at-eol-pos font-lock-end)
+                              (point-max)))
+      )
+    ;;    (message "after : font-lock-beg=%S - font-lock-end=%S" font-lock-beg font-lock-end)
     nil))
 
 (defun web-mode-font-lock-highlight (limit)
@@ -4187,6 +4197,65 @@ Must be used in conjunction with web-mode-enable-block-face."
   (save-excursion
     (goto-char block-beg)
 ;;    (message "block-beg(%S) block-end(%S)" block-beg block-end)
+    (let ((continue t) beg end tag-beg tag-end line line-end line-end-pos)
+
+      (setq line (line-number-at-pos block-beg)
+            line-end (line-number-at-pos block-end))
+
+      (while (< line line-end)
+        (setq line-end-pos (line-end-position))
+        (if (>= line-end-pos block-end)
+            (setq line-end-pos block-end)
+;;          (setq line-end-pos (1+ line-end-pos))
+          )
+
+        (while (re-search-forward "\\([ \t]*\\(?:</?[[:alpha:]].*?>\\|<!--.*?-->\\)[ ]*\\)" line-end-pos t)
+          (setq beg (match-beginning 0)
+                end (match-end 0)
+                tag-beg (match-beginning 1)
+                tag-end (match-end 1))
+          (message "beg(%S) end(%S)" beg end)
+          (remove-text-properties beg end '(block-side))
+          (put-text-property (1- tag-beg) tag-beg 'block-end t)
+          (put-text-property tag-end (1+ tag-end) 'block-beg t)
+          (when (and (looking-at "\\(.+\\)<")
+                     (not (string-match-p "@" (match-string-no-properties 1))))
+            (remove-text-properties (match-beginning 1) (match-end 1) '(block-side))
+            )
+          (when (string-match-p "@" (buffer-substring-no-properties beg end))
+            (web-mode-scan-blocks beg end))
+          ) ;while
+
+        (forward-line)
+;;        (message "pos=%S" (point))
+        (setq line (1+ line))
+        )
+
+      (goto-char block-beg)
+
+      (while (and nil (re-search-forward "[ \t]*\\(</?[[:alpha:]].*?>\\|<!--.*?-->\\)[ \n]*" block-end t))
+        (setq beg (match-beginning 0)
+              end (match-end 0)
+              tag-beg (match-beginning 1)
+              tag-end (match-end 1))
+;;        (message "beg(%S) end(%S)" beg end)
+        (remove-text-properties beg end '(block-side))
+        (put-text-property (1- tag-beg) tag-beg 'block-end t)
+        (put-text-property tag-end (1+ tag-end) 'block-beg t)
+        (when (and (looking-at "\\(.+\\)<")
+                   (not (string-match-p "@" (match-string-no-properties 1))))
+          (remove-text-properties (match-beginning 1) (match-end 1) '(block-side))
+          )
+        (when (string-match-p "@" (buffer-substring-no-properties beg end))
+          (web-mode-scan-blocks beg end))
+        ) ;while
+      )))
+
+(defun web-mode-razor-tag-exclude2 (block-beg block-end)
+  "Exclude HTML"
+  (save-excursion
+    (goto-char block-beg)
+;;    (message "block-beg(%S) block-end(%S)" block-beg block-end)
     (let ((continue t) beg end tag-beg tag-end)
       (while (re-search-forward "[ \t]*\\(</?[[:alpha:]].*?>\\|<!--.*?-->\\)[ \n]*" block-end t)
         (setq beg (match-beginning 0)
@@ -5256,6 +5325,7 @@ Must be used in conjunction with web-mode-enable-block-face."
               (= web-mode-indent-style 2)
               (get-text-property pos 'tag-beg)
               (get-text-property pos 'block-beg))
+;;          (message "ici")
           (setq offset (web-mode-markup-indentation pos))
           )
 
@@ -5450,10 +5520,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((string= web-mode-engine "underscore")
           (cond
-           ((web-mode-block-ends-with "{ %>")
+           ((web-mode-block-ends-with "{[ ]*%>")
             (setq ctrl "ctrl"
                   state t))
-           ((looking-at-p "<% }")
+           ((looking-at-p "<%[ ]*}")
             (setq ctrl "ctrl"
                   state nil))
            )
