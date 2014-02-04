@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.7
+;; Version: 8.0.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -62,7 +62,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.7"
+(defconst web-mode-version "8.0.8"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4987,8 +4987,10 @@ Must be used in conjunction with web-mode-enable-block-face."
         )
 
        ((get-text-property pos 'part-side)
-        (setq block-beg (or (previous-single-property-change pos 'part-side) pos-min))
-;;        (message "%S" block-beg)
+;;        (setq block-beg (previous-single-property-change pos 'part-side))
+;;        (message "pos-min=%S block-beg=%S part-beg=%S" pos-min block-beg (web-mode-part-beginning-position pos))
+        (setq block-beg (web-mode-part-beginning-position pos))
+        (setq block-beg (or block-beg pos-min))
         (goto-char block-beg)
         (search-backward "<" nil t)
         (setq block-column (current-column))
@@ -5048,7 +5050,9 @@ Must be used in conjunction with web-mode-enable-block-face."
       (when (string= web-mode-content-type "html")
         (cond
          ((string= language "javascript")
-          (setq block-column (+ block-column web-mode-script-padding)))
+          (setq block-column (+ block-column web-mode-script-padding))
+;;          (message "block-column=%S" block-column)
+          )
          ((string= language "css")
           (setq block-column (+ block-column web-mode-style-padding)))
          ((not (member language '("html" "razor")))
@@ -5358,17 +5362,21 @@ Must be used in conjunction with web-mode-enable-block-face."
   (save-excursion
     (let (ctrl state)
       (goto-char pos)
-      ;;(message "pos=%S" pos)
+;;      (message "pos=%S" pos)
       (when (looking-at web-mode-active-block-regexp)
 
         (cond
 
          ((string= web-mode-engine "php")
-          (setq ctrl (match-string-no-properties 3))
-          (if (member ctrl '("else" "elseif"))
-              (setq ctrl nil)
-            (setq state (not (string= "end" (match-string-no-properties 2))))
-            )
+          (when (or (web-mode-block-starts-with "<\\?\\(php\\)?[ ]*\\(}\\|end\\)")
+                    (web-mode-block-ends-with "[{:][ ]*\\?>"))
+            (setq ctrl (match-string-no-properties 3))
+            (if (member ctrl '("else" "elseif"))
+                (setq ctrl nil)
+              (setq state (not (string= "end" (match-string-no-properties 2))))
+              )
+            ); when
+          ;;          (message "(%S) ctrl=%S state=%S" (point) ctrl state)
           )
 
          ((string= web-mode-engine "django")
@@ -6140,7 +6148,6 @@ Must be used in conjunction with web-mode-enable-block-face."
      ((and (get-text-property pos 'tag-attr)
            (not (string= web-mode-expand-previous-state "html-attr")))
 
-      ;; todo: tester que le car précédent n'est pas un
       (when (eq (get-text-property pos 'part-token) (get-text-property (1- pos) 'part-token))
         (setq beg (previous-single-property-change pos 'part-token)))
       (when (eq (get-text-property pos 'part-token) (get-text-property (1+ pos) 'part-token))
@@ -7220,8 +7227,8 @@ Must be used in conjunction with web-mode-enable-block-face."
       (looking-at web-mode-active-block-regexp)
       (setq match (match-string-no-properties 3))
       (setq regexp (concat "<\\?\\(php[ ]+\\|[ ]*\\)?\\(end\\)?\\("
-                         (if (member match '("else" "elseif")) "if" match)
-                         "\\)"))
+                           (if (member match '("else" "elseif")) "if" match)
+                           "\\)"))
       (if (or (string= "end" (match-string-no-properties 2))
               (member match '("else" "elseif")))
           (web-mode-fetch-opening-php-block regexp)
@@ -7235,9 +7242,11 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Fetch PHP opening block."
   (let ((counter 1))
     (while (and (> counter 0) (re-search-backward regexp nil t))
-      (if (string= "end" (match-string-no-properties 2))
-          (setq counter (1+ counter))
-        (setq counter (1- counter)))
+      (when (web-mode-is-active-block (point))
+        (if (string= "end" (match-string-no-properties 2))
+            (setq counter (1+ counter))
+          (setq counter (1- counter)))
+        ) ;when
       )
     ))
 
@@ -7246,10 +7255,12 @@ Must be used in conjunction with web-mode-enable-block-face."
   (let ((counter 1))
     (web-mode-block-end)
     (while (and (> counter 0) (re-search-forward regexp nil t))
-      (if (string= "end" (match-string-no-properties 2))
-          (setq counter (1- counter))
-        (setq counter (1+ counter))
-        ) ;if
+      (when (web-mode-is-active-block (point))
+        (if (string= "end" (match-string-no-properties 2))
+            (setq counter (1- counter))
+          (setq counter (1+ counter))
+          ) ;if
+        ) ;when
       ) ;while
     (web-mode-block-beginning)
     ))
@@ -8396,15 +8407,16 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-block-ends-with (regexp)
   "Check if current block ends with regexp"
   (save-excursion
-    (and (web-mode-block-end)
-         (looking-back regexp))
-    ))
+    (save-match-data
+      (and (web-mode-block-end)
+           (looking-back regexp))
+      )))
 
 (defun web-mode-block-starts-with (regexp)
   "Check if current block starts with regexp"
   (save-excursion
     (and (web-mode-block-beginning)
-         (looking-at regexp))
+         (looking-at-p regexp))
     ))
 
 ;;-- position -----------------------------------------------------------------------
@@ -9438,7 +9450,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Detect if point is in a comment or in a string."
   (unless pos (setq pos (point)))
   (not (null (or (eq (get-text-property pos 'tag-type) 'comment)
-                 (get-text-property pos 'block-token)
+                 (member (get-text-property pos 'block-token) '(comment string))
                  (get-text-property pos 'part-token))))
   )
 
