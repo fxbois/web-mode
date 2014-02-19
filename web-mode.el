@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.11
+;; Version: 8.0.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -45,13 +45,8 @@
 
 ;;todo :
 ;;       C-n sur delimiter = on bascule sur open-delim ou close-delim
-;;       smarty bug : {assign var=foo value={counter}}
-;;       passer underscore en delimiters
 ;;       essayer de réduire la zone à scanner / repeindre
 ;;       phphint
-;;       navigation blocs mako
-;;       tester django-extra comments
-;;       test whitespaces
 ;;       colorer : <a href=" >
 ;;       bug issue169.js.erb
 
@@ -65,7 +60,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.11"
+(defconst web-mode-version "8.0.12"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -8321,9 +8316,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-block-next-position (&optional pos)
   "web-mode-block-next-position"
   (unless pos (setq pos (point)))
+  ;;    (message "start=%S" pos)
   (if (get-text-property pos 'block-side)
-      (if (= pos (point-min))
-          (set pos (point-min))
+      ;;      (if (= pos (point-min))
+      ;;          (setq pos (point-min))
+      (progn
         (setq pos (web-mode-block-end-position pos))
         (when (and pos (> (point-max) pos))
           (setq pos (1+ pos))
@@ -8331,8 +8328,13 @@ Must be used in conjunction with web-mode-enable-block-face."
               (setq pos (next-single-property-change pos 'block-side)))
           ) ;when
         )
-    (setq pos (next-single-property-change pos 'block-side)))
-  pos)
+    ;;       )
+    (setq pos (next-single-property-change pos 'block-side))
+    )
+;;  (message "%S" (point))
+  ;;    (when (or (null pos) (<= pos))
+  pos
+  )
 
 (defun web-mode-part-next-position (&optional pos)
   "web-mode-part-next-position"
