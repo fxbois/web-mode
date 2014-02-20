@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.12
+;; Version: 8.0.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -60,7 +60,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.12"
+(defconst web-mode-version "8.0.13"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -5453,11 +5453,28 @@ Must be used in conjunction with web-mode-enable-block-face."
          ) ;cond
         ) ;case comment
 
+       ((and (or (web-mode-block-is-close pos)
+                 (web-mode-block-is-inside pos))
+             (web-mode-block-match))
+        (setq offset (current-indentation))
+        )
+
        ((member language '("asp" "aspx" "blade" "code" "django" "erb"
                            "freemarker" "javascript" "jsp" "mako" "mason"
                            "php" "python" "razor" "template-toolkit" "web2py"))
 
         (cond
+
+         ;; ((and (string= language "javascript")
+         ;;       (get-text-property pos 'block-beg))
+         ;;  ;;          (message "ici")
+         ;;  (if (or (web-mode-block-is-close pos)
+         ;;          (web-mode-block-is-inside pos))
+         ;;      (progn
+         ;;        (web-mode-block-match)
+         ;;        (setq offset (current-indentation)))
+         ;;    (setq offset (web-mode-markup-indentation pos)))
+         ;;  )
 
          ((string-match-p "^[?%]>" line)
           (if (web-mode-block-beginning pos)
@@ -5637,11 +5654,6 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq offset (current-column))
           )
 
-         ((and (or (web-mode-block-is-close pos)
-                   (web-mode-block-is-inside pos))
-               (web-mode-block-match))
-          (setq offset (current-indentation))
-          )
 
          ((or (and (eq (get-text-property pos 'tag-type) 'end)
                    (web-mode-tag-match))
@@ -5732,6 +5744,10 @@ Must be used in conjunction with web-mode-enable-block-face."
   (save-excursion
     (goto-char pos)
     (let ((offset 0) beg ret)
+;;      (if (or (member web-mode-content-type '("javascript" "css"))
+;;              (get-text-property pos 'part-side))
+;;          (setq beg (web-mode-part-beginning-position pos))
+;;        (setq beg (web-mode-markup-indentation-origin)))
       (setq beg (web-mode-markup-indentation-origin))
       (when beg
         (goto-char beg)
@@ -5841,7 +5857,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive)
   (unless limit (setq limit nil))
   (let (h out prev-line prev-indentation ctx)
-    (setq ctx (web-mode-count-opened-blocks pos limit))
+    (setq ctx (web-mode-count-opened-brackets pos limit))
     (if (cddr ctx)
         (progn
 ;;          (message "ctx=%S" (car (cdr ctx)))
@@ -5874,7 +5890,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive)
   (unless limit (setq limit nil))
   (let (h out prev-line prev-indentation ctx)
-;;    (setq ctx (web-mode-count-opened-blocks pos limit))
+;;    (setq ctx (web-mode-count-opened-brackets pos limit))
 ;;    ;; (if (cddr ctx)
 ;;        (progn
 ;;          (message "ctx=%S" (car (cdr ctx)))
@@ -5998,7 +6014,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;      (message "ic=%S point=%S limit=%S" initial-column (point) limit)
       (goto-char pos)
 
-      (setq block-info (web-mode-count-opened-blocks pos limit))
+      (setq block-info (web-mode-count-opened-brackets pos limit))
 ;;      (message "bi=%S" block-info)
       (setq col initial-column)
       (if (cddr block-info)
@@ -6014,9 +6030,42 @@ Must be used in conjunction with web-mode-enable-block-face."
       (if (< col block-column) block-column col)
       )))
 
-;; return (opened-blocks . (col-num . arg-inline))
 (defun web-mode-count-opened-blocks (pos &optional limit)
-  "Count opened opened block at point."
+  "Count opened opened control blocks at POS."
+  (save-excursion
+    (goto-char pos)
+    (let ((continue t) pair controls control type (counter 0))
+      (when (get-text-property pos 'part-side)
+        (setq limit (web-mode-part-beginning-position pos)))
+      (while continue
+        (cond
+         ((not (web-mode-block-previous))
+;;          (message "ici%S" (point))
+          (setq continue nil)
+          )
+         ((null (get-text-property (point) 'block-controls))
+          )
+         (t
+          (setq controls (get-text-property (point) 'block-controls))
+          (setq pair (car controls))
+;;          (message "%S-%S (%S) type=%S control=%S" type control (point) (car pair) (cdr pair))
+          (cond
+           ((eq (car pair) 'open)
+            (setq counter (1+ counter)))
+           ((eq (car pair) 'inside)
+            )
+           (t
+            (setq counter (1- counter)))
+           )
+          ) ;t
+         ) ;cond
+        ) ;while
+      (if (>= counter 0) counter 0)
+      )))
+
+;; return (opened-blocks . (col-num . arg-inline))
+(defun web-mode-count-opened-brackets (pos &optional limit)
+  "Count opened brackets at POS."
   (interactive)
   (unless limit (setq limit nil))
   (save-excursion
@@ -6030,7 +6079,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (col-num 0)
           (regexp "[\]\[}{)(]\\|[ ;\t]\\(break[ ;]\\|case[ :]\\|default[ :]\\)")
           (num-opened 0)
-          close-char n queue arg-inline arg-inline-checked char lines)
+          close-char n queue arg-inline arg-inline-checked char lines tmp)
 
       (while (and continue (re-search-backward regexp limit t))
 ;;        (message "%S: %c" (point) (char-after))
@@ -6141,6 +6190,15 @@ Must be used in conjunction with web-mode-enable-block-face."
         ) ;unless
 
 ;;      (message "opened-blocks(%S) col-num(%S) arg-inline(%S)" opened-blocks col-num arg-inline)
+
+      ;; todo : si css ou js on ajouter les opened-blocks à opened-blocks
+
+;;      (message "pos=%S ob=%S" pos (web-mode-count-opened-blocks pos))
+
+      (when (and (not arg-inline)
+                 (setq tmp (web-mode-count-opened-blocks pos)))
+        (setq opened-blocks (+ opened-blocks tmp))
+        )
 
       (cons opened-blocks (cons col-num arg-inline))
 
