@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.15
+;; Version: 8.0.16
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,6 +36,7 @@
 
 ;; Code goes here
 
+;;better switch / case indentation
 ;;new lexer/highlighter : web-mode.el is now compatible with minor modes relying on font-locking
 ;;compatibility with  *.js.erb (javascript content type), *.css.erb (css content type)
 ;;engine compatibility : web2py (python), mako (python), mason (perl)
@@ -48,7 +49,6 @@
 ;;       essayer de réduire la zone à scanner / repeindre
 ;;       phphint
 ;;       colorer : <a href=" >
-;;       bug issue169.js.erb
 
 ;;todo : Stickiness of Text Properties
 ;;todo : web-mode-engine-real-name
@@ -60,7 +60,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.15"
+(defconst web-mode-version "8.0.16"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -2293,6 +2293,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       ;;     (message "regexp=%S" web-mode-block-regexp)
       (while (and (< i 1200)
                   (> reg-end (point))
+                   web-mode-block-regexp
                   (re-search-forward web-mode-block-regexp reg-end t))
 
         (setq i (1+ i)
@@ -6073,9 +6074,14 @@ Must be used in conjunction with web-mode-enable-block-face."
   (save-excursion
     (goto-char pos)
     (let ((continue t) pair controls control type (counter 0))
-      (when (get-text-property pos 'part-side)
-        (setq limit (web-mode-part-beginning-position pos)))
-;;      (message "limit=%S" limit)
+      (when (null limit)
+        (cond
+         ((get-text-property pos 'part-side)
+          (setq limit (web-mode-part-beginning-position pos)))
+         ((get-text-property pos 'block-side)
+          (setq limit (web-mode-block-beginning-position pos)))
+         ) ;cond
+        ) ;when
       (while continue
         (cond
          ((bobp)
@@ -6088,7 +6094,6 @@ Must be used in conjunction with web-mode-enable-block-face."
          (t
           (setq controls (get-text-property (point) 'block-controls))
           (setq pair (car controls))
-;;          (message "%S-%S (%S) type=%S control=%S" type control (point) (car pair) (cdr pair))
           (cond
            ((eq (car pair) 'open)
             (setq counter (1+ counter)))
@@ -6112,23 +6117,28 @@ Must be used in conjunction with web-mode-enable-block-face."
     (goto-char pos)
     (let ((continue t)
           (match "")
-          (case-found nil)
-          (case-count 0)
+;;          (case-num 0)
+;;          (is-breaked nil)
+;;          (case-found nil)
+;;          (case-count 0)
+          (switch-level 0)
           (queues (make-hash-table :test 'equal))
           (opened-blocks 0)
           (col-num 0)
-          (regexp "[\]\[}{)(]\\|[ ;\t]\\(break[ ;]\\|case[ :]\\|default[ :]\\)")
+;;          (regexp "[\]\[}{)(]\\|[ ;\t]\\(switch[ ]\\|break[ ;]\\|case[ :]\\|default[ :]\\)")
+          (regexp "[\]\[}{)(]\\|[ ;\t]\\(switch[ ]\\)")
           (num-opened 0)
-          close-char n queue arg-inline arg-inline-checked char lines tmp)
+          close-char n queue arg-inline arg-inline-checked char lines reg-end)
 
       (while (and continue (re-search-backward regexp limit t))
 ;;        (message "%S: %c" (point) (char-after))
         (unless (web-mode-is-comment-or-string)
           (setq match (match-string-no-properties 0))
+;;          (message "match=%S" match)
           (when (> (length match) 1)
 ;;            (message "match=%S" (match-string-no-properties 0))
             (skip-chars-forward "[ \t]")
-            (setq match (replace-regexp-in-string "\\`[ ;\t]*" "" (replace-regexp-in-string "[ :;]*\\'" "" match)))
+            (setq match (replace-regexp-in-string "\\`[ ;\t]*" "" (replace-regexp-in-string "[ ]*\\'" "" match)))
             )
           (setq char (aref match 0))
 ;;          (message "match:%S" match)
@@ -6166,20 +6176,16 @@ Must be used in conjunction with web-mode-enable-block-face."
 
             (when (and (= num-opened 1) (null arg-inline-checked))
               (setq arg-inline-checked t)
-;;              (when (not (member (char-after (1+ (point))) '(?\n ?\r ?\{)))
               (when (not (web-mode-is-void-after (1+ (point)))) ;(not (looking-at-p ".[ ]*$"))
-;;                (message "not void after %S" (1+ (point)))
                 (setq arg-inline t
-;;                      continue nil
                       col-num (1+ (current-column)))
                 (when (looking-at ".[ ]+")
                   (setq col-num (+ col-num (1- (length (match-string-no-properties 0)))))
                   )
-                ) ;when
-;;              (message "pt=%S" (point))
+                )
               )
 
-            ) ;case
+            ) ;case (?\{ ?\( ?\[)
 
            ((member char '(?\} ?\) ?\]))
             (setq queue (gethash char queues nil))
@@ -6188,14 +6194,74 @@ Must be used in conjunction with web-mode-enable-block-face."
             ;;            (message "%c queue=%S" char queue)
             )
 
-           ((member match '("case" "default"))
-            (setq case-found t
-                  case-count (1+ case-count))
+           ((string= match "switch")
+;;            (setq case-num 0)
+;;            (setq is-breaked nil)
+            ;;            (message "switch=%S" (match-end 1))
+            (let (tmp)
+              (when (null reg-end)
+                (cond
+                 ((member language '("css" "javascript"))
+                  (setq reg-end (web-mode-part-end-position pos))
+                  )
+                 (t
+                  (setq reg-end (web-mode-block-end-position pos))
+                  )
+                 )
+                ) ;when
+;;              (message "reg-end=%S" reg-end)
+              (setq tmp (web-mode-bracket-block-end-position (point) reg-end))
+              (when (and tmp (< pos tmp))
+;;                (message "bol(%S) is inside switch(%S)" pos (point))
+                (setq switch-level (1+ switch-level))
+                )
+              )
             )
 
-           ((string= match "break")
-            (setq case-count (1- case-count))
-            )
+;;            ((member match '("case" "default"))
+;;             ;;            (if (null is-breaked)
+;;             ;;                (setq is-breaked nil
+;;             ;;                      case-count (1- case-count)
+;;             ;;)
+;;             ;;                (setq is-breaked nil
+;;             ;;                      case-count (1- case-count))
+;; ;;            (when (null is-breaked)
+;; ;;              (setq is-breaked t
+;;                     ;;                    case-found t
+;; ;;                    case-count (1- case-count)
+;; ;;                    )
+;; ;;              ;;              ) ;if
+;;             ;;  )
+
+;; ;;            (when is-breaked
+
+;;             (setq case-num (1+ case-num))
+
+;;             (when (and (= case-num 1) (not is-breaked))
+;; ;;              (message "faked break = %S" (point))
+;;               (setq case-count (1- case-count))
+;;               )
+
+;; ;;            (setq is-breaked nil)
+
+;;             (setq case-count (1+ case-count))
+;;             ;;              )
+;; ;;            (message "%S: pt%S %S" match (point) is-breaked)
+
+;;             (cond
+;;              ((not (looking-back "\\(break[ ]*;\\|{\\)[ \t\n]*" limit t))
+;; ;;              (message "pas de break")
+;;               (setq case-count (1- case-count))
+;;               )
+;;              ) ;cond
+
+;;             )
+
+;;            ((string= match "break")
+;;             (setq is-breaked t
+;;                   case-count (1- case-count))
+;; ;;            (message "%S: pt%S %S" match (point) is-breaked)
+;;             )
 
            ) ;cond
 
@@ -6218,32 +6284,57 @@ Must be used in conjunction with web-mode-enable-block-face."
          queues)
 ;;        (message "lines=%S case-found=%S case-count=%S" lines case-found case-count)
         (setq opened-blocks (length lines))
-        (when (and case-found (> case-count 0))
-          (goto-char pos)
-          (back-to-indentation)
-;;          (message "%S" (point))
-;;          (when (not (looking-at-p "case\\|}"))
-;;            (setq opened-blocks (1+ opened-blocks))
-          (setq opened-blocks (+ opened-blocks case-count))
-;;            )
+
+;;         (when (and case-found (> case-count 0))
+;;           (goto-char pos)
+;;           (back-to-indentation)
+;; ;;          (message "%S" (point))
+;; ;;          (when (not (looking-at-p "case\\|}"))
+;; ;;            (setq opened-blocks (1+ opened-blocks))
+;;           (setq opened-blocks (+ opened-blocks case-count))
+;; ;;            )
+;;           ) ;when case-count
+
+;;        (setq opened-blocks (+ opened-blocks case-count))
+
+        (goto-char pos)
+        (when (and (> switch-level 0)
+                   (not (looking-at-p "\\(case[ ]\\|default[ :]\\)")))
+          (setq opened-blocks (+ opened-blocks switch-level))
           )
+
+        (when (member language '("css" "javascript"))
+          ;;                 (setq tmp (web-mode-count-opened-blocks pos))
+          ;;                   )
+          ;;        (setq opened-blocks (+ opened-blocks tmp))
+          (setq opened-blocks (+ opened-blocks (web-mode-count-opened-blocks pos)))
+          )
+
         ) ;unless
 
 ;;      (message "opened-blocks(%S) col-num(%S) arg-inline(%S)" opened-blocks col-num arg-inline)
 
-      ;; todo : si css ou js on ajouter les opened-blocks à opened-blocks
-
 ;;      (message "pos=%S ob=%S" pos (web-mode-count-opened-blocks pos))
-
-      (when (and (not arg-inline)
-                 (member language '("css" "javascript"))
-                 (setq tmp (web-mode-count-opened-blocks pos)))
-        (setq opened-blocks (+ opened-blocks tmp))
-        )
 
       (cons opened-blocks (cons col-num arg-inline))
 
       )))
+
+(defun web-mode-bracket-block-end-position (pos limit)
+  "web-mode-blk-end-pos"
+  (save-excursion
+    (goto-char pos)
+    (setq pos nil)
+;;    (message "limit=%S pos=%S" limit (point))
+    (when (web-mode-sf "{" limit)
+      (backward-char)
+;;      (message "pos=%S" (point))
+      (when (web-mode-closing-paren limit)
+        (setq pos (point))
+        )
+      )
+    )
+  pos)
 
 (defun web-mode-is-void-after (pos)
   "Only spaces or comment after pos"
@@ -6411,9 +6502,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (exchange-point-and-mark)
       (setq web-mode-expand-previous-state "html-attr"))
 
-     ((and mark-active
-           (eq ?\< (char-after)))
-
+     ((and mark-active (eq ?\< (char-after)))
       (web-mode-element-parent)
       (if (= reg-beg (region-beginning))
           (mark-whole-buffer)
@@ -8038,7 +8127,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         ) ;while
       pos)))
 
-(defun web-mode-closing-paren (&optional limit)
+(defun web-mode-closing-paren (limit)
   "web-mode-closing-paren"
   (let (pos)
     (setq pos (web-mode-closing-paren-position (point) limit))
