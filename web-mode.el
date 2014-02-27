@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.20
+;; Version: 8.0.21
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -60,7 +60,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.20"
+(defconst web-mode-version "8.0.21"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3639,13 +3639,21 @@ Must be used in conjunction with web-mode-enable-block-face."
       (goto-char reg-beg)
       (while (and (< (point) reg-end)
                   (re-search-forward "{% comment %}" reg-end t))
+        (goto-char (match-beginning 0))
         (setq beg (point))
         (goto-char (1+ (match-beginning 0)))
-        (when (web-mode-match-django-block)
-          (setq end (1- (point)))
+        (when (re-search-forward "{% endcomment %}" reg-end t)
+;;          (setq end (1- (point)))
+          (setq end (point))
           (remove-text-properties beg end web-mode-scan-properties)
-          (add-text-properties beg end '(block-token comment font-lock-face web-mode-comment-face))
-          )
+          (add-text-properties beg end '(block-side t block-token comment))
+          (put-text-property beg (1+ beg) 'block-beg t)
+          (put-text-property (1- end) end 'block-end t)
+;;          (remove-text-properties beg end web-mode-scan-properties)
+          ;; (add-text-properties
+          ;;  beg end
+          ;;  '(block-token comment font-lock-face web-mode-comment-face))
+          ) ;when
         )
       )))
 
