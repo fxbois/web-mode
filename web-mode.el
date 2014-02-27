@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.21
+;; Version: 8.0.22
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -60,7 +60,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.21"
+(defconst web-mode-version "8.0.22"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -7753,7 +7753,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         (when (and (not web-mode-disable-auto-pairing)
                    (not self-insertion))
           (let ((i 0) expr p after pos-end (l (length web-mode-auto-pairs)))
-            (setq pos-end (if (> (+ end 10) (line-end-position))
+            (setq pos-end (if (> (+ end 32) (line-end-position))
                               (line-end-position)
                             (+ end 10)))
             (setq chunk (buffer-substring-no-properties (- beg 2) end)
