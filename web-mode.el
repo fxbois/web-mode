@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.19
+;; Version: 8.0.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -60,7 +60,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.19"
+(defconst web-mode-version "8.0.20"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -897,7 +897,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("mako"             . "</?%\\|${\\|^[ \t]*% \\|^[ \t]*##")
 ;;   '("mason"            . "</&>\\|</%def\\|</%method\\|<%[[:alpha:]]+\\|<[%&]\\|^%.")
    '("mason"            . "</?[&%]\\|^%.")
-   '("php"              . "<\\?.")
+   '("php"              . "<\\?")
    '("python"           . "<\\?")
    '("razor"            . "@.")
    (cons "smarty"       (concat (web-mode-engine-delimiter-open "smarty" "{") "[[:alpha:]#$/*\"]"))
@@ -2293,8 +2293,9 @@ Must be used in conjunction with web-mode-enable-block-face."
       ;;     (message "regexp=%S" web-mode-block-regexp)
       (while (and (< i 1200)
                   (> reg-end (point))
-                   web-mode-block-regexp
-                  (re-search-forward web-mode-block-regexp reg-end t))
+                  web-mode-block-regexp
+                  (re-search-forward web-mode-block-regexp reg-end t)
+                  (not (eobp)))
 
         (setq i (1+ i)
               closing-string nil
@@ -2319,12 +2320,12 @@ Must be used in conjunction with web-mode-enable-block-face."
         (cond
 
          ((string= web-mode-engine "php")
-          (unless (member (char-before) '(?\x ?\X))
+          (unless (member (char-after) '(?x ?X))
             (setq closing-string '("<\\?". "\\?>")))
           (cond
-           ((eq (char-before) ?p)
+           ((eq (char-after) ?p)
             (setq delim-open "<?php"))
-           ((eq (char-before) ?\=)
+           ((eq (char-after) ?\=)
             (setq delim-open "<?="))
            (t
             (setq delim-open "<?"))
@@ -5213,6 +5214,19 @@ Must be used in conjunction with web-mode-enable-block-face."
     (web-mode-trim out)
     ;;    (message "%S [%s] > [%s]" beg input out)
     ))
+
+(defun web-mode-language-at-pos (&optional pos)
+  "Return the language at pos."
+  (unless pos (setq pos (point)))
+  (cond
+   ((get-text-property pos 'block-side)
+    web-mode-engine)
+   ((get-text-property pos 'part-side)
+    (symbol-name (get-text-property pos 'part-side)))
+   (t
+    web-mode-content-type)
+   ) ;cond
+  )
 
 (defun web-mode-column-at-pos (&optional pos)
   "Column at point"
