@@ -5612,7 +5612,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((and (string= language "javascript") (eq ?\. first-char))
           (when (string-match-p "[[:alnum:][:blank:]]+\\.[[:alpha:]]" prev-line)
-            (let ((new-offset (+ indent-offset (search "." prev-line))))
+            (let ((new-offset (+ prev-indentation (search "." prev-line))))
               (setq offset new-offset)
               (message (number-to-string new-offset)))))
 
