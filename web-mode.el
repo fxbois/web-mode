@@ -5611,9 +5611,10 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          ((and (string= language "javascript") (eq ?\. first-char))
-          (when (web-mode-rsb "[[:alnum:][:blank:]]\\.[[:alpha:]]" block-beg)
-            (setq offset (1+ (current-column))))
-          )
+          (when (string-match-p "[[:alnum:][:blank:]]+\\.[[:alpha:]]" prev-line)
+            (let ((new-offset (+ indent-offset (search "." prev-line))))
+              (setq offset new-offset)
+              (message (number-to-string new-offset)))))
 
          ((and (member first-char '(?\? ?\. ?\:))
                (not (string= language "erb")))
