@@ -5470,11 +5470,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                        (add-to-list 'prev-sym-locations (+ indent-offset web-mode-code-indent-offset))
                        (funcall filter (lambda (i) (> i pos-of-this-sym))
                                 (sort prev-sym-locations '<)))))
-    (if (equal last-command 'indent-for-tab-command)
-        (if farther-syms
-            (car farther-syms)
-          indent-offset)
-      (car (last farther-syms)))))
+    (cond ((null farther-syms) indent-offset)
+          ((equal last-command 'indent-for-tab-command) (car farther-syms))
+          (t (car (last farther-syms))))))
 
 (defun web-mode-indent-line ()
   "Indent current line according to language."
