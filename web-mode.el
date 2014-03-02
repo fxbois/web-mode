@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.26
+;; Version: 8.0.27
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.26"
+(defconst web-mode-version "8.0.27"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -125,6 +125,11 @@
 
 (defcustom web-mode-disable-auto-opening (not (display-graphic-p))
   "Disable html element auto-opening."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-disable-indent-cycle nil
+  "Disable cycle indent."
   :type 'boolean
   :group 'web-mode)
 
@@ -5835,12 +5840,15 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           )
 
          ((and (string= language "javascript") (eq ?\. first-char))
-          (setq offset
-                (web-mode-indent-cycle
-                 "[[:alnum:][:blank:]]\\.[[:alpha:]]"
-                 "\\."
-                 block-beg
-                 indent-offset)))
+          (if web-mode-disable-indent-cycle
+              (when (web-mode-rsb "[[:alnum:][:blank:]]\\.[[:alpha:]]" block-beg)
+                (setq offset (1+ (current-column))))
+            (setq offset
+                  (web-mode-indent-cycle
+                   "[[:alnum:][:blank:]]\\.[[:alpha:]]"
+                   "\\."
+                   block-beg
+                   indent-offset))))
 
          ((and (member first-char '(?\? ?\. ?\:))
                (not (string= language "erb")))
