@@ -5444,17 +5444,18 @@ Must be used in conjunction with web-mode-enable-block-face."
       ctx
       )))
 
-(defun web-mode-indent-cycle (regex-line regex-sym block-beg)
-  "Indent cycle for REGEX-SYM on positions from the previous line
-matching REGEX-LINE within the scope of BLOCK-BEG"
+(defun web-mode-indent-cycle (regex-line regex-sym block-beg indent-offset)
+  "Returns next position in the indent cycle for REGEX-SYM on
+positions from the previous line matching REGEX-LINE withing
+BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
   (letrec
       ((match-indices-all (lambda  (regex string)
-          (let ((i (string-match-p regex string)))
-            (if i (cons
-                   i
-                   (mapcar (lambda (x) (+ x i 1))
-                           (funcall match-indices-all regex
-                                    (substring string (+ i 1)))))))))
+                            (let ((i (string-match-p regex string)))
+                              (if i (cons
+                                     i
+                                     (mapcar (lambda (x) (+ x i 1))
+                                             (funcall match-indices-all regex
+                                                      (substring string (+ i 1)))))))))
        (filter (lambda (condp lst)
                  (delq nil
                        (mapcar (lambda (x)
@@ -5468,8 +5469,8 @@ matching REGEX-LINE within the scope of BLOCK-BEG"
        (farther-syms (funcall filter (lambda (i) (> i pos-of-this-sym))
                               prev-sym-locations)))
     (if (null farther-syms)
-        (setq offset indent-offset)
-      (setq offset (car farther-syms)))))
+        indent-offset
+      (car farther-syms))))
 
 (defun web-mode-indent-line ()
   "Indent current line according to language."
@@ -5638,7 +5639,11 @@ matching REGEX-LINE within the scope of BLOCK-BEG"
           )
 
          ((and (string= language "javascript") (eq ?\. first-char))
-          (web-mode-indent-cycle "[[:alnum:][:blank:]]\\.[[:alpha:]]" "\\." block-beg))
+          (setq offset
+                (web-mode-indent-cycle
+                 "[[:alnum:][:blank:]]\\.[[:alpha:]]"
+                 "\\."
+                 block-beg indent-offset)))
 
          ((and (member first-char '(?\? ?\. ?\:))
                (not (string= language "erb")))
