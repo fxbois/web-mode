@@ -5638,6 +5638,36 @@ Must be used in conjunction with web-mode-enable-block-face."
       ctx
       )))
 
+(defun web-mode-indent-cycle (regex-line regex-sym block-beg indent-offset)
+  "Returns next position in the indent cycle for REGEX-SYM on
+positions from the previous line matching REGEX-LINE withing
+BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
+  (letrec
+      ((match-indices-all (lambda  (regex string)
+                            (let ((i (string-match-p regex string)))
+                              (if i (cons
+                                     i
+                                     (mapcar (lambda (x) (+ x i 1))
+                                             (funcall match-indices-all regex
+                                                      (substring string (+ i 1)))))))))
+       (filter (lambda (condp lst)
+                 (delq nil
+                       (mapcar (lambda (x)
+                                 (and (funcall condp x) x)) lst))))
+       (this-line (thing-at-point 'line))
+       (rsb-prev-line (progn
+                        (web-mode-rsb regex-line block-beg)
+                        (thing-at-point 'line)))
+       (pos-of-this-sym (string-match-p regex-sym this-line))
+       (prev-sym-locations (funcall match-indices-all regex-sym rsb-prev-line))
+       (farther-syms (progn
+                       (add-to-list 'prev-sym-locations (+ indent-offset web-mode-code-indent-offset))
+                       (funcall filter (lambda (i) (> i pos-of-this-sym))
+                                (sort prev-sym-locations '<)))))
+    (cond ((null farther-syms) indent-offset)
+          ((equal last-command 'indent-for-tab-command) (car farther-syms))
+          (t (car (last farther-syms))))))
+
 (defun web-mode-indent-line ()
   "Indent current line according to language."
   (let ((inhibit-modification-hooks t)
@@ -5805,9 +5835,12 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          ((and (string= language "javascript") (eq ?\. first-char))
-          (when (web-mode-rsb "[[:alnum:][:blank:]]\\.[[:alpha:]]" block-beg)
-            (setq offset (1+ (current-column))))
-          )
+          (setq offset
+                (web-mode-indent-cycle
+                 "[[:alnum:][:blank:]]\\.[[:alpha:]]"
+                 "\\."
+                 block-beg
+                 indent-offset)))
 
          ((and (member first-char '(?\? ?\. ?\:))
                (not (string= language "erb")))
