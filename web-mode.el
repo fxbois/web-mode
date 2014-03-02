@@ -5611,9 +5611,26 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          ((and (string= language "javascript") (eq ?\. first-char))
-          (when (web-mode-rsb "[[:alnum:][:blank:]]\\.[[:alpha:]]" block-beg)
-            (setq offset (1+ (current-column))))
-          )
+          (letrec ((match-indices-all
+                    (lambda (regex string)
+                      (let ((i (string-match-p regex string)))
+                        (if i
+                            (cons i
+                                  (mapcar (lambda (x) (+ x i 1))
+                                          (match-indices-all
+                                           regex
+                                           (substring string (1+ i)))))
+                          '()))))
+                   (this-line (thing-at-point 'line))
+                   (pos-of-this-dot (string-match-p "\\." this-line))
+                   (prev-dot-locations
+                    (mapcar (lambda (i) (+ i prev-indentation))
+                            (match-indices-all "\\." prev-line)))
+                   (farther-dots (remove-if (lambda (i) (<= i pos-of-this-dot))
+                                            prev-dot-locations)))
+             (if (null farther-dots)
+                 (setq offset 0)
+               (setq offset (car farther-dots)))))
 
          ((and (member first-char '(?\? ?\. ?\:))
                (not (string= language "erb")))
