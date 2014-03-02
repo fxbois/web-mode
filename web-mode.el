@@ -5612,13 +5612,15 @@ Must be used in conjunction with web-mode-enable-block-face."
 
          ((and (string= language "javascript") (eq ?\. first-char))
           (letrec
-              ((match-indices-all
-                (lambda  (regex string)
+              ((match-indices-all (lambda  (regex string)
                   (let ((i (string-match-p regex string)))
                     (if i
                         (cons i
                               (mapcar (lambda (x) (+ x i 1))
                                       (funcall match-indices-all regex (substring string (+ i 1)))))))))
+               (filter (lambda (condp lst)
+                         (delq nil
+                               (mapcar (lambda (x) (and (funcall condp x) x)) lst))))
                (this-line (thing-at-point 'line))
                (rsb-prev-line
                 (progn
@@ -5626,7 +5628,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                   (thing-at-point 'line)))
                (pos-of-this-dot (string-match-p "\\." this-line))
                (prev-dot-locations (funcall match-indices-all "\\." rsb-prev-line))
-               (farther-dots (remove-if (lambda (i) (<= i pos-of-this-dot))
+               (farther-dots (funcall filter (lambda (i) (> i pos-of-this-dot))
                                         prev-dot-locations)))
             (if (null farther-dots)
                 (setq offset indent-offset)
