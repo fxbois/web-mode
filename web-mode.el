@@ -5444,6 +5444,33 @@ Must be used in conjunction with web-mode-enable-block-face."
       ctx
       )))
 
+(defun web-mode-indent-cycle (regex-line regex-sym block-beg)
+  "Indent cycle for REGEX-SYM on positions from the previous line
+matching REGEX-LINE within the scope of BLOCK-BEG"
+  (letrec
+      ((match-indices-all (lambda  (regex string)
+          (let ((i (string-match-p regex string)))
+            (if i (cons
+                   i
+                   (mapcar (lambda (x) (+ x i 1))
+                           (funcall match-indices-all regex
+                                    (substring string (+ i 1)))))))))
+       (filter (lambda (condp lst)
+                 (delq nil
+                       (mapcar (lambda (x)
+                                 (and (funcall condp x) x)) lst))))
+       (this-line (thing-at-point 'line))
+       (rsb-prev-line (progn
+                        (web-mode-rsb regex-line block-beg)
+                        (thing-at-point 'line)))
+       (pos-of-this-sym (string-match-p regex-sym this-line))
+       (prev-sym-locations (funcall match-indices-all regex-sym rsb-prev-line))
+       (farther-syms (funcall filter (lambda (i) (> i pos-of-this-sym))
+                              prev-sym-locations)))
+    (if (null farther-syms)
+        (setq offset indent-offset)
+      (setq offset (car farther-syms)))))
+
 (defun web-mode-indent-line ()
   "Indent current line according to language."
   (let ((inhibit-modification-hooks t)
@@ -5611,28 +5638,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
 
          ((and (string= language "javascript") (eq ?\. first-char))
-          (letrec
-              ((match-indices-all (lambda  (regex string)
-                  (let ((i (string-match-p regex string)))
-                    (if i
-                        (cons i
-                              (mapcar (lambda (x) (+ x i 1))
-                                      (funcall match-indices-all regex (substring string (+ i 1)))))))))
-               (filter (lambda (condp lst)
-                         (delq nil
-                               (mapcar (lambda (x) (and (funcall condp x) x)) lst))))
-               (this-line (thing-at-point 'line))
-               (rsb-prev-line
-                (progn
-                  (web-mode-rsb "[[:alnum:][:blank:]]\\.[[:alpha:]]" block-beg)
-                  (thing-at-point 'line)))
-               (pos-of-this-dot (string-match-p "\\." this-line))
-               (prev-dot-locations (funcall match-indices-all "\\." rsb-prev-line))
-               (farther-dots (funcall filter (lambda (i) (> i pos-of-this-dot))
-                                        prev-dot-locations)))
-            (if (null farther-dots)
-                (setq offset indent-offset)
-              (setq offset (car farther-dots)))))
+          (web-mode-indent-cycle "[[:alnum:][:blank:]]\\.[[:alpha:]]" "\\." block-beg))
 
          ((and (member first-char '(?\? ?\. ?\:))
                (not (string= language "erb")))
