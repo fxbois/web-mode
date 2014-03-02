@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.25
+;; Version: 8.0.26
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,6 +36,7 @@
 
 ;; Code goes here
 
+;;web-mode-html-attr-engine-face
 ;;better switch / case indentation
 ;;new lexer/highlighter : web-mode.el is now compatible with minor modes relying on font-locking
 ;;compatibility with  *.js.erb (javascript content type), *.css.erb (css content type)
@@ -60,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.25"
+(defconst web-mode-version "8.0.26"
   "Web Mode version.")
 
 (defgroup web-mode nil
