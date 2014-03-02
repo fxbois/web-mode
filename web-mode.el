@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.24
+;; Version: 8.0.25
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -60,7 +60,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.24"
+(defconst web-mode-version "8.0.25"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -347,6 +347,11 @@ with value 2, HTML lines beginning text are also indented (do not forget side ef
 (defface web-mode-html-attr-custom-face
   '((t :inherit web-mode-html-attr-name-face))
   "Face for custom attribute names (e.g. data-*)."
+  :group 'web-mode-faces)
+
+(defface web-mode-html-attr-engine-face
+  '((t :inherit web-mode-html-attr-custom-face))
+  "Face for custom engine attribute names (e.g. ng-*)."
   :group 'web-mode-faces)
 
 (defface web-mode-html-attr-equal-face
@@ -643,6 +648,16 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("json"       . "\\.\\(json\\|jsonld\\)\\'")
     ("html"       . "."))
   "content types")
+
+(defvar web-mode-engine-attr-regexp nil
+ "Engine custom attributes"
+  )
+
+(defvar web-mode-engine-attr-regexps
+  '(("angular" . "ng-")
+    )
+  "Engine custom attributes"
+  )
 
 (defvar web-mode-engine-file-regexps
   '(("asp"              . "\\.asp\\'")
@@ -2098,6 +2113,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                     (cdr (assoc web-mode-engine web-mode-block-electric-chars)))
             )
       ) ;when
+
+    (setq web-mode-engine-attr-regexp (cdr (assoc web-mode-engine web-mode-engine-attr-regexps)))
 
     (setq elt (assoc web-mode-engine web-mode-block-regexps))
     (if elt
@@ -4012,7 +4029,10 @@ Must be used in conjunction with web-mode-enable-block-face."
           (progn
             (setq flags (get-text-property beg 'tag-attr))
 ;;            (message "beg=%S flags=%S" beg flags)
-            (setq face (if (> (logand flags 1) 0) 'web-mode-html-attr-custom-face 'web-mode-html-attr-name-face))
+            (setq face (cond
+                        ((= (logand flags 1) 1) 'web-mode-html-attr-custom-face)
+                        ((= (logand flags 2) 2) 'web-mode-html-attr-engine-face)
+                        (t 'web-mode-html-attr-name-face)))
             (if (get-text-property beg 'tag-attr-end)
                 (setq end beg)
               (setq end (next-single-property-change beg 'tag-attr-end)))
@@ -4205,12 +4225,23 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq val-end (1- val-end)))
         ) ;if
         ;;      (put-text-property name-beg (1+ name-beg) 'tag-attr flags)
-      (when (and (= (logand flags 1) 1)
-                 (member (buffer-substring-no-properties name-beg name-end)
-                              '("http-equiv")))
-        (setq flags (1- flags))
-;;        (message "%S %S" flags (buffer-substring-no-properties name-beg name-end))
-        )
+      (when (= (logand flags 1) 1)
+        (let (attr)
+          (setq attr (buffer-substring-no-properties name-beg name-end))
+          (cond
+           ((member attr '("http-equiv"))
+            (setq flags (1- flags))
+            ;;        (message "%S %S" flags (buffer-substring-no-properties name-beg name-end))
+            )
+           ((and web-mode-engine-attr-regexp
+                 (string-match-p web-mode-engine-attr-regexp attr))
+            (setq flags (logior flags 2))
+            (setq flags (1- flags))
+            (message "engine attr=%S" attr)
+            )
+           ) ;cond
+          ) ;let
+        ) ;when
       (put-text-property name-beg (1+ val-end) 'tag-attr flags)
       (put-text-property val-end (1+ val-end) 'tag-attr-end equal-offset)
       ) ;let
@@ -4653,7 +4684,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       (goto-char reg-beg)
       ;;    (message "reg-beg=%S" reg-beg)
       (while (web-mode-rsf-client "</?[[:alnum:]]" reg-end)
-;;        (message "%S" (match-string-no-properties 0))
+        (message "%S" (match-string-no-properties 0))
         (goto-char (match-beginning 0))
         (setq continue t)
         (while continue
@@ -4691,10 +4722,11 @@ Must be used in conjunction with web-mode-enable-block-face."
         )
       )))
 
+;; bug du ' : issue210
 (defun web-mode-scan-literal (reg-end)
   "web-mode-scan-literal"
   (let (beg end)
-    (skip-chars-forward " ")
+    (skip-chars-forward " \na-zA-z0-9'")
     (setq beg (point))
     (cond
      ((looking-at "</?\\([[:alnum:]]+\\(?:[-][[:alpha:]]+\\)?\\)")
