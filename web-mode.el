@@ -5468,9 +5468,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
        (prev-sym-locations (funcall match-indices-all regex-sym rsb-prev-line))
        (farther-syms (funcall filter (lambda (i) (> i pos-of-this-sym))
                               prev-sym-locations)))
-    (if (null farther-syms)
-        indent-offset
-      (car farther-syms))))
+    (if farther-syms
+        (car farther-syms)
+        indent-offset)))
 
 (defun web-mode-indent-line ()
   "Indent current line according to language."
@@ -5643,7 +5643,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                 (web-mode-indent-cycle
                  "[[:alnum:][:blank:]]\\.[[:alpha:]]"
                  "\\."
-                 block-beg indent-offset)))
+                 block-beg
+                 (+ indent-offset web-mode-code-indent-offset))))
 
          ((and (member first-char '(?\? ?\. ?\:))
                (not (string= language "erb")))
