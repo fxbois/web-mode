@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.31
+;; Version: 8.0.32
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.31"
+(defconst web-mode-version "8.0.32"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3244,16 +3244,18 @@ Must be used in conjunction with web-mode-enable-block-face."
         ) ; erb
 
        ((string= web-mode-engine "django")
-        (cond
-         ((web-mode-block-starts-with "\\(else\\|elsif\\|elif\\)" reg-beg)
-          (setq controls (append controls (list (cons 'inside "if")))))
-         ((web-mode-block-starts-with "\\(empty\\)" reg-beg)
-          (setq controls (append controls (list (cons 'inside "for")))))
-         ((web-mode-block-starts-with "end\\([[:alpha:]]+\\)" reg-beg)
-          (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
-         ((web-mode-block-starts-with web-mode-django-control-blocks reg-beg)
-          (setq controls (append controls (list (cons 'open (match-string-no-properties 1))))))
-         )
+        (when (eq (char-after (1+ reg-beg)) ?\%)
+          (cond
+           ((web-mode-block-starts-with "\\(else\\|elsif\\|elif\\)" reg-beg)
+            (setq controls (append controls (list (cons 'inside "if")))))
+           ((web-mode-block-starts-with "\\(empty\\)" reg-beg)
+            (setq controls (append controls (list (cons 'inside "for")))))
+           ((web-mode-block-starts-with "end\\([[:alpha:]]+\\)" reg-beg)
+            (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
+           ((web-mode-block-starts-with web-mode-django-control-blocks reg-beg)
+            (setq controls (append controls (list (cons 'open (match-string-no-properties 1))))))
+           )
+          )
         ) ;django
 
        ((string= web-mode-engine "smarty")
