@@ -133,6 +133,11 @@
   :type 'boolean
   :group 'web-mode)
 
+(defcustom web-mode-indent-cycle-left-first nil
+  "Indent from left to right instead of starting at rightmost match."
+  :type 'boolean
+  :group 'web-mode)
+
 (defcustom web-mode-enable-current-element-highlight nil
   "Disable element highlight."
   :type 'boolean
@@ -5689,7 +5694,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                        (funcall filter (lambda (i) (> i pos-of-this-sym))
                                 (sort prev-sym-locations '<)))))
     (cond ((null farther-syms) indent-offset)
-          ((equal last-command 'indent-for-tab-command) (car farther-syms))
+          ((or web-mode-indent-cycle-left-first
+               (equal last-command 'indent-for-tab-command)) (car farther-syms))
           (t (car (last farther-syms))))))
 
 (defun web-mode-indent-line ()
