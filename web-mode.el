@@ -4751,7 +4751,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-scan-literal (reg-end)
   "web-mode-scan-literal"
   (let (beg end)
-    (skip-chars-forward " \na-zA-z0-9'")
+    (skip-chars-forward " :\na-zA-z0-9'")
     (setq beg (point))
     (cond
      ((looking-at "</?\\([[:alnum:]]+\\(?:[-][[:alpha:]]+\\)?\\)")
