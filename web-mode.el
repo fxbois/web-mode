@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.28
+;; Version: 8.0.29
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.28"
+(defconst web-mode-version "8.0.29"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -5772,6 +5772,16 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (setq offset (current-indentation))
         )
 
+       ((and prev-props (plist-get prev-props 'tag-attr))
+        (web-mode-tag-beginning)
+          (let (skip)
+            (setq skip (next-single-property-change (point) 'tag-attr))
+            (when skip
+              (goto-char skip)
+              (setq offset (current-column))
+              ))
+          )
+
        ((member language '("asp" "aspx" "blade" "code" "django" "erb"
                            "freemarker" "javascript" "jsp" "jsx" "mako" "mason"
                            "php" "python" "razor" "react" "template-toolkit" "web2py"))
@@ -5957,16 +5967,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
         (cond
 
-         ((and prev-props (plist-get prev-props 'tag-attr))
-          (web-mode-tag-beginning)
-          (let (skip)
-            (setq skip (next-single-property-change (point) 'tag-attr))
-            (when skip
-              (goto-char skip)
-              (setq offset (current-column))
-              ))
-          )
-
          ((and (string= web-mode-engine "mason")
                (string-match-p "^%" line))
           (setq offset 0)
@@ -5981,18 +5981,10 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (setq offset (current-column))
           )
 
-
-         ((or (and (eq (get-text-property pos 'tag-type) 'end)
-                   (web-mode-tag-match))
-;;              (and (string= web-mode-engine "razor")
-;;                   (string-match-p "^[ \t]*}" line)
-;;                   (web-mode-block-match))
-              ;; (and (get-text-property pos 'block-beg)
-              ;;      (looking-at-p web-mode-close-block-regexp)
-              ;;      (web-mode-block-match))
-              )
-          (setq offset (current-indentation))
-          )
+         ;; ((or (and (eq (get-text-property pos 'tag-type) 'end)
+         ;;           (web-mode-tag-match)))
+         ;;  (setq offset (current-indentation))
+         ;;  )
 
          ((or (eq (length line) 0)
               (= web-mode-indent-style 2)
