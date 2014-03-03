@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.29
+;; Version: 8.0.30
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.29"
+(defconst web-mode-version "8.0.30"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -5765,23 +5765,35 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           )
          ) ;cond
         ) ;case comment
-
+       
        ((and (or (web-mode-block-is-close pos)
                  (web-mode-block-is-inside pos))
              (web-mode-block-match))
         (setq offset (current-indentation))
         )
-
+       
+       ((or (and (eq (get-text-property pos 'tag-type) 'end)
+                 (web-mode-tag-match)))
+        (setq offset (current-indentation))
+        )
+       
        ((and prev-props (plist-get prev-props 'tag-attr))
         (web-mode-tag-beginning)
-          (let (skip)
-            (setq skip (next-single-property-change (point) 'tag-attr))
-            (when skip
-              (goto-char skip)
-              (setq offset (current-column))
-              ))
-          )
-
+        (let (skip)
+          (setq skip (next-single-property-change (point) 'tag-attr))
+          (when skip
+            (goto-char skip)
+            (setq offset (current-column))
+            ))
+        )
+       
+       ;;       ((get-text-property pos 'tag-beg)
+       ((and (get-text-property pos 'tag-beg)
+             (not (get-text-property pos 'part-side)))
+        ;; (message "ici")
+        (setq offset (web-mode-markup-indentation pos))
+        )
+       
        ((member language '("asp" "aspx" "blade" "code" "django" "erb"
                            "freemarker" "javascript" "jsp" "jsx" "mako" "mason"
                            "php" "python" "razor" "react" "template-toolkit" "web2py"))
