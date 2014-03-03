@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.32
+;; Version: 8.0.33
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.32"
+(defconst web-mode-version "8.0.33"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -582,7 +582,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-scan-properties
   (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil 'tag-attr nil 'tag-attr-end nil
         'part-side nil 'part-token nil 'part-expr nil
-        'block-side nil 'block-controls nil 'block-token nil 'block-beg nil 'block-end nil)
+        'block-side nil 'block-token nil 'block-controls nil 'block-beg nil 'block-end nil)
   "Text properties used for tokens.")
 
 (defvar web-mode-scan-properties2
@@ -4443,12 +4443,13 @@ Must be used in conjunction with web-mode-enable-block-face."
             (progn
               (setq token-type (get-text-property beg 'part-token))
               (setq face (cond
+                          ((eq token-type 'string) string-face)
+                          ((eq token-type 'comment) comment-face)
                           ((eq token-type 'context) 'web-mode-json-context-face)
                           ((eq token-type 'key) 'web-mode-json-key-face)
-;;                          ((eq token-type 'tag) nil)
-;;                          ((eq token-type 'literal-expr) nil)
-                          ((eq token-type 'string) string-face)
-                          (t comment-face)))
+                          ((eq token-type 'html) nil)
+                          ;;                          ((eq token-type 'literal-expr) nil)
+                          (t nil)))
               (setq end (next-single-property-change beg 'part-token))
               (if (and end (< end reg-end))
                   (cond
@@ -4723,7 +4724,8 @@ Must be used in conjunction with web-mode-enable-block-face."
            ) ;cond
           ) ;while continue
         (when (and beg end)
-          (remove-text-properties beg end '(part-token))
+;;          (remove-text-properties beg end '(part-token))
+          (put-text-property beg end 'part-token 'html)
           (web-mode-scan-tags beg end)
           (web-mode-scan-expr-literal beg end)
           )
@@ -5622,6 +5624,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq prev-line (car prev)
                   prev-indentation (cdr prev))
             (setq prev-line (web-mode-clean-client-line prev-line))
+;;            (message "prev-line[%s]" prev-line)
             (setq prev-props (text-properties-at (1- (length prev-line)) prev-line)))
           )
          (t
@@ -5736,8 +5739,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
       (cond
 
-       ((or (bobp)
-            (= (line-number-at-pos pos) 1))
+       ((or (bobp) (= (line-number-at-pos pos) 1))
         (setq offset 0)
         )
 
@@ -5774,8 +5776,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (setq offset (current-indentation))
         )
 
-       ((or (and (eq (get-text-property pos 'tag-type) 'end)
-                 (web-mode-tag-match)))
+       ((and (eq (get-text-property pos 'tag-type) 'end)
+             (web-mode-tag-match))
         (setq offset (current-indentation))
         )
 
@@ -5813,7 +5815,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
          ;;    (setq offset (web-mode-markup-indentation pos)))
          ;;  )
 
-         ((string-match-p "^[?%]>" line)
+         ;;         ((string-match-p "^[?%]>" line)
+         ((and (get-text-property (1- pos) 'block-side)
+               (eq (get-text-property pos 'block-token) 'delimiter))
           (if (web-mode-block-beginning pos)
               (setq offset (current-column)))
           )
@@ -5824,11 +5828,11 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
               (setq offset (current-column)))
           )
 
-         ((and (string= language "web2py")
-               (string-match-p "}}" line))
-          (if (web-mode-block-beginning pos)
-              (setq offset (current-column)))
-          )
+         ;; ((and (string= language "web2py")
+         ;;       (string-match-p "}}" line))
+         ;;  (if (web-mode-block-beginning pos)
+         ;;      (setq offset (current-column)))
+         ;;  )
 
          ((and (string= language "razor")
                (string-match-p "^\\." line)
@@ -5953,9 +5957,17 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                                                  block-beg))
           )
 
-         ((or (and (eq (get-text-property pos 'tag-type) 'end)
-                   (web-mode-tag-match)))
+         ((and (string= language "jsx")
+               (eq (get-text-property pos 'tag-type) 'end)
+               (web-mode-tag-match))
           (setq offset (current-indentation))
+          )
+
+         ((and (string= language "jsx")
+               (eq (get-text-property pos 'part-token) 'html)
+               (eq (get-text-property (1- pos) 'part-token) 'html))
+          ;; (message "ici")
+          (setq offset (web-mode-markup-indentation pos))
           )
 
          (t
@@ -6053,6 +6065,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (if control (cons control state) nil)
       )))
 
+;; TODO : prendre en compte le debut de la zone 'part-token -> html
 (defun web-mode-markup-indentation-origin ()
   "web-mode-indentation-origin-pos"
   (let ((continue t) pos)
@@ -6357,18 +6370,22 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (setq n (car block-info))
         (setq col initial-column)
 ;;        (message "initial-col=%S n=%S col=%S" initial-column n col)
-        (when (and (string= language "jsx")
-                   (get-text-property pos 'tag-beg))
-          (save-excursion
-            (forward-line -1)
-            (back-to-indentation)
-            (when (and (get-text-property pos 'tag-beg)
-                       (web-mode-element-is-opened (point) pos))
-              (message "jsx %S" pos)
-              (setq n (1+ n))
-              )
-            )
-          ) ; when jsx
+
+        ;; (when (and (string= language "jsx")
+        ;;            (eq (get-text-property pos 'part-token) 'html)
+        ;;            (eq (get-text-property pos 'part-token)
+        ;;                (get-text-property (1- pos) 'part-token)))
+        ;;   (save-excursion
+        ;;     (forward-line -1)
+        ;;     (back-to-indentation)
+        ;;     (when (and (get-text-property pos 'tag-beg)
+        ;;                (web-mode-element-is-opened (point) pos))
+        ;;       (message "jsx %S" pos)
+        ;;       (setq n (1+ n))
+        ;;       )
+        ;;     )
+        ;;   ) ; when jsx
+
         (if (member first-char '(?\} ?\) ?\])) (setq n (1- n)))
         (setq col (+ initial-column (* n language-offset)))
         ) ;if
@@ -9407,7 +9424,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
   "Detect if POS is in a comment, a string or in server script."
   (unless pos (setq pos (point)))
   (not (null (or (get-text-property pos 'block-side)
-                 (get-text-property pos 'part-token))))
+                 (member (get-text-property pos 'part-token) '(comment string)))))
   )
 
 (defun web-mode-is-part-token-line ()
