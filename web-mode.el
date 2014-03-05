@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.33
+;; Version: 8.0.34
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.33"
+(defconst web-mode-version "8.0.34"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -5770,6 +5770,16 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
          ) ;cond
         ) ;case comment
 
+       ((and (string= language "html")
+             (string= web-mode-engine "razor")
+             (get-text-property pos 'block-side)
+             (string-match-p "^}" line))
+;;        (message "ici")
+        (goto-char (web-mode-opening-paren-position (point)))
+        (back-to-indentation)
+        (setq offset (current-column))
+        )
+
        ((and (or (web-mode-block-is-close pos)
                  (web-mode-block-is-inside pos))
              (web-mode-block-match))
@@ -5840,14 +5850,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (setq offset prev-indentation)
           )
 
-         ((and (string= language "razor")
-               (string-match-p "^}" line))
-          (goto-char (web-mode-opening-paren-position (point)))
-          (back-to-indentation)
-          (setq offset (current-column))
-          )
+         ;; ((and (string= language "razor")
+         ;;       (string-match-p "^}" line))
+         ;;  (goto-char (web-mode-opening-paren-position (point)))
+         ;;  (back-to-indentation)
+         ;;  (setq offset (current-column))
+         ;;  )
 
-        ((and (string= language "razor")
+        ((And (string= language "razor")
               (string-match-p "^case " line)
               (string-match-p "^case " prev-line))
          (search-backward "case ")
@@ -5989,7 +5999,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                                                    block-beg))
         ) ;case style
 
-       (t ; case html block
+       (t ; case html
 
         (cond
 
@@ -5998,14 +6008,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (setq offset 0)
           )
 
-         ((and (string= web-mode-engine "razor")
-;;               (get-text-property pos 'block-side)
-               (string-match-p "^}" line))
-;;          (message "ici")
-          (goto-char (web-mode-opening-paren-position (point)))
-          (back-to-indentation)
-          (setq offset (current-column))
-          )
+;;          ((and (string= web-mode-engine "razor")
+;; ;;               (get-text-property pos 'block-side)
+;;                (string-match-p "^}" line))
+;;           (message "ici")
+;;           (goto-char (web-mode-opening-paren-position (point)))
+;;           (back-to-indentation)
+;;           (setq offset (current-column))
+;;           )
 
          ;; ((or (and (eq (get-text-property pos 'tag-type) 'end)
          ;;           (web-mode-tag-match)))
@@ -8398,6 +8408,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                    ("]" . "[\]\[]")
                    ("}" . "[}{]")))
           pt
+          (counter 0)
           regexp)
       (setq paren (string (char-after)))
       ;;      (message "paren=%S" paren)
@@ -8418,6 +8429,11 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
             (setq n (1- n)))
           ;;          (message "n=%S" n)
           ) ;unless
+        (setq counter (1+ counter))
+        (when (> counter 500)
+          (message "** web-mode-opening-paren-position invalid loop **")
+          (setq continue nil
+                pt nil))
         )
       pt
       )))
