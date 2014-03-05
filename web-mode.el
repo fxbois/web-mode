@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.36
+;; Version: 8.0.37
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.36"
+(defconst web-mode-version "8.0.37"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -927,7 +927,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("mason"            . "</?[&%]\\|^%.")
    '("php"              . "<\\?")
    '("python"           . "<\\?")
-   '("razor"            . "@.")
+   '("razor"            . "@.\\|^[ \t]*}")
 ;;   '("react"            . "<script type=.?text/jsx.*>")
    (cons "smarty"       (concat (web-mode-engine-delimiter-open "smarty" "{") "[[:alpha:]#$/*\"]"))
 
@@ -2670,8 +2670,17 @@ Must be used in conjunction with web-mode-enable-block-face."
             (setq closing-string "EOR"
                   delim-open "@"))
            ((string= sub1 "}")
-            (setq closing-string "EOR"))
-           )
+            (save-excursion
+              (let (paren-pos)
+                (setq paren-pos (web-mode-opening-paren-position (1- (point))))
+                (if (and paren-pos (get-text-property paren-pos 'block-side))
+                    (setq closing-string "EOR")
+                  (setq closing-strin nil)
+                  ) ;if
+                ) ;let
+              ) ;let
+            ) ; case }
+           ) ;cond
           ) ;razor
 
          ) ;cond
@@ -2753,8 +2762,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
             (when delim-open
               (web-mode-block-delimiters-set open close delim-open delim-close))
-            (when (member web-mode-engine '("razor"))
-              (web-mode-exclude-virtual-tags open close))
+;;            (when (member web-mode-engine '("razor"))
+;;              (web-mode-exclude-virtual-tags open close))
             (web-mode-scan-block open close)
             )
 
@@ -4820,6 +4829,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                 tag-end (match-end 1))
 ;;          (message "line-end-pos(%S) beg(%S) end(%S)" line-end-pos beg end)
           (remove-text-properties beg end '(block-side nil block-token nil))
+
           (put-text-property (1- tag-beg) tag-beg 'block-end t)
           (put-text-property tag-end (1+ tag-end) 'block-beg t)
           (when (and (looking-at "\\(.+\\)<")
@@ -4847,7 +4857,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;        (message "pos=%S" (point))
         (setq line (1+ line))
         )
-
+;;      (message "%S" (get-text-property 58 'block-token))
       )))
 
 (defun web-mode-razor-tag-exclude2 (block-beg block-end)
@@ -4895,25 +4905,35 @@ Must be used in conjunction with web-mode-enable-block-face."
         (forward-char)
         )
        ((and (not (eobp)) (eq ?\( (char-after)))
-        (setq tmp (web-mode-closing-paren-position))
-        (when tmp
-          (goto-char tmp))
-        (forward-char)
+        (if (looking-at-p "[ \n]*<")
+            (setq continue nil)
+          (setq tmp (web-mode-closing-paren-position))
+          (when tmp
+            (goto-char tmp))
+          (forward-char)
+          ) ;if
         )
        ((and (not (eobp)) (eq ?\. (char-after)))
         (forward-char))
        ((looking-at-p "[ \n]*{")
         (search-forward "{")
-        (backward-char)
-        (setq tmp (web-mode-closing-paren-position))
-        (when tmp
-          (goto-char tmp))
+        (if (looking-at-p "[ \n]*<")
+            (setq continue nil)
+          (backward-char)
+          (setq tmp (web-mode-closing-paren-position))
+          (when tmp
+            (goto-char tmp))
+          (forward-char)
+          ) ;if
+        )
+       ((looking-at-p "}")
         (forward-char)
         )
        (t
         (setq continue nil))
        ) ;cond
       ) ;while
+;;      (message "%S" (get-text-property 58 'block-token))
     ))
 
 (defun web-mode-colorize-foreground (color)
@@ -6388,6 +6408,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 ;;      (message "ic=%S point=%S limit=%S" initial-column (point) limit)
       (goto-char pos)
 
+;;      (message "limit=%S" limit)
       (setq block-info (web-mode-count-opened-brackets pos language limit))
 ;;      (message "bi=%S" block-info)
       (setq col initial-column)
@@ -6674,7 +6695,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
 ;;        (message "opened-blocks=%S" opened-blocks)
 
-        (when (member language '("css" "javascript"))
+;;        (when (member language '("css" "javascript"))
+        (when (member language '("jsx"))
           ;;                 (setq tmp (web-mode-count-opened-blocks pos))
           ;;                   )
           ;;        (setq opened-blocks (+ opened-blocks tmp))
@@ -6686,7 +6708,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
 ;;      (message "pos=%S ob=%S" pos (web-mode-count-opened-blocks pos))
 
-;;      (message "opened-blocks(%S) col-num(%S) arg-inline(%S)" opened-blocks col-num arg-inline)
+      ;;(message "opened-blocks(%S) col-num(%S) arg-inline(%S)" opened-blocks col-num arg-inline)
       (cons opened-blocks (cons col-num arg-inline))
 
       )))
@@ -8152,14 +8174,15 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         ;;          (or (web-mode-next-tag-at-eol-pos end)
         ;;              (point-max)))
 
-        (if (string= web-mode-engine "razor")
-            (web-mode-scan-region (point-min)
-                                  (point-max))
-          (web-mode-scan-region (or (web-mode-previous-tag-at-bol-pos beg)
-                                    (point-min))
-                                (or (web-mode-next-tag-at-eol-pos end)
-                                    (point-max))))
-        )
+        ;;        (if (string= web-mode-engine "razor")
+        ;;            (web-mode-scan-region (point-min)
+        ;;                                  (point-max))
+        (web-mode-scan-region (or (web-mode-previous-tag-at-bol-pos beg)
+                                  (point-min))
+                              (or (web-mode-next-tag-at-eol-pos end)
+                                  (point-max)))
+;;          ) ;if
+        ) ;t
        )
       ;;        ) ;save-match-data
 
