@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.35
+;; Version: 8.0.36
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.35"
+(defconst web-mode-version "8.0.36"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4702,6 +4702,8 @@ Must be used in conjunction with web-mode-enable-block-face."
       (while (web-mode-rsf-client "</?[[:alnum:]]" reg-end)
 ;;        (message "%S" (match-string-no-properties 0))
         (goto-char (match-beginning 0))
+;;        (when (looking-back "^[ ]+")
+;;          (beginning-of-line))
         (setq beg nil
               end nil
               continue t)
@@ -4755,7 +4757,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-scan-literal (reg-end)
   "web-mode-scan-literal"
   (let (beg end)
-    (skip-chars-forward " :\na-zA-z0-9'")
+;;    (skip-chars-forward " :'\n[:alnum:]")
     (setq beg (point))
     (cond
      ((looking-at "</?\\([[:alnum:]]+\\(?:[-][[:alpha:]]+\\)?\\)")
@@ -4764,6 +4766,18 @@ Must be used in conjunction with web-mode-enable-block-face."
      ((eq (char-after) ?\{)
       (if (web-mode-sf "}") (setq end (point)))
       )
+     ((looking-at "[ \n]")
+      (skip-chars-forward " \n")
+      ;;      (message "ici%S" (point))
+      (if (looking-at-p "[),;]")
+          (setq end nil)
+        (setq end (point)))
+      )
+     (t
+      (skip-chars-forward "^),;")
+      (when (> (point) beg)
+        (setq end (point)))
+      )
      ) ;cond
     (cond
      ((null end)
@@ -4771,6 +4785,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      ((>= (point) reg-end)
       nil)
      (t
+;;      (message "literal(%S-%S)=%S" beg end (buffer-substring-no-properties beg end))
       (cons beg end)
       )
      )))
@@ -5983,7 +5998,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           )
 
          (t
-;;          (message "%S %S %S" language pos block-beg)
+          ;;(message "%S %S %S" language pos block-beg)
           (setq offset (web-mode-bracket-indentation pos
                                                      block-column
                                                      indent-offset
@@ -6354,6 +6369,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (goto-char pos)
       (setq first-char (char-after)
             block-column initial-column)
+;;      (message "first-char=%c" first-char)
       (while continue
         (forward-line -1)
         (back-to-indentation)
@@ -6398,7 +6414,10 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         ;;     )
         ;;   ) ; when jsx
 
-        (if (member first-char '(?\} ?\) ?\])) (setq n (1- n)))
+;;      (message "first-char=%c" first-char)
+        (when (member first-char '(?\} ?\) ?\]))
+          ;;          (message "ici")
+          (setq n (1- n)))
         (setq col (+ initial-column (* n language-offset)))
         ) ;if
       (if (< col block-column) block-column col)
@@ -6473,6 +6492,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (setq regexp "[\]\[}{)(]\\|[ ;\t]\\(switch[ ]\\)"))
        )
 
+;;      (message "limit=%S" limit)
       (while (and continue (re-search-backward regexp limit t))
 ;;        (message "%S: %c" (point) (char-after))
         (unless (web-mode-is-comment-or-string)
@@ -6485,6 +6505,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
             )
           (setq char (aref match 0))
 ;;          (message "match:%S" match)
+
+;;          (when (member char '(?\{ ?\( ?\[ ?\} ?\) ?\]))
+;;            (message "(%S) c=%c" (point) char))
 
           (cond
 
@@ -6519,6 +6542,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
             (when (and (= num-opened 1) (null arg-inline-checked))
               (setq arg-inline-checked t)
+;;              (message "la%S" (point))
               (when (not (web-mode-is-void-after (1+ (point)))) ;(not (looking-at-p ".[ ]*$"))
                 (setq arg-inline t
                       col-num (1+ (current-column)))
@@ -6527,14 +6551,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                   )
                 )
               )
-
+;;            (message "%c queue=%S" char queue)
             ) ;case (?\{ ?\( ?\[)
 
            ((member char '(?\} ?\) ?\]))
             (setq queue (gethash char queues nil))
             (setq queue (push (point) queue))
             (puthash char queue queues)
-            ;;            (message "%c queue=%S" char queue)
+;;            (message "%c queue=%S" char queue)
             )
 
            ((string= match "switch")
@@ -6616,8 +6640,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (maphash
          (lambda (char queue)
            (when (member char '(?\{ ?\( ?\[))
-;;             (message "%c => %S" char queue)
+;;             (message "%c : " char queue)
              (dolist (pair queue)
+;;               (message "   %S" pair)
                (setq n (cdr pair))
                (unless (member n lines)
                  (push n lines))
@@ -6625,7 +6650,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
              ) ;when
            )
          queues)
-;;        (message "lines=%S case-found=%S case-count=%S" lines case-found case-count)
+;;        (message "lines=%S switch-level=%S" lines switch-level)
         (setq opened-blocks (length lines))
 
 ;;         (when (and case-found (> case-count 0))
@@ -6640,10 +6665,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
 ;;        (setq opened-blocks (+ opened-blocks case-count))
 
+;;        (message "opened-blocks=%S" opened-blocks)
+
         (goto-char pos)
         (when (and (> switch-level 0)
                    (not (looking-at-p "\\(case[ ]\\|default[ :]\\)")))
           (setq opened-blocks (+ opened-blocks switch-level)))
+
+;;        (message "opened-blocks=%S" opened-blocks)
 
         (when (member language '("css" "javascript"))
           ;;                 (setq tmp (web-mode-count-opened-blocks pos))
@@ -6653,10 +6682,11 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
         ) ;unless
 
-;;      (message "opened-blocks(%S) col-num(%S) arg-inline(%S)" opened-blocks col-num arg-inline)
+
 
 ;;      (message "pos=%S ob=%S" pos (web-mode-count-opened-blocks pos))
 
+;;      (message "opened-blocks(%S) col-num(%S) arg-inline(%S)" opened-blocks col-num arg-inline)
       (cons opened-blocks (cons col-num arg-inline))
 
       )))
@@ -8596,13 +8626,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     (web-mode-tag-match pos)
     (if (= pos (point)) nil (point))))
 
-(defun web-mode-tag-match-position (&optional pos)
-  "Match tag position."
-  (unless pos (setq pos (point)))
-  (save-excursion
-    (web-mode-tag-match pos)
-    (if (= pos (point)) nil (point))))
-
 (defun web-mode-block-match-position (&optional pos)
   "Match block position."
   (unless pos (setq pos (point)))
@@ -9475,7 +9498,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
   (unless pos (setq pos (point)))
   (not (null (or (eq (get-text-property pos 'tag-type) 'comment)
                  (member (get-text-property pos 'block-token) '(comment string))
-                 (get-text-property pos 'part-token))))
+                 (member (get-text-property pos 'part-token) '(comment string)))))
   )
 
 (defun web-mode-is-comment (&optional pos)
