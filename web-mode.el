@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.34
+;; Version: 8.0.35
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.34"
+(defconst web-mode-version "8.0.35"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4795,7 +4795,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
         (when (looking-at "[ \n]+")
 ;;          (message "ici %S %S" (match-beginning 0) (match-end 0))
-          (remove-text-properties (match-beginning 0) (match-end 0) '(block-side))
+          (remove-text-properties (match-beginning 0) (match-end 0) '(block-side nil block-token nil))
           )
 
         (while (re-search-forward "\\([ \t]*\\(?:</?[[:alpha:]].*?>\\|<!--.*?-->\\)[ ]*\\)" line-end-pos t)
@@ -4804,26 +4804,28 @@ Must be used in conjunction with web-mode-enable-block-face."
                 tag-beg (match-beginning 1)
                 tag-end (match-end 1))
 ;;          (message "line-end-pos(%S) beg(%S) end(%S)" line-end-pos beg end)
-          (remove-text-properties beg end '(block-side))
+          (remove-text-properties beg end '(block-side nil block-token nil))
           (put-text-property (1- tag-beg) tag-beg 'block-end t)
           (put-text-property tag-end (1+ tag-end) 'block-beg t)
           (when (and (looking-at "\\(.+\\)<")
                      (not (string-match-p "@" (match-string-no-properties 1))))
-            (remove-text-properties (match-beginning 1) (match-end 1) '(block-side))
+            (remove-text-properties (match-beginning 1) (match-end 1) '(block-side nil block-token nil))
             )
           (when (string-match-p "@" (buffer-substring-no-properties beg end))
+;;            (message "@ found(%S %S)" beg end)
+            (remove-text-properties beg end '(block-side nil block-token nil))
             (web-mode-scan-blocks beg end)
             )
           ) ;while
         (goto-char pos)
         (end-of-line)
         (when (looking-back "[ ]*")
-          (remove-text-properties (match-beginning 0) (match-end 0) '(block-side))
+          (remove-text-properties (match-beginning 0) (match-end 0) '(block-side nil block-token nil))
           )
 ;;        (message "removing %S %S" (point) (1+ (point)))
         (when (get-text-property (point) 'block-side)
           (put-text-property (1- (point)) (point) 'block-end t)
-          (remove-text-properties (point) (+ (point) 1) '(block-side))
+          (remove-text-properties (point) (+ (point) 1) '(block-side nil block-token nil))
           )
 ;;        (goto-char pos)
         (forward-line)
