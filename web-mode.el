@@ -5857,7 +5857,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
          ;;  (setq offset (current-column))
          ;;  )
 
-        ((And (string= language "razor")
+        ((and (string= language "razor")
               (string-match-p "^case " line)
               (string-match-p "^case " prev-line))
          (search-backward "case ")
