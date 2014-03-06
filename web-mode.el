@@ -2767,7 +2767,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
                 (setq paren-pos (web-mode-opening-paren-position (1- (point))))
                 (if (and paren-pos (get-text-property paren-pos 'block-side))
                     (setq closing-string "EOR")
-                  (setq closing-strin nil)
+                  (setq closing-string nil)
                   ) ;if
                 ) ;let
               ) ;let
