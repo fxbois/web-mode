@@ -6619,8 +6619,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (setq char (aref match 0))
 ;;          (message "match:%S" match)
 
-;;          (when (member char '(?\{ ?\( ?\[ ?\} ?\) ?\]))
-;;            (message "(%S) c=%c" (point) char))
+;;          (when (member char '(?\{ ?\( ?\[ ?\} ?\) ?\])) (message "(%S) c=%c" (point) char))
 
           (cond
 
