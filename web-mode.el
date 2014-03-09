@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.37
+;; Version: 8.0.38
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.37"
+(defconst web-mode-version "8.0.38"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -6697,51 +6697,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
               )
             )
 
-;;            ((member match '("case" "default"))
-;;             ;;            (if (null is-breaked)
-;;             ;;                (setq is-breaked nil
-;;             ;;                      case-count (1- case-count)
-;;             ;;)
-;;             ;;                (setq is-breaked nil
-;;             ;;                      case-count (1- case-count))
-;; ;;            (when (null is-breaked)
-;; ;;              (setq is-breaked t
-;;                     ;;                    case-found t
-;; ;;                    case-count (1- case-count)
-;; ;;                    )
-;; ;;              ;;              ) ;if
-;;             ;;  )
-
-;; ;;            (when is-breaked
-
-;;             (setq case-num (1+ case-num))
-
-;;             (when (and (= case-num 1) (not is-breaked))
-;; ;;              (message "faked break = %S" (point))
-;;               (setq case-count (1- case-count))
-;;               )
-
-;; ;;            (setq is-breaked nil)
-
-;;             (setq case-count (1+ case-count))
-;;             ;;              )
-;; ;;            (message "%S: pt%S %S" match (point) is-breaked)
-
-;;             (cond
-;;              ((not (looking-back "\\(break[ ]*;\\|{\\)[ \t\n]*" limit t))
-;; ;;              (message "pas de break")
-;;               (setq case-count (1- case-count))
-;;               )
-;;              ) ;cond
-
-;;             )
-
-;;            ((string= match "break")
-;;             (setq is-breaked t
-;;                   case-count (1- case-count))
-;; ;;            (message "%S: pt%S %S" match (point) is-breaked)
-;;             )
-
            ) ;cond
 
           ) ;unless
@@ -6755,29 +6710,18 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 ;;             (message "%c : " char queue)
              (dolist (pair queue)
 ;;               (message "   %S" pair)
-               (setq n (cdr pair))
-               (unless (member n lines)
-                 (push n lines))
-               )
+               (if (not (web-mode-is-void-after (1+ (car pair))))
+                   ()
+                 (setq n (cdr pair))
+                 (unless (member n lines)
+                   (push n lines))
+                 ) ;if
+               ) ;dolist
              ) ;when
            )
          queues)
 ;;        (message "lines=%S switch-level=%S" lines switch-level)
         (setq opened-blocks (length lines))
-
-;;         (when (and case-found (> case-count 0))
-;;           (goto-char pos)
-;;           (back-to-indentation)
-;; ;;          (message "%S" (point))
-;; ;;          (when (not (looking-at-p "case\\|}"))
-;; ;;            (setq opened-blocks (1+ opened-blocks))
-;;           (setq opened-blocks (+ opened-blocks case-count))
-;; ;;            )
-;;           ) ;when case-count
-
-;;        (setq opened-blocks (+ opened-blocks case-count))
-
-;;        (message "opened-blocks=%S" opened-blocks)
 
         (goto-char pos)
         (when (and (> switch-level 0)
@@ -6794,8 +6738,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (setq opened-blocks (+ opened-blocks (web-mode-count-opened-blocks pos))))
 
         ) ;unless
-
-
 
 ;;      (message "pos=%S ob=%S" pos (web-mode-count-opened-blocks pos))
 
@@ -10835,6 +10777,52 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 ;;       (web-mode-highlight-region scan-beg scan-end)
 ;;       ) ;save-excursion
 ;;     ))
+
+;;            ((member match '("case" "default"))
+;;             ;;            (if (null is-breaked)
+;;             ;;                (setq is-breaked nil
+;;             ;;                      case-count (1- case-count)
+;;             ;;)
+;;             ;;                (setq is-breaked nil
+;;             ;;                      case-count (1- case-count))
+;; ;;            (when (null is-breaked)
+;; ;;              (setq is-breaked t
+;;                     ;;                    case-found t
+;; ;;                    case-count (1- case-count)
+;; ;;                    )
+;; ;;              ;;              ) ;if
+;;             ;;  )
+
+;; ;;            (when is-breaked
+
+;;             (setq case-num (1+ case-num))
+
+;;             (when (and (= case-num 1) (not is-breaked))
+;; ;;              (message "faked break = %S" (point))
+;;               (setq case-count (1- case-count))
+;;               )
+
+;; ;;            (setq is-breaked nil)
+
+;;             (setq case-count (1+ case-count))
+;;             ;;              )
+;; ;;            (message "%S: pt%S %S" match (point) is-breaked)
+
+;;             (cond
+;;              ((not (looking-back "\\(break[ ]*;\\|{\\)[ \t\n]*" limit t))
+;; ;;              (message "pas de break")
+;;               (setq case-count (1- case-count))
+;;               )
+;;              ) ;cond
+
+;;             )
+
+;;            ((string= match "break")
+;;             (setq is-breaked t
+;;                   case-count (1- case-count))
+;; ;;            (message "%S: pt%S %S" match (point) is-breaked)
+;;             )
+
 
 
 (provide 'web-mode)
