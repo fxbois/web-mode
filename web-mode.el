@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.39
+;; Version: 8.0.40
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.39"
+(defconst web-mode-version "8.0.40"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1968,6 +1968,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
                               (point-min))
             font-lock-end (or (web-mode-next-tag-at-eol-pos font-lock-end)
                               (point-max))))
+;;    (message "font-lock-beg=%S - font-lock-end=%S" font-lock-beg font-lock-end)
     nil))
 
 (defun web-mode-font-lock-highlight (limit)
@@ -3477,14 +3478,14 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
          ((not (eq (char-after) ?\@))
           )
          ((web-mode-block-starts-with
-           "\\(?:end\\)?\\(foreach\\|forelse\\|for\\|if\\|section\\|stop\\|unless\\|while\\)"
+           "\\(?:end\\)?\\(foreach\\|forelse\\|for\\|if\\|section\\|unless\\|while\\)"
            reg-beg)
           (setq control (match-string-no-properties 1)
                 type (if (eq (aref (match-string-no-properties 0) 0) ?e) 'close 'open))
           (setq controls (append controls (list (cons type control))))
           )
          ((web-mode-block-starts-with "stop" reg-beg)
-          (setq controls (append controls (list (cons 'inside "section")))))
+          (setq controls (append controls (list (cons 'close "section")))))
          ((web-mode-block-starts-with "else\\|elseif" reg-beg)
           (setq controls (append controls (list (cons 'inside "if")))))
          )
