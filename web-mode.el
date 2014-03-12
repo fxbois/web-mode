@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.42
+;; Version: 8.0.43
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.42"
+(defconst web-mode-version "8.0.43"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -6659,7 +6659,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
        ((string= language "css")
         (setq regexp "[\]\[}{)(]"))
        (t
-        (setq regexp "[\]\[}{)(]\\|[ ;\t]\\(switch[ ]\\)"))
+        (setq regexp "[\]\[}{)(]\\|[ ;\t]\\(switch\\)"))
        )
 
 ;;      (message "limit=%S" limit)
@@ -6730,15 +6730,19 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 ;;            (message "%c queue=%S" char queue)
             )
 
-           ((string= match "switch")
+           ((and (string= match "switch")
+                 (looking-at-p "switch[ ]*("))
+;;            (message "pos=%S" (point))
 ;;            (setq case-num 0)
 ;;            (setq is-breaked nil)
             ;;            (message "switch=%S" (match-end 1))
+;;            (message "ln=%S" language)
             (let (tmp)
               (when (null reg-end)
                 (cond
                  ((member language '("css" "javascript"))
                   (setq reg-end (web-mode-part-end-position pos))
+;;                  (message "reg-end%S" reg-end)
                   )
                  (t
                   (setq reg-end (web-mode-block-end-position pos))
