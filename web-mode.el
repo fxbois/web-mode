@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.41
+;; Version: 8.0.42
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.41"
+(defconst web-mode-version "8.0.42"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4432,53 +4432,80 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (cond
 
          ((eq ?\' ch-at)
-          (unless (eq ?\\ ch-before)
-            (while (and continue (search-forward "'" reg-end t))
-              (setq continue (or (get-text-property (1- (point)) 'block-side)
-                                 (eq ?\\ (char-before (1- (point))))))
-              )
+;;          (unless (eq ?\\ ch-before)
+
+;;          (setq props '(block-token string))
+          (while (and continue (search-forward "'" reg-end t))
+            (cond
+             ((get-text-property (1- (point)) 'block-side)
+              (setq continue t))
+             ((looking-back "\\\\+'" reg-beg t)
+              (setq continue (= (mod (- (point) (match-beginning 0)) 2) 0)))
+             (t
+              (setq continue nil))
+             )
+            )
+
+
+          ;; (while (and continue (search-forward "'" reg-end t))
+          ;;   (setq continue (or (get-text-property (1- (point)) 'block-side)
+          ;;                      (eq ?\\ (char-before (1- (point))))))
+          ;;   )
+          (cond
+           ((string= content-type "javascript")
+            (setq token-type 'string))
+           ((string= content-type "css")
+            (setq token-type 'string))
+           ((string= content-type "json")
+            (setq token-type 'string))
+           (t
+            (setq token-type 'string))
+           ) ;cond
+          ;;            ) ;unless
+          )
+
+         ((eq ?\" ch-at)
+;;          (unless (eq ?\\ ch-before)
+
+          (while (and continue (search-forward "\"" reg-end t))
+            (cond
+             ((get-text-property (1- (point)) 'block-side)
+              (setq continue t))
+             ((looking-back "\\\\+\"" reg-beg t)
+              (setq continue (= (mod (- (point) (match-beginning 0)) 2) 0)))
+             (t
+              (setq continue nil))
+             )
+            )
+
+          ;; (while (and continue (search-forward "\"" reg-end t))
+          ;;   (setq continue (or (get-text-property (1- (point)) 'block-side)
+          ;;                      (eq ?\\ (char-before (1- (point))))))
+          ;;   ) ;while
+
+          (cond
+           ((string= content-type "json")
+            (if (looking-at-p "[ ]*:")
+                (cond
+                 ((eq ?\@ (char-after (1+ start)))
+                  (setq token-type 'context))
+                 (t
+                  (setq token-type 'key))
+                 )
+              (setq token-type 'string))
+            )
+           (t
             (cond
              ((string= content-type "javascript")
               (setq token-type 'string))
              ((string= content-type "css")
               (setq token-type 'string))
-             ((string= content-type "json")
-              (setq token-type 'string))
              (t
               (setq token-type 'string))
              ) ;cond
-            ) ;unless
-          )
-
-         ((eq ?\" ch-at)
-          (unless (eq ?\\ ch-before)
-            (while (and continue (search-forward "\"" reg-end t))
-              (setq continue (or (get-text-property (1- (point)) 'block-side)
-                                 (eq ?\\ (char-before (1- (point))))))
-              ) ;while
-            (cond
-             ((string= content-type "json")
-              (if (looking-at-p "[ ]*:")
-                  (cond
-                   ((eq ?\@ (char-after (1+ start)))
-                    (setq token-type 'context))
-                   (t
-                    (setq token-type 'key))
-                   )
-                (setq token-type 'string))
-              )
-             (t
-              (cond
-               ((string= content-type "javascript")
-                (setq token-type 'string))
-               ((string= content-type "css")
-                (setq token-type 'string))
-               (t
-                (setq token-type 'string))
-               ) ;cond
-              ) ;t
-             ) ;cond
-            ) ;unless
+            ) ;t
+           ) ;cond
+          ;;            ) ;unless
           )
 
          ((eq ?\/ ch-next)
