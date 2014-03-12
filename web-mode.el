@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.40
+;; Version: 8.0.41
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.40"
+(defconst web-mode-version "8.0.41"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -2876,7 +2876,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 ;;            (when (member web-mode-engine '("razor"))
 ;;              (web-mode-exclude-virtual-tags open close))
             (web-mode-scan-block open close)
-            )
+            ) ;when
 
           (if pos (goto-char pos))
 
@@ -3275,6 +3275,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
       ) ;when regexp
 
+
     (web-mode-block-controls-set reg-beg reg-end)
 
     ))
@@ -3345,11 +3346,14 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         ;;   (setq controls (append controls (list (cons 'inside "if")))))
         ;; (when (web-mode-block-starts-with "\\(if\\|foreach\\|for\\|while\\)[^)]+)[ ]*:" reg-beg)
         ;;   (setq controls (append controls (list (cons 'open (match-string-no-properties 1))))))
+
         (setq controls (web-mode-set-php-controls reg-beg reg-end))
+
         (when (web-mode-block-starts-with "}" reg-beg)
           (setq controls (append controls (list (cons 'close "{")))))
         (when (web-mode-block-ends-with "{" reg-beg)
           (setq controls (append controls (list (cons 'open "{")))))
+
         ) ; php
 
        ((string= web-mode-engine "erb")
@@ -8490,6 +8494,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     (goto-char pos)
     (while continue
       (if (and (get-text-property (point) 'block-side)
+               (not (bobp))
                (or (eq (char-after) ?\s)
                    (member (get-text-property (point) 'block-token) '(delimiter comment))))
           (backward-char)
