@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.43
+;; Version: 8.0.44
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.43"
+(defconst web-mode-version "8.0.44"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -582,13 +582,14 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-scan-properties
   (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil 'tag-attr nil 'tag-attr-end nil
         'part-side nil 'part-token nil 'part-expr nil
-        'block-side nil 'block-token nil 'block-controls nil 'block-beg nil 'block-end nil)
+        'block-side nil 'block-token nil 'block-controls nil 'block-beg nil 'block-end nil
+        'comment nil)
   "Text properties used for tokens.")
 
-(defvar web-mode-scan-properties2
-  (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil 'tag-attr nil 'tag-attr-end nil
-        'part-side nil 'part-token nil 'part-expr nil)
-  "Text properties used for tokens.")
+;; (defvar web-mode-scan-properties2
+;;   (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil 'tag-attr nil 'tag-attr-end nil
+;;         'part-side nil 'part-token nil 'part-expr nil)
+;;   "Text properties used for tokens.")
 
 (defvar web-mode-large-embed-threshold 512
   "Threshold for large part/block.")
@@ -3190,6 +3191,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
      ) ;cond
 
+;;    (message "%S" props)
     (when props (add-text-properties reg-beg reg-end props))
 
 ;;    (message "regexp=%S" regexp)
@@ -3210,7 +3212,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
          ((and (string= web-mode-engine "asp")
                (eq char ?\'))
-          (setq props '(block-token comment))
+          (setq props '(block-token comment comment t))
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
@@ -3234,17 +3236,17 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           )
 
          ((string= match "//")
-          (setq props '(block-token comment))
+          (setq props '(block-token comment comment t))
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
          ((eq char ?\#)
-          (setq props '(block-token comment))
+          (setq props '(block-token comment comment t))
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
          ((string= match "/*")
-          (setq props '(block-token comment))
+          (setq props '(block-token comment comment t))
           (search-forward "*/" reg-end t)
           )
 
@@ -3260,7 +3262,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
          ((and (member web-mode-engine '("python" "erb"))
                (eq char ?\#))
-          (setq props '(block-token comment))
+          (setq props '(block-token comment comment t))
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
@@ -4541,7 +4543,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
          ) ;cond
 
         (when (and (>= reg-end (point)) token-type)
-          (put-text-property start (point) 'part-token token-type)
+          (if (eq token-type 'comment)
+              (add-text-properties start (point) (list 'part-token token-type 'comment t))
+            (put-text-property start (point) 'part-token token-type))
           )
 
         ) ;while
