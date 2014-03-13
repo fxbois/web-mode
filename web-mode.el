@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.44
+;; Version: 8.0.45
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.44"
+(defconst web-mode-version "8.0.45"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -582,8 +582,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-scan-properties
   (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil 'tag-attr nil 'tag-attr-end nil
         'part-side nil 'part-token nil 'part-expr nil
-        'block-side nil 'block-token nil 'block-controls nil 'block-beg nil 'block-end nil
-        'comment nil)
+        'block-side nil 'block-token nil 'block-controls nil 'block-beg nil 'block-end nil)
+;;        'comment nil
   "Text properties used for tokens.")
 
 ;; (defvar web-mode-scan-properties2
@@ -4544,7 +4544,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
         (when (and (>= reg-end (point)) token-type)
           (if (eq token-type 'comment)
-              (add-text-properties start (point) (list 'part-token token-type 'comment t))
+              (add-text-properties start (point) (list 'part-token token-type)) ;; 'syntax-table (cons 14 ?\/)
             (put-text-property start (point) 'part-token token-type))
           )
 
@@ -6068,9 +6068,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
          ((and (string= language "php") (string-match-p "\\.$" prev-line))
 ;;          (message "prev-line=%S" prev-line)
           (cond
-           ((and (string-match-p "\\(=\\|echo \\)" prev-line)
+           ((and (string-match-p "\\(=\\|echo \\|return \\)" prev-line)
 ;;                 (progn (message "%S" (point)) t)
-                 (web-mode-rsb "\\(=\\|echo\\)[ ]+" block-beg))
+                 (web-mode-rsb "\\(=\\|echo\\|return\\)[ ]+" block-beg))
             (goto-char (match-end 0))
             (setq offset (current-column))
             )
