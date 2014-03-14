@@ -1820,7 +1820,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (define-key map [menu-bar wm blk blk-pre] '(menu-item "Previous" web-mode-block-previous))
     (define-key map [menu-bar wm blk blk-nex] '(menu-item "Next" web-mode-block-next))
     (define-key map [menu-bar wm blk blk-kil] '(menu-item "Kill" web-mode-block-kill))
-    (define-key map [menu-bar wm blk blk-end] '(menu-item "End" web-mode-block-beginning))
+    (define-key map [menu-bar wm blk blk-end] '(menu-item "End" web-mode-block-end))
     (define-key map [menu-bar wm blk blk-clo] '(menu-item "Close" web-mode-block-close))
     (define-key map [menu-bar wm blk blk-beg] '(menu-item "Beginning" web-mode-block-beginning))
 
