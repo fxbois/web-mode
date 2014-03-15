@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.45
+;; Version: 8.0.46
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.45"
+(defconst web-mode-version "8.0.46"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -582,7 +582,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-scan-properties
   (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil 'tag-attr nil 'tag-attr-end nil
         'part-side nil 'part-token nil 'part-expr nil
-        'block-side nil 'block-token nil 'block-controls nil 'block-beg nil 'block-end nil)
+        'block-side nil 'block-token nil 'block-controls nil 'block-beg nil 'block-end nil
+        'syntax-table)
 ;;        'comment nil
   "Text properties used for tokens.")
 
@@ -2018,6 +2019,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (make-local-variable 'imenu-create-index-function)
   (make-local-variable 'imenu-generic-expression)
   (make-local-variable 'indent-line-function)
+  (make-local-variable 'parse-sexp-lookup-properties)
 
   (setq fill-paragraph-function 'web-mode-fill-paragraph
         font-lock-defaults '(web-mode-font-lock-keywords t)
@@ -2028,7 +2030,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         ;;        font-lock-unfontify-buffer-function 'web-mode-scan-buffer
         imenu-case-fold-search t
         imenu-create-index-function 'web-mode-imenu-index
-        indent-line-function 'web-mode-indent-line)
+        indent-line-function 'web-mode-indent-line
+        parse-sexp-lookup-properties t)
 
 ;;  (remove-hook 'after-change-functions 'font-lock-after-change-function t)
 
@@ -2070,6 +2073,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 ;;  (web-mode-scan-buffer)
 
   (web-mode-scan-region (point-min) (point-max))
+
+;;  (message "%S" (string-to-syntax "<"))
 
   )
 
@@ -2991,7 +2996,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
 (defun web-mode-scan-block (reg-beg reg-end)
   "Scan a block."
-  (let (sub1 sub2 sub3 regexp props continue beg match char (flags 0))
+  (let (sub1 sub2 sub3 regexp props continue beg match char (flags 0) token-type)
 
 ;;    (message "reg-beg=%S reg-end=%S" reg-beg reg-end)
     ;;(remove-text-properties reg-beg reg-end web-mode-scan-properties)
@@ -3192,7 +3197,10 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
      ) ;cond
 
 ;;    (message "%S" props)
-    (when props (add-text-properties reg-beg reg-end props))
+    (when props
+      (add-text-properties reg-beg reg-end props)
+      (put-text-property reg-beg (1+ reg-beg) 'syntax-table (string-to-syntax "<"))
+      (put-text-property (1- reg-end) reg-end 'syntax-table (string-to-syntax ">")))
 
 ;;    (message "regexp=%S" regexp)
     (when regexp
@@ -3204,7 +3212,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (setq beg (match-beginning 0)
               match (match-string 0)
               continue t
-              flags (logior flags 1))
+              flags (logior flags 1)
+              token-type)
 
         (setq char (aref match 0))
 
@@ -3212,7 +3221,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
          ((and (string= web-mode-engine "asp")
                (eq char ?\'))
-          (setq props '(block-token comment comment t))
+          (setq props '(block-token comment))
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
@@ -3236,17 +3245,17 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           )
 
          ((string= match "//")
-          (setq props '(block-token comment comment t))
+          (setq props '(block-token comment))
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
          ((eq char ?\#)
-          (setq props '(block-token comment comment t))
+          (setq props '(block-token comment))
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
          ((string= match "/*")
-          (setq props '(block-token comment comment t))
+          (setq props '(block-token comment))
           (search-forward "*/" reg-end t)
           )
 
@@ -3262,7 +3271,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
          ((and (member web-mode-engine '("python" "erb"))
                (eq char ?\#))
-          (setq props '(block-token comment comment t))
+          (setq props '(block-token comment))
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
@@ -4543,9 +4552,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
          ) ;cond
 
         (when (and (>= reg-end (point)) token-type)
-          (if (eq token-type 'comment)
-              (add-text-properties start (point) (list 'part-token token-type)) ;; 'syntax-table (cons 14 ?\/)
-            (put-text-property start (point) 'part-token token-type))
+          (put-text-property start (point) 'part-token token-type)
+          (when (eq token-type 'comment)
+            (put-text-property start (1+ start) 'syntax-table (string-to-syntax "<"))
+            (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">"))
+            )
           )
 
         ) ;while
