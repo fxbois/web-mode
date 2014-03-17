@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.47
+;; Version: 8.0.48
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.47"
+(defconst web-mode-version "8.0.48"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3207,8 +3207,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 ;;    (message "%S" props)
     (when props
       (add-text-properties reg-beg reg-end props)
-      (put-text-property reg-beg (1+ reg-beg) 'syntax-table (string-to-syntax "<"))
-      (put-text-property (1- reg-end) reg-end 'syntax-table (string-to-syntax ">")))
+      )
 
 ;;    (message "regexp=%S" regexp)
     (when regexp
@@ -3221,7 +3220,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
               match (match-string 0)
               continue t
               flags (logior flags 1)
-              token-type)
+              token-type nil)
 
         (setq char (aref match 0))
 
@@ -3229,12 +3228,12 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
          ((and (string= web-mode-engine "asp")
                (eq char ?\'))
-          (setq props '(block-token comment))
+          (setq token-type 'comment)
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
          ((eq char ?\')
-          (setq props '(block-token string))
+          (setq token-type 'string)
           (while (and continue (search-forward "'" reg-end t))
             (if (looking-back "\\\\+'" reg-beg t)
                 (setq continue (= (mod (- (point) (match-beginning 0)) 2) 0))
@@ -3243,8 +3242,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           )
 
          ((eq char ?\")
-;;          (message "pt=%S" (point))
-          (setq props '(block-token string))
+          (setq token-type 'string)
           (while (and continue (search-forward "\"" reg-end t))
             (if (looking-back "\\\\+\"" reg-beg t)
                 (setq continue (= (mod (- (point) (match-beginning 0)) 2) 0))
@@ -3253,17 +3251,17 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           )
 
          ((string= match "//")
-          (setq props '(block-token comment))
+          (setq token-type 'comment)
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
          ((eq char ?\#)
-          (setq props '(block-token comment))
+          (setq token-type 'comment)
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
           )
 
          ((string= match "/*")
-          (setq props '(block-token comment))
+          (setq token-type 'comment)
           (search-forward "*/" reg-end t)
           )
 
@@ -3271,22 +3269,25 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           (when (and web-mode-enable-heredoc-fontification
                      (string-match-p "JS\\|JAVASCRIPT\\|HTM\\|CSS" (match-string 1)))
             (setq flags (logior flags 2))
-;;            (message "%S flags=%S" (point) flags)
             )
-          (setq props '(block-token string))
+          (setq token-type 'string)
           (re-search-forward (concat "^[ ]*" (match-string 1)) reg-end t)
           )
 
-         ((and (member web-mode-engine '("python" "erb"))
-               (eq char ?\#))
-          (setq props '(block-token comment))
-          (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
-          )
+         ;; ((and (member web-mode-engine '("python" "erb"))
+         ;;       (eq char ?\#))
+         ;;  (setq token-type 'comment)
+         ;;  (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
+         ;;  )
 
          ) ;cond
 
 ;;        (message "%S %S %S" beg (point) props)
-        (add-text-properties beg (point) props)
+        (put-text-property beg (point) 'block-token token-type)
+        (when (eq token-type 'comment)
+          (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
+          (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">"))
+          )
 
         ) ;while
 
@@ -5752,15 +5753,21 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (setq language web-mode-engine)
         (setq indent-offset web-mode-code-indent-offset)
         (cond
+         ((and (string= web-mode-engine "php")
+               (not (web-mode-looking-at-pos "<\\?\\(=\\|php\\)?[ ]*\n" block-beg)))
+          (save-excursion
+            (goto-char block-beg)
+            (looking-at "<\\?\\(=\\|php\\)?[ ]*")
+            (goto-char (match-end 0))
+            (setq block-column (current-column))
+            )
+          )
          ((string= web-mode-engine "blade")
           (setq block-beg (+ block-beg 2)
-                block-column (+ block-column 2)
-                )
+                block-column (+ block-column 2))
           )
          ((string= web-mode-engine "razor")
-          (setq block-beg (+ block-beg 2)
-;;                block-column (+ block-column 2)
-                )
+          (setq block-beg (+ block-beg 2))
           )
          ((string= web-mode-engine "template-toolkit")
           (setq block-beg (+ block-beg 3)
@@ -5775,15 +5782,13 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
             (setq block-column (current-column))
             )
           )
-         ((and (string= web-mode-engine "djangoXX")
-;;               (not (looking-at-p "<?\\(=\\|php\\)?[ ]*\n")))
-               (not (looking-at-p "{{[{]?[ ]*\n")))
+         ((and (string= web-mode-engine "django")
+               (not (web-mode-looking-at-pos "{{[{]?[ ]*\n" block-beg)))
           (save-excursion
-            (looking-at-p "{{[{]?[ ]*")
+            (goto-char block-beg)
+            (looking-at "{{[{]?[ ]*")
             (goto-char (match-end 0))
-            (setq block-beg (point))
             (setq block-column (current-column))
-            (message "bc=%S" block-column)
             )
           )
          ((and (string= web-mode-engine "freemarker")
