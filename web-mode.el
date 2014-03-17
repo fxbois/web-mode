@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.46
+;; Version: 8.0.47
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.46"
+(defconst web-mode-version "8.0.47"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1804,6 +1804,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (define-key map [menu-bar wm]             (cons "Web-Mode" (make-sparse-keymap)))
     (define-key map [menu-bar wm dom]         (cons "Dom" (make-sparse-keymap)))
     (define-key map [menu-bar wm blk]         (cons "Block" (make-sparse-keymap)))
+    (define-key map [menu-bar wm attr]        (cons "Html Attr" (make-sparse-keymap)))
     (define-key map [menu-bar wm tag]         (cons "Html Tag" (make-sparse-keymap)))
     (define-key map [menu-bar wm elt]         (cons "Html Element" (make-sparse-keymap)))
 
@@ -1824,6 +1825,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (define-key map [menu-bar wm blk blk-end] '(menu-item "End" web-mode-block-end))
     (define-key map [menu-bar wm blk blk-clo] '(menu-item "Close" web-mode-block-close))
     (define-key map [menu-bar wm blk blk-beg] '(menu-item "Beginning" web-mode-block-beginning))
+
+    (define-key map [menu-bar wm attr attr-end] '(menu-item "End" web-mode-attribute-end))
+    (define-key map [menu-bar wm attr attr-beg] '(menu-item "Beginning" web-mode-attribute-beginning))
 
     (define-key map [menu-bar wm tag tag-sel] '(menu-item "Select" web-mode-tag-select))
     (define-key map [menu-bar wm tag tag-pre] '(menu-item "Previous" web-mode-tag-previous))
@@ -1859,6 +1863,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
     ;;--------------------------------------------------------------------------
     ;; "C-c letter"  are reserved for users
+
+    (define-key map (kbd "C-c C-a b") 'web-mode-attribute-beginning)
+    (define-key map (kbd "C-c C-a e") 'web-mode-attribute-end)
 
     (define-key map (kbd "C-c C-b c") 'web-mode-block-close)
     (define-key map (kbd "C-c C-b b") 'web-mode-block-beginning)
@@ -1905,6 +1912,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 ;;    (define-key map (kbd "C-;")       'web-mode-comment-or-uncomment)
     (define-key map (kbd "M-;")       'web-mode-comment-or-uncomment)
 
+    ;;C-c C-a : attribute
     ;;C-c C-b : block
     ;;C-c C-d : dom
     ;;C-c C-e : element
@@ -5454,7 +5462,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (let ((continue t) f)
       (setq f (if (member type '("upper" "uppercase" "upper-case")) 'uppercase 'downcase))
       (while continue
-        (if (web-mode-attr-next)
+        (if (web-mode-attribute-next)
             (when (looking-at "\\([[:alnum:]-]+\\)")
               (replace-match (funcall f (match-string 0)) t)
 ;;              (message "tag: %S (%S)" (match-string 0) (point))
@@ -5765,6 +5773,17 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
             (looking-at "<%@[ ]*[[:alpha:]]+[ ]+\\|</?[[:alpha:]]+:[[:alpha:]]+[ ]+")
             (goto-char (match-end 0))
             (setq block-column (current-column))
+            )
+          )
+         ((and (string= web-mode-engine "djangoXX")
+;;               (not (looking-at-p "<?\\(=\\|php\\)?[ ]*\n")))
+               (not (looking-at-p "{{[{]?[ ]*\n")))
+          (save-excursion
+            (looking-at-p "{{[{]?[ ]*")
+            (goto-char (match-end 0))
+            (setq block-beg (point))
+            (setq block-column (current-column))
+            (message "bc=%S" block-column)
             )
           )
          ((and (string= web-mode-engine "freemarker")
@@ -6844,7 +6863,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     (goto-char pos)
 ;;    (message "pos=%S" pos)
     (let ((eol (line-end-position)) (continue t) c (ret t) part-side)
-      (setq part-side (not (null (get-text-property pos 'part-side))))
+      (setq part-side (or (member web-mode-content-type '("javascript" "css"))
+                          (not (null (get-text-property pos 'part-side)))))
       (while continue
         (setq c (char-after pos))
 ;;        (message "%S c='%c'" pos c)
@@ -8812,6 +8832,42 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
      ) ;cond
     end))
 
+(defun web-mode-attribute-beginning-position (&optional pos)
+  "Beginning position of the current attr."
+  (unless pos (setq pos (point)))
+  (let (beg)
+    (cond
+     ((null (get-text-property pos 'tag-attr))
+      (setq beg nil))
+     ((get-text-property pos 'tag-attr)
+      (setq beg (previous-single-property-change pos 'tag-attr))
+;;      (message "beg=%S" beg)
+      (if (not (get-text-property beg 'tag-attr))
+        (setq beg nil)
+        (setq beg (1- beg))))
+     (t
+      (setq beg nil))
+     ) ;cond
+    beg))
+
+(defun web-mode-attribute-end-position (&optional pos)
+  "End position of the current attr."
+  (unless pos (setq pos (point)))
+  (let (end)
+    (cond
+     ((null pos)
+      (setq end nil))
+     ((get-text-property pos 'tag-attr-end)
+      (setq end pos))
+     ((get-text-property pos 'tag-attr)
+      (setq end (next-single-property-change pos 'tag-attr-end))
+      (when (not (get-text-property end 'tag-attr-end))
+        (setq end nil)))
+     (t
+      (setq end nil))
+     ) ;cond
+    end))
+
 (defun web-mode-part-end-position (&optional pos)
   "End position of the current part."
   (unless pos (setq pos (point)))
@@ -9201,7 +9257,28 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     out
     ))
 
-(defun web-mode-attr-next (&optional pos)
+(defun web-mode-attribute-beginning (&optional pos)
+  "Fetch html attribute end."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (setq pos (web-mode-attribute-beginning-position pos))
+;;  (message "%S" pos)
+  (when pos
+    (setq pos (1+ pos))
+    (goto-char pos))
+  pos)
+
+(defun web-mode-attribute-end (&optional pos)
+  "Fetch html attribute end."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (setq pos (web-mode-attribute-end-position pos))
+  (when pos
+    (setq pos (1+ pos))
+    (goto-char pos))
+  pos)
+
+(defun web-mode-attribute-next (&optional pos)
   "Fetch next attr."
   (interactive)
   (let ((continue t))
