@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.49
+;; Version: 8.0.50
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.49"
+(defconst web-mode-version "8.0.50"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -108,23 +108,23 @@
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-disable-css-colorization (not (display-graphic-p))
-  "In a CSS block, do not set background according to the color: #xxx, rgb(x,x,x)."
+(defcustom web-mode-enable-css-colorization (display-graphic-p)
+  "In a CSS part, set background according to the color: #xxx, rgb(x,x,x)."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-disable-auto-indentation (not (display-graphic-p))
-  "Disable auto-indentation."
+(defcustom web-mode-enable-auto-indentation (display-graphic-p)
+  "Auto-indentation."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-disable-auto-pairing (not (display-graphic-p))
-  "Disable auto-pairing."
+(defcustom web-mode-enable-auto-pairing (display-graphic-p)
+  "Auto-pairing."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-disable-auto-opening (not (display-graphic-p))
-  "Disable html element auto-opening."
+(defcustom web-mode-enable-auto-opening (display-graphic-p)
+  "Html element auto-opening."
   :type 'boolean
   :group 'web-mode)
 
@@ -4735,7 +4735,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       (web-mode-fontify-region dec-beg dec-end
                                web-mode-declaration-font-lock-keywords)
       (goto-char dec-beg)
-      (while (and (not web-mode-disable-css-colorization)
+      (while (and (not web-mode-enable-css-colorization)
                   (re-search-forward "#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgb([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" dec-end t)
                   (< (point) dec-end))
         (web-mode-colorize (match-beginning 0) (match-end 0))
@@ -8244,7 +8244,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (setq chunk (buffer-substring-no-properties (- beg 1) end))
 
         ;;-- auto-opening
-        (when (and (not web-mode-disable-auto-opening)
+        (when (and (not web-mode-enable-auto-opening)
                    (string= ">\n" chunk)
                    (not (eobp))
                    (eq (get-text-property (- beg 1) 'tag-type) 'start)
@@ -8272,7 +8272,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           )
 
         ;;-- auto-pairing
-        (when (and (not web-mode-disable-auto-pairing)
+        (when (and (not web-mode-enable-auto-pairing)
                    (not (get-text-property pos 'part-side))
                    (not self-insertion))
           (let ((i 0) expr p after pos-end (l (length web-mode-auto-pairs)))
@@ -8365,7 +8365,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       ;;        ) ;save-match-data
 
       ;;-- auto-indentation
-      (when (and (not web-mode-disable-auto-indentation)
+      (when (and (not web-mode-enable-auto-indentation)
                  (not auto-opened)
                  (or auto-closed
                      (and (> end (point-min))
@@ -9797,7 +9797,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
    (put-text-property (point-min) (point-max) 'invisible nil)
    (remove-overlays)
    (unload-feature 'web-mode)
-;;   (setq web-mode-disable-css-colorization t)
+;;   (setq web-mode-enable-css-colorization t)
    (web-mode)
    (if (fboundp 'web-mode-hook)
        (web-mode-hook))))
