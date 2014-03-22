@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.48
+;; Version: 8.0.49
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -61,7 +61,7 @@
 ;;todo : commentaire d'une ligne ruby ou d'une ligne asp
 ;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.48"
+(defconst web-mode-version "8.0.49"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -128,7 +128,7 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-disable-indent-cycle nil
+(defcustom web-mode-enable-indent-cycle nil
   "Disable cycle indent."
   :type 'boolean
   :group 'web-mode)
@@ -5754,7 +5754,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (setq indent-offset web-mode-code-indent-offset)
         (cond
          ((and (string= web-mode-engine "php")
-               (not (web-mode-looking-at-pos "<\\?\\(=\\|php\\)?[ ]*\n" block-beg)))
+               (not (web-mode-looking-at-pos "<\\?\\(=\\|php\\)?[ ]*$" block-beg)))
           (save-excursion
             (goto-char block-beg)
             (looking-at "<\\?\\(=\\|php\\)?[ ]*")
@@ -5783,7 +5783,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
             )
           )
          ((and (string= web-mode-engine "django")
-               (not (web-mode-looking-at-pos "{{[{]?[ ]*\n" block-beg)))
+               (not (web-mode-looking-at-pos "{{[{]?[ ]*$" block-beg)))
           (save-excursion
             (goto-char block-beg)
             (looking-at "{{[{]?[ ]*")
@@ -6039,18 +6039,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
         (cond
 
-         ;; ((and (string= language "javascript")
-         ;;       (get-text-property pos 'block-beg))
-         ;;  ;;          (message "ici")
-         ;;  (if (or (web-mode-block-is-close pos)
-         ;;          (web-mode-block-is-inside pos))
-         ;;      (progn
-         ;;        (web-mode-block-match)
-         ;;        (setq offset (current-indentation)))
-         ;;    (setq offset (web-mode-markup-indentation pos)))
-         ;;  )
-
-         ;;         ((string-match-p "^[?%]>" line)
          ((and (get-text-property (1- pos) 'block-side)
                (eq (get-text-property pos 'block-token) 'delimiter))
           (if (web-mode-block-beginning pos)
@@ -6062,12 +6050,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (if (web-mode-block-beginning pos)
               (setq offset (current-column)))
           )
-
-         ;; ((and (string= language "web2py")
-         ;;       (string-match-p "}}" line))
-         ;;  (if (web-mode-block-beginning pos)
-         ;;      (setq offset (current-column)))
-         ;;  )
 
          ((and (string= language "razor")
                (string-match-p "^\\." line)
@@ -6096,15 +6078,13 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           )
 
          ((and (string= language "php") (string-match-p "^->" line))
-          (when (web-mode-sb "->" block-beg)
+          (when (web-mode-translate-backward pos "->" language block-beg)
             (setq offset (current-column)))
           )
 
          ((and (string= language "php") (string-match-p "\\.$" prev-line))
-;;          (message "prev-line=%S" prev-line)
           (cond
            ((and (string-match-p "\\(=\\|echo \\|return \\)" prev-line)
-;;                 (progn (message "%S" (point)) t)
                  (web-mode-rsb "\\(=\\|echo\\|return\\)[ ]+" block-beg))
             (goto-char (match-end 0))
             (setq offset (current-column))
@@ -6116,8 +6096,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
             (setq offset block-column)
             )
            )
-          ;;(when (web-mode-sb "->" block-beg)
-          ;;  (setq offset (current-column)))
           )
 
          ((and (string= language "php")
@@ -6128,15 +6106,16 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           )
 
          ((and (member language '("javascript" "jsx")) (eq ?\. first-char))
-          (if web-mode-disable-indent-cycle
-              (when (web-mode-rsb "[[:alnum:][:blank:]]\\.[[:alpha:]]" block-beg)
-                (setq offset (1+ (current-column))))
-            (setq offset
-                  (web-mode-indent-cycle
-                   "[[:alnum:][:blank:]]\\.[[:alpha:]]"
-                   "\\."
-                   block-beg
-                   indent-offset))))
+          (if web-mode-enable-indent-cycle
+              (setq offset
+                    (web-mode-indent-cycle
+                     "[[:alnum:][:blank:]]\\.[[:alpha:]]"
+                     "\\."
+                     block-beg
+                     indent-offset))
+            (when (web-mode-translate-backward pos "[[:alnum:][:blank:]]\\.[[:alpha:]]" language block-beg)
+              (setq offset (1+ (current-column))))
+            ))
 
          ((and (member first-char '(?\? ?\. ?\:))
                (not (string= language "erb")))
@@ -6440,11 +6419,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
   (let (h out prev-line prev-indentation ctx)
     (setq ctx (web-mode-count-opened-brackets pos "ruby" limit))
     (if (cddr ctx)
-        (progn
-;;          (message "ctx=%S" (car (cdr ctx)))
-          (setq out (cadr ctx))
-;;          (message "out=%S" out)
-          )
+        (setq out (cadr ctx))
       (setq h (web-mode-previous-line pos limit))
       (setq out initial-column)
       (when h
@@ -6566,6 +6541,73 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (setq line (buffer-substring-no-properties beg end))
       ;;      (message "line=%s" line)
       (cons line (current-indentation))
+      )))
+
+(defun web-mode-translate-backward (pos regexp language limit)
+  "translate left"
+  (setq pos (web-mode-translate-backward-pos pos regexp language limit))
+  (if pos (goto-char pos) nil)
+  )
+
+(defun web-mode-translate-backward-pos (pos regexp language limit)
+  "web-mode-search-backward-at-same-depth-pos"
+  (save-excursion
+    (goto-char pos)
+    (let ((continue t) searcher depth (i 0))
+      (setq depth (web-mode-bracket-depth (point) language limit))
+;;      (message "depth=%S" depth)
+      (setq i (1+ i))
+      (if (> (length regexp) 3)
+          (setq searcher 'web-mode-rsb)
+        (setq searcher 'web-mode-sb))
+      (while continue
+        (cond
+         ((> i 200)
+          (setq continue nil
+                pos nil)
+          (message "*** dangerous loop (translate-backward) ***")
+          )
+         ((not (funcall searcher regexp limit))
+          (setq continue nil
+                pos nil)
+          )
+         ((= depth (web-mode-bracket-depth (point) language limit))
+          (setq continue nil
+                pos (point))
+          )
+         ) ;cond
+        ) ;while
+;;      (message "%S: %S" regexp pos)
+      pos)))
+
+(defun web-mode-bracket-depth (pos language &optional limit)
+  "Count opened brackets at POS."
+  (interactive)
+  (unless limit (setq limit nil))
+  (save-excursion
+    (goto-char pos)
+    (let ((assoc (make-hash-table :test 'equal))
+          (char nil)
+          (continue t)
+          (regexp "[\]\[}{)(]"))
+      (while (and continue (re-search-backward regexp limit t))
+        (setq char (aref (match-string-no-properties 0) 0))
+        (cond
+         ((web-mode-is-comment-or-string))
+         ((member char '(?\{ ?\( ?\[))
+          (puthash char (1+ (gethash char assoc 0)) assoc))
+         (t ;;(member char '(?\} ?\) ?\]))
+          (cond
+           ((eq char ?\)) (setq char ?\())
+           ((eq char ?\}) (setq char ?\{))
+           (t             (setq char ?\[)))
+          (puthash char (1- (gethash char assoc 0)) assoc))
+         ) ;cond
+;;        (message "(%S) %c : %S" (point) char (gethash char assoc 0))
+        ) ;while
+      (+ (gethash ?\( assoc 0)
+         (gethash ?\{ assoc 0)
+         (gethash ?\[ assoc 0))
       )))
 
 (defun web-mode-bracket-indentation (pos initial-column language-offset language &optional limit)
@@ -6795,56 +6837,58 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                 (setq switch-level (1+ switch-level))
                 )
               )
-            )
+            ) ;case switch
 
            ) ;cond
 
           ) ;unless
         ) ;while
 
-      (unless arg-inline
-;;        (message "%S" queues)
-        (maphash
-         (lambda (char queue)
-           (when (member char '(?\{ ?\( ?\[))
-;;             (message "%c : " char queue)
-             (dolist (pair queue)
-;;               (message "   %S" pair)
-               (if (not (web-mode-is-void-after (1+ (car pair))))
-                   ()
-                 (setq n (cdr pair))
-                 (unless (member n lines)
-                   (push n lines))
-                 ) ;if
-               ) ;dolist
-             ) ;when
-           )
-         queues)
-;;        (message "lines=%S switch-level=%S" lines switch-level)
-        (setq opened-blocks (length lines))
+      ;;      (unless arg-inline
+      ;;(message "%S" queues)
+      (maphash
+       (lambda (char queue)
+         (when (member char '(?\{ ?\( ?\[))
+           ;;             (message "%c : " char queue)
+           (dolist (pair queue)
+             ;;               (message "   %S" pair)
+             (if (not (web-mode-is-void-after (1+ (car pair))))
+                 ()
+               (setq n (cdr pair))
+               (unless (member n lines)
+                 (push n lines))
+               ) ;if
+             ) ;dolist
+           ) ;when
+         )
+       queues)
+      ;;        (message "lines=%S switch-level=%S" lines switch-level)
+      (setq opened-blocks (length lines)) ;; il faut calculer opened-blocks meme lorsque arg-inline pour code-depth
 
-        (goto-char pos)
-        (when (and (> switch-level 0)
-                   (not (looking-at-p "\\(case[ ]\\|default[ :]\\)")))
-          (setq opened-blocks (+ opened-blocks switch-level)))
+      ;;)
 
-;;        (message "opened-blocks=%S" opened-blocks)
+      (goto-char pos)
+      (when (and (> switch-level 0)
+                 (not (looking-at-p "\\(case[ ]\\|default[ :]\\)")))
+        (setq opened-blocks (+ opened-blocks switch-level)))
 
-;;        (when (member language '("css" "javascript"))
-        (when (member language '("jsx"))
-          ;;                 (setq tmp (web-mode-count-opened-blocks pos))
-          ;;                   )
-          ;;        (setq opened-blocks (+ opened-blocks tmp))
-          (setq opened-blocks (+ opened-blocks (web-mode-count-opened-blocks pos))))
+      ;;        (message "opened-blocks=%S" opened-blocks)
 
-        ) ;unless
+      ;;        (when (member language '("css" "javascript"))
+      (when (member language '("jsx"))
+        ;;                 (setq tmp (web-mode-count-opened-blocks pos))
+        ;;                   )
+        ;;        (setq opened-blocks (+ opened-blocks tmp))
+        (setq opened-blocks (+ opened-blocks (web-mode-count-opened-blocks pos))))
 
-;;      (message "pos=%S ob=%S" pos (web-mode-count-opened-blocks pos))
+;;      ) ;unless
 
-      ;;(message "opened-blocks(%S) col-num(%S) arg-inline(%S)" opened-blocks col-num arg-inline)
-      (cons opened-blocks (cons col-num arg-inline))
+    ;;      (message "pos=%S ob=%S" pos (web-mode-count-opened-blocks pos))
 
-      )))
+    ;;(message "opened-blocks(%S) col-num(%S) arg-inline(%S)" opened-blocks col-num arg-inline)
+    (cons opened-blocks (cons col-num arg-inline))
+
+    )))
 
 (defun web-mode-bracket-block-end-position (pos limit)
   "web-mode-blk-end-pos"
