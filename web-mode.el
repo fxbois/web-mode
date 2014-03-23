@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.50
+;; Version: 8.0.51
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -46,6 +46,8 @@
 ;;delimiters highlighting is more robust (same loop than string/comment highlighting)
 
 ;;todo :
+;;       invalidation partiel de block (cf. journal.psp)
+;;       pb de la decoloration d'attribut sur att=
 ;;       C-n sur delimiter = on bascule sur open-delim ou close-delim
 ;;       essayer de réduire la zone à scanner / repeindre
 ;;       phphint
@@ -55,13 +57,10 @@
 ;;todo : web-mode-engine-real-name
 ;;todo : finir filling
 ;;todo : screenshot : http://www.cockos.com/licecap/
-;;todo : better default colors for tags & attrs
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
-;;todo : commentaire d'une ligne ruby ou d'une ligne asp
-;;todo : créer tag-token pour différentier de part-token : tag-token=attr,comment ???
 
-(defconst web-mode-version "8.0.50"
+(defconst web-mode-version "8.0.51"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4346,7 +4345,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
          ) ;cond
 
-        ;;        (message "point(%S) end(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) flags(%S) equal-offset(%S)" pos end state char name-beg name-end val-beg flags equal-offset)
+        ;;(message "point(%S) end(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) flags(%S) equal-offset(%S)" pos end state char name-beg name-end val-beg flags equal-offset)
 
         (setq escaped (eq ?\\ char))
 
@@ -4365,10 +4364,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 ;;           (point) state char name-beg name-end val-beg flags equal-offset)
 ;;  (message "flags=%S" flags)
   (cond
-   ((and (= state 8) (not (eq ?\" char)))
-    0)
-   ((and (= state 7) (not (eq ?\' char)))
-    0)
+   ((or (and (= state 8) (not (eq ?\" char)))
+        (and (= state 7) (not (eq ?\' char))))
+    (put-text-property name-beg val-beg 'tag-attr 0)
+    (put-text-property (1- val-beg) val-beg 'tag-attr-end equal-offset)
+    1)
    ((= state 4)
     0)
    ((null name-beg)
@@ -4381,20 +4381,17 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (when (or (null char) (member char '(?\s ?\n ?\>)))
           (setq val-end (1- val-end)))
         ) ;if
-        ;;      (put-text-property name-beg (1+ name-beg) 'tag-attr flags)
       (when (= (logand flags 1) 1)
         (let (attr)
           (setq attr (buffer-substring-no-properties name-beg name-end))
           (cond
            ((member attr '("http-equiv"))
             (setq flags (1- flags))
-            ;;        (message "%S %S" flags (buffer-substring-no-properties name-beg name-end))
             )
            ((and web-mode-engine-attr-regexp
                  (string-match-p web-mode-engine-attr-regexp attr))
             (setq flags (logior flags 2))
             (setq flags (1- flags))
-            (message "engine attr=%S" attr)
             )
            ) ;cond
           ) ;let
