@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.51
+;; Version: 8.0.52
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,31 +36,20 @@
 
 ;; Code goes here
 
-;;web-mode-html-attr-engine-face
-;;better switch / case indentation
-;;new lexer/highlighter : web-mode.el is now compatible with minor modes relying on font-locking
-;;compatibility with  *.js.erb (javascript content type), *.css.erb (css content type)
-;;engine compatibility : web2py (python), mako (python), mason (perl)
-;;jshint compatibility : web-mode-jshint
-;;alertnative delimiters can be defined for smarty (see web-mode-engines-alternate-delimiters)
-;;delimiters highlighting is more robust (same loop than string/comment highlighting)
-
 ;;todo :
 ;;       invalidation partiel de block (cf. journal.psp)
-;;       pb de la decoloration d'attribut sur att=
 ;;       C-n sur delimiter = on bascule sur open-delim ou close-delim
 ;;       essayer de réduire la zone à scanner / repeindre
 ;;       phphint
-;;       colorer : <a href=" >
 
 ;;todo : Stickiness of Text Properties
-;;todo : web-mode-engine-real-name
+;;todo : web-mode-engine-real-name (canonical name)
 ;;todo : finir filling
 ;;todo : screenshot : http://www.cockos.com/licecap/
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.51"
+(defconst web-mode-version "8.0.52"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -181,11 +170,10 @@ See web-mode-part-face."
                  (const :tag "force engine comments" 2)))
 
 (defcustom web-mode-indent-style 2
-  "Indentation style.
-with value 2, HTML lines beginning text are also indented (do not forget side effects, e.g. content of a textarea)."
+  "Indentation style."
   :group 'web-mode
-  :type '(choice (const :tag "default" 2)
-                 (const :tag "text at the beginning of line is now indented" 1)))
+  :type '(choice (const :tag "default (all lines are indented)" 2)
+                 (const :tag "text at the beginning of line is not indented" 1)))
 
 (defcustom web-mode-tag-auto-close-style 1
   "Tag auto-close style:
@@ -4732,7 +4720,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       (web-mode-fontify-region dec-beg dec-end
                                web-mode-declaration-font-lock-keywords)
       (goto-char dec-beg)
-      (while (and (not web-mode-enable-css-colorization)
+      (while (and web-mode-enable-css-colorization
                   (re-search-forward "#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgb([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" dec-end t)
                   (< (point) dec-end))
         (web-mode-colorize (match-beginning 0) (match-end 0))
@@ -8241,7 +8229,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (setq chunk (buffer-substring-no-properties (- beg 1) end))
 
         ;;-- auto-opening
-        (when (and (not web-mode-enable-auto-opening)
+        (when (and web-mode-enable-auto-opening
                    (string= ">\n" chunk)
                    (not (eobp))
                    (eq (get-text-property (- beg 1) 'tag-type) 'start)
@@ -8269,7 +8257,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           )
 
         ;;-- auto-pairing
-        (when (and (not web-mode-enable-auto-pairing)
+        (when (and web-mode-enable-auto-pairing
                    (not (get-text-property pos 'part-side))
                    (not self-insertion))
           (let ((i 0) expr p after pos-end (l (length web-mode-auto-pairs)))
@@ -8362,7 +8350,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       ;;        ) ;save-match-data
 
       ;;-- auto-indentation
-      (when (and (not web-mode-enable-auto-indentation)
+      (when (and web-mode-enable-auto-indentation
                  (not auto-opened)
                  (or auto-closed
                      (and (> end (point-min))
