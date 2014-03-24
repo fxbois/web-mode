@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.52
+;; Version: 8.0.53
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -49,7 +49,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.52"
+(defconst web-mode-version "8.0.53"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4036,8 +4036,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
         (when (and is-tag
                    (not slash-beg)
-                   (> (- attrs-end tstop) 2)
+                   (> (- attrs-end tstop) 1)
                    (> (web-mode-scan-attrs tstop attrs-end) 0))
+;;          (message "attrs-end")
           (setq flags (logior flags 1)))
 
         ;;            (progn
@@ -4207,7 +4208,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defun web-mode-scan-attrs (beg end)
   "Scan html attributes."
   (save-excursion
-    ;;(message "beg(%S) end(%S)" beg end)
+;;    (message "beg(%S) end(%S)" beg end)
     (let (name-beg name-end val-beg (count 0) (state 0) (flags 0) (equal-offset 0) char pos escaped spaced)
       (goto-char (1- beg))
 
@@ -4220,10 +4221,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (cond
 
          ((= pos end)
+;;          (message "ici")
           (when name-beg
             (unless name-end (setq name-end (1- pos)))
-;;            (message "name-end=%S" name-end)
-            (setq count (+ count (web-mode-scan-attr state char name-beg name-end val-beg flags equal-offset)))
+            ;;            (message "name-end=%S" name-end)
+            (setq count (+ count (web-mode-scan-attr state char name-beg name-end val-beg flags equal-offset) 0))
             )
           (setq state 0
                 flags 0
@@ -4356,6 +4358,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (and (= state 7) (not (eq ?\' char))))
     (put-text-property name-beg val-beg 'tag-attr 0)
     (put-text-property (1- val-beg) val-beg 'tag-attr-end equal-offset)
+    1)
+   ((and (= state 4)
+         (null val-beg))
+    (put-text-property name-beg (1+ name-end) 'tag-attr 0)
+    (put-text-property name-end (1+ name-end) 'tag-attr-end equal-offset)
     1)
    ((= state 4)
     0)
