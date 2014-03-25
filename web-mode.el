@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.53
+;; Version: 8.0.54
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -37,6 +37,7 @@
 ;; Code goes here
 
 ;;todo :
+;;       web-mode-block-code-beginning|end
 ;;       invalidation partiel de block (cf. journal.psp)
 ;;       C-n sur delimiter = on bascule sur open-delim ou close-delim
 ;;       essayer de réduire la zone à scanner / repeindre
@@ -49,7 +50,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.53"
+(defconst web-mode-version "8.0.54"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3239,7 +3240,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
          ((string= match "//")
           (setq token-type 'comment)
-          (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
+          (let ((end reg-end))
+            (when (string= web-mode-engine "php") (setq end (- end 2)))
+            (goto-char (if (< end (line-end-position)) end (line-end-position))))
           )
 
          ((eq char ?\#)
@@ -8021,7 +8024,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 (defun web-mode-block-match (&optional pos)
   "Block match"
   (unless pos (setq pos (point)))
-
   (let (init controls (counter 1) type control (continue t) pair)
     (setq init pos)
     (goto-char pos)
@@ -8035,6 +8037,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (setq control (cdr pair))
       (while continue
         (cond
+         ((bobp)
+          (setq continue nil))
          ((or (and (eq type 'open) (not (web-mode-block-next)))
               (and (eq type 'close) (not (web-mode-block-previous))))
 ;;          (message "ici%S" (point))
@@ -8063,15 +8067,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         ) ;while
       (if (= counter 0) (point) nil)
       ) ;controls
-     ;; ((and (get-text-property pos 'block-side)
-     ;;       (web-mode-block-beginning)
-     ;;       web-mode-active-block-regexp
-     ;;       ;;             (progn (message "web-mode-active-block-regexp=%S" web-mode-active-block-regexp) t)
-     ;;       (looking-at-p web-mode-active-block-regexp)
-     ;;       web-mode-engine-control-matcher)
-     ;;  (funcall web-mode-engine-control-matcher)
-     ;;  (point)
-     ;;  )
      (t
       (goto-char init)
       nil)
