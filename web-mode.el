@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.54
+;; Version: 8.0.55
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -50,7 +50,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.54"
+(defconst web-mode-version "8.0.55"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3361,7 +3361,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
         (when (web-mode-block-starts-with "}" reg-beg)
           (setq controls (append controls (list (cons 'close "{")))))
-        (when (web-mode-block-ends-with "{" reg-beg)
+        (when (web-mode-block-ends-with (cons "{" "}") reg-beg)
           (setq controls (append controls (list (cons 'open "{")))))
 
         ) ; php
@@ -8572,12 +8572,22 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
   "Check if current block ends with regexp"
   (unless pos (setq pos (point)))
   (save-excursion
+    (goto-char pos)
     (save-match-data
-      (and (web-mode-block-end)
-           (progn (backward-char) t)
-           (web-mode-block-skip-chars-backward)
-           (progn (forward-char) t)
-           (looking-back regexp))
+      (if (stringp regexp)
+          (and (web-mode-block-end)
+               (progn (backward-char) t)
+               (web-mode-block-skip-chars-backward)
+               (progn (forward-char) t)
+               (looking-back regexp))
+        (let ((pair regexp)
+              (block-beg (web-mode-block-beginning-position pos))
+              (block-end (web-mode-block-end-position pos)))
+          (and (web-mode-block-end pos)
+               (web-mode-sb (car pair) block-beg t)
+               (not (web-mode-sf (cdr pair) block-end t)))
+          ) ;let
+        ) ;if
       )))
 
 (defun web-mode-block-starts-with (regexp &optional pos)
@@ -8597,7 +8607,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     (while continue
       (if (and (get-text-property (point) 'block-side)
                (not (bobp))
-               (or (eq (char-after) ?\s)
+               (or (member (char-after) '(?\s ?\n))
                    (member (get-text-property (point) 'block-token) '(delimiter comment))))
           (backward-char)
         (setq continue nil))
