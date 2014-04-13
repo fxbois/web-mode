@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.63
+;; Version: 8.0.64
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -56,7 +56,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.63"
+(defconst web-mode-version "8.0.64"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -2026,7 +2026,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defun web-mode-font-lock-highlight (limit)
   "font-lock matcher"
 ;;  (message "highlight : point=%S limit=%S" (point) limit)
-  (web-mode-highlight-region (point) limit)
+  (let ((inhibit-modification-hooks t)
+        (buffer-undo-list t))
+    (web-mode-highlight-region (point) limit))
   nil)
 
 ;;;###autoload
@@ -2402,7 +2404,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
        (save-match-data
          (let ((inhibit-modification-hooks t)
                (inhibit-point-motion-hooks t)
-               (inhibit-quit t))
+               (inhibit-quit t)
+               (buffer-undo-list t)
+               )
            (setq beg (if web-mode-is-narrowed 1 beg))
            (remove-text-properties beg end web-mode-scan-properties)
            (cond
@@ -8287,7 +8291,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
              (get-text-property end 'block-side)
              (member web-mode-engine '("php" "asp"))
              (not (eq (get-text-property beg 'block-token) 'delimiter))
-;;             (not (eq (get-text-property end 'block-token) 'delimiter))
+             (not (eq (get-text-property end 'block-token) 'delimiter))
              )
 ;;    (message "beg=%S end=%S" beg end)
     (setq web-mode-change-flags 1)
