@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.62
+;; Version: 8.0.63
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -56,7 +56,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.62"
+(defconst web-mode-version "8.0.63"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -730,6 +730,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("jsp"              . "\\.jsp\\'")
     ("mako"             . "\\.mako\\'")
     ("mason"            . "\\.mas\\'")
+    ("mojolicious"      . "mojolicious")
     ("mustache"         . "\\.mustache\\'")
     ("php"              . "\\.\\(php\\|ctp\\|psp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
@@ -888,45 +889,49 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
 (defvar web-mode-engines-auto-pairs
   '(
-    ("angular"    . (("{{ " " }}")))
-    ("asp"        . (("<% " " %>")))
-    ("aspx"       . (("<% " " %>")
-                     ("<%=" "%>")
-                     ("<%#" "%>")
-                     ("<%$" "%>")
-                     ("<%@" "%>")
-                     ("<%:" "%>")
-                     ("<%-" "- " " --%>")))
-    ("blade"      . (("{{ " " }}")
-                     ("{{-" "- " " --}}")))
-    ("django"     . (("{{ " " }}")
-                     ("{% " " %}")
-                     ("{# " " #}")))
-    ("erb"        . (("<% " " %>")
-                     ("<%=" "%>")
-                     ("<%#" "%>")))
-    ("freemarker" . (("<% " " %>")
-                     ("${ " " }")
-                     ("[% " " %]")
-                     ("[# " " #]")
-                     ("[#-" "- " " --]")))
-    ("jsp"        . (("<% " " %>")
-                     ("<%-" "- " " %>")
-                     ("<%=" "%>")
-                     ("<%!" "%>")
-                     ("<%@" "%>")
-                     ("${ " " }")))
-    ("mako"       . (("<% " " %>")
-                     ("<%!" " " " %>")
-                     ("${ " " }")))
-    ("mason"      . (("<% " " %>")))
-    ("php"        . (("<?p" "hp " " ?>")
-                     ("<? " " ?>")
-                     ("<?=" "?>")))
-    ("underscore" . (("<% " " %>")))
-    ("web2py"     . (("{{ " " }}")
-                     ("{{=" "}}")))
-    (nil          . (("<!-" "- " " -->")))
+    ("angular"     . (("{{ " " }}")))
+    ("asp"         . (("<% " " %>")))
+    ("aspx"        . (("<% " " %>")
+                      ("<%=" "%>")
+                      ("<%#" "%>")
+                      ("<%$" "%>")
+                      ("<%@" "%>")
+                      ("<%:" "%>")
+                      ("<%-" "- " " --%>")))
+    ("blade"       . (("{{ " " }}")
+                      ("{{-" "- " " --}}")))
+    ("django"      . (("{{ " " }}")
+                      ("{% " " %}")
+                      ("{# " " #}")))
+    ("erb"         . (("<% " " %>")
+                      ("<%=" "%>")
+                      ("<%#" "%>")))
+    ("freemarker"  . (("<% " " %>")
+                      ("${ " " }")
+                      ("[% " " %]")
+                      ("[# " " #]")
+                      ("[#-" "- " " --]")))
+    ("jsp"         . (("<% " " %>")
+                      ("<%-" "- " " %>")
+                      ("<%=" "%>")
+                      ("<%!" "%>")
+                      ("<%@" "%>")
+                      ("${ " " }")))
+    ("mako"        . (("<% " " %>")
+                      ("<%!" " " " %>")
+                      ("${ " " }")))
+    ("mason"       . (("<% " " %>")))
+    ("mojolicious" . (("<% " " %>")
+                      ("<%=" " " " %>")
+                      ("<%%" " " " %>")
+                      ("<%#" " " "%>")))
+    ("php"         . (("<?p" "hp " " ?>")
+                      ("<? " " ?>")
+                      ("<?=" "?>")))
+    ("underscore"  . (("<% " " %>")))
+    ("web2py"      . (("{{ " " }}")
+                      ("{{=" "}}")))
+    (nil           . (("<!-" "- " " -->")))
 
     )
   "Engines auto-pairs")
@@ -958,12 +963,13 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
 (defvar web-mode-engine-token-regexps
   (list
-   '("asp"    . "//\\|/\\*\\|\"\\|'")
-   '("mako"   . "\"\\|'\\|#")
-   '("mason"  . "\"\\|'\\|#")
-   '("php"    . "//\\|/\\*\\|#\\|\"\\|'\\|<<<['\"]?\\([[:alnum:]]+\\)['\"]?")
-   '("python" . "\"\\|'\\|#")
-   '("web2py" . "\"\\|'")
+   '("asp"         . "//\\|/\\*\\|\"\\|'")
+   '("mako"        . "\"\\|'\\|#")
+   '("mason"       . "\"\\|'\\|#")
+   '("mojolicious" . "\"\\|'")
+   '("php"         . "//\\|/\\*\\|#\\|\"\\|'\\|<<<['\"]?\\([[:alnum:]]+\\)['\"]?")
+   '("python"      . "\"\\|'\\|#")
+   '("web2py"      . "\"\\|'")
    )
   "web-mode-engines-token-regexps")
 
@@ -984,6 +990,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    '("mako"             . "</?%\\|${\\|^[ \t]*% \\|^[ \t]*##")
 ;;   '("mason"            . "</&>\\|</%def\\|</%method\\|<%[[:alpha:]]+\\|<[%&]\\|^%.")
    '("mason"            . "</?[&%]\\|^%.")
+   '("mojolicious"      . "<%.\\|^[ \t]*%.")
    '("php"              . "<\\?")
    '("python"           . "<\\?")
    '("razor"            . "@.\\|^[ \t]*}")
@@ -1357,6 +1364,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
      "set" "stop" "switch" "tags" "throw" "try"
      "unless" "use" "while" "wrapper"))
   "Template-toolkit keywords")
+
+(defvar web-mode-perl-keywords
+  (regexp-opt
+   '("for" "if" "my" "while"))
+  "Perl keywords")
 
 (defvar web-mode-javascript-keywords
   (regexp-opt
@@ -1751,6 +1763,12 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    '("->[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    ))
 
+(defvar web-mode-mojolicious-font-lock-keywords
+  (list
+   (cons (concat "\\<\\(" web-mode-perl-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
+   ))
+
 (defvar web-mode-php-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") '(0 'web-mode-keyword-face))
@@ -1788,6 +1806,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("erb"              . web-mode-erb-font-lock-keywords)
     ("go"               . web-mode-go-font-lock-keywords)
     ("mason"            . web-mode-mason-font-lock-keywords)
+    ("mojolicious"      . web-mode-mojolicious-font-lock-keywords)
     ("php"              . web-mode-php-font-lock-keywords)
     ("python"           . web-mode-python-font-lock-keywords)
     ("razor"            . web-mode-razor-font-lock-keywords)
@@ -2563,6 +2582,22 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
            )
           ) ;mako
 
+         ((string= web-mode-engine "mojolicious")
+          (cond
+           ((string= tagopen "<%#")
+            (setq closing-string "%>"))
+           ((string= sub2 "<%")
+            (setq closing-string "%>"
+                  delim-open "<%\\(==\\|[=%]\\)?"
+                  delim-close "%>"))
+           ((string= sub2 "%#")
+            (setq closing-string "EOL"))
+           (t
+            (setq closing-string "EOL"
+                  delim-open "%\\(==\\|[=%]\\)?"))
+           )
+          ) ;mojolicious
+
          ((string= web-mode-engine "ctemplate")
           (cond
            ((string= tagopen "{{{")
@@ -2919,7 +2954,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   "Set text-property 'block-token to 'delimiter on block delimiters (e.g. <?php ?>)"
 ;;  (message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine '("asp" "aspx" "closure" "ctemplate" "django" "dust"
-                                  "erb" "freemarker" "jsp" "mako" "mason"
+                                  "erb" "freemarker" "jsp" "mako" "mason" "mojolicious"
                                   "smarty" "template-toolkit" "web2py"))
     (save-excursion
       (goto-char reg-beg)
@@ -3091,6 +3126,15 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (setq regexp "\"\\|'"))
        )
       ) ;blade
+
+     ((string= web-mode-engine "mojolicious")
+      (cond
+       ((or (string= sub2 "%#") (string= sub3 "<%#"))
+        (setq token-type 'comment))
+       (t
+        (setq regexp "\"\\|'"))
+       )
+      ) ;mojolicious
 
      ((string= web-mode-engine "velocity")
       (cond
@@ -3485,7 +3529,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
          ) ;cond
         ) ;dust
 
-       ((member web-mode-engine '("asp" "aspx" "underscore"))
+       ((member web-mode-engine '("asp" "aspx" "underscore" "mojolicious"))
         (cond
          ((web-mode-block-starts-with "}" reg-beg)
           (setq controls (append controls (list (cons 'close "{")))))
@@ -3522,6 +3566,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
        ((string= web-mode-engine "ctemplate")
         (cond
+         ((looking-at-p "{{else")
+          (setq controls (append controls (list (cons 'inside "if")))))
          ((looking-at "{{[#^/][ ]*\\([[:alpha:]]+\\)")
           (setq control (match-string-no-properties 1)
                 type (if (eq (aref (match-string-no-properties 0) 2) ?\/) 'close 'open))
