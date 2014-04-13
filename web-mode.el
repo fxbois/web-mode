@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.64
+;; Version: 8.0.65
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -56,7 +56,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.64"
+(defconst web-mode-version "8.0.65"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1367,7 +1367,14 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
 (defvar web-mode-perl-keywords
   (regexp-opt
-   '("for" "if" "my" "while"))
+   '("__DATA__" "__END__" "__FILE__" "__LINE__"
+     "__PACKAGE__"
+     "and" "cmp" "continue" "CORE" "do"
+     "else" "elsif" "eq" "exp" "for" "foreach"
+     "ge" "gt" "if" "le" "lock" "lt" "m" "ne" "no"
+     "or" "package" "q" "qq" "qr" "qw" "qx" "s" "sub"
+     "tr" "unless" "until" "while" "xor" "y"
+     "my"))
   "Perl keywords")
 
 (defvar web-mode-javascript-keywords
@@ -6122,8 +6129,10 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         )
 
        ((member language '("asp" "aspx" "blade" "code" "django" "erb"
-                           "freemarker" "javascript" "jsp" "jsx" "mako" "mason"
-                           "php" "python" "razor" "react" "template-toolkit" "web2py"))
+                           "freemarker" "javascript" "jsp" "jsx"
+                           "mako" "mason" "mojolicious"
+                           "php" "python" "razor" "react" "template-toolkit"
+                           "web2py"))
 
         (cond
 
