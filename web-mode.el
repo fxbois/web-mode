@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.65
+;; Version: 8.0.66
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -56,7 +56,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.65"
+(defconst web-mode-version "8.0.66"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -730,7 +730,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("jsp"              . "\\.jsp\\'")
     ("mako"             . "\\.mako\\'")
     ("mason"            . "\\.mas\\'")
-    ("mojolicious"      . "mojolicious")
+    ("mojolicious"      . "mojolicious\\|\\.epl\\'")
     ("mustache"         . "\\.mustache\\'")
     ("php"              . "\\.\\(php\\|ctp\\|psp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
@@ -2070,8 +2070,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (make-local-variable 'web-mode-end-tag-overlay)
   (make-local-variable 'web-mode-time)
 
-  (make-local-variable 'after-change-functions)
-  (make-local-variable 'change-major-mode-hook)
+;;  (make-local-variable 'after-change-functions)
+;;  (make-local-variable 'change-major-mode-hook)
   (make-local-variable 'fill-paragraph-function)
   (make-local-variable 'font-lock-beg)
   (make-local-variable 'font-lock-defaults)
@@ -2409,10 +2409,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    (save-excursion
      (save-restriction
        (save-match-data
-         (let ((inhibit-modification-hooks t)
+         (let (
+               ;;(inhibit-modification-hooks t)
                (inhibit-point-motion-hooks t)
                (inhibit-quit t)
-               (buffer-undo-list t)
+               ;;(buffer-undo-list t)
                )
            (setq beg (if web-mode-is-narrowed 1 beg))
            (remove-text-properties beg end web-mode-scan-properties)
@@ -3396,6 +3397,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
          ) ; cond
         ) ;if
       ) ;while
+;;    (message "ici=%S" controls)
     (when (and controls (> (length controls) 1))
       (setq controls (web-mode-block-controls-reduce controls)))
     controls))
@@ -3427,22 +3429,25 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
 (defun web-mode-block-controls-get (pos)
   "Get block controls"
-  (let (controls)
-    (cond
-     ((null (get-text-property pos 'block-side))
-;;      (backtrace)
-      (message "** block-controls-get : invalid (%S) **" pos))
-     ((or (get-text-property pos 'block-beg)
-          (setq pos (web-mode-block-beginning-position pos)))
-      (setq controls (get-text-property pos 'block-controls))
-      (when (integerp controls)
-        (web-mode-block-controls-set pos (web-mode-block-end-position pos))
-        (setq controls (get-text-property pos 'block-controls)))
-      )
-     (t
-      (message "** block-controls-get : failure (%S) **" (point)))
-     ) ;cond
-    controls))
+  (web-mode-with-silent-modifications
+   (let ((controls nil))
+     (cond
+      ((null (get-text-property pos 'block-side))
+       ;;      (backtrace)
+       (message "** block-controls-get : invalid (%S) **" pos))
+      ((or (get-text-property pos 'block-beg)
+           (setq pos (web-mode-block-beginning-position pos)))
+       (setq controls (get-text-property pos 'block-controls))
+       (when (integerp controls)
+         (web-mode-block-controls-set pos (web-mode-block-end-position pos))
+         (setq controls (get-text-property pos 'block-controls))
+         ;;        (message "controls=%S" controls)
+         )
+       )
+      (t
+       (message "** block-controls-get : failure (%S) **" (point)))
+      ) ;cond
+     controls)))
 
 (defun web-mode-block-controls-set (reg-beg reg-end)
   "Set block properties"
@@ -3458,6 +3463,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
        ((string= web-mode-engine "php")
         (setq controls (web-mode-set-php-controls reg-beg reg-end))
+;;        (message "coucou=%S" controls)
         (when (web-mode-block-starts-with "}" reg-beg)
           (setq controls (append controls (list (cons 'close "{")))))
         (when (web-mode-block-ends-with (cons "{" "}") reg-beg)
@@ -3721,7 +3727,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 ;;      (when controls
       (put-text-property reg-beg (1+ reg-beg) 'block-controls controls)
 ;;        )
-      ;;    (message "(%S) controls=%S" reg-beg controls)
+;;      (message "(%S) controls=%S" reg-beg controls)
 
       )))
 
@@ -6024,37 +6030,57 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
 (defun web-mode-indent-line ()
   "Indent current line according to language."
-  (let ((inhibit-modification-hooks t)
-        pos
-        offset
-        ctx
-        block-beg
-        block-column
-        first-char
-        line
-        type
-        language
-        indent-offset
-        prev-line
-        prev-char
-        prev-props
-        prev-indentation)
+
+  (let ((offset nil)
+        (inhibit-modification-hooks t))
 
     (save-excursion
       (back-to-indentation)
-      (setq pos (point))
-      (setq ctx (web-mode-point-context pos))
-      (setq block-beg (plist-get ctx :block-beg))
-      (setq block-column (plist-get ctx :block-column))
-      (setq first-char (plist-get ctx :first-char))
-      (setq line (plist-get ctx :line))
-      (setq type (plist-get ctx :type))
-      (setq language (plist-get ctx :language))
-      (setq indent-offset (plist-get ctx :indent-offset))
-      (setq prev-line (plist-get ctx :prev-line))
-      (setq prev-char (plist-get ctx :prev-char))
-      (setq prev-props (plist-get ctx :prev-props))
-      (setq prev-indentation (plist-get ctx :prev-indentation))
+      (let* ((pos (point))
+             (ctx (web-mode-point-context pos))
+             (block-beg (plist-get ctx :block-beg))
+             (block-column (plist-get ctx :block-column))
+             (first-char (plist-get ctx :first-char))
+             (line (plist-get ctx :line))
+             (type (plist-get ctx :type))
+             (language (plist-get ctx :language))
+             (indent-offset (plist-get ctx :indent-offset))
+             (prev-line (plist-get ctx :prev-line))
+             (prev-char (plist-get ctx :prev-char))
+             (prev-props (plist-get ctx :prev-props))
+             (prev-indentation (plist-get ctx :prev-indentation)))
+
+  ;; (let ((inhibit-modification-hooks t)
+  ;;       pos
+  ;;       offset
+  ;;       ctx
+  ;;       block-beg
+  ;;       block-column
+  ;;       first-char
+  ;;       line
+  ;;       type
+  ;;       language
+  ;;       indent-offset
+  ;;       prev-line
+  ;;       prev-char
+  ;;       prev-props
+  ;;       prev-indentation)
+
+  ;;   (save-excursion
+  ;;     (back-to-indentation)
+  ;;     (setq pos (point))
+  ;;     (setq ctx (web-mode-point-context pos))
+  ;;     (setq block-beg (plist-get ctx :block-beg))
+  ;;     (setq block-column (plist-get ctx :block-column))
+  ;;     (setq first-char (plist-get ctx :first-char))
+  ;;     (setq line (plist-get ctx :line))
+  ;;     (setq type (plist-get ctx :type))
+  ;;     (setq language (plist-get ctx :language))
+  ;;     (setq indent-offset (plist-get ctx :indent-offset))
+  ;;     (setq prev-line (plist-get ctx :prev-line))
+  ;;     (setq prev-char (plist-get ctx :prev-char))
+  ;;     (setq prev-props (plist-get ctx :prev-props))
+  ;;     (setq prev-indentation (plist-get ctx :prev-indentation))
 
       (cond
 
@@ -6131,8 +6157,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
        ((member language '("asp" "aspx" "blade" "code" "django" "erb"
                            "freemarker" "javascript" "jsp" "jsx"
                            "mako" "mason" "mojolicious"
-                           "php" "python" "razor" "react" "template-toolkit"
-                           "web2py"))
+                           "php" "python" "razor" "react"
+                           "template-toolkit" "web2py"))
 
         (cond
 
@@ -6337,8 +6363,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
        ) ;end switch language block
 
-      ) ;save-excursion
+      )) ;save-excursion
 
+;;    (message "offset=%S" offset)
     (when offset
       (let ((diff (- (current-column) (current-indentation))))
         (setq offset (max 0 offset))
