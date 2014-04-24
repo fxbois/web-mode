@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.68
+;; Version: 8.0.69
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -56,7 +56,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.68"
+(defconst web-mode-version "8.0.69"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -689,7 +689,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("dust"        . ("dustjs"))
     ("erb"         . ("eruby" "erubis"))
     ("go"          . ("gtl"))
-    ("jsp"         . ())
+    ("jsp"         . ("grails"))
     ("mason"       . ("poet"))
     ("mojolicious" . ())
     ("python"      . ())
@@ -732,7 +732,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("freemarker"       . "\\.ftl\\'")
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
     ("handlebars"       . "\\(handlebars\\|.\\hbs\\'\\)")
-    ("jsp"              . "\\.jsp\\'")
+    ("jsp"              . "\\.[gj]sp\\'")
     ("mako"             . "\\.mako\\'")
     ("mason"            . "\\.mas\\'")
     ("mojolicious"      . "mojolicious\\|\\.epl\\'")
@@ -991,7 +991,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    '("erb"              . "<%\\|^%.")
    '("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#].\\|\\[/?[@#].")
    '("go"               . "{{.")
-   '("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]")
+   '("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]+")
    '("mako"             . "</?%\\|${\\|^[ \t]*% \\|^[ \t]*##")
 ;;   '("mason"            . "</&>\\|</%def\\|</%method\\|<%[[:alpha:]]+\\|<[%&]\\|^%.")
    '("mason"            . "</?[&%]\\|^%.")
@@ -2488,7 +2488,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   "Identifies blocks (with block-side, block-beg, block-end text properties)."
   (save-excursion
 
-    (let ((i 0) open close closing-string start sub1 sub2 pos tagopen l tmp delim-open delim-close)
+    (let ((i 0) open close closing-string start sub1 sub2 pos tagopen l tmp delim-open delim-close script-beg)
 
       (goto-char reg-beg)
 
@@ -2517,8 +2517,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           (setq l (length tagopen))
           )
 
+;;        (message "tagopen=%s (%S)" tagopen (point))
+
         (setq sub1 (substring tagopen 0 1)
               sub2 (substring tagopen 0 (if (>= l 2) 2 1)))
+
 
         (cond
 
@@ -2858,7 +2861,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           (cond
 
            ((listp closing-string)
-;;            (message "point=%S" (point))
+;;            (message "point=%S sub2=%S" (point) sub2)
             (if (web-mode-rsf-balanced (car closing-string) (cdr closing-string) reg-end t)
                 (setq close (match-end 0)
                       pos (point))
@@ -2907,7 +2910,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
            ((string= closing-string "EOR")
             (web-mode-razor-skip-forward open)
             (setq close (if (> (point) reg-end) reg-end (point))
-                  pos (if (> (point) reg-end) reg-end (point))) ;; (point))
+                  pos (if (> (point) reg-end) reg-end (point)))
             (goto-char pos)
 ;;            (message "pos=%S close=%S" pos close)
             )
@@ -2920,7 +2923,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
            ((search-forward closing-string reg-end t)
             (setq close (match-end 0)
                   pos (point))
-
             )
 
            ) ;cond
@@ -2931,14 +2933,17 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
             (put-text-property open (1+ open) 'block-beg 0)
             (put-text-property open (1+ open) 'block-controls 0)
             (put-text-property (1- close) close 'block-end t)
-
-;;            (when (member web-mode-engine '("razor"))
-;;              (web-mode-exclude-virtual-tags open close))
             (web-mode-scan-block open close)
             (when delim-open
               (web-mode-block-delimiters-set open close delim-open delim-close))
+            ) ;when close
 
-            ) ;when
+          (when (string= tagopen "<r:script")
+            (setq script-beg close)
+            )
+          (when (and script-beg (string= tagopen "</r:script"))
+            (put-text-property script-beg open 'part-side 'javascript)
+            (setq script-open nil))
 
           (if pos (goto-char pos))
 
@@ -4113,7 +4118,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           ) ;if
 
         (cond
-         ((string= tname "script")
+         ((member tname '("script"))
+;;          (message "%S" tname)
           (let (script)
             (setq script (buffer-substring-no-properties tbeg tend))
             (cond
