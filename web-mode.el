@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.69
+;; Version: 8.0.70
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -56,7 +56,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.69"
+(defconst web-mode-version "8.0.70"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -2019,6 +2019,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
      ((and web-mode-highlight-beg web-mode-highlight-end)
       (setq font-lock-beg web-mode-highlight-beg
             font-lock-end web-mode-highlight-end)
+      (setq web-mode-highlight-beg nil
+            web-mode-highlight-end nil)
       )
      (t
       (setq font-lock-beg (or (web-mode-previous-tag-at-bol-pos font-lock-beg)
