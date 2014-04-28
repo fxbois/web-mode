@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.70
+;; Version: 8.0.71
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -37,13 +37,11 @@
 ;; Code goes here
 
 ;;todo :
-;;       avoir un flag qui indique que le control-set n a pas été réalisé (ne faire le control set que qd on a besoin : indentation) : implementer web-mode-block-get-controls
 ;;       voir si block-token delimiter avant ou après
 ;;       web-mode-surround : chaque ligne est entourée par un open et un close tag
 ;;       tester web-mode avec un fond blanc
 ;;       web-mode-extra-constants
 ;;       web-mode-extra-keywords + engines + javascript + comment
-;;       web-mode-block-code-beginning|end
 ;;       invalidation partiel de block (cf. journal.psp)
 ;;       C-n sur delimiter = on bascule sur open-delim ou close-delim
 ;;       essayer de réduire la zone à scanner / repeindre
@@ -56,7 +54,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.70"
+(defconst web-mode-version "8.0.71"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -129,7 +127,7 @@
   :group 'web-mode)
 
 (defcustom web-mode-enable-block-partial-invalidation nil
-  "Partial invalidation in php/asp blocks."
+  "Partial invalidation in blocks (php and asp at the moment)."
   :type 'boolean
   :group 'web-mode)
 
@@ -739,7 +737,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("mustache"         . "\\.mustache\\'")
     ("php"              . "\\.\\(php\\|ctp\\|psp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
-    ("razor"            . "play\\|scala\\|\\.razor\\'\\|\\.cshtml\\'\\|\\.vbhtml\\'")
+    ("razor"            . "scala\\|\\.razor\\'\\|\\.cshtml\\'\\|\\.vbhtml\\'")
     ("smarty"           . "\\.tpl\\'")
     ("template-toolkit" . "\\.tt.?\\'")
     ("underscore"       . "\\.underscore\\'")
@@ -4531,11 +4529,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
       (goto-char reg-beg)
 
-;;      (when (and (not web-mode-has-any-large-part)
-;;                 (> (- reg-end reg-beg) web-mode-large-embed-threshold))
-;;        (message "** large part detected [ %S - %S ] **" reg-beg reg-end)
-;;        (setq web-mode-has-any-large-part t))
-
       (cond
        ((string= content-type "javascript")
         (setq token-re "/.\\|\"\\|'"))
@@ -4560,9 +4553,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (cond
 
          ((eq ?\' ch-at)
-;;          (unless (eq ?\\ ch-before)
-
-;;          (setq props '(block-token string))
           (while (and continue (search-forward "'" reg-end t))
             (cond
              ((get-text-property (1- (point)) 'block-side)
@@ -4572,8 +4562,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
              (t
               (setq continue nil))
              )
-            )
-
+            ) ;while
           (cond
            ((string= content-type "javascript")
             (setq token-type 'string))
@@ -4584,8 +4573,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
            (t
             (setq token-type 'string))
            ) ;cond
-          ;;            ) ;unless
-          )
+          ) ;eq '
 
          ((eq ?\" ch-at)
           (while (and continue (search-forward "\"" reg-end t))
@@ -4598,7 +4586,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
               (setq continue nil))
              )
             )
-
           (cond
            ((string= content-type "json")
             (if (looking-at-p "[ ]*:")
@@ -4621,7 +4608,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
              ) ;cond
             ) ;t
            ) ;cond
-          ;;            ) ;unless
           )
 
          ((eq ?\/ ch-next)
@@ -4670,11 +4656,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (web-mode-scan-literals reg-beg reg-end))
 
       )))
-
-(defun web-mode-part-tokenize (reg-beg reg-end &optional regexp)
-  "part tokenize"
-
-  )
 
 (defun web-mode-highlight-part (reg-beg reg-end)
   "Highlight part (e.g. javascript, json, css)."
@@ -8465,10 +8446,10 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
        ((and web-mode-enable-part-partial-invalidation
              (= web-mode-change-flags 2)
-             (not (looking-back "\\*/"))
+             (not (looking-back "\\*/\\|</"))
              (progn
                (setq chunk (buffer-substring-no-properties beg end))
-               (not (string-match-p "\\*/" chunk))
+               (not (string-match-p "\\*/\\|</" chunk))
                )
              (not self-insertion))
         (web-mode-invalidate-part-region beg end)
@@ -8556,10 +8537,11 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       )))
 
 (defun web-mode-invalidate-part-region (pos-beg pos-end)
-  "Invalidate js region."
+  "Invalidate part."
   (save-excursion
-    (let (beg end part-beg part-end)
-      (setq part-beg (web-mode-part-beginning-position pos-beg)
+    (let (beg end part-beg part-end language)
+      (setq language (symbol-name (get-text-property pos-beg 'part-side))
+            part-beg (web-mode-part-beginning-position pos-beg)
             part-end (web-mode-part-end-position pos-beg))
       (if (and part-beg part-end
                (>= pos-beg part-beg)
@@ -8567,16 +8549,23 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                (> part-end part-beg))
           (progn
             (goto-char pos-beg)
-            (if (web-mode-part-rsb "[;{}(][ ]*\n" part-beg)
-                (setq beg (match-end 0))
-              (setq beg part-beg))
-            (goto-char pos-end)
-            (if (web-mode-part-rsf "[;{})][ ]*\n" part-end)
-                (setq end (1- (match-end 0)))
-              (setq end part-end))
+            (if (string= language "javascript")
+                (progn
+                  (if (web-mode-part-rsb "[;{}(][ ]*\n" part-beg)
+                      (setq beg (match-end 0))
+                    (setq beg part-beg))
+                  (goto-char pos-end)
+                  (if (web-mode-part-rsf "[;{})][ ]*\n" part-end)
+                      (setq end (1- (match-end 0)))
+                    (setq end part-end))
+                  )
+              ;; TODO : beg=beg of rule, end=end of rule
+              (setq beg part-beg
+                    end part-end)
+              )
             (setq web-mode-highlight-beg beg
                   web-mode-highlight-end end)
-            (web-mode-scan-region beg end "javascript")
+            (web-mode-scan-region beg end language)
 ;;            (message "scan-region beg=%S end=%S" beg end)
             ) ;progn
         (web-mode-invalidate-region pos-beg pos-end)
