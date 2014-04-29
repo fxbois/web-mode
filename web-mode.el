@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.71
+;; Version: 8.0.72
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -54,7 +54,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.71"
+(defconst web-mode-version "8.0.72"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -6137,11 +6137,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
             ))
         )
 
-       ;;       ((get-text-property pos 'tag-beg)
        ((and (get-text-property pos 'tag-beg)
              (not (get-text-property pos 'part-side))
              (not (member web-mode-content-type '("jsx"))))
-        ;; (message "ici")
         (setq offset (web-mode-markup-indentation pos))
         )
 
@@ -6170,13 +6168,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                (string-match-p "^\\." prev-line))
           (setq offset prev-indentation)
           )
-
-         ;; ((and (string= language "razor")
-         ;;       (string-match-p "^}" line))
-         ;;  (goto-char (web-mode-opening-paren-position (point)))
-         ;;  (back-to-indentation)
-         ;;  (setq offset (current-column))
-         ;;  )
 
         ((and (string= language "razor")
               (string-match-p "^case " line)
@@ -7607,17 +7598,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
          )
         ;; *** block folding
         ((cdr (web-mode-block-is-control (point)))
-         (setq beg-outside (point))
-         (web-mode-block-end)
-         (setq beg-inside (point))
-         (goto-char beg-outside)
-         (when (web-mode-tag-match)
+         (setq beg-outside (web-mode-block-beginning-position (point)))
+         (setq beg-inside (1+ (web-mode-block-end-position (point))))
+         (when (web-mode-block-match)
            (setq end-inside (point))
-           (web-mode-block-end)
-           (setq end-outside (point)))
-         )
+           (setq end-outside (1+ (web-mode-block-end-position (point)))))
+         ) ;block-control
         ) ;cond
-       (when end-outside
+       (when (and beg-inside beg-outside end-inside end-outside)
          ;;(message "beg-out(%d) beg-in(%d) end-in(%d) end-out(%d)" beg-outside beg-inside end-inside end-outside)
          (setq overlay (make-overlay beg-outside end-outside))
          (overlay-put overlay 'font-lock-face 'web-mode-folded-face)
@@ -8909,7 +8897,13 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       pt
       )))
 
-(defun web-mode-opening-paren-block-position (pos limit)
+(defun web-mode-block-opening-paren (pos limit)
+  "opening paren"
+  (setq pos (web-mode-block-opening-paren-position pos limit))
+  (when pos (goto-char pos))
+  )
+
+(defun web-mode-block-opening-paren-position (pos limit)
   "Is opened code line."
   (save-excursion
     (goto-char pos)
