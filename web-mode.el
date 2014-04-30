@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.72
+;; Version: 8.0.73
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -54,7 +54,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.72"
+(defconst web-mode-version "8.0.73"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1513,7 +1513,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
 (defvar web-mode-velocity-font-lock-keywords
   (list
-   '("#\\([[:alpha:]]+\\)\\>"
+   '("#\\([[:alpha:]_]+\\)\\>"
      (1 'web-mode-block-control-face))
    (cons (concat "[ ]\\(" web-mode-velocity-keywords "\\)[ ]") '(1 'web-mode-keyword-face t t))
    '("#macro([ ]*\\([[:alpha:]]+\\)[ ]+" 1 'web-mode-function-name-face)
@@ -4939,7 +4939,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       (while continue
         (skip-chars-forward "a-zA-Z0-9_-")
         (when (member (char-after) '(?\())
-          (search-forward ")")
+          (search-forward ")" nil t)
           )
         (if (member (char-after) '(?\.))
             (forward-char)
