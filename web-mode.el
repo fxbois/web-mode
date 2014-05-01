@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.73
+;; Version: 8.0.74
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -54,7 +54,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.73"
+(defconst web-mode-version "8.0.74"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -8364,8 +8364,17 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                             (get-text-property end 'tag-name)))
           (setq auto-opened t)
           (newline-and-indent)
-          ;;(newline)
-          ;;(indent-for-tab-command)
+          (forward-line -1)
+          (indent-for-tab-command)
+          )
+
+        (when (and (not auto-opened)
+                   (get-text-property beg 'block-side)
+                   (string= web-mode-engine "php")
+                   (looking-back "<\\?php[ ]*\n")
+                   (looking-at-p "[ ]*\\?>"))
+          (setq auto-opened t)
+          (newline-and-indent)
           (forward-line -1)
           (indent-for-tab-command)
           )
