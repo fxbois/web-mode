@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.74
+;; Version: 8.0.75
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -54,7 +54,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.74"
+(defconst web-mode-version "8.0.75"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -8337,10 +8337,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     (setq atomic-insertion (and (= len 0)
                                 (= 1 (- end beg))))
 
-    (if (not (= (point-max) (+ (buffer-size) 1)))
 
+    (if (buffer-narrowed-p)
+;;    (if (not (= (point-max) (+ (buffer-size) 1)))
        (setq web-mode-is-narrowed t)
 
+      ;;else
+
+      (setq web-mode-is-narrowed nil)
       ;;-- auto-closing and auto-pairing
 
       (when (and (> web-mode-jshint-errors 0)
