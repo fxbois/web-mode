@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.76
+;; Version: 8.0.77
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -54,7 +54,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.76"
+(defconst web-mode-version "8.0.77"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -706,14 +706,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   "content types")
 
 (defvar web-mode-engine-attr-regexp nil
- "Engine custom attributes"
-  )
+ "Engine custom attributes")
 
 (defvar web-mode-engine-attr-regexps
-  '(("angular" . "ng-")
-    )
-  "Engine custom attributes"
-  )
+  '(("angular" . "ng-"))
+  "Engine custom attributes")
 
 (defvar web-mode-engine-file-regexps
   '(("asp"              . "\\.asp\\'")
@@ -10099,6 +10096,18 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (setq sub (time-subtract (current-time) web-mode-time))
       (message "%18s: time elapsed = %Ss %9Sµs" msg (nth 1 sub) (nth 2 sub))
       )))
+
+(defun web-mode-reveal ()
+  "Display text properties at point"
+  (interactive)
+  (let (symbol symbols)
+    (setq symbols (append web-mode-scan-properties '(face)))
+    (message "properties at pos(%S) [%S-%S]" (point) web-mode-engine web-mode-content-type)
+    (dolist (symbol symbols)
+      (when symbol
+        (message "%s: %S" (symbol-name symbol) (get-text-property (point) symbol)))
+      )
+    ))
 
 (defun web-mode-debug ()
   "Display informations useful for debuging"
