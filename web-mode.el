@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.75
+;; Version: 8.0.76
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -54,7 +54,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.75"
+(defconst web-mode-version "8.0.76"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -7560,6 +7560,18 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (car (member (downcase tag) web-mode-void-elements))
     (eq (get-text-property (point) 'tag-type) 'void)
     ))
+
+(defun web-mode-toggle-current-element-highlight ()
+  "toggle current element highliht"
+  (interactive)
+  (if web-mode-enable-current-element-highlight
+      (progn
+        (web-mode-delete-tag-overlays)
+        (setq web-mode-enable-current-element-highlight nil)
+        (remove-hook 'post-command-hook 'web-mode-highlight-current-element t))
+    (setq web-mode-enable-current-element-highlight t)
+    (add-hook 'post-command-hook 'web-mode-highlight-current-element nil t))
+  )
 
 (defun web-mode-fold-or-unfold (&optional pos)
   "Toggle folding on an HTML element or a control block."
