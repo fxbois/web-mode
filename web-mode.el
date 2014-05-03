@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.77
+;; Version: 8.0.78
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -54,7 +54,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.77"
+(defconst web-mode-version "8.0.78"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -2104,6 +2104,12 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
   (when web-mode-enable-current-element-highlight
     (add-hook 'post-command-hook 'web-mode-highlight-current-element nil t))
+
+  ;; (add-hook 'post-command-hook
+  ;;           '(lambda()
+  ;;              (message "this command %S" this-command)
+  ;;              )
+  ;;           nil t)
 
   (add-hook 'after-change-functions  'web-mode-on-after-change t t)
   (add-hook 'before-change-functions 'web-mode-on-before-change t t)
@@ -7045,7 +7051,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 (defun web-mode-mark-and-expand ()
   "Mark and expand."
   (interactive)
-;;  (message "last-input-event=%S" last-input-event)
+  (when (not (eq last-command this-command))
+    (setq web-mode-expand-previous-state nil))
   (web-mode-mark (point)))
 
 ;; todo : pb du engine=go ... selection d'un bloc
@@ -7060,20 +7067,21 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
     ;;    (message "regs=%S %S %S %S" (region-beginning) (region-end) (point-min) (point-max))
 
-    ;;    (message "before=%S" web-mode-expand-previous-state)
+;;    (message "before=%S" web-mode-expand-previous-state)
 
     (cond
 
      ((and mark-active
            (= (region-beginning) (point-min))
-           (or (= (region-end) (point-max)) (= (1+ (region-end)) (point-max))))
+           (or (= (region-end) (point-max))
+               (= (1+ (region-end)) (point-max))))
       (deactivate-mark)
       (goto-char (or web-mode-expand-initial-pos (point-min)))
+      (setq web-mode-expand-previous-state nil)
       (recenter))
 
-    ((and (member (get-text-property pos 'block-token) '(comment string))
-          (not (string= web-mode-expand-previous-state "block-token")))
-
+     ((and (member (get-text-property pos 'block-token) '(comment string))
+           (not (member web-mode-expand-previous-state '("block-body" "block-side" "block-token"))))
       (when (eq (get-text-property pos 'block-token) (get-text-property (1- pos) 'block-token))
         (setq beg (or (previous-single-property-change pos 'block-token) (point-min))))
       (when (eq (get-text-property pos 'block-token) (get-text-property (1+ pos) 'block-token))
@@ -7084,20 +7092,22 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (setq web-mode-expand-previous-state "block-token"))
 
      ((and (get-text-property pos 'block-side)
+           (not (member web-mode-expand-previous-state '("block-body" "block-side" "block-token")))
            (not (member web-mode-engine '(django go)))
-           (setq boundaries (web-mode-in-code-block "{" "}" 'block-side))
-           (not (string= web-mode-expand-previous-state "server-block")))
+           (setq boundaries (web-mode-in-code-block "{" "}" 'block-side)))
+;;           (not (string= web-mode-expand-previous-state "server-block")))
       (set-mark (car boundaries))
       (goto-char (cdr boundaries))
       ;;      (message "char=[%c]" (char-before (- (point) 1)))
-      (if (eq ?\% (char-before (- (point) 1)))
-          (setq web-mode-expand-previous-state "block-side")
-        (setq web-mode-expand-previous-state "server-block"))
+;;      (if (eq ?\% (char-before (- (point) 1)))
+;;          (setq web-mode-expand-previous-state "block-side")
+;;        (setq web-mode-expand-previous-state "server-block"))
       (exchange-point-and-mark)
+      (setq web-mode-expand-previous-state "block-body")
       )
 
      ((and (get-text-property pos 'block-side)
-           (not (string= web-mode-expand-previous-state "block-side")))
+           (not (member web-mode-expand-previous-state '("block-body" "block-side" "block-token"))))
       (when (eq (get-text-property pos 'block-side) (get-text-property (1- pos) 'block-side))
         (setq beg (or (previous-single-property-change pos 'block-side) (point-min))))
       (when (eq (get-text-property pos 'block-side) (get-text-property (1+ pos) 'block-side))
@@ -7109,7 +7119,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
      ((and (get-text-property pos 'part-token)
            (not (string= web-mode-expand-previous-state "part-token")))
-
       (when (eq (get-text-property pos 'part-token) (get-text-property (1- pos) 'part-token))
         (setq beg (previous-single-property-change pos 'part-token)))
       (when (eq (get-text-property pos 'part-token) (get-text-property (1+ pos) 'part-token))
@@ -7130,44 +7139,54 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
      ((and (get-text-property pos 'part-side)
            (not (string= web-mode-expand-previous-state "part-side")))
-
       (when (eq (get-text-property pos 'part-side) (get-text-property (1- pos) 'part-side))
         (setq beg (previous-single-property-change pos 'part-side)))
       (when (eq (get-text-property pos 'part-side) (get-text-property (1+ pos) 'part-side))
         (setq end (next-single-property-change pos 'part-side)))
       (set-mark beg)
       (goto-char end)
+      (when (looking-back "^[ \t]+")
+        (beginning-of-line))
       (exchange-point-and-mark)
       (setq web-mode-expand-previous-state "part-side"))
 
-     ;;     ((and (eq (get-text-property pos 'markup-type) 'attr)
      ((and (get-text-property pos 'tag-attr)
-           (not (string= web-mode-expand-previous-state "html-attr")))
-
-      (when (eq (get-text-property pos 'part-token) (get-text-property (1- pos) 'part-token))
-        (setq beg (previous-single-property-change pos 'part-token)))
-      (when (eq (get-text-property pos 'part-token) (get-text-property (1+ pos) 'part-token))
-        (setq end (next-single-property-change pos 'part-token)))
+           (not (member web-mode-expand-previous-state '("html-attr" "html-tag"))))
+      (setq beg pos
+            end (1+ pos))
+      (when (eq (get-text-property pos 'tag-attr) (get-text-property (1- pos) 'tag-attr))
+        (setq beg (previous-single-property-change pos 'tag-attr)))
+      (when (eq (get-text-property pos 'tag-attr) (get-text-property (1+ pos) 'tag-attr))
+        (setq end (next-single-property-change pos 'tag-attr)))
       (set-mark beg)
       (goto-char end)
       (exchange-point-and-mark)
       (setq web-mode-expand-previous-state "html-attr"))
 
-     ((and mark-active (eq ?\< (char-after)))
-      (web-mode-element-parent)
-      (if (= reg-beg (region-beginning))
-          (mark-whole-buffer)
-        (web-mode-element-select))
-      )
+     ((and (get-text-property pos 'tag-name)
+           (not (member web-mode-expand-previous-state '("html-tag" "html-elt" "html-parent"))))
+      (web-mode-tag-select)
+      (setq web-mode-expand-previous-state "html-tag"))
 
-     (t
+     ((and (get-text-property pos 'tag-beg)
+           (string= web-mode-expand-previous-state "html-tag"))
       (web-mode-element-select)
-      ;;(mark-whole-buffer)
+      (setq web-mode-expand-previous-state "html-elt"))
+
+     ;;     ((and mark-active (eq ?\< (char-after)))
+     (t
+      (web-mode-element-parent)
+      (if (and reg-beg (= reg-beg (region-beginning)))
+          (progn
+            (mark-whole-buffer)
+            (setq web-mode-expand-previous-state "mark-whole"))
+        (web-mode-element-select)
+        (setq web-mode-expand-previous-state "html-parent"))
       )
 
      ) ;cond
 
-;;    (message "after=%S" web-mode-expand-previous-state)
+;;    (message "after=%S\n-----------------------" web-mode-expand-previous-state)
 
     ))
 
