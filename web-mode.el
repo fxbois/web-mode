@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.78
+;; Version: 8.0.79
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -37,6 +37,7 @@
 ;; Code goes here
 
 ;;todo :
+;;       select attr (à utiliser dans mark-and-expand)
 ;;       voir si block-token delimiter avant ou après
 ;;       web-mode-surround : chaque ligne est entourée par un open et un close tag
 ;;       tester web-mode avec un fond blanc
@@ -54,7 +55,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.78"
+(defconst web-mode-version "8.0.79"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -2083,6 +2084,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (make-local-variable 'text-property-default-nonsticky)
 
   (add-to-list 'text-property-default-nonsticky '(block-token . t))
+;;  (add-to-list 'text-property-default-nonsticky '((block-token . t)
+;;                                                  (tag-end . t)))
 
   (setq fill-paragraph-function 'web-mode-fill-paragraph
         font-lock-defaults '(web-mode-font-lock-keywords t)
@@ -8397,7 +8400,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (setq auto-opened t)
           (newline-and-indent)
           (forward-line -1)
-          (indent-for-tab-command)
+;;          (when (not (member (get-text-property (- beg 1) 'tag-name) '("script" "style")))
+;;          (indent-for-tab-command)
+;;            )
           )
 
         (when (and (not auto-opened)
@@ -8408,7 +8413,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (setq auto-opened t)
           (newline-and-indent)
           (forward-line -1)
-          (indent-for-tab-command)
+;;          (message "auto-opened=%S" auto-opened)
+;;          (indent-for-tab-command)
           )
 
         ;;-- auto-closing
@@ -8486,11 +8492,15 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
        (t
         (setq web-mode-change-flags 0)
-        (web-mode-invalidate-region beg end)
+        (web-mode-invalidate-region beg (if auto-opened (1+ end) end))
         ) ;t
 
-       )
+       ) ;cond
       ;;        ) ;save-match-data
+
+      (when auto-opened
+;;        (message "indent(%S)" (point))
+        (indent-for-tab-command))
 
       ;;-- auto-indentation
       (when (and web-mode-enable-auto-indentation
@@ -8532,6 +8542,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                                    (point-min))
         web-mode-highlight-end (or (web-mode-next-tag-at-eol-pos reg-end)
                                    (point-max)))
+;;  (message "reg-beg(%S) reg-end(%S) beg(%S) end(%S)"
+;;           reg-beg reg-end web-mode-highlight-beg web-mode-highlight-end)
   (web-mode-scan-region web-mode-highlight-beg web-mode-highlight-end)
   )
 
@@ -9022,9 +9034,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (if (and (> (point) (point-min))
                  (get-text-property (1- (point)) 'tag-end)
                  (not (get-text-property (1- (point)) 'part-side))
-                 (not (get-text-property (1- (point)) 'block-side))
-                 )
-            (setq continue nil)
+                 (not (get-text-property (1- (point)) 'block-side)))
+            (progn
+              ;; (message "point(%S) %S %S %S"
+              ;;          (point)
+              ;;          (get-text-property (1- (point)) 'tag-end)
+              ;;          (get-text-property (1- (point)) 'part-side)
+              ;;          (get-text-property (1- (point)) 'block-side))
+              (setq continue nil))
           (setq pos nil))
         (if continue (forward-line))
         ) ;while
