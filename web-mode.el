@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.79
+;; Version: 8.0.80
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -55,7 +55,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.79"
+(defconst web-mode-version "8.0.80"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -10136,13 +10136,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 (defun web-mode-reveal ()
   "Display text properties at point"
   (interactive)
-  (let (symbol symbols)
+  (let (symbol symbols out)
     (setq symbols (append web-mode-scan-properties '(face)))
-    (message "properties at pos(%S) [%S-%S]" (point) web-mode-engine web-mode-content-type)
+    (setq out (format "properties at pos(%S) [%S-%S]\n" (point) web-mode-engine web-mode-content-type))
     (dolist (symbol symbols)
       (when symbol
-        (message "%s: %S" (symbol-name symbol) (get-text-property (point) symbol)))
+        (setq out (concat out (format "%s: %S\n" (symbol-name symbol) (get-text-property (point) symbol)))))
       )
+    (message "%s" out)
     ))
 
 (defun web-mode-debug ()
