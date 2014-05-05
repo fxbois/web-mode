@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.80
+;; Version: 8.0.81
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -55,7 +55,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.80"
+(defconst web-mode-version "8.0.81"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4180,14 +4180,16 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
             (setq close-expr nil))
            )
 
+;;          (message "tname(%S) close-expr(%S)" tname close-expr)
+
           ;; si <script type="document/html"> on ne fait pas la suite
 
           (when (and close-expr (web-mode-sf-client close-expr reg-end t))
-            (setq part-beg (if (eq (char-after tend) ?\n) (1+ tend) tend)
+            (setq part-beg tend ;;(if (eq (char-after tend) ?\n) (1+ tend) tend)
                   part-end (match-beginning 0))
-;;            (message "part-beg(%S) part-end(%S)" part-beg part-end)
-            (if (>= (- part-end part-beg) 3)
+            (if (> part-end part-beg)
                 (progn
+;;                  (message "part-beg(%S) part-end(%S)" part-beg part-end)
                   (put-text-property part-beg part-end
                                      'part-side
                                      (cond
@@ -7069,8 +7071,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (setq web-mode-expand-initial-pos (point)))
 
     ;;    (message "regs=%S %S %S %S" (region-beginning) (region-end) (point-min) (point-max))
-
-;;    (message "before=%S" web-mode-expand-previous-state)
+    ;;    (message "before=%S" web-mode-expand-previous-state)
 
     (cond
 
@@ -7102,12 +7103,11 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (set-mark (car boundaries))
       (goto-char (cdr boundaries))
       ;;      (message "char=[%c]" (char-before (- (point) 1)))
-;;      (if (eq ?\% (char-before (- (point) 1)))
-;;          (setq web-mode-expand-previous-state "block-side")
-;;        (setq web-mode-expand-previous-state "server-block"))
+      ;;      (if (eq ?\% (char-before (- (point) 1)))
+      ;;          (setq web-mode-expand-previous-state "block-side")
+      ;;        (setq web-mode-expand-previous-state "server-block"))
       (exchange-point-and-mark)
-      (setq web-mode-expand-previous-state "block-body")
-      )
+      (setq web-mode-expand-previous-state "block-body"))
 
      ((and (get-text-property pos 'block-side)
            (not (member web-mode-expand-previous-state '("block-body" "block-side" "block-token"))))
@@ -7137,8 +7137,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (set-mark (car boundaries))
       (goto-char (cdr boundaries))
       (exchange-point-and-mark)
-      (setq web-mode-expand-previous-state "client-part")
-      )
+      (setq web-mode-expand-previous-state "client-part"))
 
      ((and (get-text-property pos 'part-side)
            (not (string= web-mode-expand-previous-state "part-side")))
@@ -7146,6 +7145,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (setq beg (previous-single-property-change pos 'part-side)))
       (when (eq (get-text-property pos 'part-side) (get-text-property (1+ pos) 'part-side))
         (setq end (next-single-property-change pos 'part-side)))
+      (when (eq (char-after beg) ?\n)
+        (setq beg (1+ beg)))
       (set-mark beg)
       (goto-char end)
       (when (looking-back "^[ \t]+")
@@ -8466,8 +8467,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       ;;      (save-match-data
       (cond
 
-       ;; vérifier qu'il n y a pas ?> ou <? dans le chunk
-       ;; doit on du coup systématiquement charger le chunk ?
        ((and web-mode-enable-block-partial-invalidation
              (= web-mode-change-flags 1)
              (not (looking-back "\\*/\\|\\?>"))
@@ -8500,7 +8499,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
       (when auto-opened
 ;;        (message "indent(%S)" (point))
-        (indent-for-tab-command))
+        (indent-for-tab-command)
+        )
 
       ;;-- auto-indentation
       (when (and web-mode-enable-auto-indentation
@@ -8609,6 +8609,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
             (web-mode-scan-region beg end language)
 ;;            (message "scan-region beg=%S end=%S" beg end)
             ) ;progn
+;;        (message "ici")
         (web-mode-invalidate-region pos-beg pos-end)
         )
       )))
@@ -10116,8 +10117,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
    (setq web-mode-time nil)
    (put-text-property (point-min) (point-max) 'invisible nil)
    (remove-overlays)
-   (unload-feature 'web-mode)
-;;   (setq web-mode-enable-css-colorization t)
+   (unload-feature 'web-mode t)
+   (load "web-mode.el")
    (web-mode)
    (if (fboundp 'web-mode-hook)
        (web-mode-hook))))
@@ -10144,6 +10145,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (setq out (concat out (format "%s: %S\n" (symbol-name symbol) (get-text-property (point) symbol)))))
       )
     (message "%s" out)
+    (message nil)
     ))
 
 (defun web-mode-debug ()
