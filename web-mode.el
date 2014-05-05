@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.81
+;; Version: 8.0.82
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -55,7 +55,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.81"
+(defconst web-mode-version "8.0.82"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -2114,8 +2114,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   ;;              )
   ;;           nil t)
 
-  (add-hook 'after-change-functions  'web-mode-on-after-change t t)
-  (add-hook 'before-change-functions 'web-mode-on-before-change t t)
+  (add-hook 'after-change-functions  'web-mode-on-after-change nil t)
+  (add-hook 'before-change-functions 'web-mode-on-before-change nil t)
   (add-hook 'change-major-mode-hook  'web-mode-on-exit nil t)
 
   (add-hook 'after-save-hook
