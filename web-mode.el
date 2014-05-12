@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.84
+;; Version: 8.0.85
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -50,7 +50,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.84"
+(defconst web-mode-version "8.0.85"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -2017,6 +2017,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (make-local-variable 'indent-line-function)
   (make-local-variable 'parse-sexp-lookup-properties)
   (make-local-variable 'text-property-default-nonsticky)
+  (make-local-variable 'yank-excluded-properties)
 
   (add-to-list 'text-property-default-nonsticky '(block-token . t))
 ;;  (add-to-list 'text-property-default-nonsticky '((block-token . t)
@@ -2032,7 +2033,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         imenu-case-fold-search t
         imenu-create-index-function 'web-mode-imenu-index
         indent-line-function 'web-mode-indent-line
-        parse-sexp-lookup-properties t)
+        parse-sexp-lookup-properties t
+        yank-excluded-properties t)
 
 ;;  (remove-hook 'after-change-functions 'font-lock-after-change-function t)
 
@@ -8348,7 +8350,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 (defun web-mode-invalidate-region (reg-beg reg-end)
   "Invalidate region"
 ;;  (when (> (- reg-end reg-beg) 2)
-  (remove-text-properties reg-beg reg-end web-mode-scan-properties)
+;;  (remove-text-properties reg-beg reg-end web-mode-scan-properties)
   (setq web-mode-highlight-beg (or (web-mode-previous-tag-at-bol-pos reg-beg)
                                    (point-min))
         web-mode-highlight-end (or (web-mode-next-tag-at-eol-pos reg-end)
