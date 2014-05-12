@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 8.0.83
+;; Version: 8.0.84
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -50,7 +50,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "8.0.83"
+(defconst web-mode-version "8.0.84"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -127,7 +127,7 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-part-partial-invalidation t
+(defcustom web-mode-enable-part-partial-invalidation nil
   "Partial invalidation in js/css parts."
   :type 'boolean
   :group 'web-mode)
@@ -8347,6 +8347,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
 (defun web-mode-invalidate-region (reg-beg reg-end)
   "Invalidate region"
+;;  (when (> (- reg-end reg-beg) 2)
+  (remove-text-properties reg-beg reg-end web-mode-scan-properties)
   (setq web-mode-highlight-beg (or (web-mode-previous-tag-at-bol-pos reg-beg)
                                    (point-min))
         web-mode-highlight-end (or (web-mode-next-tag-at-eol-pos reg-end)
