@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.1
+;; Version: 9.0.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -50,7 +50,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.1"
+(defconst web-mode-version "9.0.2"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1957,10 +1957,12 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
             web-mode-highlight-end nil)
       )
      (t
+;;      (message "ici")
       (setq font-lock-beg (or (web-mode-previous-tag-at-bol-pos font-lock-beg)
                               (point-min))
             font-lock-end (or (web-mode-next-tag-at-eol-pos font-lock-end)
-                              (point-max))))
+                              (point-max)))
+      ) ;t
      ) ;cond
     nil))
 
@@ -1969,7 +1971,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 ;;  (message "highlight : point=%S limit=%S" (point) limit)
   (let ((inhibit-modification-hooks t)
         (buffer-undo-list t))
-    (web-mode-highlight-region (point) limit))
+    (web-mode-highlight-region (point) limit)
+    ) ;let
   nil)
 
 ;;;###autoload
@@ -4852,7 +4855,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 ;; web-mode-scan-block-literals ?
 
 (defun web-mode-scan-literals (reg-beg reg-end)
-  "web-mode-scan-literals"
+  "jsx web-mode-scan-literals"
   (let (continue pair beg end)
     (save-excursion
       (goto-char reg-beg)
@@ -4903,13 +4906,17 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       (goto-char reg-beg)
 ;;      (message "reg-beg=%S" reg-beg)
       (while (and continue (search-forward "{" reg-end t))
-;;        (message "ici")
-        (setq beg (1- (point))
-              end (search-forward "}" reg-end t))
+        (backward-char)
+        (setq beg (point)
+              end (web-mode-closing-paren reg-end)
+;;              end (search-forward "}" reg-end t)
+              )
 ;;        (message "beg(%S) end(%S)" beg end)
         (if (not end)
             (setq continue nil)
           ;;          (web-mode-scan-part beg end)
+          (setq end (1+ end))
+          ;;(remove-text-properties (1+ beg) (1- end) '(part-token nil))
           (put-text-property beg end 'part-expr t)
           )
         )
@@ -4926,7 +4933,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       (if (web-mode-sf ">") (setq end (point)))
       )
      ((eq (char-after) ?\{)
-      (if (web-mode-sf "}") (setq end (point)))
+      (if (web-mode-closing-paren reg-end) (setq end (1+ (point))))
+;;      (message "end=%S" end)
+;;      (if (web-mode-sf "}") (setq end (point)))
       )
      ;; ((looking-at "[a-z \n]")
      ;; (skip-chars-forward "a-z \n")
@@ -8323,6 +8332,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                           (get-text-property (1- end) 'tag-end)
                           (get-text-property (line-beginning-position) 'tag-beg))))
         (indent-for-tab-command)
+        (when (and web-mode-highlight-end (> web-mode-highlight-end (point-max)))
+          (setq web-mode-highlight-end (point-max)))
         )
 
       (when (and (string= web-mode-engine "none")
@@ -8696,7 +8707,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     (if (or (null pos) (> pos limit))
         nil
       (goto-char pos)
-      t)
+      pos)
     ))
 
 (defun web-mode-closing-paren-position (&optional pos limit)
