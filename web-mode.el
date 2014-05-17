@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.4
+;; Version: 9.0.5
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -37,6 +37,7 @@
 ;; Code goes here
 
 ;;todo :
+;;       amélioré le highlight pour un tag non fermé lorsque la ligne qui suit commence par un html tag
 ;;       web-mode-surround : chaque ligne est entourée par un open et un close tag
 ;;       tester web-mode avec un fond blanc
 ;;       web-mode-extra-constants
@@ -50,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.4"
+(defconst web-mode-version "9.0.5"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -8089,6 +8090,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (setq ins (concat "/" tag)))
        (t
         ;; auto-close-style = 2
+;;        (message "%S %c" (point) (char-after))
+        (when (and (looking-at-p "[[:alpha:]]") (> (length tag) 4))
+          (dolist (elt '("div" "span" "strong" "pre" "li"))
+            (when (and (string-match-p (concat "^" elt) tag) (not (string= tag elt)))
+              (setq tag elt)
+              (put-text-property epp (point) 'tag-name tag))
+            )
+          ) ;when
         (if (web-mode-element-is-void (get-text-property (point) 'tag-name))
             (setq ins nil
                   epp nil)
@@ -8228,9 +8237,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           )
          ((and (string= ">\n" chunk)
                (not (eobp))
-               (eq (get-text-property (- beg 1) 'tag-type) 'start)
+               (eq (get-text-property (1- beg) 'tag-type) 'start)
                (eq (get-text-property end 'tag-type) 'end)
-               (string= (get-text-property (- beg 1) 'tag-name)
+               (string= (get-text-property (1- beg) 'tag-name)
                         (get-text-property end 'tag-name)))
           (setq auto-opened t)
           (newline-and-indent)
