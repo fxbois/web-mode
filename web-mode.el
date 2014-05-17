@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.2
+;; Version: 9.0.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -50,7 +50,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.2"
+(defconst web-mode-version "9.0.4"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -127,7 +127,7 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-part-partial-invalidation nil
+(defcustom web-mode-enable-part-partial-invalidation t
   "Partial invalidation in js/css parts."
   :type 'boolean
   :group 'web-mode)
@@ -8088,19 +8088,27 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
        ((looking-back "<")
         (setq ins (concat "/" tag)))
        (t
-        (setq ins (concat "</" tag)))
-       )
-      (unless (looking-at-p "[ ]*>")
-        (setq ins (concat ins ">")))
-      (insert ins)
-      (save-excursion
-        (search-backward "<")
-        (setq jump (and (eq (char-before) ?\>)
-                        (string= (get-text-property (1- (point)) 'tag-name) tag)))
-        (if jump (setq jump (point)))
-;;        (setq jump (looking-back (concat "<" tag ">")))
-        ) ;save-excursion
-      (if jump (goto-char jump))
+        ;; auto-close-style = 2
+        (if (web-mode-element-is-void (get-text-property (point) 'tag-name))
+            (setq ins nil
+                  epp nil)
+          (setq ins (concat "</" tag)))
+        )
+       ) ;cond
+      (when ins
+        ;;        (message "ins=%S" ins)
+        (unless (looking-at-p "[ ]*>")
+          (setq ins (concat ins ">")))
+        (insert ins)
+        (save-excursion
+          (search-backward "<")
+          (setq jump (and (eq (char-before) ?\>)
+                          (string= (get-text-property (1- (point)) 'tag-name) tag)))
+          (if jump (setq jump (point)))
+          ;;        (setq jump (looking-back (concat "<" tag ">")))
+          ) ;save-excursion
+        (if jump (goto-char jump))
+        ) ;when not ins
       ) ;when epp
     epp
     ))
