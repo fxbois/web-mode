@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.5
+;; Version: 9.0.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.5"
+(defconst web-mode-version "9.0.6"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1936,6 +1936,12 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
          (unwind-protect
              ,@body
            (set-buffer-modified-p old-modified-p)))))
+
+  (defun web-mode-buffer-narrowed-p ()
+    "For compatibility with Emacs 24.3."
+    (if (fboundp 'buffer-narrowed-p)
+        (buffer-narrowed-p)
+      (/= (- (point-max) (point-min)) (buffer-size))))
 
   ) ;eval-and-compile
 
@@ -8213,7 +8219,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     (setq atomic-insertion (and (= len 0)
                                 (= 1 (- end beg))))
 
-    (if (buffer-narrowed-p)  ;;    (if (not (= (point-max) (+ (buffer-size) 1)))
+    (if (web-mode-buffer-narrowed-p)  ;;    (if (not (= (point-max) (+ (buffer-size) 1)))
        (setq web-mode-is-narrowed t)
 
       ;;not narrowed
