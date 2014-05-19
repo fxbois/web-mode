@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.6
+;; Version: 9.0.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.6"
+(defconst web-mode-version "9.0.7"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4911,8 +4911,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (let ((continue t) beg end)
     (save-excursion
       (goto-char reg-beg)
-;;      (message "reg-beg=%S" reg-beg)
+;;      (message "reg-beg=%S reg-end=%S" reg-beg reg-end)
       (while (and continue (search-forward "{" reg-end t))
+        ;; (message "pt=%S" (point))
         (backward-char)
         (setq beg (point)
               end (web-mode-closing-paren reg-end)
@@ -4924,7 +4925,10 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           ;;          (web-mode-scan-part beg end)
           (setq end (1+ end))
           ;;(remove-text-properties (1+ beg) (1- end) '(part-token nil))
+          (put-text-property (1+ beg) (1- end) 'part-token nil)
           (put-text-property beg end 'part-expr t)
+          (web-mode-scan-part beg end "javascript")
+;;          (message "scan part %S %S" beg end)
           )
         )
       )))
@@ -4935,6 +4939,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (let (beg end)
     ;;    (skip-chars-forward " :'\n[:alnum:]")
     (setq beg (point))
+;;    (message "beg=%S" beg)
     (cond
      ((looking-at "</?\\([[:alnum:]]+\\(?:[-][[:alpha:]]+\\)?\\)")
       (if (web-mode-sf ">") (setq end (point)))
@@ -4948,8 +4953,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
      ;; (skip-chars-forward "a-z \n")
      ;; (setq end (point))
      ;; )
-     ((looking-at "[ \n]")
-      (skip-chars-forward " \n")
+     ((looking-at "[ \t\n]")
+      (skip-chars-forward " \t\n")
       ;;      (message "ici%S" (point))
       (if (looking-at-p "[),;]")
           (setq end nil)
@@ -5712,7 +5717,15 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
        ((member web-mode-content-type '("jsx"))
         (setq language "jsx"
-              indent-offset web-mode-code-indent-offset))
+              indent-offset web-mode-code-indent-offset)
+        (when (and (get-text-property pos 'part-expr)
+                   (get-text-property (1- pos) 'part-expr))
+          (setq language "javascript")
+          (setq block-beg (1+ (previous-single-property-change pos 'part-expr)))
+          (goto-char block-beg)
+          (setq block-column (current-column))
+          )
+        )
 
        ((string= web-mode-content-type "php")
         (setq language "php"
@@ -5841,7 +5854,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       (setq first-char (if (string= line "") 0 (aref line 0)))
 
       (when (or (member language '("php" "javascript" "jsx" "razor"))
-                (and (string= language "html") (not (eq ?\< first-char))))
+                (and (string= language "html")
+                     (not (eq ?\< first-char))))
         (cond
          ((member language '("html" "javascript" "jsx"))
           (setq prev (web-mode-previous-usable-client-line))
@@ -5869,14 +5883,10 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           )
         )
 
-;;      (if (string= language "json") (setq language "javascript"))
-
       (when (string= web-mode-content-type "html")
         (cond
          ((member language '("javascript" "jsx"))
-          (setq block-column (+ block-column web-mode-script-padding))
-;;          (message "block-column=%S" block-column)
-          )
+          (setq block-column (+ block-column web-mode-script-padding)))
          ((string= language "css")
           (setq block-column (+ block-column web-mode-style-padding)))
          ((not (member language '("html" "razor")))
@@ -6155,6 +6165,16 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                                                    block-beg))
             )
 
+           ;; ((and (string= language "jsx")
+           ;;       (get-text-property pos 'part-expr)
+           ;;       (get-text-property (1- pos) 'part-expr))
+           ;;  (setq offset (web-mode-bracket-indentation pos
+           ;;                                             block-column
+           ;;                                             indent-offset
+           ;;                                             language
+           ;;                                             block-beg))
+           ;;  )
+
            ((and (string= language "jsx")
                  (eq (get-text-property pos 'tag-type) 'end)
                  (web-mode-tag-match))
@@ -6171,7 +6191,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
             )
 
            (t
-            ;;(message "%S %S %S" language pos block-beg)
+;;            (message "%S %S %S" language pos block-beg)
             (setq offset (web-mode-bracket-indentation pos
                                                        block-column
                                                        indent-offset
@@ -8754,10 +8774,12 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (setq continue nil)
         (setq block-side (and (get-text-property pos 'block-side)
                               (not (string= web-mode-engine "razor")))))
+;;      (message "limit=%S" limit)
       (while (and continue (re-search-forward regexp limit t))
+;;        (message "paren=%S regexp=%S ici=%S %S bs=%S" paren regexp (point) (web-mode-is-comment-or-string) block-side)
         (unless (or (web-mode-is-comment-or-string)
                     (and block-side (not (get-text-property (point) 'block-side))))
-          ;;          (message "char-before=%S pt=%S" (string (char-before)) (point))
+;;          (message "char-before=%S pt=%S" (string (char-before)) (point))
           (if (string= (string (char-before)) paren)
               (setq n (1+ n))
             (setq n (1- n))
@@ -8765,8 +8787,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
               (setq continue nil
                     pt (1- (point))))
             )
-          ;;        (message "pt=%S char=%S n=%S" (point) (string (char-before)) n)
-          )
+;;          (message "pt=%S char=%S n=%S" (point) (string (char-before)) n)
+          ) ;unless
         ) ;while
       ;;      (message "n=%S pt=%S" n pt)
       pt
