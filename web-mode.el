@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.8
+;; Version: 9.0.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.8"
+(defconst web-mode-version "9.0.9"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3163,15 +3163,13 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       (put-text-property block-beg block-end 'block-token token-type)
       (when (eq token-type 'comment)
         (web-mode-block-flags-add block-beg 4)))
-     (regexp
-;;      (let (block-code-end)
-;;        (setq block-code-end)
+     ((and regexp
+           (or (> (- block-end block-beg) 7)
+               (text-property-not-all block-beg block-end 'block-token 'delimiter)))
       (web-mode-block-tokenize
        (web-mode-block-code-beginning-position block-beg)
        (web-mode-block-code-end-position block-beg)
        regexp)
-;;        (web-mode-block-tokenize block-beg block-end block-end regexp)
-;;        )
       )
      ) ;cond
 
