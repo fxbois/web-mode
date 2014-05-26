@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.12
+;; Version: 9.0.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -50,7 +50,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.12"
+(defconst web-mode-version "9.0.13"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1798,6 +1798,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (define-key map [menu-bar wm attr attr-nex] '(menu-item "Next" web-mode-attribute-next))
     (define-key map [menu-bar wm attr attr-tra] '(menu-item "Next" web-mode-attribute-transpose))
 
+    (define-key map [menu-bar wm tag tag-beg] '(menu-item "Sort Attributes" web-mode-tag-attributes-sort))
     (define-key map [menu-bar wm tag tag-sel] '(menu-item "Select" web-mode-tag-select))
     (define-key map [menu-bar wm tag tag-pre] '(menu-item "Previous" web-mode-tag-previous))
     (define-key map [menu-bar wm tag tag-nex] '(menu-item "Next" web-mode-tag-next))
@@ -1833,7 +1834,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ;;--------------------------------------------------------------------------
     ;; "C-c letter"  are reserved for users
 
-    (define-key map (kbd "C-c C-a a") 'web-mode-attributes-sort)
+
     (define-key map (kbd "C-c C-a b") 'web-mode-attribute-beginning)
     (define-key map (kbd "C-c C-a e") 'web-mode-attribute-end)
     (define-key map (kbd "C-c C-a s") 'web-mode-attribute-select)
@@ -1873,6 +1874,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (define-key map (kbd "C-c C-e v") 'web-mode-element-vanish)
     (define-key map (kbd "C-c C-e w") 'web-mode-element-wrap)
 
+    (define-key map (kbd "C-c C-t a") 'web-mode-tag-attributes-sort)
     (define-key map (kbd "C-c C-t b") 'web-mode-tag-beginning)
     (define-key map (kbd "C-c C-t e") 'web-mode-tag-end)
     (define-key map (kbd "C-c C-t m") 'web-mode-tag-match)
@@ -9208,6 +9210,62 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     (when pos (goto-char pos)))
   pos)
 
+(defun web-mode-tag-attributes-sort (&optional pos)
+  "Sort attributes"
+  (interactive)
+  (unless pos (setq pos (point)))
+  (save-excursion
+    (let (attrs (continue t) min max tag-beg tag-end attr attr-name attr-beg attr-end indent indentation sorter ins)
+      (if (not (eq (get-text-property pos 'tag-type) 'start))
+          nil
+        (setq tag-beg (web-mode-tag-beginning-position pos)
+              tag-end (web-mode-tag-end-position))
+        (goto-char tag-beg)
+        (while continue
+          (if (or (not (web-mode-attribute-next))
+                  (>= (point) tag-end))
+              (setq continue nil)
+            ;;            (message "attr=%S" (point))
+            (setq attr-beg (web-mode-attribute-beginning-position)
+                  attr-end (1+ (web-mode-attribute-end-position)))
+            (when (null min)
+              (setq min attr-beg))
+            (setq max attr-end)
+            (goto-char attr-beg)
+            (setq attr (buffer-substring-no-properties attr-beg attr-end))
+            (if (string-match "^\\([[:alnum:]-]+\\)=" attr)
+                (setq attr-name (match-string-no-properties 1 attr))
+              (setq attr-name attr))
+            (setq indent (looking-back "^[ \t]*"))
+            (setq attrs (append attrs (list (list attr-beg attr-end attr-name attr indent))))
+            ) ;if
+          ) ;while
+        ) ;if in tag
+      (when attrs
+        (setq sorter (function
+                      (lambda (elt1 elt2)
+                        (string< (nth 2 elt1) (nth 2 elt2))
+                        )))
+        (setq attrs (sort attrs sorter))
+        (delete-region (1- min) max)
+        (setq ins "")
+        (dolist (elt attrs)
+          (if (and (nth 4 elt) (> (length ins) 1))
+              (setq ins (concat ins "\n"))
+            (setq ins (concat ins " ")))
+          (setq ins (concat ins (nth 3 elt)))
+          )
+        (goto-char (1- min))
+        (insert ins)
+        (web-mode-tag-beginning)
+        (setq min (line-beginning-position))
+        (web-mode-tag-end)
+        (setq max (line-end-position))
+        (indent-region min max)
+        )
+      ;;      (message "attrs=%S" attrs)
+      )))
+
 (defun web-mode-skip-html-tag (&optional back bound context)
   "Skip html tag. (smartparens helper)"
   (interactive)
@@ -9288,62 +9346,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
      ) ;cond
     out
     ))
-
-(defun web-mode-attributes-sort (&optional pos)
-  "Sort attributes"
-  (interactive)
-  (unless pos (setq pos (point)))
-  (save-excursion
-    (let (attrs (continue t) min max tag-beg tag-end attr attr-name attr-beg attr-end indent indentation sorter ins)
-      (if (not (eq (get-text-property pos 'tag-type) 'start))
-          nil
-        (setq tag-beg (web-mode-tag-beginning-position pos)
-              tag-end (web-mode-tag-end-position))
-        (goto-char tag-beg)
-        (while continue
-          (if (or (not (web-mode-attribute-next))
-                  (>= (point) tag-end))
-              (setq continue nil)
-            ;;            (message "attr=%S" (point))
-            (setq attr-beg (web-mode-attribute-beginning-position)
-                  attr-end (1+ (web-mode-attribute-end-position)))
-            (when (null min)
-              (setq min attr-beg))
-            (setq max attr-end)
-            (goto-char attr-beg)
-            (setq attr (buffer-substring-no-properties attr-beg attr-end))
-            (if (string-match "^\\([[:alnum:]-]+\\)=" attr)
-                (setq attr-name (match-string-no-properties 1 attr))
-              (setq attr-name attr))
-            (setq indent (looking-back "^[ \t]*"))
-            (setq attrs (append attrs (list (list attr-beg attr-end attr-name attr indent))))
-            ) ;if
-          ) ;while
-        ) ;if in tag
-      (when attrs
-        (setq sorter (function
-                      (lambda (elt1 elt2)
-                        (string< (nth 2 elt1) (nth 2 elt2))
-                        )))
-        (setq attrs (sort attrs sorter))
-        (delete-region (1- min) max)
-        (setq ins "")
-        (dolist (elt attrs)
-          (if (and (nth 4 elt) (> (length ins) 1))
-              (setq ins (concat ins "\n"))
-            (setq ins (concat ins " ")))
-          (setq ins (concat ins (nth 3 elt)))
-          )
-        (goto-char (1- min))
-        (insert ins)
-        (web-mode-tag-beginning)
-        (setq min (line-beginning-position))
-        (web-mode-tag-end)
-        (setq max (line-end-position))
-        (indent-region min max)
-        )
-      ;;      (message "attrs=%S" attrs)
-      )))
 
 (defun web-mode-attribute-beginning (&optional pos)
   "Fetch html attribute end."
