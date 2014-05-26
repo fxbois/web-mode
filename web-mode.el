@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.11
+;; Version: 9.0.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -50,7 +50,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.11"
+(defconst web-mode-version "9.0.12"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -186,7 +186,7 @@ See web-mode-part-face."
   :type '(choice (const :tag "default (all lines are indented)" 2)
                  (const :tag "text at the beginning of line is not indented" 1)))
 
-(defcustom web-mode-tag-auto-close-style 1
+(defcustom web-mode-tag-auto-close-style (if (display-graphic-p) 1 0)
   "Tag auto-close style:
 0=no auto-closing
 1=auto-close with </
