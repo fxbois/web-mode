@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.13
+;; Version: 9.0.14
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -37,6 +37,7 @@
 ;; Code goes here
 
 ;;todo :
+;;       web-mode-part|block-extra-keywords
 ;;       web-mode-surround : chaque ligne est entourée par un open et un close tag
 ;;       tester web-mode avec un fond blanc
 ;;       web-mode-extra-constants
@@ -50,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.13"
+(defconst web-mode-version "9.0.14"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1834,7 +1835,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ;;--------------------------------------------------------------------------
     ;; "C-c letter"  are reserved for users
 
-
     (define-key map (kbd "C-c C-a b") 'web-mode-attribute-beginning)
     (define-key map (kbd "C-c C-a e") 'web-mode-attribute-end)
     (define-key map (kbd "C-c C-a s") 'web-mode-attribute-select)
@@ -3354,11 +3354,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
        ((string= web-mode-engine "erb")
         (cond
-         ((web-mode-block-starts-with "else" reg-beg)
+         ((web-mode-block-starts-with "else\\|when" reg-beg)
           (setq controls (append controls (list (cons 'inside "ctrl")))))
          ((web-mode-block-starts-with "end" reg-beg)
           (setq controls (append controls (list (cons 'close "ctrl")))))
-         ((web-mode-block-starts-with ".* do \\|for\\|if\\|unless" reg-beg)
+         ((web-mode-block-starts-with ".* do \\|for\\|if\\|unless\\|case" reg-beg)
           (setq controls (append controls (list (cons 'open "ctrl")))))
          )
         ) ; erb
