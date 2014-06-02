@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.17
+;; Version: 9.0.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.17"
+(defconst web-mode-version "9.0.18"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -138,7 +138,7 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-current-element-highlight t ;;nil
+(defcustom web-mode-enable-current-element-highlight nil
   "Disable element highlight."
   :type 'boolean
   :group 'web-mode)
