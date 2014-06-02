@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.16
+;; Version: 9.0.17
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.16"
+(defconst web-mode-version "9.0.17"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -138,7 +138,7 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-current-element-highlight nil
+(defcustom web-mode-enable-current-element-highlight t ;;nil
   "Disable element highlight."
   :type 'boolean
   :group 'web-mode)
@@ -677,6 +677,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("go"          . ("gtl"))
     ("jsp"         . ("grails"))
     ("mason"       . ("poet"))
+    ("lsp"         . ())
     ("mojolicious" . ())
     ("python"      . ())
     ("razor"       . ("play" "play2"))
@@ -716,6 +717,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
     ("handlebars"       . "\\(handlebars\\|.\\hbs\\'\\)")
     ("jsp"              . "\\.[gj]sp\\'")
+    ("lsp"              . "\\.lsp\\'")
     ("mako"             . "\\.mako?\\'")
     ("mason"            . "\\.mas\\'")
     ("mojolicious"      . "mojolicious\\|\\.epl\\'")
@@ -901,6 +903,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
                       ("<%!" "%>")
                       ("<%@" "%>")
                       ("${ " " }")))
+    ("lsp"         . (("<% " " %>")
+                      ("<%%" " " " %>")
+                      ("<%#" " " " %>")))
     ("mako"        . (("<% " " %>")
                       ("<%!" " " " %>")
                       ("${ " " }")))
@@ -948,6 +953,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-engine-token-regexps
   (list
    '("asp"         . "//\\|/\\*\\|\"\\|'")
+   '("lsp"         . "\"\\|#|\\|;")
    '("mako"        . "\"\\|'\\|#")
    '("mason"       . "\"\\|'\\|#")
    '("mojolicious" . "\"\\|'")
@@ -971,6 +977,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    '("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#].\\|\\[/?[@#].")
    '("go"               . "{{.")
    '("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]+")
+   '("lsp"              . "<%")
    '("mako"             . "</?%\\|${\\|^[ \t]*% \\|^[ \t]*##")
 ;;   '("mason"            . "</&>\\|</%def\\|</%method\\|<%[[:alpha:]]+\\|<[%&]\\|^%.")
    '("mason"            . "</?[&%]\\|^%.")
@@ -1015,6 +1022,18 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     web-mode-extra-python-constants
     '("True" "False" "None" "__debug__" "NotImplemented" "Ellipsis")))
   "Python constants.")
+
+(defvar web-mode-lsp-constants
+  (regexp-opt
+   '("nil" "t"))
+  )
+
+(defvar web-mode-lsp-keywords
+  (regexp-opt
+   '("dolist" "let" "while" "cond" "when" "progn" "if"
+     "dotimes" "unless" "lambda"
+     "loop" "for" "and" "or" "in" "do"))
+  )
 
 (defvar web-mode-php-constants
   (regexp-opt
@@ -1704,6 +1723,13 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
+(defvar web-mode-lsp-font-lock-keywords
+  (list
+   (cons (concat "\\<\\(" web-mode-lsp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-lsp-constants "\\)\\>") '(1 'web-mode-constant-face))
+   '("[ ]\\(:[[:alnum:]-_]+\\)" 1 'web-mode-symbol-face)
+   ))
+
 (defvar web-mode-php-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") '(0 'web-mode-keyword-face))
@@ -1740,6 +1766,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("dust"             . web-mode-dust-font-lock-keywords)
     ("erb"              . web-mode-erb-font-lock-keywords)
     ("go"               . web-mode-go-font-lock-keywords)
+    ("lsp"              . web-mode-lsp-font-lock-keywords)
     ("mason"            . web-mode-mason-font-lock-keywords)
     ("mojolicious"      . web-mode-mojolicious-font-lock-keywords)
     ("php"              . web-mode-php-font-lock-keywords)
@@ -1995,8 +2022,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (make-local-variable 'web-mode-end-tag-overlay)
   (make-local-variable 'web-mode-time)
 
-;;  (make-local-variable 'after-change-functions)
-;;  (make-local-variable 'change-major-mode-hook)
   (make-local-variable 'fill-paragraph-function)
   (make-local-variable 'font-lock-beg)
   (make-local-variable 'font-lock-defaults)
@@ -2467,6 +2492,12 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
            )
           ) ;erb
 
+         ((string= web-mode-engine "lsp")
+          (setq closing-string "%>"
+                delim-open "<%[%#]?"
+                delim-close "%>")
+          ) ;lsp
+
          ((string= web-mode-engine "mako")
           (cond
            ((member tagopen '("<% " "<%!"))
@@ -2854,7 +2885,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   "Set text-property 'block-token to 'delimiter on block delimiters (e.g. <?php ?>)"
 ;;  (message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine '("asp" "aspx" "closure" "ctemplate" "django" "dust"
-                                  "erb" "freemarker" "jsp" "mako" "mason" "mojolicious"
+                                  "erb" "freemarker" "jsp" "lsp" "mako" "mason" "mojolicious"
                                   "smarty" "template-toolkit" "web2py"))
     (save-excursion
       (goto-char reg-beg)
@@ -2970,7 +3001,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
     (cond
 
-     ((member web-mode-engine '("php" "asp" "mako" "python" "web2py" "mason"))
+     ((member web-mode-engine '("php" "asp" "lsp" "mako" "python" "web2py" "mason"))
       (setq regexp web-mode-engine-token-regexp) ;; "//\\|/\\*\\|#\\|\"\\|'\\|<<<['\"]?\\([[:alnum:]]+\\)['\"]?")
       ) ;php
 
@@ -3195,6 +3226,18 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
          ((string= match "//")
           (setq token-type 'comment)
           (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
+          )
+
+         ((eq char ?\;)
+          (setq token-type 'comment)
+          (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
+          )
+
+         ((string= match "#|")
+          (setq token-type 'comment)
+          (unless (search-forward "|#" reg-end t)
+            (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
+            )
           )
 
          ((eq char ?\#)
@@ -3604,12 +3647,35 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           (setq controls (append controls (list (cons 'open "{")))))
         ) ;razor
 
+       ((string= web-mode-engine "lsp")
+        (when (web-mode-block-starts-with ")" reg-beg)
+          (setq controls (append controls (list (cons 'close "(")))))
+        ;; TODO regarder si la sexp est open e.g. <% (dotimes (i 10) %>
+        (when (web-mode-block-is-opened-sexp reg-beg reg-end)
+          (setq controls (append controls (list (cons 'open "(")))))
+        ) ;lsp
+
        ) ;cond
 
       (put-text-property reg-beg (1+ reg-beg) 'block-controls controls)
       ;;      (message "(%S) controls=%S" reg-beg controls)
 
       )))
+
+(defun web-mode-block-is-opened-sexp (reg-beg reg-end)
+  "web-mode-block-is-opened-sexp"
+  (let ((n 0))
+    (save-excursion
+      (goto-char reg-beg)
+      (while (web-mode-block-rsf "[()]" reg-end)
+        (if (eq (char-before) ?\()
+            (setq n (1+ n))
+          (setq n (1- n))
+          )
+        )
+      )
+    (> n 0)
+    ))
 
 (defun web-mode-block-control-previous-position (type &optional pos)
   "web-mode-block-control-previous-open"
@@ -5969,7 +6035,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           )
 
          ((member language '("asp" "aspx" "blade" "code" "django" "erb"
-                             "freemarker" "javascript" "jsp" "jsx"
+                             "freemarker" "javascript" "jsp" "jsx" "lsp"
                              "mako" "mason" "mojolicious"
                              "php" "python" "razor" "react"
                              "template-toolkit" "web2py"))
@@ -5980,6 +6046,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                  (eq (get-text-property pos 'block-token) 'delimiter))
             (if (web-mode-block-beginning pos)
                 (setq offset (current-column)))
+            )
+
+           ((string= language "lsp")
+            (setq offset (web-mode-bracket-indentation pos
+                                                       block-column
+                                                       indent-offset
+                                                       language
+                                                       block-beg))
             )
 
            ((and (string= language "mason")
@@ -7918,8 +7992,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     (setq end (point-at-eol))
     (indent-region beg end)))
 
-;; if on est dans un active block -> prioritaire si
-;; on regarde si on est dans un tag
 (defun web-mode-navigate (&optional pos)
   "Match tag."
   (interactive)
@@ -8000,6 +8072,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
   (unless pos (setq pos (point)))
   (let (regexp)
     (setq regexp (concat "</?" (get-text-property pos 'tag-name)))
+    (when (member (get-text-property pos 'tag-type) '(start end))
+      (web-mode-tag-beginning)
+      (setq pos (point)))
     (if (eq (get-text-property pos 'tag-type) 'end)
         (web-mode-tag-fetch-opening regexp pos)
       (web-mode-tag-fetch-closing regexp pos))
@@ -8022,7 +8097,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 (defun web-mode-tag-fetch-closing (regexp pos)
   "Fetch closing HTML closing block."
   (let ((counter 1) (n 0))
-;;    (message "regexp=%S pos=%S" regexp pos)
     (goto-char pos)
     (web-mode-tag-end)
     (while (and (> counter 0) (re-search-forward regexp nil t))
@@ -8032,7 +8106,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
             (setq counter (1- counter))
           (setq counter (1+ counter))))
       )
-;;    (message "n=%S" n)
     (if (> n 0)
         (web-mode-tag-beginning)
       (goto-char pos))
@@ -8100,8 +8173,11 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (setq end-beg (web-mode-tag-beginning-position pos)
               end-end (web-mode-tag-end-position pos))
         (when (web-mode-tag-match)
+;;          (message "ici%S" (point))
           (setq start-beg (point)
-                start-end (web-mode-tag-end-position (point))))
+                start-end (web-mode-tag-end-position (point)))
+;;          (message "%S %S %S %S" start-beg start-end end-beg end-end)
+          ) ;when
         )
        )
       (if (and start-beg end-beg)
@@ -8128,6 +8204,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
 (defun web-mode-highlight-current-element ()
   (let ((ctx (web-mode-tags-pos)))
+;;    (message "%S" ctx)
     (if (null ctx)
         (web-mode-delete-tag-overlays)
       (web-mode-make-tag-overlays)
@@ -9127,25 +9204,24 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 (defun web-mode-block-next-position (&optional pos)
   "web-mode-block-next-position"
   (unless pos (setq pos (point)))
-  ;;    (message "start=%S" pos)
-  (if (get-text-property pos 'block-side)
-      ;;      (if (= pos (point-min))
-      ;;          (setq pos (point-min))
-      (progn
-        (setq pos (web-mode-block-end-position pos))
-        (when (and pos (> (point-max) pos))
-          (setq pos (1+ pos))
-          (if (not (get-text-property pos 'block-side))
-              (setq pos (next-single-property-change pos 'block-side)))
-          ) ;when
-        )
-    ;;       )
+  (cond
+   ((and (get-text-property pos 'block-side)
+         (setq pos (web-mode-block-end-position pos))
+         (setq pos (1+ pos))
+         ;;    (when (and
+         ;;         pos
+         (> (point-max) pos)
+         (not (get-text-property pos 'block-side)))
+    ;;      (setq pos (1+ pos))
+    ;;      (when (not (get-text-property pos 'block-side))
     (setq pos (next-single-property-change pos 'block-side))
+    ;;      )
+    ;;    ) ;when
     )
-;;  (message "%S" (point))
-  ;;    (when (or (null pos) (<= pos))
-  pos
-  )
+   (t
+    (setq pos (next-single-property-change pos 'block-side)))
+   ) ;cond
+  pos)
 
 (defun web-mode-part-next-position (&optional pos)
   "web-mode-part-next-position"
