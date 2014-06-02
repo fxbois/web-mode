@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.18
+;; Version: 9.0.19
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.18"
+(defconst web-mode-version "9.0.19"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -1032,7 +1032,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (regexp-opt
    '("dolist" "let" "while" "cond" "when" "progn" "if"
      "dotimes" "unless" "lambda"
-     "loop" "for" "and" "or" "in" "do"))
+     "loop" "for" "and" "or" "in" "do" "defun"))
   )
 
 (defvar web-mode-php-constants
@@ -6049,6 +6049,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
             )
 
            ((string= language "lsp")
+            ;;            (message "iwi")
             (setq offset (web-mode-bracket-indentation pos
                                                        block-column
                                                        indent-offset
@@ -6418,15 +6419,15 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (if (= n (point)) (setq ret (current-indentation))))
         ))
     ret))
-
+;; :opened-blocks :col-num :inline-pos
 (defun web-mode-ruby-indentation (pos line initial-column language-offset limit)
   "Calc indent column."
   (interactive)
   (unless limit (setq limit nil))
   (let (h out prev-line prev-indentation ctx)
     (setq ctx (web-mode-count-opened-brackets pos "ruby" limit))
-    (if (cddr ctx)
-        (setq out (cadr ctx))
+    (if (plist-get ctx :inline-pos)
+        (setq out (plist-get ctx :col-num))
       (setq h (web-mode-previous-line pos limit))
       (setq out initial-column)
       (when h
@@ -6605,6 +6606,9 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
          (gethash ?\[ assoc 0))
       )))
 
+;; (plist-get ctx :block-beg)
+;; :opened-blocks :col-num :inline-pos
+;;                         cddr
 (defun web-mode-bracket-indentation (pos initial-column language-offset language &optional limit)
   "Calc indent column."
   (interactive)
@@ -6628,44 +6632,31 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           (setq continue nil)
           (setq limit (point))
           )
+         ) ;cond
+        ) ;while
+      (goto-char pos)
+      (setq block-info (web-mode-count-opened-brackets pos language limit))
+;;      (message "%S" block-info)
+      (setq col initial-column)
+      (cond
+       ((plist-get block-info :inline-arg) ;;lsp
+        (cond
+         ((string= (plist-get block-info :inline-arg) "loop")
+          (setq col (+ (plist-get block-info :col-num) 5)))
+         (t
+          (setq col (+ (plist-get block-info :col-num) web-mode-code-indent-offset)))
          )
         )
-;;      (message "ic=%S point=%S limit=%S" initial-column (point) limit)
-      (goto-char pos)
-
-;;      (message "limit=%S" limit)
-      (setq block-info (web-mode-count-opened-brackets pos language limit))
-;;      (message "bi=%S" block-info)
-      (setq col initial-column)
-      (if (cddr block-info)
-          (progn
-            (setq col (car (cdr block-info)))
-            )
-        (setq n (car block-info))
+       ((plist-get block-info :inline-pos)
+        (setq col (plist-get block-info :col-num)))
+       (t
+        (setq n (plist-get block-info :opened-blocks))
         (setq col initial-column)
-;;        (message "initial-col=%S n=%S col=%S" initial-column n col)
-
-        ;; (when (and (string= language "jsx")
-        ;;            (eq (get-text-property pos 'part-token) 'html)
-        ;;            (eq (get-text-property pos 'part-token)
-        ;;                (get-text-property (1- pos) 'part-token)))
-        ;;   (save-excursion
-        ;;     (forward-line -1)
-        ;;     (back-to-indentation)
-        ;;     (when (and (get-text-property pos 'tag-beg)
-        ;;                (web-mode-element-is-opened (point) pos))
-        ;;       (message "jsx %S" pos)
-        ;;       (setq n (1+ n))
-        ;;       )
-        ;;     )
-        ;;   ) ; when jsx
-
-;;      (message "first-char=%c" first-char)
         (when (member first-char '(?\} ?\) ?\]))
-          ;;          (message "ici")
           (setq n (1- n)))
         (setq col (+ initial-column (* n language-offset)))
-        ) ;if
+        ) ;t
+       ) ;cond
       (if (< col block-column) block-column col)
       )))
 
@@ -6708,7 +6699,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (if (>= counter 0) counter 0)
       )))
 
-;; return (opened-blocks . (col-num . arg-inline))
+
 (defun web-mode-count-opened-brackets (pos language &optional limit)
   "Count opened brackets at POS."
   (interactive)
@@ -6717,23 +6708,19 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
     (goto-char pos)
     (let ((continue t)
           (match "")
-;;          (case-num 0)
-;;          (is-breaked nil)
-;;          (case-found nil)
-;;          (case-count 0)
           (switch-level 0)
           (queues (make-hash-table :test 'equal))
           (opened-blocks 0)
           (col-num 0)
-;;          (regexp "[\]\[}{)(]\\|[ ;\t]\\(switch[ ]\\|break[ ;]\\|case[ :]\\|default[ :]\\)")
-;;          (regexp "[\]\[}{)(]\\|[ ;\t]\\(switch[ ]\\)")
           (num-opened 0)
           regexp
-          close-char n queue arg-inline arg-inline-checked char lines reg-end)
+          close-char n queue inline-pos inline-checked inline-arg char lines reg-end)
 
       (cond
        ((string= language "css")
         (setq regexp "[\]\[}{)(]"))
+       ((string= language "lsp")
+        (setq regexp "[)(]"))
        (t
         (setq regexp "[\]\[}{)(]\\|[ ;\t]\\(switch\\)"))
        )
@@ -6766,7 +6753,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
             (setq queue (push (cons (point) (web-mode-line-number)) queue))
             (puthash char queue queues)
 ;;            (message "%c queue=%S" char queue)
-
             (setq queue (gethash close-char queues nil))
             (setq n (length queue))
             (cond
@@ -6785,12 +6771,17 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
               )
              )
 
-            (when (and (= num-opened 1) (null arg-inline-checked))
-              (setq arg-inline-checked t)
+            (when (and (= num-opened 1) (null inline-checked))
+              (setq inline-checked t)
 ;;              (message "la%S" (point))
               (when (not (web-mode-is-void-after (1+ (point)))) ;(not (looking-at-p ".[ ]*$"))
-                (setq arg-inline t
+                (setq inline-pos t
                       col-num (1+ (current-column)))
+                (when (and (string= language "lsp")
+                           (looking-at "(\\(let\\|when\\|defun\\|lambda\\|with\\|loop\\)"))
+                  (setq inline-arg (match-string-no-properties 1))
+;;                  (message "pos=%S %S" (point) inline-arg)
+                  )
                 (when (looking-at ".[ ]+")
                   (setq col-num (+ col-num (1- (length (match-string-no-properties 0)))))
                   )
@@ -6839,7 +6830,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
           ) ;unless
         ) ;while
 
-      ;;      (unless arg-inline
+      ;;      (unless inline-pos
       ;;(message "%S" queues)
       (maphash
        (lambda (char queue)
@@ -6857,33 +6848,24 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
            ) ;when
          )
        queues)
-      ;;        (message "lines=%S switch-level=%S" lines switch-level)
-      (setq opened-blocks (length lines)) ;; il faut calculer opened-blocks meme lorsque arg-inline pour code-depth
 
-      ;;)
+      (setq opened-blocks (length lines)) ;; il faut calculer opened-blocks meme lorsque inline-pos pour code-depth
 
       (goto-char pos)
+
       (when (and (> switch-level 0)
                  (not (looking-at-p "\\(case[ ]\\|default[ :]\\)")))
         (setq opened-blocks (+ opened-blocks switch-level)))
 
-      ;;        (message "opened-blocks=%S" opened-blocks)
-
-      ;;        (when (member language '("css" "javascript"))
       (when (member language '("jsx"))
-        ;;                 (setq tmp (web-mode-count-opened-blocks pos))
-        ;;                   )
-        ;;        (setq opened-blocks (+ opened-blocks tmp))
         (setq opened-blocks (+ opened-blocks (web-mode-count-opened-blocks pos))))
 
-;;      ) ;unless
+      (list :opened-blocks opened-blocks
+            :col-num col-num
+            :inline-pos inline-pos
+            :inline-arg inline-arg)
 
-    ;;      (message "pos=%S ob=%S" pos (web-mode-count-opened-blocks pos))
-
-    ;;(message "opened-blocks(%S) col-num(%S) arg-inline(%S)" opened-blocks col-num arg-inline)
-    (cons opened-blocks (cons col-num arg-inline))
-
-    )))
+      )))
 
 (defun web-mode-bracket-block-end-position (pos limit)
   "web-mode-blk-end-pos"
