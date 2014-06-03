@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.19
+;; Version: 9.0.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.19"
+(defconst web-mode-version "9.0.20"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -6641,6 +6641,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (cond
        ((plist-get block-info :inline-arg) ;;lsp
         (cond
+         ((numberp (plist-get block-info :inline-arg))
+          (setq col (+ (plist-get block-info :inline-arg) (plist-get block-info :col-num))))
          ((string= (plist-get block-info :inline-arg) "loop")
           (setq col (+ (plist-get block-info :col-num) 5)))
          (t
@@ -6777,10 +6779,14 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
               (when (not (web-mode-is-void-after (1+ (point)))) ;(not (looking-at-p ".[ ]*$"))
                 (setq inline-pos t
                       col-num (1+ (current-column)))
-                (when (and (string= language "lsp")
-                           (looking-at "(\\(let\\|when\\|defun\\|lambda\\|with\\|loop\\)"))
-                  (setq inline-arg (match-string-no-properties 1))
-;;                  (message "pos=%S %S" (point) inline-arg)
+                (when (string= language "lsp")
+                  (cond
+                   ((looking-at "(\\(let\\|when\\|def\\|lambda\\|with\\|loop\\)")
+                    (setq inline-arg (match-string-no-properties 1)))
+                   ((looking-at "(\\([[:alpha:]-]+[ ]+\\).+$")
+                    (setq inline-arg (length (match-string-no-properties 1))))
+                   )
+                  ;;                  (message "pos=%S %S" (point) inline-arg)
                   )
                 (when (looking-at ".[ ]+")
                   (setq col-num (+ col-num (1- (length (match-string-no-properties 0)))))
