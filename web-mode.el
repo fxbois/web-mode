@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.20
+;; Version: 9.0.21
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.20"
+(defconst web-mode-version "9.0.21"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3397,7 +3397,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
        ((string= web-mode-engine "erb")
         (cond
-         ((web-mode-block-starts-with "else\\|when" reg-beg)
+         ((web-mode-block-starts-with "else\\|elsif\\|when" reg-beg)
           (setq controls (append controls (list (cons 'inside "ctrl")))))
          ((web-mode-block-starts-with "end" reg-beg)
           (setq controls (append controls (list (cons 'close "ctrl")))))
@@ -6643,8 +6643,8 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
         (cond
          ((numberp (plist-get block-info :inline-arg))
           (setq col (+ (plist-get block-info :inline-arg) (plist-get block-info :col-num))))
-         ((string= (plist-get block-info :inline-arg) "loop")
-          (setq col (+ (plist-get block-info :col-num) 5)))
+;;         ((string= (plist-get block-info :inline-arg) "loop")
+;;          (setq col (+ (plist-get block-info :col-num) 5)))
          (t
           (setq col (+ (plist-get block-info :col-num) web-mode-code-indent-offset)))
          )
@@ -6781,7 +6781,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                       col-num (1+ (current-column)))
                 (when (string= language "lsp")
                   (cond
-                   ((looking-at "(\\(let\\|when\\|def\\|lambda\\|with\\|loop\\)")
+                   ((looking-at "(\\(let\\|when\\|def\\|lambda\\|with\\)")
                     (setq inline-arg (match-string-no-properties 1)))
                    ((looking-at "(\\([[:alpha:]-]+[ ]+\\).+$")
                     (setq inline-arg (length (match-string-no-properties 1))))
