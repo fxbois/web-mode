@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.22
+;; Version: 9.0.23
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.22"
+(defconst web-mode-version "9.0.23"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -157,6 +157,11 @@ See web-mode-block-face."
 (defcustom web-mode-enable-part-face nil
   "Enable part face (useful for setting a background for example).
 See web-mode-part-face."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-inlays t
+  "Enable inlays (e.g. LaTeX) highlighting."
   :type 'boolean
   :group 'web-mode)
 
@@ -4031,6 +4036,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           (setq tend (point)))
          ((null close-expr)
           (setq flags (logior flags (web-mode-tag-skip reg-end)))
+;;          (message "%S %S" tname (point))
           (setq tend (point)))
          ((web-mode-dom-sf close-expr limit t)
           (setq tend (point)))
@@ -4061,17 +4067,24 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           ) ;script
          )
 
+;;        (message "%S %S %S %S" tname (point) part-close-tag reg-end)
+
         (add-text-properties tbeg tend props)
         (put-text-property tbeg (1+ tbeg) 'tag-beg flags)
         (put-text-property (1- tend) tend 'tag-end t)
 
         (when (and part-close-tag
                    (web-mode-dom-sf part-close-tag reg-end t)
-                   (setq part-beg tend
-                         part-end (match-beginning 0))
+                   (setq part-beg tend)
+                   (setq part-end (match-beginning 0))
+;;                   (progn (message "%S %S" part-beg part-end) t)
                    (> part-end part-beg))
+
           (put-text-property part-beg part-end 'part-side (intern element-content-type))
-          (goto-char part-end))
+;;          (goto-char part-end)
+          )
+
+        (goto-char tend)
 
         ) ;while
 
