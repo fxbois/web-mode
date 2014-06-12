@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.23
+;; Version: 9.0.24
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.23"
+(defconst web-mode-version "9.0.24"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -160,7 +160,7 @@ See web-mode-part-face."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-inlays t
+(defcustom web-mode-enable-inlays nil
   "Enable inlays (e.g. LaTeX) highlighting."
   :type 'boolean
   :group 'web-mode)
@@ -1748,6 +1748,12 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    '("\\<\\(instanceof\\|class\\|extends\\|new\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
    '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    ))
+
+(defvar web-mode-inlay-font-lock-keywords
+  (list
+   '("." 0 'web-mode-function-name-face)
+   )
+  )
 
 (defvar web-mode-blade-font-lock-keywords
   (append
@@ -3534,7 +3540,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
                 type (if (eq (aref (match-string-no-properties 0) 0) ?e) 'close 'open))
           (setq controls (append controls (list (cons type control))))
           )
-         ((web-mode-block-starts-with "stop\\|shop" reg-beg)
+         ((web-mode-block-starts-with "stop\\|show" reg-beg)
           (setq controls (append controls (list (cons 'close "section")))))
          ((web-mode-block-starts-with "else\\|elseif" reg-beg)
           (setq controls (append controls (list (cons 'inside "if")))))
@@ -4079,7 +4085,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
                    (setq part-end (match-beginning 0))
 ;;                   (progn (message "%S %S" part-beg part-end) t)
                    (> part-end part-beg))
-
           (put-text-property part-beg part-end 'part-side (intern element-content-type))
 ;;          (goto-char part-end)
           )
@@ -4335,7 +4340,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    ) ;cond
   )
 
-
 (defun web-mode-highlight-tags (reg-beg reg-end)
   "web-mode-highlight-nodes"
   (let ((continue t))
@@ -4351,6 +4355,18 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
                 (>= (point) reg-end))
         (setq continue nil))
       ) ;while
+    (when web-mode-enable-inlays
+      (let (beg end)
+        (goto-char reg-beg)
+        (while (web-mode-dom-sf "\\[" reg-end)
+          (setq beg (match-beginning 0))
+          (when (web-mode-dom-sf "\\]" reg-end)
+            (setq end (match-end 0))
+            )
+          (web-mode-fontify-region beg end web-mode-inlay-font-lock-keywords)
+          )
+        ) ;let
+      ) ;when
     ))
 
 ;; flags
