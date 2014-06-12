@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.24
+;; Version: 9.0.25
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.24"
+(defconst web-mode-version "9.0.25"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -570,6 +570,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defface web-mode-current-element-highlight-face
   '((t :background "#000000"))
   "Overlay face for element highlight."
+  :group 'web-mode-faces)
+
+(defface web-mode-inlay-face
+  '((t :background "#000000"))
+  "Face for inlays (e.g. LaTeX)."
   :group 'web-mode-faces)
 
 (defface web-mode-comment-keyword-face
@@ -1749,9 +1754,10 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
-(defvar web-mode-inlay-font-lock-keywords
+(defvar web-mode-latex-font-lock-keywords
   (list
-   '("." 0 'web-mode-function-name-face)
+   '("." 0 'web-mode-inlay-face)
+;;   '("\[[:alnum:]_]+" 0 'web-mode-function-name-face t t)
    )
   )
 
@@ -4358,12 +4364,12 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (when web-mode-enable-inlays
       (let (beg end)
         (goto-char reg-beg)
-        (while (web-mode-dom-sf "\\[" reg-end)
+        (while (web-mode-dom-rsf (regexp-opt '("\\[" "\\(" "\\begin{align}")) reg-end)
           (setq beg (match-beginning 0))
-          (when (web-mode-dom-sf "\\]" reg-end)
+          (when (web-mode-dom-rsf (regexp-opt '("\\]" "\\)" "\\end{align}")) reg-end)
             (setq end (match-end 0))
             )
-          (web-mode-fontify-region beg end web-mode-inlay-font-lock-keywords)
+          (web-mode-fontify-region beg end web-mode-latex-font-lock-keywords)
           )
         ) ;let
       ) ;when
