@@ -8043,7 +8043,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       (setq control (cdr pair))
       (while continue
         (cond
-         ((bobp)
+         ((and (> init 1) (bobp))
           (setq continue nil))
          ((or (and (eq type 'open) (not (web-mode-block-next)))
               (and (eq type 'close) (not (web-mode-block-previous))))
