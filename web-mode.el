@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.26
+;; Version: 9.0.27
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.26"
+(defconst web-mode-version "9.0.27"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4366,6 +4366,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (goto-char reg-beg)
         (while (web-mode-dom-rsf (regexp-opt '("\\[" "\\(" "\\begin{align}")) reg-end)
           (setq beg (match-beginning 0)
+                end nil
                 expr (substring (match-string-no-properties 0) 0 2))
           (setq expr (cond
                       ((string= expr "\\[") "\\]")
@@ -4373,9 +4374,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
                       (t "\\begin{align}")))
           (when (web-mode-dom-sf expr reg-end)
             (setq end (match-end 0))
-            )
-          (web-mode-fontify-region beg end web-mode-latex-font-lock-keywords)
-          )
+            (web-mode-fontify-region beg end web-mode-latex-font-lock-keywords)
+            ) ;when
+          ) ;while
         ) ;let
       ) ;when
     ))
