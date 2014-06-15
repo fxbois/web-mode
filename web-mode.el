@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.27
+;; Version: 9.0.28
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.27"
+(defconst web-mode-version "9.0.28"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -539,9 +539,26 @@ See web-mode-part-face."
   "Face for whitespaces."
   :group 'web-mode-faces)
 
+(defface web-mode-inlay-face
+  '((((class color) (min-colors 88) (background dark))
+     :background "black")
+    (((class color) (min-colors 88) (background light))
+     :background "LightYellow1")
+    (((class color) (min-colors 16) (background dark))
+     :background "grey18")
+    (((class color) (min-colors 16) (background light))
+     :background "LightYellow1")
+    (((class color) (min-colors 8))
+     :background "Black")
+    (((type tty) (class mono))
+     :inverse-video t)
+    (t :background "grey"))
+  "Face for inlays. Must be used in conjunction with web-mode-enable-inlays."
+  :group 'web-mode-faces)
+
 (defface web-mode-block-face
   '((((class color) (min-colors 88) (background dark))
-     :background "black") ;""grey18")
+     :background "black")
     (((class color) (min-colors 88) (background light))
      :background "LightYellow1")
     (((class color) (min-colors 16) (background dark))
@@ -572,11 +589,6 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Overlay face for element highlight."
   :group 'web-mode-faces)
 
-(defface web-mode-inlay-face
-  '((t :background "#000000"))
-  "Face for inlays (e.g. LaTeX)."
-  :group 'web-mode-faces)
-
 (defface web-mode-comment-keyword-face
   '((t :weight bold :box t))
   "Comment keywords."
@@ -584,6 +596,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar font-lock-beg)
 (defvar font-lock-end)
+
+(defvar web-mode-inlay-regexp nil
+  "")
 
 (defvar web-mode-highlight-beg nil
   "")
@@ -1756,8 +1771,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
 (defvar web-mode-latex-font-lock-keywords
   (list
-   '("." 0 'web-mode-inlay-face)
-;;   '("\[[:alnum:]_]+" 0 'web-mode-function-name-face t t)
+;;   '("." 0 'web-mode-inlay-face)
+   '("[[:alnum:]_]+" 0 'web-mode-function-name-face t t)
    )
   )
 
@@ -2024,6 +2039,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (make-local-variable 'web-mode-engine-token-regexp)
   (make-local-variable 'web-mode-block-regexps)
   (make-local-variable 'web-mode-enable-block-face)
+  (make-local-variable 'web-mode-enable-inlays)
   (make-local-variable 'web-mode-enable-part-face)
   (make-local-variable 'web-mode-engine-file-regexps)
   (make-local-variable 'web-mode-expand-initial-pos)
@@ -4120,16 +4136,18 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
 ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-attributes
 (defun web-mode-tag-skip (limit)
-  "Fetch end of tag."
+  "Scan attributes and fetch end of tag."
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0)
         (pos-ori (point)) (state 0) (equal-offset 0) (go-back nil)
-        name-beg name-end val-beg char pos escaped spaced)
+        name-beg name-end val-beg char pos escaped spaced quoted)
 
     (while continue
 
       (setq pos (point)
             char (char-after)
             spaced (eq char ?\s))
+
+      (when quoted (setq quoted (1+ quoted)))
 
       (cond
 
@@ -4221,6 +4239,21 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
               val-beg nil)
         )
 
+       ((and quoted (= quoted 2) (member char '(?\s ?\n ?\>)))
+;;        (message "ici %S %S" state val-beg)
+        (when (eq char ?\>)
+          (setq tag-flags (logior tag-flags 16))
+          (setq continue nil))
+        (setq state 6)
+        (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
+        (setq state 1
+              attr-flags 0
+              equal-offset 0
+              name-beg nil
+              name-end nil
+              val-beg nil)
+        )
+
        ((or (and (eq ?\" char) (= state 8) (not escaped))
             (and (eq ?\' char) (= state 7) (not escaped)))
         (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
@@ -4243,14 +4276,10 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (setq state 4)
         )
 
-       ((and (eq ?\" char) (member state '(4 5)))
+       ((and (member char '(?\' ?\")) (member state '(4 5)))
         (setq val-beg pos)
-        (setq state 8)
-        )
-
-       ((and (eq ?\' char) (member state '(4 5)))
-        (setq val-beg pos)
-        (setq state 7)
+        (setq quoted 1)
+        (setq state (if (eq ?\' char) 7 8))
         )
 
        ((member state '(4 5))
@@ -4287,6 +4316,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
        ) ;cond
 
       ;;(message "point(%S) end(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) attr-flags(%S) equal-offset(%S)" pos end state char name-beg name-end val-beg attr-flags equal-offset)
+
+      (when (and quoted (>= quoted 2))
+        (setq quoted nil))
 
       (setq escaped (eq ?\\ char))
       (when (null go-back)
@@ -4335,7 +4367,9 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           (setq val-end name-end)
         (setq val-end (point))
         (when (or (null char) (member char '(?\s ?\n ?\> ?\/)))
-          (setq val-end (1- val-end)))
+          (setq val-end (1- val-end))
+;;          (message "val-end=%S" val-end)
+          )
         ) ;if
       (put-text-property name-beg (1+ val-end) 'tag-attr flags)
       (put-text-property val-end (1+ val-end) 'tag-attr-end equal-offset)
@@ -4362,19 +4396,24 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (setq continue nil))
       ) ;while
     (when web-mode-enable-inlays
+      (when (null web-mode-inlay-regexp)
+        (setq web-mode-inlay-regexp (regexp-opt '("\\[" "\\(" "\\begin{align}"))))
       (let (beg end expr)
         (goto-char reg-beg)
-        (while (web-mode-dom-rsf (regexp-opt '("\\[" "\\(" "\\begin{align}")) reg-end)
+        (while (web-mode-dom-rsf web-mode-inlay-regexp reg-end)
           (setq beg (match-beginning 0)
                 end nil
                 expr (substring (match-string-no-properties 0) 0 2))
           (setq expr (cond
                       ((string= expr "\\[") "\\]")
                       ((string= expr "\\(") "\\)")
-                      (t "\\begin{align}")))
-          (when (web-mode-dom-sf expr reg-end)
-            (setq end (match-end 0))
-            (web-mode-fontify-region beg end web-mode-latex-font-lock-keywords)
+                      (t "\\end{align}")))
+          (when (and (web-mode-dom-sf expr reg-end)
+                     (setq end (match-end 0))
+                     (not (text-property-any beg end 'tag-end t)))
+;;            (message "%S %S" beg end)
+;;            (web-mode-fontify-region beg end 'web-mode-latex-font-lock-keywords)
+            (font-lock-append-text-property beg end 'face 'web-mode-inlay-face)
             ) ;when
           ) ;while
         ) ;let
