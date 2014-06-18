@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.28
+;; Version: 9.0.30
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -51,7 +51,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.28"
+(defconst web-mode-version "9.0.30"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -540,36 +540,24 @@ See web-mode-part-face."
   :group 'web-mode-faces)
 
 (defface web-mode-inlay-face
-  '((((class color) (min-colors 88) (background dark))
-     :background "black")
-    (((class color) (min-colors 88) (background light))
-     :background "LightYellow1")
-    (((class color) (min-colors 16) (background dark))
-     :background "grey18")
-    (((class color) (min-colors 16) (background light))
-     :background "LightYellow1")
-    (((class color) (min-colors 8))
-     :background "Black")
-    (((type tty) (class mono))
-     :inverse-video t)
-    (t :background "grey"))
+  '((((class color) (min-colors 88) (background dark))  :background "black")
+    (((class color) (min-colors 88) (background light)) :background "LightYellow1")
+    (((class color) (min-colors 16) (background dark))  :background "grey18")
+    (((class color) (min-colors 16) (background light)) :background "LightYellow1")
+    (((class color) (min-colors 8))                     :background "Black")
+    (((type tty) (class mono))                          :inverse-video t)
+    (t                                                  :background "grey"))
   "Face for inlays. Must be used in conjunction with web-mode-enable-inlays."
   :group 'web-mode-faces)
 
 (defface web-mode-block-face
-  '((((class color) (min-colors 88) (background dark))
-     :background "black")
-    (((class color) (min-colors 88) (background light))
-     :background "LightYellow1")
-    (((class color) (min-colors 16) (background dark))
-     :background "grey18")
-    (((class color) (min-colors 16) (background light))
-     :background "LightYellow1")
-    (((class color) (min-colors 8))
-     :background "Black")
-    (((type tty) (class mono))
-     :inverse-video t)
-    (t :background "grey"))
+  '((((class color) (min-colors 88) (background dark))  :background "black")
+    (((class color) (min-colors 88) (background light)) :background "LightYellow1")
+    (((class color) (min-colors 16) (background dark))  :background "grey18")
+    (((class color) (min-colors 16) (background light)) :background "LightYellow1")
+    (((class color) (min-colors 8))                     :background "Black")
+    (((type tty) (class mono))                          :inverse-video t)
+    (t                                                  :background "grey"))
   "Face for blocks (useful for setting a background for example).
 Must be used in conjunction with web-mode-enable-block-face."
   :group 'web-mode-faces)
@@ -4083,7 +4071,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
             (cond
              ((string-match-p " type[ ]*=[ ]*[\"']text/jsx" script)
               (setq element-content-type "jsx"))
-             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|html\\|ng-template\\)" script)
+             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|html\\|ng-template\\|template\\)" script)
               (setq element-content-type "html"
                     part-close-tag nil))
              ((string-match-p " type[ ]*=[ ]*[\"']application/\\(ld\\+json\\|json\\)" script)
