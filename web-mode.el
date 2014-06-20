@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.30
+;; Version: 9.0.31
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -37,11 +37,8 @@
 ;; Code goes here
 
 ;;todo :
-;;       web-mode-part|block-extra-keywords
 ;;       web-mode-surround : chaque ligne est entourée par un open et un close tag
 ;;       tester web-mode avec un fond blanc
-;;       web-mode-extra-constants
-;;       web-mode-extra-keywords + engines + javascript + comment
 ;;       phphint
 
 ;;todo : Stickiness of Text Properties
@@ -51,7 +48,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.30"
+(defconst web-mode-version "9.0.31"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -210,73 +207,18 @@ See web-mode-part-face."
   :type 'list
   :group 'web-mode)
 
-(defcustom web-mode-extra-python-constants '()
-  "A list of additional strings to treat as Python constants."
+(defcustom web-mode-extra-constants '()
+  "A list of additional constants."
   :type 'list
   :group 'web-mode)
 
-(defcustom web-mode-extra-php-constants '()
-  "A list of additional strings to treat as PHP constants."
+(defcustom web-mode-extra-keywords '()
+  "A list of additional keywords."
   :type 'list
   :group 'web-mode)
 
-(defcustom web-mode-extra-php-keywords '()
-  "A list of additional strings to treat as PHP keywords."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-jsp-keywords '()
-  "A list of additional strings to treat as JSP keywords."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-python-keywords '()
-  "A list of additional strings to treat as Python keywords."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-erb-keywords '()
-  "A list of additional strings to treat as ERB keywords."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-mason-keywords '()
-  "A list of additional strings to treat as Mason keywords."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-asp-constants '()
-  "A list of additional strings to treat as ASP constants."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-asp-keywords '()
-  "A list of additional strings to treat as ASP keywords."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-asp-types '()
-  "A list of additional strings to treat as ASP types."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-aspx-keywords '()
-  "A list of additional strings to treat as ASPX keywords."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-javascript-keywords '()
-  "A list of additional strings to treat as JS keywords."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-razor-keywords '()
-  "A list of additional strings to treat as Razor keywords."
-  :type 'list
-  :group 'web-mode)
-
-(defcustom web-mode-extra-comment-keywords '()
-  "A list of additional strings to treat as comment keywords."
+(defcustom web-mode-extra-types '()
+  "A list of additional types."
   :type 'list
   :group 'web-mode)
 
@@ -321,13 +263,13 @@ See web-mode-part-face."
   :group 'web-mode-faces)
 
 (defface web-mode-html-tag-face
-  '((((class color) (min-colors 88) (background dark)) :foreground "Snow4")
+  '((((class color) (min-colors 88) (background dark))  :foreground "Snow4")
     (((class color) (min-colors 88) (background light)) :foreground "grey15")
-    (((class color) (min-colors 16) (background dark)) :foreground "Snow4")
+    (((class color) (min-colors 16) (background dark))  :foreground "Snow4")
     (((class color) (min-colors 16) (background light)) :foreground "grey15")
-    (((class color) (min-colors 8)) :foreground "Snow4")
-    (((type tty) (class mono)) :inverse-video t)
-    (t :foreground "Snow4"))
+    (((class color) (min-colors 8))                     :foreground "Snow4")
+    (((type tty) (class mono))                          :inverse-video t)
+    (t                                                  :foreground "Snow4"))
   "Face for HTML tags."
   :group 'web-mode-faces)
 
@@ -338,24 +280,24 @@ See web-mode-part-face."
 
 (defface web-mode-html-tag-bracket-face
 ;;  '((t :inherit web-mode-html-tag-face))
-  '((((class color) (min-colors 88) (background dark)) :foreground "Snow3")
+  '((((class color) (min-colors 88) (background dark))  :foreground "Snow3")
     (((class color) (min-colors 88) (background light)) :foreground "grey14")
-    (((class color) (min-colors 16) (background dark)) :foreground "Snow3")
+    (((class color) (min-colors 16) (background dark))  :foreground "Snow3")
     (((class color) (min-colors 16) (background light)) :foreground "grey14")
-    (((class color) (min-colors 8)) :foreground "Snow3")
-    (((type tty) (class mono)) :inverse-video t)
-    (t :foreground "Snow3"))
+    (((class color) (min-colors 8))                     :foreground "Snow3")
+    (((type tty) (class mono))                          :inverse-video t)
+    (t                                                  :foreground "Snow3"))
   "Face for HTML tags angle brackets (< and >)."
   :group 'web-mode-faces)
 
 (defface web-mode-html-attr-name-face
-  '((((class color) (min-colors 88) (background dark)) :foreground "Snow3")
+  '((((class color) (min-colors 88) (background dark))  :foreground "Snow3")
     (((class color) (min-colors 88) (background light)) :foreground "grey13")
-    (((class color) (min-colors 16) (background dark)) :foreground "Snow3")
+    (((class color) (min-colors 16) (background dark))  :foreground "Snow3")
     (((class color) (min-colors 16) (background light)) :foreground "grey13")
-    (((class color) (min-colors 8)) :foreground "Snow3")
-    (((type tty) (class mono)) :inverse-video t)
-    (t :foreground "Snow4"))
+    (((class color) (min-colors 8))                     :foreground "Snow3")
+    (((type tty) (class mono))                          :inverse-video t)
+    (t                                                  :foreground "Snow4"))
   "Face for HTML attribute names."
   :group 'web-mode-faces)
 
@@ -594,9 +536,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-highlight-end nil
   "")
 
-(defvar web-mode-cache '()
-  "Cache computed values.")
-
 (defvar web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
     "link" "meta" "param" "source" "track" "wbr")
@@ -607,7 +546,6 @@ Must be used in conjunction with web-mode-enable-block-face."
         'part-side nil 'part-token nil 'part-expr nil
         'block-side nil 'block-token nil 'block-controls nil 'block-beg nil 'block-end nil
         'syntax-table)
-;;        'comment nil
   "Text properties used for tokens.")
 
 (defvar web-mode-is-scratch nil
@@ -887,8 +825,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   )
 
 (defvar web-mode-engines-auto-pairs
-  '(
-    ("angular"     . (("{{ " " }}")))
+  '(("angular"     . (("{{ " " }}")))
     ("asp"         . (("<% " " %>")))
     ("aspx"        . (("<% " " %>")
                       ("<%=" "%>")
@@ -933,9 +870,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("underscore"  . (("<% " " %>")))
     ("web2py"      . (("{{ " " }}")
                       ("{{=" "}}")))
-    (nil           . (("<!-" "- " " -->")))
-
-    )
+    (nil           . (("<!-" "- " " -->"))))
   "Engines auto-pairs")
 
 (defvar web-mode-snippets nil
@@ -992,15 +927,12 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    '("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]+")
    '("lsp"              . "<%")
    '("mako"             . "</?%\\|${\\|^[ \t]*% \\|^[ \t]*##")
-;;   '("mason"            . "</&>\\|</%def\\|</%method\\|<%[[:alpha:]]+\\|<[%&]\\|^%.")
    '("mason"            . "</?[&%]\\|^%.")
    '("mojolicious"      . "<%.\\|^[ \t]*%.")
    '("php"              . "<\\?")
    '("python"           . "<\\?")
    '("razor"            . "@.\\|^[ \t]*}")
-;;   '("react"            . "<script type=.?text/jsx.*>")
    (cons "smarty"       (concat (web-mode-engine-delimiter-open "smarty" "{") "[[:alpha:]#$/*\"]"))
-
    '("template-toolkit" . "\\[[%#]")
    '("underscore"       . "<%")
    '("velocity"         . "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]")
@@ -1024,15 +956,15 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
 (defvar web-mode-comment-keywords
   (regexp-opt
-   (append web-mode-extra-comment-keywords
-           '("FIXME" "TODO" "BUG" "KLUDGE" "WORKAROUND"
-             "OPTIMIZE" "HACK" "REFACTOR")))
+   (append
+    (cdr (assoc "comment" web-mode-extra-keywords))
+    '("FIXME" "TODO" "BUG" "KLUDGE" "WORKAROUND" "OPTIMIZE" "HACK" "REFACTOR")))
   "Comment keywords.")
 
 (defvar web-mode-python-constants
   (regexp-opt
    (append
-    web-mode-extra-python-constants
+    (cdr (assoc "python" web-mode-extra-constants))
     '("True" "False" "None" "__debug__" "NotImplemented" "Ellipsis")))
   "Python constants.")
 
@@ -1051,7 +983,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-php-constants
   (regexp-opt
    (append
-    web-mode-extra-php-constants
+    (cdr (assoc "php" web-mode-extra-constants))
     '("TRUE" "FALSE" "NULL" "true" "false" "null"
       "STR_PAD_LEFT" "STR_PAD_RIGHT"
       "ENT_COMPAT" "ENT_QUOTES" "ENT_NOQUOTES" "ENT_IGNORE"
@@ -1063,7 +995,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-php-keywords
   (regexp-opt
    (append
-    web-mode-extra-php-keywords
+    (cdr (assoc "php" web-mode-extra-keywords))
     '("and" "array" "as" "break"
       "callable" "case" "catch"  "catch all" "class" "const" "continue"
       "default" "die" "do" "echo" "else" "elseif" "empty"
@@ -1105,7 +1037,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-python-keywords
   (regexp-opt
    (append
-    web-mode-extra-python-keywords
+    (cdr (assoc "python" web-mode-extra-keywords))
     '("and" "as" "assert" "break" "class" "continue" "def" "del"
       "elif" "else" "except" "finally" "for" "from" "global"
       "if" "import" "in" "is" "lambda" "nonlocal" "not" "or" "pass"
@@ -1115,7 +1047,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-jsp-keywords
   (regexp-opt
    (append
-    web-mode-extra-jsp-keywords
+    (cdr (assoc "jsp" web-mode-extra-keywords))
     '("case" "catch" "do" "else" "end" "false" "for" "function" "if" "in" "include"
       "new" "package" "page" "private" "protected" "public"
       "return" "tag" "taglib" "throw" "throws" "true" "try" "void" "while")))
@@ -1124,7 +1056,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-erb-keywords
   (regexp-opt
    (append
-    web-mode-extra-erb-keywords
+    (cdr (assoc "erb" web-mode-extra-keywords))
     '("alias" "and" "begin" "break" "case" "class" "def" "defined?" "do"
       "elsif" "else" "end" "ensure" "fail" "for" "if" "in"
       "module" "next" "not" "or" "redo" "rescue" "retry" "return"
@@ -1136,7 +1068,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-mason-keywords
   (regexp-opt
    (append
-    web-mode-extra-mason-keywords
+    (cdr (assoc "mason" web-mode-extra-keywords))
     '("and" "base" "close" "die" "each" "else" "elsif" "eval" "exists"
       "foreach" "grep" "if" "length" "local" "my" "next" "open" "or"
       "package" "pop" "ref" "return" "stat" "sub" "tie"
@@ -1220,7 +1152,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-asp-constants
   (regexp-opt
    (append
-    web-mode-extra-asp-constants
+    (cdr (assoc "asp" web-mode-extra-constants))
     '("adAsyncExecute" "adAsyncFetch" "adAsyncFetchNonBlocking" "adCmdFile"
       "adCmdStoredProc" "adCmdTable" "adCmdTableDirect" "adCmdText" "adCmdUnknown"
       "adCmdUnspecified" "adExecuteNoRecords" "adExecuteRecord" "adExecuteStream"
@@ -1235,7 +1167,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-asp-keywords
   (regexp-opt
    (append
-    web-mode-extra-asp-keywords
+    (cdr (assoc "asp" web-mode-extra-keywords))
     '("Abs" "And" "Array" "Asc" "Atn"
       "CBool" "CByte" "CCur" "CDate" "CDbl" "CInt" "CLng" "CSng" "CStr"
       "Call" "Case" "Chr" "Class" "Const" "Cos" "CreateObject"
@@ -1267,14 +1199,14 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-asp-types
   (regexp-opt
    (append
-    web-mode-extra-asp-types
+    (cdr (assoc "asp" web-mode-extra-types))
     '("Application" "ASPError" "Request" "Response" "Server" "Session")))
   "ASP types.")
 
 (defvar web-mode-aspx-keywords
   (regexp-opt
    (append
-    web-mode-extra-aspx-keywords
+    (cdr (assoc "aspx" web-mode-extra-keywords))
     '("case" "catch" "do" "else" "end" "for" "foreach" "function"
       "if" "in" "include" "new" "package" "page" "return"
       "tag" "throw" "throws" "try" "while")))
@@ -1377,7 +1309,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-javascript-keywords
   (regexp-opt
    (append
-    web-mode-extra-javascript-keywords
+    (cdr (assoc "javascript" web-mode-extra-keywords))
     '("break" "case" "catch" "class" "const" "continue"
       "debugger" "default" "delete" "do" "else" "enum" "eval"
       "export" "extends" "finally" "for" "function" "if"
@@ -1396,7 +1328,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 (defvar web-mode-razor-keywords
   (regexp-opt
    (append
-    web-mode-extra-razor-keywords
+    (cdr (assoc "razor" web-mode-extra-keywords))
     '("false" "true" "foreach" "if" "else" "in" "var" "for" "display"
       "match" "case"
       "Html")))
@@ -2871,7 +2803,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
             (put-text-property open (1+ open) 'block-beg 0)
             (put-text-property open (1+ open) 'block-controls 0)
             (put-text-property (1- close) close 'block-end t)
-            (when delim-open
+            (when (and delim-open delim-close)
               (web-mode-block-delimiters-set open close delim-open delim-close))
             (web-mode-scan-block open close)
             ) ;when close
