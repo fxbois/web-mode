@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.31
+;; Version: 9.0.32
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.31"
+(defconst web-mode-version "9.0.32"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -115,11 +115,6 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-indent-cycle nil
-  "Disable cycle indent."
-  :type 'boolean
-  :group 'web-mode)
-
 (defcustom web-mode-enable-block-partial-invalidation t
   "Partial invalidation in blocks (php and asp at the moment)."
   :type 'boolean
@@ -127,11 +122,6 @@
 
 (defcustom web-mode-enable-part-partial-invalidation t
   "Partial invalidation in js/css parts."
-  :type 'boolean
-  :group 'web-mode)
-
-(defcustom web-mode-indent-cycle-left-first nil
-  "Indent from left to right instead of starting at rightmost match."
   :type 'boolean
   :group 'web-mode)
 
@@ -207,6 +197,11 @@ See web-mode-part-face."
   :type 'list
   :group 'web-mode)
 
+(defcustom web-mode-extra-builtins '()
+  "A list of additional builtins."
+  :type 'list
+  :group 'web-mode)
+
 (defcustom web-mode-extra-constants '()
   "A list of additional constants."
   :type 'list
@@ -221,6 +216,8 @@ See web-mode-part-face."
   "A list of additional types."
   :type 'list
   :group 'web-mode)
+
+;;---- FACES -------------------------------------------------------------------
 
 (defface web-mode-error-face
   '((t :background "red"))
@@ -524,17 +521,36 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Comment keywords."
   :group 'web-mode-faces)
 
+;;---- VARS --------------------------------------------------------------------
+
 (defvar font-lock-beg)
 (defvar font-lock-end)
 
-(defvar web-mode-inlay-regexp nil
-  "")
-
-(defvar web-mode-highlight-beg nil
-  "")
-
-(defvar web-mode-highlight-end nil
-  "")
+(defvar web-mode-auto-pairs nil)
+(defvar web-mode-block-regexp nil)
+(defvar web-mode-buffer-highlighted nil)
+(defvar web-mode-change-flags 0)
+(defvar web-mode-closing-blocks nil)
+(defvar web-mode-comments-invisible nil)
+(defvar web-mode-content-type "")
+(defvar web-mode-end-tag-overlay nil)
+(defvar web-mode-engine nil)
+(defvar web-mode-engine-attr-regexp nil)
+(defvar web-mode-engine-font-lock-keywords nil)
+(defvar web-mode-engine-token-regexp nil)
+(defvar web-mode-expand-initial-pos nil)
+(defvar web-mode-expand-previous-state "")
+(defvar web-mode-highlight-beg nil)
+(defvar web-mode-highlight-end nil)
+(defvar web-mode-hl-line-mode-flag nil)
+(defvar web-mode-hook nil)
+(defvar web-mode-inlay-regexp nil)
+(defvar web-mode-is-narrowed nil)
+(defvar web-mode-is-scratch nil)
+(defvar web-mode-jshint-errors 0)
+(defvar web-mode-snippets nil)
+(defvar web-mode-start-tag-overlay nil)
+(defvar web-mode-time (current-time))
 
 (defvar web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
@@ -548,22 +564,6 @@ Must be used in conjunction with web-mode-enable-block-face."
         'syntax-table)
   "Text properties used for tokens.")
 
-(defvar web-mode-is-scratch nil
-  "Is scratch buffer ?")
-
-(defvar web-mode-time nil
-  "For benchmarking")
-
-(defvar web-mode-start-tag-overlay nil)
-
-(defvar web-mode-end-tag-overlay nil)
-
-(defvar web-mode-expand-initial-pos nil
-  "First mark pos.")
-
-(defvar web-mode-expand-previous-state ""
-  "Last mark state.")
-
 (defvar web-mode-tag-regexp "<\\(/?[[:alpha:]][[:alnum:]-]*\\)"
   "Regular expression for HTML/XML tag.")
 
@@ -576,44 +576,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-imenu-regexp-list
   '(("<\\(h[1-9]\\)\\([^>]*\\)>\\([^<]*\\)" 1 3 ">")
-    ("^[ \t]*<\\([@a-z]+\\)[^>]*>? *$" 1 "id=\"\\([a-zA-Z0-9_]+\\)\"" "#" ">")
-    )
-  "List of regular expressions to match imenu items.
-Each element of list could be either of two data types,
-
-1. data type one: (regex index-to-extract-type index-to-extract-content concat-string)
-
-1.1. regex => regular express to match the line contain the full tag from each line
-
-1.2. index-to-extract-type => index to extract the tag type, for example, 1 means thing
-between the *first* '\\(' '\\)' pair in above regex, the extracted string could be 'div' or 'span' ...
-
-1.3. index-to-extract-content => index to extract to tag content, for example, 3 means the
-thing between  *third* '\\(' '\\)' pair in above regex.
-
-1.4. concat-string => the string to concat the type and content
-
-2. data type two: (regex index-to-extract-type another-regex-extract-content concat-string end-tag-regex)
-Please note this one support multi-line tag.
-
-2.1. regex => regular express to match the line contain the beginning of the tag from each line
-
-2.2. index-to-extract-type => index to extract the tag type, for example, 1 means thing
-between the *first* '\\(' '\\)' pair in above regex, the extracted string could be 'div' or 'span' ...
-
-2.3. another-regex-extract-content => regex to extract tag content
-The *first* thing between '\\(' '\\)' will be extracted as tag content
-
-2.4. concat-string => the string to concat the type and content
-
-2.5. end-tag-regex => the regex to match the end of a tag
-")
-
-(defvar web-mode-engine nil
-  "Template engine")
-
-(defvar web-mode-engine-font-lock-keywords nil
-  "Font-lock keywords associated with the engine.")
+    ("^[ \t]*<\\([@a-z]+\\)[^>]*>? *$" 1 "id=\"\\([a-zA-Z0-9_]+\\)\"" "#" ">"))
+  "List of regular expressions to match imenu items (see http://web-mode.org/doc/imenu.txt)")
 
 (defvar web-mode-engines
   '(("angular"     . ("angular.js" "angularjs"))
@@ -644,9 +608,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     ("jsx"        . "\\.jsx\\'")
     ("html"       . "."))
   "content types")
-
-(defvar web-mode-engine-attr-regexp nil
- "Engine custom attributes")
 
 (defvar web-mode-engine-attr-regexps
   '(("angular" . "ng-"))
@@ -766,27 +727,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (or delim default)
     ))
 
-(defvar web-mode-jshint-errors 0
-  "JSHint errors")
-
-(defvar web-mode-change-flags 0
-  "Change flags")
-
-(defvar web-mode-content-type ""
-  "Buffer file type.")
-
-(defvar web-mode-comments-invisible nil
-  "Comments visbility.")
-
-(defvar web-mode-is-narrowed nil
-  "Buffer has been narrowed.")
-
-(defvar web-mode-hook nil
-  "List of functions to be executed with web-mode.")
-
-(defvar web-mode-buffer-highlighted nil
-  "Is buffer highlighted.")
-
 ;;    http://webdesign.about.com/od/localization/l/blhtmlcodes-ascii.htm
 (defvar web-mode-display-table
   (let ((table (make-display-table)))
@@ -796,9 +736,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     table)
   "Display table.")
 
-(defvar web-mode-hl-line-mode-flag nil
-  "Is hl-line-mode enabled ?")
-
 (defvar web-mode-django-control-blocks
   (regexp-opt
    '("assets" "autoescape" "block" "blocktrans" "cache" "call" "comment"
@@ -807,12 +744,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
      "macro" "draw" "random" "sandbox" "spaceless" "verbatim" "with")
    t)
   "Django controls.")
-
-(defvar web-mode-auto-pairs nil
-  "Auto-Pairs")
-
-(defvar web-mode-closing-blocks nil
-  "Snippets")
 
 (defvar web-mode-engines-closing-blocks
   '(
@@ -873,9 +804,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (nil           . (("<!-" "- " " -->"))))
   "Engines auto-pairs")
 
-(defvar web-mode-snippets nil
-  "Snippets")
-
 (defvar web-mode-engines-snippets
   '(("erb" . (("if" . ("<% if " . " %>\n\n<% end %>"))))
     ("php" . (("if"      . ("<?php if ("      . "): ?>\n\n<?php endif; ?>"))
@@ -894,9 +822,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
             ("ul"    . ("<ul>\n<li>" . "</li>\n<li></li>\n</ul>"))))
     )
   "Engines snippets")
-
-(defvar web-mode-engine-token-regexp nil
-  "web-mode-engine-token-regexp")
 
 (defvar web-mode-engine-token-regexps
   (list
@@ -940,9 +865,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
    )
   "Engine block regexps.")
 
-(defvar web-mode-block-regexp nil
-  "Regular expression for identifying blocks.")
-
 (defvar web-mode-normalization-rules
   '(("tag-case"          . "lower-case")
     ("attr-case"         . "lower-case")
@@ -958,27 +880,24 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (regexp-opt
    (append
     (cdr (assoc "comment" web-mode-extra-keywords))
-    '("FIXME" "TODO" "BUG" "KLUDGE" "WORKAROUND" "OPTIMIZE" "HACK" "REFACTOR")))
-  "Comment keywords.")
+    '("FIXME" "TODO" "BUG" "KLUDGE" "WORKAROUND" "OPTIMIZE" "HACK" "REFACTOR"))))
 
 (defvar web-mode-python-constants
   (regexp-opt
    (append
     (cdr (assoc "python" web-mode-extra-constants))
-    '("True" "False" "None" "__debug__" "NotImplemented" "Ellipsis")))
-  "Python constants.")
+    '("True" "False" "None" "__debug__" "NotImplemented" "Ellipsis"))))
 
 (defvar web-mode-lsp-constants
   (regexp-opt
-   '("nil" "t"))
-  )
+   '("nil" "t")))
 
 (defvar web-mode-lsp-keywords
   (regexp-opt
    '("dolist" "let" "while" "cond" "when" "progn" "if"
      "dotimes" "unless" "lambda"
      "loop" "for" "and" "or" "in" "do" "defun"))
-  )
+  "Lsp keywords.")
 
 (defvar web-mode-php-constants
   (regexp-opt
@@ -989,8 +908,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       "ENT_COMPAT" "ENT_QUOTES" "ENT_NOQUOTES" "ENT_IGNORE"
       "ENT_SUBSTITUTE" "ENT_DISALLOWED" "ENT_HTML401" "ENT_XML1"
       "ENT_XHTML" "ENT_HTML5"
-      "LIBXML_NOBLANKS")))
-  "PHP constants.")
+      "LIBXML_NOBLANKS"))))
 
 (defvar web-mode-php-keywords
   (regexp-opt
@@ -1004,24 +922,20 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       "if" "include" "include_once" "instanceof" "interface" "isset"
       "list" "next" "new" "or" "private" "protected" "public"
       "require" "require_once" "return" "static" "switch" "try" "throw" "unset" "use"
-      "var" "when" "while" "xor" "yield")))
-  "PHP keywords.")
+      "var" "when" "while" "xor" "yield"))))
 
 (defvar web-mode-php-types
   (eval-when-compile
     (regexp-opt
      '("array" "bool" "boolean" "char" "const" "double" "float"
-       "int" "integer" "long" "mixed" "object" "real" "string"
-       "Exception")))
-  "PHP types.")
+       "int" "integer" "long" "mixed" "object" "real" "string"))))
 
 (defvar web-mode-css-at-rules
   (eval-when-compile
     (regexp-opt
      '("charset" "import" "media" "page" "font-face"
        "namespace" "supports" "document"
-       "keyframes" "-moz-keyframes" "-webkit-keyframes")))
-  "CSS at-rules.")
+       "keyframes" "-moz-keyframes" "-webkit-keyframes"))))
 
 (defvar web-mode-css-pseudo-classes
   (eval-when-compile
@@ -1031,8 +945,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
        "hover" "lang" "last-child" "last-of-type" "left" "link"
        "not" "nth-child" "nth-last-child" "nth-last-of-type" "nth-of-type"
        "only-child" "only-of-type"
-       "right" "root" "selection" "target" "visited")))
-  "CSS pseudo-classes (and pseudo-elements).")
+       "right" "root" "selection" "target" "visited"))))
 
 (defvar web-mode-python-keywords
   (regexp-opt
@@ -1041,8 +954,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     '("and" "as" "assert" "break" "class" "continue" "def" "del"
       "elif" "else" "except" "finally" "for" "from" "global"
       "if" "import" "in" "is" "lambda" "nonlocal" "not" "or" "pass"
-      "raise" "return" "try" "while" "with" "yield")))
-  "Python keywords.")
+      "raise" "return" "try" "while" "with" "yield"))))
 
 (defvar web-mode-jsp-keywords
   (regexp-opt
@@ -1050,8 +962,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (cdr (assoc "jsp" web-mode-extra-keywords))
     '("case" "catch" "do" "else" "end" "false" "for" "function" "if" "in" "include"
       "new" "package" "page" "private" "protected" "public"
-      "return" "tag" "taglib" "throw" "throws" "true" "try" "void" "while")))
-  "JSP keywords.")
+      "return" "tag" "taglib" "throw" "throws" "true" "try" "void" "while"))))
 
 (defvar web-mode-erb-keywords
   (regexp-opt
@@ -1061,9 +972,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       "elsif" "else" "end" "ensure" "fail" "for" "if" "in"
       "module" "next" "not" "or" "redo" "rescue" "retry" "return"
       "then" "super" "unless" "undef" "until" "when" "while" "yield"
-      "__ENCODING__" "__FILE__" "__LINE__"
-      )))
-  "ERB keywords.")
+      "__ENCODING__" "__FILE__" "__LINE__"))))
 
 (defvar web-mode-mason-keywords
   (regexp-opt
@@ -1072,82 +981,82 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     '("and" "base" "close" "die" "each" "else" "elsif" "eval" "exists"
       "foreach" "grep" "if" "length" "local" "my" "next" "open" "or"
       "package" "pop" "ref" "return" "stat" "sub" "tie"
-      "undef" "unless" "use" "while"
-      )))
-  "Mason keywords.")
+      "undef" "unless" "use" "while"))))
 
 (defvar web-mode-erb-builtins
   (regexp-opt
-   '("__callee__" "__dir__" "__method__"
-     "abort" "at_exit" "autoload" "autoload?"
-     "binding" "block_given?" "caller" "catch"
-     "eval" "exec" "exit" "exit!" "fail" "fork" "format"
-     "lambda" "load" "loop" "open"
-     "p" "print" "printf" "proc" "putc" "puts"
-     "raise" "rand" "readline" "readlines" "require" "require_relative"
-     "sleep" "spawn" "sprintf" "srand" "syscall" "system"
-     "throw" "trap" "warn"
-     "alias_method" "attr" "attr_accessor" "attr_reader" "attr_writer"
-     "define_method" "extend" "include" "module_function"
-     "prepend" "private" "protected" "public"
-     "refine" "using"
+   (append
+    (cdr (assoc "erb" web-mode-extra-builtins))
 
-     "error_message_on" "error_messages_for" "form" "input"
-     "auto_discovery_link_tag" "image_tag" "javascript_include_tag"
-     "stylesheet_link_tag" "image_path" "path_to_image"" "
-     "javascript_path" "path_to_javascript" "register_javascript_expansion"
-     "register_javascript_include_default" "register_stylesheet_expansion"
-     "stylesheet_path" "path_to_stylesheet" "atom_feed" "entry" "updated"
-     "benchmark" "cache" "capture" "content_for" "distance_of_time_in_words"
-     "distance_of_time_in_words_to_now" "time_ago_in_words" "date_select"
-     "datetime_select" "time_select" "select_date" "select_datetime"
-     "select_day" "select_hour" "select_minute" "select_month" "select_second"
-     "select_time" "select_year" "debug"
-     "check_box" "fields_for" "file_field" "form_for" "hidden_field"
-     "label" "password_field" "radio_button" "text_area" "text_field"
-     "check_box_tag" "field_set_tag" "file_field_tag" "form_tag"
-     "hidden_field_tag" "image_submit_tag" "label_tag" "password_field_tag"
-     "radio_button_tag" "select_tag" "submit_tag" "text_area_tag"
-     "text_field_tag"
-     "collection_select" "country_options_for_select" "country_select"
-     "option_groups_from_collection_for_select" "options_for_select"
-     "options_from_collection_for_select" "select"
-     "time_zone_options_for_select"
-     "time_zone_select" "button_to_function" "define_javascript_functions"
-     "escape_javascript" "javascript_tag" "link_to_function"" "
-     "number_to_currency" "number_to_human_size" "number_to_percentage"
-     "number_to_phone" "number_with_delimiter" "number_with_precision"
-     "evaluate_remote_response" "form_remote_for" "form_remote_tag"
-     "link_to_remote" "observe_field" "observe_field"
-     "periodically_call_remote"
-     "remote_form_for" "remote_function" "submit_to_remote" "update_page"
-     "update_page_tag" "dom_class" "dom_id" "partial_path" "sanitize"
-     "sanitize_css" "strip_links" "strip_tags"
-     "cdata_section" "content_tag" "escape_once" "tag"
-     "auto_link" "concat" "cycle" "excerpt" "highlight" "markdown" "pluralize"
-     "reset_cycle" "simple_format" "textilize" "textilize_without_paragraph"
-     "truncate" "word_wrap" "button_to" "current_page?" "link_to" "link_to_if"
-     "link_to_unless" "link_to_unless_current" "mail_to" "url_for"
-     "action_name" "atom_feed" "audio_path" "audio_tag"
-     "content_tag_for" "controller" "controller_name" "action_name"
-     "controller_path" "convert_to_model" "cookies" "csrf_meta_tag"
-     "csrf_meta_tags" "headers"
-     "current_cycle" "div_for" "email_field" "email_field_tag"
-     "favicon_link_tag" "flash" "l" "button_tag"
-     "grouped_collection_select" "grouped_options_for_select"
-     "image_alt" "j" "javascript_cdata_section"
-     "localize" "logger" "number_field"
-     "number_field_tag" "number_to_human" "params" "path_to_audio"
-     "path_to_video" "phone_field" "phone_field_tag" "provide"
-     "range_field" "range_field_tag" "raw" "render" "request"
-     "request_forgery_protection_token" "response" "safe_concat"
-     "safe_join" "search_field" "search_field_tag"
-     "session" "t" "telephone_field" "telephone_field_tag"
-     "time_tag" "translate" "url_field" "url_field_tag"
-     "url_options" "video_path" "video_tag"
+    '("__callee__" "__dir__" "__method__"
+      "abort" "at_exit" "autoload" "autoload?"
+      "binding" "block_given?" "caller" "catch"
+      "eval" "exec" "exit" "exit!" "fail" "fork" "format"
+      "lambda" "load" "loop" "open"
+      "p" "print" "printf" "proc" "putc" "puts"
+      "raise" "rand" "readline" "readlines" "require" "require_relative"
+      "sleep" "spawn" "sprintf" "srand" "syscall" "system"
+      "throw" "trap" "warn"
+      "alias_method" "attr" "attr_accessor" "attr_reader" "attr_writer"
+      "define_method" "extend" "include" "module_function"
+      "prepend" "private" "protected" "public"
+      "refine" "using"
 
-     ))
-  "ERB builtins.")
+      "error_message_on" "error_messages_for" "form" "input"
+      "auto_discovery_link_tag" "image_tag" "javascript_include_tag"
+      "stylesheet_link_tag" "image_path" "path_to_image"" "
+      "javascript_path" "path_to_javascript" "register_javascript_expansion"
+      "register_javascript_include_default" "register_stylesheet_expansion"
+      "stylesheet_path" "path_to_stylesheet" "atom_feed" "entry" "updated"
+      "benchmark" "cache" "capture" "content_for" "distance_of_time_in_words"
+      "distance_of_time_in_words_to_now" "time_ago_in_words" "date_select"
+      "datetime_select" "time_select" "select_date" "select_datetime"
+      "select_day" "select_hour" "select_minute" "select_month" "select_second"
+      "select_time" "select_year" "debug"
+      "check_box" "fields_for" "file_field" "form_for" "hidden_field"
+      "label" "password_field" "radio_button" "text_area" "text_field"
+      "check_box_tag" "field_set_tag" "file_field_tag" "form_tag"
+      "hidden_field_tag" "image_submit_tag" "label_tag" "password_field_tag"
+      "radio_button_tag" "select_tag" "submit_tag" "text_area_tag"
+      "text_field_tag"
+      "collection_select" "country_options_for_select" "country_select"
+      "option_groups_from_collection_for_select" "options_for_select"
+      "options_from_collection_for_select" "select"
+      "time_zone_options_for_select"
+      "time_zone_select" "button_to_function" "define_javascript_functions"
+      "escape_javascript" "javascript_tag" "link_to_function"" "
+      "number_to_currency" "number_to_human_size" "number_to_percentage"
+      "number_to_phone" "number_with_delimiter" "number_with_precision"
+      "evaluate_remote_response" "form_remote_for" "form_remote_tag"
+      "link_to_remote" "observe_field" "observe_field"
+      "periodically_call_remote"
+      "remote_form_for" "remote_function" "submit_to_remote" "update_page"
+      "update_page_tag" "dom_class" "dom_id" "partial_path" "sanitize"
+      "sanitize_css" "strip_links" "strip_tags"
+      "cdata_section" "content_tag" "escape_once" "tag"
+      "auto_link" "concat" "cycle" "excerpt" "highlight" "markdown" "pluralize"
+      "reset_cycle" "simple_format" "textilize" "textilize_without_paragraph"
+      "truncate" "word_wrap" "button_to" "current_page?" "link_to" "link_to_if"
+      "link_to_unless" "link_to_unless_current" "mail_to" "url_for"
+      "action_name" "atom_feed" "audio_path" "audio_tag"
+      "content_tag_for" "controller" "controller_name" "action_name"
+      "controller_path" "convert_to_model" "cookies" "csrf_meta_tag"
+      "csrf_meta_tags" "headers"
+      "current_cycle" "div_for" "email_field" "email_field_tag"
+      "favicon_link_tag" "flash" "l" "button_tag"
+      "grouped_collection_select" "grouped_options_for_select"
+      "image_alt" "j" "javascript_cdata_section"
+      "localize" "logger" "number_field"
+      "number_field_tag" "number_to_human" "params" "path_to_audio"
+      "path_to_video" "phone_field" "phone_field_tag" "provide"
+      "range_field" "range_field_tag" "raw" "render" "request"
+      "request_forgery_protection_token" "response" "safe_concat"
+      "safe_join" "search_field" "search_field_tag"
+      "session" "t" "telephone_field" "telephone_field_tag"
+      "time_tag" "translate" "url_field" "url_field_tag"
+      "url_options" "video_path" "video_tag"
+
+      ))))
 
 (defvar web-mode-asp-constants
   (regexp-opt
@@ -1161,8 +1070,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       "adOpenKeyset" "adOpenStatic" "adOpenUnspecified" "adOptionUnspecified"
       "Empty" "Nothing" "Null" "True" "False"
       "vbBack" "vbCr" "vbCrLf" "vbFormFeed" "vbLf" "vbNewLine" "vbNullChar"
-      "vbNullString" "vbObjectError" "vbScript" "vbTab" "vbVerticalTab")))
-  "ASP constants.")
+      "vbNullString" "vbObjectError" "vbScript" "vbTab" "vbVerticalTab"))))
 
 (defvar web-mode-asp-keywords
   (regexp-opt
@@ -1193,15 +1101,13 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       "Tan" "Then" "Time" "TimeSerial" "TimeValue" "Timer" "To" "Trim"
       "TypeName"
       "UBound" "UCase" "Until" "VarType"
-      "Weekday" "WeekdayName" "Wend" "With" "While" "Year")))
-  "ASP keywords.")
+      "Weekday" "WeekdayName" "Wend" "With" "While" "Year"))))
 
 (defvar web-mode-asp-types
   (regexp-opt
    (append
     (cdr (assoc "asp" web-mode-extra-types))
-    '("Application" "ASPError" "Request" "Response" "Server" "Session")))
-  "ASP types.")
+    '("Application" "ASPError" "Request" "Response" "Server" "Session"))))
 
 (defvar web-mode-aspx-keywords
   (regexp-opt
@@ -1209,24 +1115,18 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (cdr (assoc "aspx" web-mode-extra-keywords))
     '("case" "catch" "do" "else" "end" "for" "foreach" "function"
       "if" "in" "include" "new" "package" "page" "return"
-      "tag" "throw" "throws" "try" "while")))
-  "ASP.Net keywords.")
+      "tag" "throw" "throws" "try" "while"))))
 
 (defvar web-mode-smarty-keywords
-  (regexp-opt
-   '("as"))
-  "Smarty keywords.")
+  (regexp-opt '("as")))
 
 (defvar web-mode-velocity-keywords
   (eval-when-compile
-    (regexp-opt
-     '("in")))
-  "Velocity keywords.")
+    (regexp-opt '("in"))))
 
 (defvar web-mode-freemarker-keywords
   (eval-when-compile
-    (regexp-opt
-     '("as" "list"))))
+    (regexp-opt '("as" "list"))))
 
 (defvar web-mode-go-keywords
   (eval-when-compile
@@ -1237,15 +1137,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (eval-when-compile
     (regexp-opt
      '("and" "call" "html" "index" "js" "len" "not" "or"
-       "print" "printf" "println" "urlquery")))
-  "Go functions.")
+       "print" "printf" "println" "urlquery"))))
 
 (defvar web-mode-closure-keywords
   (eval-when-compile
-    (regexp-opt
-     '("in" "and" "not" "or")
-     ))
-  "Closure keywords")
+    (regexp-opt '("in" "and" "not" "or"))))
 
 (defvar web-mode-django-keywords
   (eval-when-compile
@@ -1272,17 +1168,14 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
 (defvar web-mode-django-types
   (eval-when-compile
-    (regexp-opt
-     '("null" "empty" "false" "true"
-       ))))
+    (regexp-opt '("null" "empty" "false" "true"))))
 
 (defvar web-mode-directives
   (eval-when-compile
     (regexp-opt
      '("include" "page" "taglib"
        "Assembly" "Control" "Implements" "Import"
-       "Master" "OutputCache" "Page" "Reference" "Register")))
-  "Directives.")
+       "Master" "OutputCache" "Page" "Reference" "Register"))))
 
 (defvar web-mode-template-toolkit-keywords
   (regexp-opt
@@ -1303,8 +1196,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
      "ge" "gt" "if" "le" "lock" "lt" "m" "ne" "no"
      "or" "package" "q" "qq" "qr" "qw" "qx" "s" "sub"
      "tr" "unless" "until" "while" "xor" "y"
-     "my"))
-  "Perl keywords")
+     "my")))
 
 (defvar web-mode-javascript-keywords
   (regexp-opt
@@ -1316,14 +1208,11 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       "implements" "import" "in" "instanceof" "interface" "let"
       "new" "package" "private" "protected" "public"
       "return" "static" "super" "switch" "throw"
-      "try" "typeof" "var" "void" "while" "with" "yield"
-      )))
-  "JavaScript keywords.")
+      "try" "typeof" "var" "void" "while" "with" "yield"))))
 
 (defvar web-mode-javascript-constants
   (regexp-opt
-   '("false" "null" "undefined" "Infinity" "NaN" "true" "arguments" "this"))
-  "JavaScript constants.")
+   '("false" "null" "undefined" "Infinity" "NaN" "true" "arguments" "this")))
 
 (defvar web-mode-razor-keywords
   (regexp-opt
@@ -1331,8 +1220,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (cdr (assoc "razor" web-mode-extra-keywords))
     '("false" "true" "foreach" "if" "else" "in" "var" "for" "display"
       "match" "case"
-      "Html")))
-  "Razor keywords.")
+      "Html"))))
 
 (defvar web-mode-selector-font-lock-keywords
   (list
@@ -1907,10 +1795,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
   ) ;eval-and-compile
 
-;;(defvar web-mode-buffer-highlighted nil)
-
-(defvar web-mode-font-lock-keywords
-  '(web-mode-font-lock-highlight))
+(defvar web-mode-font-lock-keywords '(web-mode-font-lock-highlight))
 
 (defun web-mode-font-lock-extend-region ()
   (save-excursion
@@ -1999,8 +1884,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         font-lock-extend-region-functions '(web-mode-font-lock-extend-region)
         font-lock-support-mode nil
         font-lock-maximum-size nil
-        ;;        font-lock-fontify-buffer-function 'web-mode-scan-buffer
-        ;;        font-lock-unfontify-buffer-function 'web-mode-scan-buffer
         imenu-case-fold-search t
         imenu-create-index-function 'web-mode-imenu-index
         indent-line-function 'web-mode-indent-line
@@ -2015,12 +1898,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
 
   (when web-mode-enable-current-element-highlight
     (add-hook 'post-command-hook 'web-mode-highlight-current-element nil t))
-
-  ;; (add-hook 'post-command-hook
-  ;;           '(lambda()
-  ;;              (message "this command %S" this-command)
-  ;;              )
-  ;;           nil t)
 
   (add-hook 'after-change-functions  'web-mode-on-after-change nil t)
   (add-hook 'before-change-functions 'web-mode-on-before-change nil t)
@@ -2050,8 +1927,10 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
   (when web-mode-enable-whitespaces
     (web-mode-whitespaces-on))
 
+;;  (setq web-mode-time (current-time))
   (web-mode-guess-engine-and-content-type)
   (web-mode-scan-region (point-min) (point-max))
+  (web-mode-trace "buffer scanned")
 
   )
 
@@ -2321,7 +2200,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
              (web-mode-scan-parts beg end)
              )
             ) ;cond
-           (web-mode-trace "web-mode-scan-region")
+
            ))))))
 
 (defun web-mode-highlight-region (beg end &optional content-type)
@@ -2955,8 +2834,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
     (cond
 
      ((member web-mode-engine '("php" "asp" "lsp" "mako" "python" "web2py" "mason"))
-      (setq regexp web-mode-engine-token-regexp) ;; "//\\|/\\*\\|#\\|\"\\|'\\|<<<['\"]?\\([[:alnum:]]+\\)['\"]?")
-      ) ;php
+      (setq regexp web-mode-engine-token-regexp)
+      )
 
      ((string= web-mode-engine "django")
       (cond
@@ -3362,7 +3241,8 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
        ((string= web-mode-engine "django")
         (when (eq (char-after (1+ reg-beg)) ?\%)
           (cond
-           ((web-mode-block-starts-with "\\(else\\|elsif\\|elif\\)" reg-beg)
+;;           ((web-mode-block-starts-with "\\(else\\|elsif\\|elif\\)" reg-beg)
+           ((web-mode-block-starts-with "\\(else\\|els?if\\)" reg-beg)
             (setq controls (append controls (list (cons 'inside "if")))))
            ((web-mode-block-starts-with "\\(empty\\)" reg-beg)
             (setq controls (append controls (list (cons 'inside "for")))))
@@ -3913,7 +3793,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
         (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
                                          'font-lock-face
                                          'web-mode-comment-keyword-face)
-        )
+        ) ;while
       )))
 
 (defun web-mode-dom-scan (reg-beg reg-end)
@@ -4433,7 +4313,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       ) ;while
     ))
 
-
 (defun web-mode-scan-part (reg-beg reg-end &optional content-type)
   "Scan client part (e.g. javascript, json, css)."
   (save-excursion
@@ -4457,9 +4336,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       (cond
        ((string= content-type "javascript")
         (setq token-re "/.\\|\"\\|'"))
-       ((string= content-type "json")
-        (setq token-re "//\\|/\\*\\|\"\\|'"))
-       ((string= content-type "jsx")
+       ((member content-type '("json" "jsx"))
         (setq token-re "//\\|/\\*\\|\"\\|'"))
        ((string= content-type "css")
         (setq token-re "/\\*\\|\"\\|'"))
@@ -4707,8 +4584,7 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
           (message "*** too much css rules ***")
           (setq continue nil))
          ((null rule)
-          (setq continue nil)
-          )
+          (setq continue nil))
          ((and (setq at-rule (plist-get rule :at-rule))
                (not (member at-rule '("charset" "font-face" "import")))
                (plist-get rule :dec-end))
@@ -5893,37 +5769,6 @@ The *first* thing between '\\(' '\\)' will be extracted as tag content
       ctx
       )))
 
-(defun web-mode-indent-cycle (regex-line regex-sym block-beg indent-offset)
-  "Returns next position in the indent cycle for REGEX-SYM on
-positions from the previous line matching REGEX-LINE withing
-BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
-  (letrec
-      ((match-indices-all (lambda  (regex string)
-                            (let ((i (string-match-p regex string)))
-                              (if i (cons
-                                     i
-                                     (mapcar (lambda (x) (+ x i 1))
-                                             (funcall match-indices-all regex
-                                                      (substring string (+ i 1)))))))))
-       (filter (lambda (condp lst)
-                 (delq nil
-                       (mapcar (lambda (x)
-                                 (and (funcall condp x) x)) lst))))
-       (this-line (thing-at-point 'line))
-       (rsb-prev-line (progn
-                        (web-mode-rsb regex-line block-beg)
-                        (thing-at-point 'line)))
-       (pos-of-this-sym (string-match-p regex-sym this-line))
-       (prev-sym-locations (funcall match-indices-all regex-sym rsb-prev-line))
-       (farther-syms (progn
-                       (add-to-list 'prev-sym-locations (+ indent-offset web-mode-code-indent-offset))
-                       (funcall filter (lambda (i) (> i pos-of-this-sym))
-                                (sort prev-sym-locations '<)))))
-    (cond ((null farther-syms) indent-offset)
-          ((or web-mode-indent-cycle-left-first
-               (equal last-command 'indent-for-tab-command)) (car farther-syms))
-          (t (car (last farther-syms))))))
-
 (defun web-mode-indent-line ()
   "Indent current line according to language."
 
@@ -6094,17 +5939,23 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
             (setq offset (+ prev-indentation web-mode-code-indent-offset))
             )
 
-           ((and (member language '("javascript" "jsx")) (eq ?\. first-char))
-            (if web-mode-enable-indent-cycle
-                (setq offset
-                      (web-mode-indent-cycle
-                       "[[:alnum:][:blank:]]\\.[[:alpha:]]"
-                       "\\."
-                       block-beg
-                       indent-offset))
-              (when (web-mode-translate-backward pos "[[:alnum:][:blank:]]\\.[[:alpha:]]" language block-beg)
-                (setq offset (1+ (current-column))))
-              ))
+           ((and (member language '("javascript" "jsx"))
+                 (eq ?\. first-char))
+            (when (web-mode-translate-backward pos "[[:alnum:][:blank:]]\\.[[:alpha:]]" language block-beg)
+              (setq offset (1+ (current-column))))
+            )
+
+           ;; ((and (member language '("javascript" "jsx")) (eq ?\. first-char))
+           ;;  (if web-mode-enable-indent-cycle
+           ;;      (setq offset
+           ;;            (web-mode-indent-cycle
+           ;;             "[[:alnum:][:blank:]]\\.[[:alpha:]]"
+           ;;             "\\."
+           ;;             block-beg
+           ;;             indent-offset))
+           ;;    (when (web-mode-translate-backward pos "[[:alnum:][:blank:]]\\.[[:alpha:]]" language block-beg)
+           ;;      (setq offset (1+ (current-column))))
+           ;;    ))
 
            ((and (member first-char '(?\? ?\. ?\:))
                  (not (string= language "erb")))
@@ -9357,31 +9208,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
       nil)
     ))
 
-(defun web-mode-get-html-tag (&optional back bound context)
-  "Get html tag. (smartparens helper)"
-  (interactive)
-  (let (ctx beg end (pos (point)))
-;;    (message "pos=%S" pos)
-    (setq ctx (web-mode-skip-html-tag back bound context))
-;;    (message "ctx=%S" ctx)
-    (cond
-     ((null ctx)
-;;      (message "ici")
-      )
-     ((get-text-property (point) 'tag-beg)
-      (setq beg (point)
-            end (1+ (web-mode-tag-end-position)))
-      )
-     ((get-text-property (1- (point)) 'tag-end)
-      (setq beg (web-mode-tag-end-position (1- (point)))
-            end (point))
-      )
-     )
-    (if (null ctx) nil
-;;      (message "%S" (list :beg beg :end end :op "<" :cl ">" :prefix "" :suffix "" :from pos))
-      (list :beg beg :end end :op "<" :cl ">" :prefix "" :suffix "" :from pos))
-    ))
-
 (defun web-mode-tag-get (&optional pos)
   "Tag get"
   (unless pos (setq pos (point)))
@@ -9791,17 +9617,13 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 (defun web-mode-dom-rsf (regexp &optional limit noerror)
   "re-search-forward outside blocks."
   (unless noerror (setq noerror t))
-  (let ((continue t)
-        (ret nil))
-;;    (when (> (point) limit)
-;;      (message "(web-mode-dom-rsf) point(%S) is after limit(%S)" (point) limit)
-;;      (setq continue nil))
+  (let ((continue t) (ret nil))
     (while continue
       (setq ret (re-search-forward regexp limit noerror))
       (if (or (null ret)
               (not (get-text-property (match-beginning 0) 'block-side)))
           (setq continue nil))
-      )
+      ) ;while
     ret))
 
 (defun web-mode-dom-sf (expr &optional limit noerror)
@@ -9897,11 +9719,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
                    (web-mode-is-content end)))
           (setq continue nil)))
     ret))
-
-(defun web-mode-is-html-tag (&optional pos)
-  "Is point in an html tag."
-  (unless pos (setq pos (point)))
-  (member (get-text-property pos 'tag-type) '(start end void)))
 
 (defun web-mode-is-comment-or-string-line ()
   "Detect if current line is in a comment or in a string."
@@ -10010,22 +9827,22 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
   "Reload web-mode."
   (interactive)
   (web-mode-with-silent-modifications
-   (setq web-mode-time nil)
    (put-text-property (point-min) (point-max) 'invisible nil)
    (remove-overlays)
    (unload-feature 'web-mode t)
    (load "web-mode.el")
    (web-mode)
    (if (fboundp 'web-mode-hook)
-       (web-mode-hook))))
+       (web-mode-hook))
+   ) ;silent
+  )
 
 (defun web-mode-trace (msg)
   "Benchmark."
   (interactive)
-  (let (sub trace)
-    (setq trace nil)
-    (when trace
-      (when (null web-mode-time) (setq web-mode-time (current-time)))
+  (let (sub)
+    (when t
+;;      (when (null web-mode-time) (setq web-mode-time (current-time)))
       (setq sub (time-subtract (current-time) web-mode-time))
       (message "%18s: time elapsed = %Ss %9Sµs" msg (nth 1 sub) (nth 2 sub))
       )))
@@ -10084,9 +9901,6 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 ;;; web-mode.el ends here
 (provide 'web-mode)
 
-;; tag-beg: flags
-;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)bracket-end
-
 ;; Local Variables:
 ;; coding: utf-8
 ;; indent-tabs-mode: nil
@@ -10094,6 +9908,7 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 
 
 
+;;-- TO SUPPRESS --------
 
 ;; ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-attributes
 ;; ;; states:
@@ -10246,3 +10061,70 @@ BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
 ;;         ) ;while
 
 ;;       count)))
+
+;; (defun web-mode-get-html-tag (&optional back bound context)
+;;   "Get html tag. (smartparens helper)"
+;;   (interactive)
+;;   (let (ctx beg end (pos (point)))
+;; ;;    (message "pos=%S" pos)
+;;     (setq ctx (web-mode-skip-html-tag back bound context))
+;; ;;    (message "ctx=%S" ctx)
+;;     (cond
+;;      ((null ctx)
+;; ;;      (message "ici")
+;;       )
+;;      ((get-text-property (point) 'tag-beg)
+;;       (setq beg (point)
+;;             end (1+ (web-mode-tag-end-position)))
+;;       )
+;;      ((get-text-property (1- (point)) 'tag-end)
+;;       (setq beg (web-mode-tag-end-position (1- (point)))
+;;             end (point))
+;;       )
+;;      )
+;;     (if (null ctx) nil
+;; ;;      (message "%S" (list :beg beg :end end :op "<" :cl ">" :prefix "" :suffix "" :from pos))
+;;       (list :beg beg :end end :op "<" :cl ">" :prefix "" :suffix "" :from pos))
+;;     ))
+
+
+;; (defcustom web-mode-enable-indent-cycle nil
+;;   "Disable cycle indent."
+;;   :type 'boolean
+;;   :group 'web-mode)
+
+;; (defcustom web-mode-indent-cycle-left-first nil
+;;   "Indent from left to right instead of starting at rightmost match."
+;;   :type 'boolean
+;;   :group 'web-mode)
+
+;; (defun web-mode-indent-cycle (regex-line regex-sym block-beg indent-offset)
+;;   "Returns next position in the indent cycle for REGEX-SYM on
+;; positions from the previous line matching REGEX-LINE withing
+;; BLOCK-BEGIN. Loops to start at INDENT-OFFSET."
+;;   (letrec
+;;       ((match-indices-all (lambda  (regex string)
+;;                             (let ((i (string-match-p regex string)))
+;;                               (if i (cons
+;;                                      i
+;;                                      (mapcar (lambda (x) (+ x i 1))
+;;                                              (funcall match-indices-all regex
+;;                                                       (substring string (+ i 1)))))))))
+;;        (filter (lambda (condp lst)
+;;                  (delq nil
+;;                        (mapcar (lambda (x)
+;;                                  (and (funcall condp x) x)) lst))))
+;;        (this-line (thing-at-point 'line))
+;;        (rsb-prev-line (progn
+;;                         (web-mode-rsb regex-line block-beg)
+;;                         (thing-at-point 'line)))
+;;        (pos-of-this-sym (string-match-p regex-sym this-line))
+;;        (prev-sym-locations (funcall match-indices-all regex-sym rsb-prev-line))
+;;        (farther-syms (progn
+;;                        (add-to-list 'prev-sym-locations (+ indent-offset web-mode-code-indent-offset))
+;;                        (funcall filter (lambda (i) (> i pos-of-this-sym))
+;;                                 (sort prev-sym-locations '<)))))
+;;     (cond ((null farther-syms) indent-offset)
+;;           ((or web-mode-indent-cycle-left-first
+;;                (equal last-command 'indent-for-tab-command)) (car farther-syms))
+;;           (t (car (last farther-syms))))))
