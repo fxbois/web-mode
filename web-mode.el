@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.33
+;; Version: 9.0.34
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.33"
+(defconst web-mode-version "9.0.34"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -3654,7 +3654,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq continue nil
                 end nil)
           ) ;if beg
-        (when (and beg end)
+        (when (and beg end flags)
           (save-match-data
             (when (and web-mode-enable-heredoc-fontification
                        (eq char ?\<)
