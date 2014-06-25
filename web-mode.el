@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.32
+;; Version: 9.0.33
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.32"
+(defconst web-mode-version "9.0.33"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -8467,9 +8467,11 @@ Must be used in conjunction with web-mode-enable-block-face."
         (let ((pair regexp)
               (block-beg (web-mode-block-beginning-position pos))
               (block-end (web-mode-block-end-position pos)))
+;;          (message "%S %S" block-beg block-end)
           (and (web-mode-block-end pos)
-               (web-mode-sb (car pair) block-beg t)
-               (not (web-mode-sf (cdr pair) block-end t)))
+;;               (progn (message "%S %S" (car pair) (cdr pair)) t)
+               (web-mode-block-sb (car pair) block-beg)
+               (not (web-mode-sf (cdr pair) block-end)))
           ) ;let
         ) ;if
       )))
@@ -8507,7 +8509,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (goto-char pos)
     (while continue
       (if (and (get-text-property (point) 'block-side)
-               (or (eq (char-after) ?\s)
+               (or (member (char-after) '(?\s ?\n ?\t))
                    (member (get-text-property (point) 'block-token) '(delimiter comment))))
           (forward-char)
         (setq continue nil))
@@ -9524,6 +9526,34 @@ Must be used in conjunction with web-mode-enable-block-face."
       ) ;while
     ret))
 
+(defun web-mode-block-sb (expr &optional limit noerror)
+  "re-search-backward inside a block (outside tokens)."
+  (unless limit (setq limit (web-mode-block-beginning-position (point))))
+  (unless noerror (setq noerror t))
+  (let ((continue t) ret)
+    (while continue
+      (setq ret (search-backward expr limit noerror))
+      (when (or (null ret)
+                (not (get-text-property (point) 'block-token)))
+        (setq continue nil)
+        ) ;when
+      ) ;while
+    ret))
+
+(defun web-mode-block-sf (expr &optional limit noerror)
+  "re-search-backward inside a block (outside tokens)."
+  (unless limit (setq limit (web-mode-block-end-position (point))))
+  (unless noerror (setq noerror t))
+  (let ((continue t) ret)
+    (while continue
+      (setq ret (search-forward expr limit noerror))
+      (when (or (null ret)
+                (not (get-text-property (point) 'block-token)))
+        (setq continue nil)
+        ) ;when
+      ) ;while
+    ret))
+
 (defun web-mode-block-rsb (regexp &optional limit)
   "re-search-backward inside a block (outside tokens)."
   (unless limit (setq limit (web-mode-block-beginning-position (point))))
@@ -9841,7 +9871,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Benchmark."
   (interactive)
   (let (sub)
-    (when t
+    (when nil
 ;;      (when (null web-mode-time) (setq web-mode-time (current-time)))
       (setq sub (time-subtract (current-time) web-mode-time))
       (message "%18s: time elapsed = %Ss %9Sµs" msg (nth 1 sub) (nth 2 sub))
