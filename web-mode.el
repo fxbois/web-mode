@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.34
+;; Version: 9.0.35
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.34"
+(defconst web-mode-version "9.0.35"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -2676,13 +2676,14 @@ Must be used in conjunction with web-mode-enable-block-face."
 
            ) ;cond
 
+;;          (message "close=%S reg-end=%S pos=%S" close reg-end pos)
           (when (and close (>= reg-end pos))
             ;;(message "pos(%S) : open(%S) close(%S)" pos open close)
             (put-text-property open close 'block-side t)
             (put-text-property open (1+ open) 'block-beg 0)
             (put-text-property open (1+ open) 'block-controls 0)
             (put-text-property (1- close) close 'block-end t)
-            (when (and delim-open delim-close)
+            (when delim-open
               (web-mode-block-delimiters-set open close delim-open delim-close))
             (web-mode-scan-block open close)
             ) ;when close
@@ -2720,19 +2721,20 @@ Must be used in conjunction with web-mode-enable-block-face."
                                   "erb" "freemarker" "jsp" "lsp" "mako" "mason" "mojolicious"
                                   "smarty" "template-toolkit" "web2py"))
     (save-excursion
-      (goto-char reg-beg)
-      (looking-at delim-open)
-      (setq delim-open (match-string-no-properties 0))
-      (goto-char reg-end)
-      (looking-back delim-close reg-beg t)
-      (setq delim-close (match-string-no-properties 0))
+      (when delim-open
+        (goto-char reg-beg)
+        (looking-at delim-open)
+        (setq delim-open (match-string-no-properties 0)))
+      (when delim-close
+        (goto-char reg-end)
+        (looking-back delim-close reg-beg t)
+        (setq delim-close (match-string-no-properties 0)))
       ))
-;;  (message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
-  (put-text-property reg-beg (+ reg-beg (length delim-open)) 'block-token 'delimiter)
+  (when delim-open
+    (put-text-property reg-beg (+ reg-beg (length delim-open)) 'block-token 'delimiter))
   (when delim-close
-;;    (message "%S > %S" (- reg-end (length delim-close)) reg-end)
-    (put-text-property (- reg-end (length delim-close)) reg-end 'block-token 'delimiter)
-    ))
+    (put-text-property (- reg-end (length delim-close)) reg-end 'block-token 'delimiter))
+  )
 
 (defun web-mode-highlight-blocks (reg-beg reg-end)
   "Highlight blocks."
@@ -6448,6 +6450,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Calc indent column."
   (interactive)
   (unless limit (setq limit nil))
+  ;; (message "limit=%S" limit)
   (save-excursion
     (let (offset n first-char block-info col block-column (continue t))
       (goto-char pos)
@@ -6463,6 +6466,7 @@ Must be used in conjunction with web-mode-enable-block-face."
           (setq continue nil)
           )
          ((and (= (current-indentation) initial-column)
+               (not (get-text-property (point) 'block-token))
                (not (eolp)))
           (setq continue nil)
           (setq limit (point))
@@ -6488,9 +6492,11 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq col (plist-get block-info :col-num)))
        (t
         (setq n (plist-get block-info :opened-blocks))
+;;        (message "n = %S" n)
         (setq col initial-column)
-        (when (member first-char '(?\} ?\) ?\]))
+        (when (and (member first-char '(?\} ?\) ?\])) (> n 0))
           (setq n (1- n)))
+
         (setq col (+ initial-column (* n language-offset)))
         ) ;t
        ) ;cond
@@ -6499,6 +6505,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defun web-mode-count-opened-blocks (pos &optional limit)
   "Count opened opened control blocks at POS."
+
   (save-excursion
     (goto-char pos)
     (let ((continue t) pair controls control type (counter 0))
@@ -6541,6 +6548,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Count opened brackets at POS."
   (interactive)
   (unless limit (setq limit nil))
+  ;; (message "limit=%S" limit)
   (save-excursion
     (goto-char pos)
     (let ((continue t)
