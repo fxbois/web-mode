@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.35
+;; Version: 9.0.36
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -48,7 +48,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.35"
+(defconst web-mode-version "9.0.36"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -4337,7 +4337,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       (cond
        ((string= content-type "javascript")
-        (setq token-re "/.\\|\"\\|'"))
+        (setq token-re "//\\|/\\*\\|\"\\|'"))
        ((member content-type '("json" "jsx"))
         (setq token-re "//\\|/\\*\\|\"\\|'"))
        ((string= content-type "css")
