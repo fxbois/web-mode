@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.37
+;; Version: 9.0.38
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -40,7 +40,9 @@
 ;;       web-mode-surround : chaque ligne est entourée par un open et un close tag
 ;;       tester web-mode avec un fond blanc
 ;;       phphint
-
+;;todo :
+;; tag-type : start / end / void / comment / cdata / doctype / declaration
+;; tag-name uniquement sur les html tag
 ;;todo : Stickiness of Text Properties
 ;;todo : web-mode-engine-real-name (canonical name)
 ;;todo : finir filling
@@ -48,7 +50,7 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.37"
+(defconst web-mode-version "9.0.38"
   "Web Mode version.")
 
 (defgroup web-mode nil
@@ -64,6 +66,8 @@
   "Faces for syntax highlighting."
   :group 'web-mode
   :group 'faces)
+
+;;---- CUSTOMS -----------------------------------------------------------------
 
 (defcustom web-mode-script-padding 1
   "Script element left padding."
@@ -540,6 +544,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-token-regexp nil)
 (defvar web-mode-expand-initial-pos nil)
 (defvar web-mode-expand-previous-state "")
+(defvar web-mode-font-lock-keywords '(web-mode-font-lock-highlight))
 (defvar web-mode-highlight-beg nil)
 (defvar web-mode-highlight-end nil)
 (defvar web-mode-hl-line-mode-flag nil)
@@ -554,13 +559,14 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
-    "link" "meta" "param" "source" "track" "wbr")
-  "Void (self-closing) tags.")
+    "link" "meta" "param" "source" "track" "wbr"))
 
 (defvar web-mode-scan-properties
-  (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil 'tag-attr nil 'tag-attr-end nil
+  (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil
+        'tag-attr nil 'tag-attr-end nil
         'part-side nil 'part-token nil 'part-expr nil
-        'block-side nil 'block-token nil 'block-controls nil 'block-beg nil 'block-end nil
+        'block-side nil 'block-token nil 'block-controls nil
+        'block-beg nil 'block-end nil
         'syntax-table)
   "Text properties used for tokens.")
 
@@ -577,7 +583,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-imenu-regexp-list
   '(("<\\(h[1-9]\\)\\([^>]*\\)>\\([^<]*\\)" 1 3 ">")
     ("^[ \t]*<\\([@a-z]+\\)[^>]*>? *$" 1 "id=\"\\([a-zA-Z0-9_]+\\)\"" "#" ">"))
-  "List of regular expressions to match imenu items (see http://web-mode.org/doc/imenu.txt)")
+  "Regexps to match imenu items (see http://web-mode.org/doc/imenu.txt)")
 
 (defvar web-mode-engines
   '(("angular"     . ("angular.js" "angularjs"))
@@ -695,8 +701,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("crarr"  . 8629)
     ("and"    . 8743)
     ("or"     . 8744)
-    ("sdot"   . 8901)
-    )
+    ("sdot"   . 8901))
   "HTML entities")
 
 (defvar web-mode-engines-alternate-delimiters
@@ -1187,9 +1192,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   (regexp-opt
    '("__DATA__" "__END__" "__FILE__" "__LINE__"
      "__PACKAGE__"
-     "and" "cmp" "continue" "CORE" "do"
-     "else" "elsif" "eq" "exp" "for" "foreach"
-     "ge" "gt" "if" "le" "lock" "lt" "m" "ne" "no"
+     "and" "cmp" "continue" "CORE" "do" "else" "elsif" "eq" "exp"
+     "for" "foreach" "ge" "gt" "if" "le" "lock" "lt" "m" "ne" "no"
      "or" "package" "q" "qq" "qr" "qw" "qx" "s" "sub"
      "tr" "unless" "until" "while" "xor" "y"
      "my")))
@@ -1765,7 +1769,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     map)
   "Keymap for `web-mode'.")
 
-;;--- compatibility
+;;---- COMPATIBILITY -----------------------------------------------------------
 
 (eval-and-compile
 
@@ -1791,58 +1795,26 @@ Must be used in conjunction with web-mode-enable-block-face."
 
   ) ;eval-and-compile
 
-(defvar web-mode-font-lock-keywords '(web-mode-font-lock-highlight))
-
-(defun web-mode-font-lock-extend-region ()
-  (save-excursion
-    ;;    (message "before : font-lock-beg=%S - font-lock-end=%S" font-lock-beg font-lock-end)
-    (cond
-     ((string= web-mode-engine "razor")
-      (setq font-lock-beg (point-min)
-            font-lock-end (point-max)))
-     ((and web-mode-highlight-beg web-mode-highlight-end)
-      (setq font-lock-beg web-mode-highlight-beg
-            font-lock-end web-mode-highlight-end)
-      (setq web-mode-highlight-beg nil
-            web-mode-highlight-end nil)
-      )
-     (t
-;;      (message "ici")
-      (setq font-lock-beg (or (web-mode-previous-tag-at-bol-pos font-lock-beg)
-                              (point-min))
-            font-lock-end (or (web-mode-next-tag-at-eol-pos font-lock-end)
-                              (point-max)))
-      ) ;t
-     ) ;cond
-    nil))
-
-(defun web-mode-font-lock-highlight (limit)
-  "font-lock matcher"
-;;  (message "highlight : point=%S limit=%S" (point) limit)
-  (let ((inhibit-modification-hooks t)
-        (buffer-undo-list t))
-    (web-mode-highlight-region (point) limit)
-    ) ;let
-  nil)
-
 ;;;###autoload
 (define-derived-mode web-mode web-mode-prog-mode "Web"
-  "Major mode for editing web templates (HTML documents with embedded parts and blocks)."
+  "Major mode for editing web templates."
 
   (make-local-variable 'web-mode-auto-pairs)
+  (make-local-variable 'web-mode-block-regexp)
+  (make-local-variable 'web-mode-block-regexps)
   (make-local-variable 'web-mode-buffer-highlighted)
   (make-local-variable 'web-mode-change-flags)
   (make-local-variable 'web-mode-comment-style)
   (make-local-variable 'web-mode-content-type)
   (make-local-variable 'web-mode-display-table)
-  (make-local-variable 'web-mode-engine)
-  (make-local-variable 'web-mode-engine-attr-regexp)
-  (make-local-variable 'web-mode-engine-token-regexp)
-  (make-local-variable 'web-mode-block-regexps)
   (make-local-variable 'web-mode-enable-block-face)
   (make-local-variable 'web-mode-enable-inlays)
   (make-local-variable 'web-mode-enable-part-face)
+  (make-local-variable 'web-mode-end-tag-overlay)
+  (make-local-variable 'web-mode-engine)
+  (make-local-variable 'web-mode-engine-attr-regexp)
   (make-local-variable 'web-mode-engine-file-regexps)
+  (make-local-variable 'web-mode-engine-token-regexp)
   (make-local-variable 'web-mode-expand-initial-pos)
   (make-local-variable 'web-mode-expand-previous-state)
   (make-local-variable 'web-mode-highlight-beg)
@@ -1850,10 +1822,9 @@ Must be used in conjunction with web-mode-enable-block-face."
   (make-local-variable 'web-mode-hl-line-mode-flag)
   (make-local-variable 'web-mode-indent-style)
   (make-local-variable 'web-mode-is-narrowed)
+  (make-local-variable 'web-mode-is-scratch)
   (make-local-variable 'web-mode-jshint-errors)
-  (make-local-variable 'web-mode-block-regexp)
   (make-local-variable 'web-mode-start-tag-overlay)
-  (make-local-variable 'web-mode-end-tag-overlay)
   (make-local-variable 'web-mode-time)
 
   (make-local-variable 'fill-paragraph-function)
@@ -1885,8 +1856,6 @@ Must be used in conjunction with web-mode-enable-block-face."
         indent-line-function 'web-mode-indent-line
         parse-sexp-lookup-properties t
         yank-excluded-properties t)
-
-;;  (remove-hook 'after-change-functions 'font-lock-after-change-function t)
 
   (if (and (fboundp 'global-hl-line-mode)
            global-hl-line-mode)
@@ -1923,18 +1892,13 @@ Must be used in conjunction with web-mode-enable-block-face."
   (when web-mode-enable-whitespaces
     (web-mode-whitespaces-on))
 
-;;  (setq web-mode-time (current-time))
   (web-mode-guess-engine-and-content-type)
   (web-mode-scan-region (point-min) (point-max))
   (web-mode-trace "buffer scanned")
 
   )
 
-(defun web-mode-yasnippet-exit-hook ()
-  "Yasnippet exit hook"
-  (when (and (boundp 'yas-snippet-beg) (boundp 'yas-snippet-end))
-;;    (web-mode-highlight-region yas-snippet-beg yas-snippet-end)
-    (indent-region yas-snippet-beg yas-snippet-end)))
+;;---- DEFUNS ------------------------------------------------------------------
 
 (defun web-mode-set-engine (engine)
   "set engine"
@@ -1949,6 +1913,12 @@ Must be used in conjunction with web-mode-enable-block-face."
         web-mode-engine engine)
   (web-mode-on-engine-setted)
   (web-mode-scan-buffer))
+
+(defun web-mode-scan-buffer ()
+  "Scan entine buffer."
+  (interactive)
+  (web-mode-scan-region (point-min) (point-max))
+  (font-lock-fontify-buffer))
 
 (defun web-mode-set-content-type (content-type)
   "set engine"
@@ -2077,84 +2047,6 @@ Must be used in conjunction with web-mode-enable-block-face."
     (web-mode-on-engine-setted)
     ))
 
-(defun web-mode-imenu-index ()
-  (interactive)
-  "return imenu items"
-  (let (toc-index
-        line)
-    (save-excursion
-      (goto-char (point-min))
-      (while (not (eobp))
-        (setq line (buffer-substring-no-properties
-                    (line-beginning-position)
-                    (line-end-position)))
-
-        (let (found
-              (i 0)
-              item
-              regexp
-              type
-              type-idx
-              content
-              content-idx
-              content-regexp
-              close-tag-regexp
-              concat-str
-              jumpto
-              str)
-          (while (and (not found ) (< i (length web-mode-imenu-regexp-list)))
-            (setq item (nth i web-mode-imenu-regexp-list))
-            (setq regexp (nth 0 item))
-            (setq type-idx (nth 1 item))
-            (setq content-idx (nth 2 item))
-            (setq concat-str (nth 3 item))
-            (when (not (numberp content-idx))
-              (setq content-regexp (nth 2 item)
-                    close-tag-regexp (nth 4 item)
-                    content-idx nil))
-
-            (when (string-match regexp line)
-
-              (cond
-               (content-idx
-                (setq type (match-string type-idx line))
-                (setq content (match-string content-idx line))
-                (setq str (concat type concat-str content))
-                (setq jumpto (line-beginning-position)))
-               (t
-                (let (limit )
-                  (setq type (match-string type-idx line))
-                  (goto-char (line-beginning-position))
-                  (save-excursion
-                    (setq limit (re-search-forward close-tag-regexp (point-max) t)))
-
-                  (when limit
-                    (when (re-search-forward content-regexp limit t)
-                      (setq content (match-string 1))
-                      (setq str (concat type concat-str content))
-                      (setq jumpto (line-beginning-position))
-                      )
-                    )))
-               )
-              (when str (setq toc-index
-                              (cons (cons str jumpto)
-                                    toc-index)
-                              )
-                    (setq found t))
-              )
-            (setq i (1+ i))))
-        (forward-line)
-        (goto-char (line-end-position)) ;; make sure we are at eobp
-        ))
-    ;; (message "toc-index=%s" toc-index)
-    (nreverse toc-index)))
-
-(defun web-mode-scan-buffer ()
-  "Scan entine buffer."
-  (interactive)
-  (web-mode-scan-region (point-min) (point-max))
-  (font-lock-fontify-buffer))
-
 (defun web-mode-scan-region (beg end &optional content-type)
   "Identify nodes/parts/blocks and syntactic symbols (strings/comments)."
   (interactive)
@@ -2187,54 +2079,16 @@ Must be used in conjunction with web-mode-enable-block-face."
              (web-mode-part-scan beg end)
              )
             ((string= web-mode-engine "none")
-             (web-mode-dom-scan beg end)
+             (web-mode-scan-elements beg end)
              (web-mode-scan-parts beg end)
              )
             (t
              (web-mode-scan-blocks beg end)
-             (web-mode-dom-scan beg end)
+             (web-mode-scan-elements beg end)
              (web-mode-scan-parts beg end)
              )
             ) ;cond
 
-           ))))))
-
-(defun web-mode-highlight-region (beg end &optional content-type)
-  "Highlight region (relying on text-properties setted during the scanning phase)."
-  (interactive)
-;;  (message "highlight: beg(%S) end(%S) ct(%S)" beg end content-type)
-  (web-mode-with-silent-modifications
-   (save-excursion
-     (save-restriction
-       (save-match-data
-         (let ((inhibit-modification-hooks t)
-               (inhibit-point-motion-hooks t)
-               (inhibit-quit t))
-           (setq beg (if web-mode-is-narrowed 1 beg))
-           (remove-text-properties beg end '(font-lock-face nil))
-           (cond
-            ((= web-mode-change-flags 1)
-             (web-mode-block-highlight beg end)
-             )
-            ((= web-mode-change-flags 2)
-             (web-mode-part-highlight beg end)
-             )
-            ((or (member web-mode-content-type '("javascript" "json" "jsx" "css"))
-                 (member content-type '("javascript" "css")))
-             (web-mode-part-highlight beg end)
-             (when (member web-mode-content-type '("jsx"))
-               (web-mode-highlight-tags beg end))
-             (web-mode-highlight-blocks beg end))
-            ((string= web-mode-engine "none")
-             (web-mode-highlight-tags beg end)
-             (web-mode-highlight-parts beg end))
-            (t
-             (web-mode-highlight-tags beg end)
-             (web-mode-highlight-parts beg end)
-             (web-mode-highlight-blocks beg end))
-            ) ;cond
-           (when web-mode-enable-whitespaces
-             (web-mode-highlight-whitespaces beg end))
            ))))))
 
 (defun web-mode-scan-blocks (reg-beg reg-end)
@@ -2274,7 +2128,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 
         (setq sub1 (substring tagopen 0 1)
               sub2 (substring tagopen 0 (if (>= l 2) 2 1)))
-
 
         (cond
 
@@ -2703,9 +2556,9 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((string= web-mode-engine "razor")
         (web-mode-process-blocks reg-beg reg-end "scan"))
        ((string= web-mode-engine "django")
-        (web-mode-scan-django-block-comments reg-beg reg-end))
+        (web-mode-scan-django-comments reg-beg reg-end))
        ((string= web-mode-engine "mako")
-        (web-mode-scan-mako-block-comments reg-beg reg-end))
+        (web-mode-scan-mako-comments reg-beg reg-end))
        ) ;cond
 
       )))
@@ -2731,10 +2584,6 @@ Must be used in conjunction with web-mode-enable-block-face."
   (when delim-close
     (put-text-property (- reg-end (length delim-close)) reg-end 'block-token 'delimiter))
   )
-
-(defun web-mode-highlight-blocks (reg-beg reg-end)
-  "Highlight blocks."
-  (web-mode-process-blocks reg-beg reg-end "highlight"))
 
 ;;todo : passer en funcall
 (defun web-mode-process-blocks (reg-beg reg-end type)
@@ -2768,10 +2617,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-scan-parts (reg-beg reg-end)
   "Scan parts."
   (web-mode-process-parts reg-beg reg-end "scan"))
-
-(defun web-mode-highlight-parts (reg-beg reg-end)
-  "Highlight parts."
-  (web-mode-process-parts reg-beg reg-end "highlight"))
 
 ;;todo : passer en funcall
 (defun web-mode-process-parts (reg-beg reg-end type)
@@ -3008,7 +2853,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defun web-mode-block-tokenize (reg-beg reg-end &optional regexp)
-  "tokenize zone"
+  "Tokenize block chunk."
   (unless regexp (setq regexp web-mode-engine-token-regexp))
 ;;  (message "tokenize: reg-beg(%S) reg-end(%S) block-end(%S)" reg-beg reg-end block-end)
   (save-excursion
@@ -3526,175 +3371,8 @@ Must be used in conjunction with web-mode-enable-block-face."
       ) ;while
     pos))
 
-(defun web-mode-block-highlight (reg-beg reg-end)
-  "Highlight block."
-  (let (sub2 sub3 continue char keywords token-type face beg end flags (buffer (current-buffer)))
-    ;;(message "reg-beg=%S reg-end=%S" reg-beg reg-end)
-    (remove-text-properties reg-beg reg-end '(font-lock-face nil))
-
-    (goto-char reg-beg)
-
-    (when (null web-mode-engine-font-lock-keywords)
-      (setq sub2 (buffer-substring-no-properties
-                  reg-beg (+ reg-beg 2))
-            sub3 (buffer-substring-no-properties
-                  reg-beg (+ reg-beg (if (>= (point-max) (+ reg-beg 3)) 3 2))))
-      )
-
-    (cond
-
-     ((and (get-text-property reg-beg 'block-beg)
-           (eq (get-text-property reg-beg 'block-token) 'comment))
-      (put-text-property reg-beg reg-end 'font-lock-face 'web-mode-comment-face)
-      ) ;comment block
-
-     (web-mode-engine-font-lock-keywords
-      (setq keywords web-mode-engine-font-lock-keywords)
-      )
-
-     ((string= web-mode-engine "django")
-      (cond
-       ((string= sub2 "{{")
-        (setq keywords web-mode-django-expr-font-lock-keywords))
-       ((string= sub2 "{%")
-        (setq keywords web-mode-django-code-font-lock-keywords))
-       )) ;django
-
-     ((string= web-mode-engine "mako")
-      (cond
-       ((member sub3 '("<% " "<%\n" "<%!"))
-        (setq keywords web-mode-mako-block-font-lock-keywords))
-       ((string= sub2 "% ")
-        (setq keywords web-mode-mako-block-font-lock-keywords))
-       ((member sub2 '("<%" "</"))
-        (setq keywords web-mode-mako-tag-font-lock-keywords))
-       ((member sub2 '("${"))
-        (setq keywords web-mode-uel-font-lock-keywords))
-       )) ;mako
-
-     ((string= web-mode-engine "jsp")
-      (cond
-       ((string= sub3 "<%@")
-        (setq keywords web-mode-directive-font-lock-keywords))
-       ((member sub2 '("${" "#{"))
-        (setq keywords web-mode-uel-font-lock-keywords))
-       ((string= sub2 "<%")
-        (setq keywords web-mode-jsp-font-lock-keywords))
-       (t
-        (setq keywords web-mode-jsp-tag-font-lock-keywords))
-       )) ;jsp
-
-     ((string= web-mode-engine "aspx")
-      (cond
-       ((string= sub3 "<%@")
-        (setq keywords web-mode-directive-font-lock-keywords))
-       ((string= sub3 "<%$")
-        (setq keywords web-mode-expression-font-lock-keywords))
-       (t
-        (setq keywords web-mode-aspx-font-lock-keywords))
-       )) ;aspx
-
-     ((string= web-mode-engine "freemarker")
-      (cond
-       ((member sub2 '("${" "#{"))
-        (setq keywords web-mode-uel-font-lock-keywords))
-       ((or (member sub2 '("<@" "[@" "<#" "[#"))
-            (member sub3 '("</@" "[/@" "</#" "[/#")))
-        (setq keywords (if (eq ?\[ (aref sub2 0))
-                           web-mode-freemarker-square-font-lock-keywords
-                         web-mode-freemarker-font-lock-keywords)))
-       (t
-        (setq keywords web-mode-jsp-tag-font-lock-keywords))
-       )) ;freemarker
-
-     ) ;cond
-
-    (when keywords
-      (web-mode-fontify-region reg-beg reg-end keywords)
-;;      (message "reg-beg(%S) reg-end(%S)" reg-beg reg-end)
-      (setq flags (get-text-property reg-beg 'block-beg))
-;;      (setq continue (not (null flags))) ;;(> (logand flags 1) 0))
-      (setq continue t)
-      (setq end reg-beg)
-      (while continue
-;;        (message "end=%S %S" end (get-text-property end 'block-token))
-
-        ;; (if (and (= reg-beg end)
-        ;;          (eq (get-text-property end 'block-token) 'delimiter))
-        ;;     (setq beg end)
-        ;;   (setq beg (next-single-property-change end 'block-token))
-        ;;   )
-
-        (if (get-text-property end 'block-token)
-            (setq beg end)
-          (setq beg (next-single-property-change end 'block-token buffer reg-end)))
-
-        (setq end nil)
-        (when beg (setq char (char-after beg)))
-        (if (and beg (< beg reg-end))
-            (progn
-              (setq token-type (get-text-property beg 'block-token))
-              (setq face (cond
-                          ((eq token-type 'string)  'web-mode-block-string-face)
-                          ((eq token-type 'comment) 'web-mode-block-comment-face)
-                          (t                        'web-mode-block-delimiter-face)))
-              (setq end (next-single-property-change beg 'block-token buffer reg-end))
-;;              (message "end=%S" end)
-              (if (and end (<= end reg-end))
-                  (progn
-;;                    (message "%S > %S face(%S)" beg end face)
-                    (remove-text-properties beg end '(face nil))
-                    (put-text-property beg end 'font-lock-face face))
-                (setq continue nil
-                      end nil)
-                ) ;if end
-              ) ;progn beg
-          (setq continue nil
-                end nil)
-          ) ;if beg
-        (when (and beg end flags)
-          (save-match-data
-            (when (and web-mode-enable-heredoc-fontification
-                       (eq char ?\<)
-                       (> (- end beg) 8)
-                       ;;                     (progn (message "ici%S" (buffer-substring-no-properties beg end)) t)
-                     ;;                   (member web-mode-engine '("php"))
-                       (> (logand flags 2) 0)
-                       (string-match-p "JS\\|JAVASCRIPT\\|HTM\\|CSS" (buffer-substring-no-properties beg end)))
-              (setq keywords (if (eq ?H (char-after (+ beg 3)))
-                                 web-mode-html-font-lock-keywords
-                               web-mode-javascript-font-lock-keywords))
-;;              (remove-text-properties beg end '(font-lock-face nil))
-              (web-mode-fontify-region beg end keywords)
-            ))
-;;          (message "%S %c %S beg=%S end=%S" web-mode-enable-string-interpolation char web-mode-engine beg end)
-          (when (and web-mode-enable-string-interpolation
-                     (member char '(?\" ?\<))
-                     (member web-mode-engine '("php" "erb"))
-                     (> (- end beg) 4))
-            (web-mode-interpolate-string beg end))
-          (when (and web-mode-enable-comment-keywords
-                     (eq token-type 'comment)
-                     (> (- end beg) 3))
-            (web-mode-interpolate-comment beg end t)
-            ) ;when
-          ) ;when beg end
-        ) ;while continue
-      ) ;when keywords
-
-    (when (and (member web-mode-engine '("jsp" "mako"))
-               (> (- reg-end reg-beg) 12)
-               (eq ?\< (char-after reg-beg)))
-      (web-mode-interpolate-block-tag reg-beg reg-end))
-
-    (when web-mode-enable-block-face
-;;      (message "block-face %S %S" reg-beg reg-end)
-      (font-lock-append-text-property reg-beg reg-end 'face 'web-mode-block-face))
-
-    ))
-
-(defun web-mode-scan-mako-block-comments (reg-beg reg-end)
-  "Scan extra"
+(defun web-mode-scan-mako-comments (reg-beg reg-end)
+  "Scan mako comments."
   (save-excursion
     (let (beg end (continue t))
       (goto-char reg-beg)
@@ -3714,8 +3392,8 @@ Must be used in conjunction with web-mode-enable-block-face."
         ) ;while
       )))
 
-(defun web-mode-scan-django-block-comments (reg-beg reg-end)
-  "Scan extra"
+(defun web-mode-scan-django-comments (reg-beg reg-end)
+  "Scan django comments."
   (save-excursion
     (let (beg end)
       (goto-char reg-beg)
@@ -3725,18 +3403,13 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq beg (point))
         (goto-char (1+ (match-beginning 0)))
         (when (re-search-forward "{% endcomment %}" reg-end t)
-;;          (setq end (1- (point)))
           (setq end (point))
           (remove-text-properties beg end web-mode-scan-properties)
           (add-text-properties beg end '(block-side t block-token comment))
           (put-text-property beg (1+ beg) 'block-beg t)
           (put-text-property (1- end) end 'block-end t)
-;;          (remove-text-properties beg end web-mode-scan-properties)
-          ;; (add-text-properties
-          ;;  beg end
-          ;;  '(block-token comment font-lock-face web-mode-comment-face))
           ) ;when
-        )
+        ) ;while
       )))
 
 (defun web-mode-interpolate-block-tag (beg end)
@@ -3760,17 +3433,9 @@ Must be used in conjunction with web-mode-enable-block-face."
     (cond
      ((string= web-mode-engine "php")
       (while (re-search-forward "$[[:alnum:]_]+\\(->[[:alnum:]_]+\\)*\\|{[ ]*$.+}" end t)
-        ;;web-mode-php-var-interpolation-font-lock-keywords
-;;        (message "la%S" (point))
         (remove-text-properties (match-beginning 0) (match-end 0) '(font-lock-face nil))
         (web-mode-fontify-region (match-beginning 0) (match-end 0)
                                  web-mode-php-var-interpolation-font-lock-keywords)
-
-        ;; (put-text-property (match-beginning 0) (match-end 0)
-        ;;                    'font-lock-face nil)
-        ;; (put-text-property (1+ (match-beginning 0)) (match-end 0)
-        ;;                    'font-lock-face 'web-mode-variable-name-face)
-
         ))
      ((string= web-mode-engine "erb")
       (while (re-search-forward "#{.*}" end t)
@@ -3794,10 +3459,10 @@ Must be used in conjunction with web-mode-enable-block-face."
         ) ;while
       )))
 
-(defun web-mode-dom-scan (reg-beg reg-end)
+(defun web-mode-scan-elements (reg-beg reg-end)
   "Scan html nodes (tags/attrs/comments/doctype)."
   (save-excursion
-    (let (part-beg part-end flags limit close-expr props tname tbeg tend tstop element-content-type regexp regexp1 regexp2 part-close-tag)
+    (let (part-beg part-end flags limit close-expr props tname tbeg tend tstop element-content-type regexp regexp1 regexp2 part-close-tag char)
 
       (setq regexp1 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|\?xml\\)"
             regexp2 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\)")
@@ -3806,10 +3471,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       (goto-char reg-beg)
 
-      (while (web-mode-dom-rsf regexp reg-end t)
+      (while (web-mode-dom-rsf regexp reg-end)
 
         (setq flags 0
               tname (downcase (match-string-no-properties 1))
+              char (aref tname 0)
               tbeg (match-beginning 0)
               tend nil
               tstop (point)
@@ -3822,6 +3488,22 @@ Must be used in conjunction with web-mode-enable-block-face."
               part-close-tag nil)
 
         (cond
+
+         ((not (member char '(?\! ?\?)))
+          (when (string-match-p "-" tname)
+            (setq flags (logior flags 2)))
+          (cond
+           ((eq char ?\/)
+            (setq props (list 'tag-name (substring tname 1) 'tag-type 'end)
+                  flags (logior flags 4))
+            (setq limit (if (> reg-end (line-end-position)) (line-end-position) reg-end)))
+           ((web-mode-element-is-void tname)
+            (setq props (list 'tag-name tname 'tag-type 'void)))
+           (t
+            (setq props (list 'tag-name tname 'tag-type 'start)))
+           ) ;cond
+          )
+
          ((string= tname "!--")
           (setq close-expr "-->"
                 props '(tag-type comment)))
@@ -3835,34 +3517,37 @@ Must be used in conjunction with web-mode-enable-block-face."
          ((string= tname "!doctype")
           (setq regexp regexp2
                 props '(tag-type doctype)))
-         (t
-          (when (string-match-p "-" tname)
-            (setq flags (logior flags 2)))
-          (cond
-           ((eq ?\/ (aref tname 0))
-            (setq props (list 'tag-name (substring tname 1) 'tag-type 'end)
-                  flags (logior flags 4))
-            (setq limit (if (> reg-end (line-end-position)) (line-end-position) reg-end)))
-           ((web-mode-element-is-void tname)
-            (setq props (list 'tag-name tname 'tag-type 'void)))
-           (t
-            (setq props (list 'tag-name tname 'tag-type 'start)))
-           ) ;cond
-          ) ;t
+
+         ;; (nil
+         ;;  (when (string-match-p "-" tname)
+         ;;    (setq flags (logior flags 2)))
+         ;;  (cond
+         ;;   ((eq ?\/ (aref tname 0))
+         ;;    (setq props (list 'tag-name (substring tname 1) 'tag-type 'end)
+         ;;          flags (logior flags 4))
+         ;;    (setq limit (if (> reg-end (line-end-position)) (line-end-position) reg-end)))
+         ;;   ((web-mode-element-is-void tname)
+         ;;    (setq props (list 'tag-name tname 'tag-type 'void)))
+         ;;   (t
+         ;;    (setq props (list 'tag-name tname 'tag-type 'start)))
+         ;;   ) ;cond
+         ;;  ) ;t
+
          ) ;cond
 
         (cond
          ((and (null close-expr) (eq (char-after) ?\>))
           (setq flags (logior flags 16))
-          (forward-char)
-          (setq tend (point)))
+;;          (forward-char)
+          (setq tend (1+ (point)))
+          )
          ((and (null close-expr) (looking-at-p "[ ]*/>"))
           (setq flags (logior flags 24))
           (search-forward ">")
           (setq tend (point)))
          ((null close-expr)
           (setq flags (logior flags (web-mode-tag-skip reg-end)))
-;;          (message "%S %S" tname (point))
+;;          (search-forward ">")
           (setq tend (point)))
          ((web-mode-dom-sf close-expr limit t)
           (setq tend (point)))
@@ -3903,10 +3588,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                    (web-mode-dom-sf part-close-tag reg-end t)
                    (setq part-beg tend)
                    (setq part-end (match-beginning 0))
-;;                   (progn (message "%S %S" part-beg part-end) t)
                    (> part-end part-beg))
           (put-text-property part-beg part-end 'part-side (intern element-content-type))
-;;          (goto-char part-end)
           )
 
         (goto-char tend)
@@ -3915,24 +3598,17 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       )))
 
-;;todo :
-;; tag-type : start / end / void / comment / cdata / doctype / declaration
-;; tag-name uniquement sur les html tag
-
-;; piste d'optim : associer tagname à 'tag-end
-
-
 ;; tag flags
 ;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)brackend-end
 
-;; states:
-;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after (6)value-uq (7)value-sq (8)value-dq
-
-;; http://dev.w3.org/html5/html-author/#tags
-;; http://www.w3schools.com/jsref/prop_node_nodetype.asp
 ;; start-tag, end-tag, tag-name, element (<a>xsx</a>, an element is delimited by tags), void-element
+;; http://www.w3schools.com/jsref/prop_node_nodetype.asp
+;; http://dev.w3.org/html5/html-author/#tags
 ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
 ;; http://www.w3.org/TR/html-markup/syntax.html#syntax-attributes
+
+;; attr states:
+;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after (6)value-uq (7)value-sq (8)value-dq
 (defun web-mode-tag-skip (limit)
   "Scan attributes and fetch end of tag."
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0)
@@ -3953,6 +3629,13 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq continue nil)
         (setq go-back t)
         (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
+        )
+
+       ((and (member state '(2 6 7 8))
+             (or (and (>= char 97) (<= char 122)) ;a - z
+                 (and (>= char 65) (<= char 90)) ;A - Z
+                 (and (>= char 48) (<= char 57)) ;0 - 9
+                 (member char '(?\_ ?\: ?\/ ?\. ?\+))))
         )
 
        ((get-text-property pos 'block-side)
@@ -4133,7 +3816,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 
     tag-flags))
 
-
 ;; attr flags
 ;; (1)custom-attr (2)engine-attr
 
@@ -4178,144 +3860,10 @@ Must be used in conjunction with web-mode-enable-block-face."
    ) ;cond
   )
 
-(defun web-mode-highlight-tags (reg-beg reg-end)
-  "web-mode-highlight-nodes"
-  (let ((continue t))
-    (goto-char reg-beg)
-    (when (and (not (get-text-property (point) 'tag-beg))
-               (not (web-mode-tag-next)))
-      (setq continue nil))
-    (when (and continue (>= (point) reg-end))
-      (setq continue nil))
-    (while continue
-      (web-mode-highlight-tag)
-      (when (or (not (web-mode-tag-next))
-                (>= (point) reg-end))
-        (setq continue nil))
-      ) ;while
-    (when web-mode-enable-inlays
-      (when (null web-mode-inlay-regexp)
-        (setq web-mode-inlay-regexp (regexp-opt '("\\[" "\\(" "\\begin{align}"))))
-      (let (beg end expr)
-        (goto-char reg-beg)
-        (while (web-mode-dom-rsf web-mode-inlay-regexp reg-end)
-          (setq beg (match-beginning 0)
-                end nil
-                expr (substring (match-string-no-properties 0) 0 2))
-          (setq expr (cond
-                      ((string= expr "\\[") "\\]")
-                      ((string= expr "\\(") "\\)")
-                      (t "\\end{align}")))
-          (when (and (web-mode-dom-sf expr reg-end)
-                     (setq end (match-end 0))
-                     (not (text-property-any beg end 'tag-end t)))
-;;            (message "%S %S" beg end)
-;;            (web-mode-fontify-region beg end 'web-mode-latex-font-lock-keywords)
-            (font-lock-append-text-property beg end 'face 'web-mode-inlay-face)
-            ) ;when
-          ) ;while
-        ) ;let
-      ) ;when
-    ))
-
-;; flags
-;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)brackend-end
-(defun web-mode-highlight-tag ()
-  "web-mode-highlight-nodes"
-  (let ((beg (point)) end name type face flags slash-beg slash-end bracket-end)
-
-    (setq end (1+ (web-mode-tag-end-position beg))
-          flags (get-text-property beg 'tag-beg)
-          type (get-text-property beg 'tag-type)
-          name (get-text-property beg 'tag-name))
-
-    (cond
-
-     ((eq type 'comment)
-      (put-text-property beg end 'font-lock-face 'web-mode-comment-face)
-;;      (message "web-mode-enable-comment-keywords=%S beg(%S) end(%S)" web-mode-enable-comment-keywords beg end)
-      (when (and web-mode-enable-comment-keywords (> (- end beg) 5))
-        (web-mode-interpolate-comment beg end nil))
-      )
-
-     ((eq type 'cdata)
-      (put-text-property beg end 'font-lock-face 'web-mode-doctype-face))
-
-     ((eq type 'doctype)
-      (put-text-property beg end 'font-lock-face 'web-mode-doctype-face))
-
-     ((eq type 'declaration)
-      (put-text-property beg end 'font-lock-face 'web-mode-doctype-face))
-
-     (name
-
-      ;; todo : se passer des vars intermédiaires
-      (setq face (if (> (logand flags 2) 0) 'web-mode-html-tag-custom-face 'web-mode-html-tag-face)
-            slash-beg (> (logand flags 4) 0)
-            slash-end (> (logand flags 8) 0)
-            bracket-end (> (logand flags 16) 0))
-
-      (put-text-property beg (+ beg (if slash-beg 2 1)) 'font-lock-face 'web-mode-html-tag-bracket-face)
-      (put-text-property (+ beg (if slash-beg 2 1))
-                         (+ beg (if slash-beg 2 1) (length name))
-                         'font-lock-face face)
-      (when (or slash-end bracket-end)
-        (put-text-property (- end (if slash-end 2 1)) end 'font-lock-face 'web-mode-html-tag-bracket-face)
-        ) ;when
-
-      (when (> (logand flags 1) 0)
-        (web-mode-highlight-attrs beg end)
-        )
-
-      ) ;name
-
-     ) ;cond
-
-    ))
-
-;; todo : optimisation des zones reg-beg et reg-end
-(defun web-mode-highlight-attrs (reg-beg reg-end)
-  "Highlight attributes."
-  (let ((continue t) (pos reg-beg) beg end flags offset face)
-    (while continue
-      (setq beg (next-single-property-change pos 'tag-attr))
-      (if (and beg (< beg reg-end))
-          (progn
-            (setq flags (get-text-property beg 'tag-attr))
-;;            (message "beg=%S flags=%S" beg flags)
-            (setq face (cond
-                        ((= (logand flags 1) 1) 'web-mode-html-attr-custom-face)
-                        ((= (logand flags 2) 2) 'web-mode-html-attr-engine-face)
-                        (t 'web-mode-html-attr-name-face)))
-            (if (get-text-property beg 'tag-attr-end)
-                (setq end beg)
-              (setq end (next-single-property-change beg 'tag-attr-end)))
-;;            (message "beg=%S end=%S" beg end)
-            (if (and end (< end reg-end))
-                (progn
-                  (setq offset (get-text-property end 'tag-attr-end))
-;;                  (message "offset=%S" offset)
-                  (if (= offset 0)
-                      (put-text-property beg (1+ end) 'font-lock-face face)
-                    (put-text-property beg (+ beg offset) 'font-lock-face face)
-                    (put-text-property (+ beg offset) (+ beg offset 1) 'font-lock-face 'web-mode-html-attr-equal-face)
-                    (put-text-property (+ beg offset 1) (1+ end) 'font-lock-face 'web-mode-html-attr-value-face)
-                    ) ;if offset
-                  (setq pos (1+ end))
-                  ) ;progn
-              (setq continue nil)
-              ) ;if end
-            ) ;progn beg
-        (setq continue nil)
-        ) ;if beg
-      ) ;while
-    ))
-
 (defun web-mode-part-scan (reg-beg reg-end &optional content-type)
   "Scan client part (e.g. javascript, json, css)."
   (save-excursion
     (let (token-re ch-before ch-at ch-next token-type start continue)
-
       (cond
        (content-type
         )
@@ -4323,14 +3871,8 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq content-type web-mode-content-type))
        (t
         (setq content-type (symbol-name (get-text-property reg-beg 'part-side))))
-       )
-
-;;      (message "reg-beg(%S) reg-end(%S) content-type(%S)" reg-beg reg-end content-type)
-
-;;      (remove-text-properties reg-beg reg-end web-mode-scan-properties2)
-
+       ) ;cond
       (goto-char reg-beg)
-
       (cond
        ((string= content-type "javascript")
         (setq token-re "//\\|/\\*\\|\"\\|'"))
@@ -4341,7 +3883,6 @@ Must be used in conjunction with web-mode-enable-block-face."
        (t
         (setq token-re "/\\*\\|\"\\|'"))
        )
-
       (while (and token-re (web-mode-dom-rsf token-re reg-end t))
         (setq start (match-beginning 0)
               token-type nil
@@ -4457,167 +3998,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 
       )))
 
-(defun web-mode-part-highlight (reg-beg reg-end)
-  "Highlight part (e.g. javascript, json, css)."
-  (save-excursion
-    (let (char start continue token-type face beg end string-face comment-face content-type)
-;;      (message "part-highlight: reg-beg(%S) reg-end(%S)" reg-beg reg-end)
-      (if (member web-mode-content-type '("javascript" "json" "jsx" "css"))
-          (setq content-type web-mode-content-type)
-        (setq content-type (symbol-name (get-text-property reg-beg 'part-side)))
-        )
-
-      (goto-char reg-beg)
-
-      (cond
-       ((member content-type '("javascript" "jsx"))
-        (setq string-face 'web-mode-javascript-string-face
-              comment-face 'web-mode-javascript-comment-face)
-        (web-mode-fontify-region reg-beg reg-end web-mode-javascript-font-lock-keywords))
-       ((string= content-type "json")
-        (setq string-face 'web-mode-json-string-face
-              comment-face 'web-mode-json-comment-face)
-        (web-mode-fontify-region reg-beg reg-end web-mode-javascript-font-lock-keywords))
-       ((string= content-type "css")
-        (setq string-face 'web-mode-css-string-face
-              comment-face 'web-mode-css-comment-face)
-        (web-mode-css-rules-highlight reg-beg reg-end)
-        )
-       (t
-        (setq string-face 'web-mode-part-string-face
-              comment-face 'web-mode-part-comment-face)
-        )
-       )
-
-      (setq continue t
-            end reg-beg)
-      (while continue
-        (setq char (char-after beg))
-        (if (and (= reg-beg end)
-                 (get-text-property end 'part-token))
-            (setq beg reg-beg)
-          (setq beg (next-single-property-change end 'part-token)))
-        (setq end nil)
-        (if (and beg (< beg reg-end))
-            (progn
-              (setq token-type (get-text-property beg 'part-token))
-              (setq face (cond
-                          ((eq token-type 'string) string-face)
-                          ((eq token-type 'comment) comment-face)
-                          ((eq token-type 'context) 'web-mode-json-context-face)
-                          ((eq token-type 'key) 'web-mode-json-key-face)
-                          ((eq token-type 'html) nil)
-                          ;;                          ((eq token-type 'literal-expr) nil)
-                          (t nil)))
-              (setq end (next-single-property-change beg 'part-token))
-              (if (and end (<= end reg-end))
-                  (cond
-                   (face
-                    (remove-text-properties beg end '(face nil))
-                    (put-text-property beg end 'font-lock-face face))
-                   ) ;cond
-                (setq continue nil
-                      end nil)
-                ) ;if end
-              ) ;progn beg
-          (setq continue nil
-                end nil)
-          ) ;if beg
-
-        (when (and beg end
-                   web-mode-enable-comment-keywords
-                   (eq token-type 'comment)
-                   (> (- end beg) 3))
-          (web-mode-interpolate-comment beg end t))
-
-        ) ;while
-
-      (when web-mode-enable-part-face
-        (font-lock-append-text-property reg-beg reg-end 'face 'web-mode-part-face))
-
-      (when (string= content-type "jsx")
-        (goto-char reg-beg)
-        (setq continue t
-              end reg-beg)
-        (while continue
-          (setq beg (next-single-property-change end 'part-expr)
-                end nil)
-;;          (message "beg%S reg-end%S" beg reg-end)
-          (if (and beg (< beg reg-end))
-              (progn
-                (setq end (next-single-property-change beg 'part-expr))
-;;                (message "bounds %S %S"  beg end)
-                (if (and end (< end reg-end))
-                    (progn
-                      (remove-text-properties beg end '(face nil))
-                      (put-text-property beg (1+ beg) 'face 'web-mode-block-delimiter-face)
-                      (put-text-property (1- end) end 'face 'web-mode-block-delimiter-face)
-                      (web-mode-fontify-region (1+ beg) (1- end) web-mode-javascript-font-lock-keywords)
-                      ) ;progn
-                  (setq continue nil
-                        end nil))
-                ) ;progn
-            (setq continue nil
-                  end nil))
-          ) ;while
-        ) ;when jsx
-
-      )))
-
-(defun web-mode-css-rules-highlight (part-beg part-end)
-  "Scan CSS rules."
-  (save-excursion
-    (goto-char part-beg)
-    (let (rule (continue t) (i 0) at-rule)
-      (while continue
-        (setq i (1+ i))
-        (setq rule (web-mode-css-rule-next part-end))
-        (cond
-         ((> i 1000)
-          (message "*** too much css rules ***")
-          (setq continue nil))
-         ((null rule)
-          (setq continue nil))
-         ((and (setq at-rule (plist-get rule :at-rule))
-               (not (member at-rule '("charset" "font-face" "import")))
-               (plist-get rule :dec-end))
-          (web-mode-css-rule-highlight (plist-get rule :sel-beg)
-                                       (plist-get rule :sel-end)
-                                       nil nil)
-          (web-mode-css-rules-highlight (plist-get rule :dec-beg)
-                                        (plist-get rule :dec-end))
-          )
-         (t
-          (web-mode-css-rule-highlight (plist-get rule :sel-beg)
-                                       (plist-get rule :sel-end)
-                                       (plist-get rule :dec-beg)
-                                       (plist-get rule :dec-end))
-          )
-         ) ;cond
-        )
-      )
-    ))
-
-(defun web-mode-css-rule-highlight (sel-beg sel-end dec-beg dec-end)
-  "Fontify css rule."
-  (save-excursion
-;;    (message "sel-beg=%S sel-end=%S dec-beg=%S dec-end=%S" sel-beg sel-end dec-beg dec-end)
-    (web-mode-fontify-region sel-beg sel-end
-                             web-mode-selector-font-lock-keywords)
-    (when (and dec-beg dec-end)
-      (web-mode-fontify-region dec-beg dec-end
-                               web-mode-declaration-font-lock-keywords)
-      (goto-char dec-beg)
-      (while (and web-mode-enable-css-colorization
-                  (re-search-forward "#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgb([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" dec-end t)
-                  (< (point) dec-end))
-        (web-mode-colorize (match-beginning 0) (match-end 0))
-        )
-      )))
-
 ;; css rule = selector(s) + declaration (properties)
 (defun web-mode-css-rule-next (limit)
-  "next rule"
+  "Fetch next css rule."
   (let (at-rule sel-beg sel-end dec-beg dec-end chunk)
     (skip-chars-forward "\n\t ")
     (setq sel-beg (point))
@@ -4786,7 +4169,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         (when (and beg end)
 ;;          (remove-text-properties beg end '(part-token))
           (put-text-property beg end 'part-token 'html)
-          (web-mode-dom-scan beg end)
+          (web-mode-scan-elements beg end)
 ;;          (message "scan-tags %S %S" beg end)
           (web-mode-scan-expr-literal beg end)
           )
@@ -4865,7 +4248,6 @@ Must be used in conjunction with web-mode-enable-block-face."
       )
      )))
 
-
 (defun web-mode-razor-skip-forward (pos)
   "Find the end of a razor block."
   (goto-char pos)
@@ -4918,6 +4300,560 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;      (message "%S" (get-text-property 58 'block-token))
     ))
 
+;;---- HIGHLIGHTING ------------------------------------------------------------
+
+(defun web-mode-font-lock-extend-region ()
+  (save-excursion
+    ;;    (message "before : font-lock-beg=%S - font-lock-end=%S" font-lock-beg font-lock-end)
+    (cond
+     ((string= web-mode-engine "razor")
+      (setq font-lock-beg (point-min)
+            font-lock-end (point-max)))
+     ((and web-mode-highlight-beg web-mode-highlight-end)
+      (setq font-lock-beg web-mode-highlight-beg
+            font-lock-end web-mode-highlight-end)
+      (setq web-mode-highlight-beg nil
+            web-mode-highlight-end nil)
+      )
+     (t
+;;      (message "ici")
+      (setq font-lock-beg (or (web-mode-previous-tag-at-bol-pos font-lock-beg)
+                              (point-min))
+            font-lock-end (or (web-mode-next-tag-at-eol-pos font-lock-end)
+                              (point-max)))
+      ) ;t
+     ) ;cond
+    nil))
+
+(defun web-mode-font-lock-highlight (limit)
+  "font-lock matcher"
+;;  (message "highlight : point=%S limit=%S" (point) limit)
+  (let ((inhibit-modification-hooks t)
+        (buffer-undo-list t))
+    (web-mode-highlight-region (point) limit)
+    ) ;let
+  nil)
+
+
+(defun web-mode-highlight-region (beg end &optional content-type)
+  "Highlight region (relying on text-properties setted during the scanning phase)."
+  (interactive)
+;;  (message "highlight: beg(%S) end(%S) ct(%S)" beg end content-type)
+  (web-mode-with-silent-modifications
+   (save-excursion
+     (save-restriction
+       (save-match-data
+         (let ((inhibit-modification-hooks t)
+               (inhibit-point-motion-hooks t)
+               (inhibit-quit t))
+           (setq beg (if web-mode-is-narrowed 1 beg))
+           (remove-text-properties beg end '(font-lock-face nil))
+           (cond
+;;            (t )
+            ((= web-mode-change-flags 1)
+             (web-mode-block-highlight beg end)
+             )
+            ((= web-mode-change-flags 2)
+             (web-mode-part-highlight beg end)
+             )
+            ((or (member web-mode-content-type '("javascript" "json" "jsx" "css"))
+                 (member content-type '("javascript" "css")))
+             (web-mode-part-highlight beg end)
+             (when (member web-mode-content-type '("jsx"))
+               (web-mode-highlight-tags beg end))
+             (web-mode-highlight-blocks beg end))
+            ((string= web-mode-engine "none")
+             (web-mode-highlight-tags beg end)
+             (web-mode-highlight-parts beg end))
+            (t
+             (web-mode-highlight-tags beg end)
+             (web-mode-highlight-parts beg end)
+             (web-mode-highlight-blocks beg end))
+            ) ;cond
+           (when web-mode-enable-whitespaces
+             (web-mode-highlight-whitespaces beg end))
+           ))))))
+
+(defun web-mode-highlight-blocks (reg-beg reg-end)
+  "Highlight blocks."
+  (web-mode-process-blocks reg-beg reg-end "highlight"))
+
+
+(defun web-mode-highlight-tags (reg-beg reg-end)
+  "web-mode-highlight-nodes"
+  (let ((continue t))
+    (goto-char reg-beg)
+    (when (and (not (get-text-property (point) 'tag-beg))
+               (not (web-mode-tag-next)))
+      (setq continue nil))
+    (when (and continue (>= (point) reg-end))
+      (setq continue nil))
+    (while continue
+      (web-mode-highlight-tag)
+      (when (or (not (web-mode-tag-next))
+                (>= (point) reg-end))
+        (setq continue nil))
+      ) ;while
+    (when web-mode-enable-inlays
+      (when (null web-mode-inlay-regexp)
+        (setq web-mode-inlay-regexp (regexp-opt '("\\[" "\\(" "\\begin{align}"))))
+      (let (beg end expr)
+        (goto-char reg-beg)
+        (while (web-mode-dom-rsf web-mode-inlay-regexp reg-end)
+          (setq beg (match-beginning 0)
+                end nil
+                expr (substring (match-string-no-properties 0) 0 2))
+          (setq expr (cond
+                      ((string= expr "\\[") "\\]")
+                      ((string= expr "\\(") "\\)")
+                      (t "\\end{align}")))
+          (when (and (web-mode-dom-sf expr reg-end)
+                     (setq end (match-end 0))
+                     (not (text-property-any beg end 'tag-end t)))
+;;            (message "%S %S" beg end)
+;;            (web-mode-fontify-region beg end 'web-mode-latex-font-lock-keywords)
+            (font-lock-append-text-property beg end 'face 'web-mode-inlay-face)
+            ) ;when
+          ) ;while
+        ) ;let
+      ) ;when
+    ))
+
+;; flags
+;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)brackend-end
+(defun web-mode-highlight-tag ()
+  "web-mode-highlight-nodes"
+  (let ((beg (point)) end name type face flags slash-beg slash-end bracket-end)
+
+    (setq end (1+ (web-mode-tag-end-position beg))
+          flags (get-text-property beg 'tag-beg)
+          type (get-text-property beg 'tag-type)
+          name (get-text-property beg 'tag-name))
+
+    (cond
+
+     ((eq type 'comment)
+      (put-text-property beg end 'font-lock-face 'web-mode-comment-face)
+;;      (message "web-mode-enable-comment-keywords=%S beg(%S) end(%S)" web-mode-enable-comment-keywords beg end)
+      (when (and web-mode-enable-comment-keywords (> (- end beg) 5))
+        (web-mode-interpolate-comment beg end nil))
+      )
+
+     ((eq type 'cdata)
+      (put-text-property beg end 'font-lock-face 'web-mode-doctype-face))
+
+     ((eq type 'doctype)
+      (put-text-property beg end 'font-lock-face 'web-mode-doctype-face))
+
+     ((eq type 'declaration)
+      (put-text-property beg end 'font-lock-face 'web-mode-doctype-face))
+
+     (name
+
+      ;; todo : se passer des vars intermédiaires
+      (setq face (if (> (logand flags 2) 0) 'web-mode-html-tag-custom-face 'web-mode-html-tag-face)
+            slash-beg (> (logand flags 4) 0)
+            slash-end (> (logand flags 8) 0)
+            bracket-end (> (logand flags 16) 0))
+
+      (put-text-property beg (+ beg (if slash-beg 2 1)) 'font-lock-face 'web-mode-html-tag-bracket-face)
+      (put-text-property (+ beg (if slash-beg 2 1))
+                         (+ beg (if slash-beg 2 1) (length name))
+                         'font-lock-face face)
+      (when (or slash-end bracket-end)
+        (put-text-property (- end (if slash-end 2 1)) end 'font-lock-face 'web-mode-html-tag-bracket-face)
+        ) ;when
+
+      (when (> (logand flags 1) 0)
+        (web-mode-highlight-attrs beg end)
+        )
+
+      ) ;name
+
+     ) ;cond
+
+    ))
+
+;; todo : optimisation des zones reg-beg et reg-end
+(defun web-mode-highlight-attrs (reg-beg reg-end)
+  "Highlight attributes."
+  (let ((continue t) (pos reg-beg) beg end flags offset face)
+    (while continue
+      (setq beg (next-single-property-change pos 'tag-attr))
+      (if (and beg (< beg reg-end))
+          (progn
+            (setq flags (get-text-property beg 'tag-attr))
+;;            (message "beg=%S flags=%S" beg flags)
+            (setq face (cond
+                        ((= (logand flags 1) 1) 'web-mode-html-attr-custom-face)
+                        ((= (logand flags 2) 2) 'web-mode-html-attr-engine-face)
+                        (t 'web-mode-html-attr-name-face)))
+            (if (get-text-property beg 'tag-attr-end)
+                (setq end beg)
+              (setq end (next-single-property-change beg 'tag-attr-end)))
+;;            (message "beg=%S end=%S" beg end)
+            (if (and end (< end reg-end))
+                (progn
+                  (setq offset (get-text-property end 'tag-attr-end))
+;;                  (message "offset=%S" offset)
+                  (if (= offset 0)
+                      (put-text-property beg (1+ end) 'font-lock-face face)
+                    (put-text-property beg (+ beg offset) 'font-lock-face face)
+                    (put-text-property (+ beg offset) (+ beg offset 1) 'font-lock-face 'web-mode-html-attr-equal-face)
+                    (put-text-property (+ beg offset 1) (1+ end) 'font-lock-face 'web-mode-html-attr-value-face)
+                    ) ;if offset
+                  (setq pos (1+ end))
+                  ) ;progn
+              (setq continue nil)
+              ) ;if end
+            ) ;progn beg
+        (setq continue nil)
+        ) ;if beg
+      ) ;while
+    ))
+
+(defun web-mode-highlight-parts (reg-beg reg-end)
+  "Highlight parts."
+  (web-mode-process-parts reg-beg reg-end "highlight"))
+
+(defun web-mode-block-highlight (reg-beg reg-end)
+  "Highlight block."
+  (let (sub2 sub3 continue char keywords token-type face beg end flags (buffer (current-buffer)))
+    ;;(message "reg-beg=%S reg-end=%S" reg-beg reg-end)
+    (remove-text-properties reg-beg reg-end '(font-lock-face nil))
+
+    (goto-char reg-beg)
+
+    (when (null web-mode-engine-font-lock-keywords)
+      (setq sub2 (buffer-substring-no-properties
+                  reg-beg (+ reg-beg 2))
+            sub3 (buffer-substring-no-properties
+                  reg-beg (+ reg-beg (if (>= (point-max) (+ reg-beg 3)) 3 2))))
+      )
+
+    (cond
+
+     ((and (get-text-property reg-beg 'block-beg)
+           (eq (get-text-property reg-beg 'block-token) 'comment))
+      (put-text-property reg-beg reg-end 'font-lock-face 'web-mode-comment-face)
+      ) ;comment block
+
+     (web-mode-engine-font-lock-keywords
+      (setq keywords web-mode-engine-font-lock-keywords)
+      )
+
+     ((string= web-mode-engine "django")
+      (cond
+       ((string= sub2 "{{")
+        (setq keywords web-mode-django-expr-font-lock-keywords))
+       ((string= sub2 "{%")
+        (setq keywords web-mode-django-code-font-lock-keywords))
+       )) ;django
+
+     ((string= web-mode-engine "mako")
+      (cond
+       ((member sub3 '("<% " "<%\n" "<%!"))
+        (setq keywords web-mode-mako-block-font-lock-keywords))
+       ((string= sub2 "% ")
+        (setq keywords web-mode-mako-block-font-lock-keywords))
+       ((member sub2 '("<%" "</"))
+        (setq keywords web-mode-mako-tag-font-lock-keywords))
+       ((member sub2 '("${"))
+        (setq keywords web-mode-uel-font-lock-keywords))
+       )) ;mako
+
+     ((string= web-mode-engine "jsp")
+      (cond
+       ((string= sub3 "<%@")
+        (setq keywords web-mode-directive-font-lock-keywords))
+       ((member sub2 '("${" "#{"))
+        (setq keywords web-mode-uel-font-lock-keywords))
+       ((string= sub2 "<%")
+        (setq keywords web-mode-jsp-font-lock-keywords))
+       (t
+        (setq keywords web-mode-jsp-tag-font-lock-keywords))
+       )) ;jsp
+
+     ((string= web-mode-engine "aspx")
+      (cond
+       ((string= sub3 "<%@")
+        (setq keywords web-mode-directive-font-lock-keywords))
+       ((string= sub3 "<%$")
+        (setq keywords web-mode-expression-font-lock-keywords))
+       (t
+        (setq keywords web-mode-aspx-font-lock-keywords))
+       )) ;aspx
+
+     ((string= web-mode-engine "freemarker")
+      (cond
+       ((member sub2 '("${" "#{"))
+        (setq keywords web-mode-uel-font-lock-keywords))
+       ((or (member sub2 '("<@" "[@" "<#" "[#"))
+            (member sub3 '("</@" "[/@" "</#" "[/#")))
+        (setq keywords (if (eq ?\[ (aref sub2 0))
+                           web-mode-freemarker-square-font-lock-keywords
+                         web-mode-freemarker-font-lock-keywords)))
+       (t
+        (setq keywords web-mode-jsp-tag-font-lock-keywords))
+       )) ;freemarker
+
+     ) ;cond
+
+    (when keywords
+      (web-mode-fontify-region reg-beg reg-end keywords)
+;;      (message "reg-beg(%S) reg-end(%S)" reg-beg reg-end)
+      (setq flags (get-text-property reg-beg 'block-beg))
+;;      (setq continue (not (null flags))) ;;(> (logand flags 1) 0))
+      (setq continue t)
+      (setq end reg-beg)
+      (while continue
+;;        (message "end=%S %S" end (get-text-property end 'block-token))
+
+        ;; (if (and (= reg-beg end)
+        ;;          (eq (get-text-property end 'block-token) 'delimiter))
+        ;;     (setq beg end)
+        ;;   (setq beg (next-single-property-change end 'block-token))
+        ;;   )
+
+        (if (get-text-property end 'block-token)
+            (setq beg end)
+          (setq beg (next-single-property-change end 'block-token buffer reg-end)))
+
+        (setq end nil)
+        (when beg (setq char (char-after beg)))
+        (if (and beg (< beg reg-end))
+            (progn
+              (setq token-type (get-text-property beg 'block-token))
+              (setq face (cond
+                          ((eq token-type 'string)  'web-mode-block-string-face)
+                          ((eq token-type 'comment) 'web-mode-block-comment-face)
+                          (t                        'web-mode-block-delimiter-face)))
+              (setq end (next-single-property-change beg 'block-token buffer reg-end))
+;;              (message "end=%S" end)
+              (if (and end (<= end reg-end))
+                  (progn
+;;                    (message "%S > %S face(%S)" beg end face)
+                    (remove-text-properties beg end '(face nil))
+                    (put-text-property beg end 'font-lock-face face))
+                (setq continue nil
+                      end nil)
+                ) ;if end
+              ) ;progn beg
+          (setq continue nil
+                end nil)
+          ) ;if beg
+        (when (and beg end flags)
+          (save-match-data
+            (when (and web-mode-enable-heredoc-fontification
+                       (eq char ?\<)
+                       (> (- end beg) 8)
+                       ;;                     (progn (message "ici%S" (buffer-substring-no-properties beg end)) t)
+                     ;;                   (member web-mode-engine '("php"))
+                       (> (logand flags 2) 0)
+                       (string-match-p "JS\\|JAVASCRIPT\\|HTM\\|CSS" (buffer-substring-no-properties beg end)))
+              (setq keywords (if (eq ?H (char-after (+ beg 3)))
+                                 web-mode-html-font-lock-keywords
+                               web-mode-javascript-font-lock-keywords))
+;;              (remove-text-properties beg end '(font-lock-face nil))
+              (web-mode-fontify-region beg end keywords)
+            ))
+;;          (message "%S %c %S beg=%S end=%S" web-mode-enable-string-interpolation char web-mode-engine beg end)
+          (when (and web-mode-enable-string-interpolation
+                     (member char '(?\" ?\<))
+                     (member web-mode-engine '("php" "erb"))
+                     (> (- end beg) 4))
+            (web-mode-interpolate-string beg end))
+          (when (and web-mode-enable-comment-keywords
+                     (eq token-type 'comment)
+                     (> (- end beg) 3))
+            (web-mode-interpolate-comment beg end t)
+            ) ;when
+          ) ;when beg end
+        ) ;while continue
+      ) ;when keywords
+
+    (when (and (member web-mode-engine '("jsp" "mako"))
+               (> (- reg-end reg-beg) 12)
+               (eq ?\< (char-after reg-beg)))
+      (web-mode-interpolate-block-tag reg-beg reg-end))
+
+    (when web-mode-enable-block-face
+;;      (message "block-face %S %S" reg-beg reg-end)
+      (font-lock-append-text-property reg-beg reg-end 'face 'web-mode-block-face))
+
+    ))
+(defun web-mode-part-highlight (reg-beg reg-end)
+  "Highlight part (e.g. javascript, json, css)."
+  (save-excursion
+    (let (char start continue token-type face beg end string-face comment-face content-type)
+;;      (message "part-highlight: reg-beg(%S) reg-end(%S)" reg-beg reg-end)
+      (if (member web-mode-content-type '("javascript" "json" "jsx" "css"))
+          (setq content-type web-mode-content-type)
+        (setq content-type (symbol-name (get-text-property reg-beg 'part-side)))
+        )
+
+      (goto-char reg-beg)
+
+      (cond
+       ((member content-type '("javascript" "jsx"))
+        (setq string-face 'web-mode-javascript-string-face
+              comment-face 'web-mode-javascript-comment-face)
+        (web-mode-fontify-region reg-beg reg-end web-mode-javascript-font-lock-keywords))
+       ((string= content-type "json")
+        (setq string-face 'web-mode-json-string-face
+              comment-face 'web-mode-json-comment-face)
+        (web-mode-fontify-region reg-beg reg-end web-mode-javascript-font-lock-keywords))
+       ((string= content-type "css")
+        (setq string-face 'web-mode-css-string-face
+              comment-face 'web-mode-css-comment-face)
+        (web-mode-css-rules-highlight reg-beg reg-end)
+        )
+       (t
+        (setq string-face 'web-mode-part-string-face
+              comment-face 'web-mode-part-comment-face)
+        )
+       )
+
+      (setq continue t
+            end reg-beg)
+      (while continue
+        (setq char (char-after beg))
+        (if (and (= reg-beg end)
+                 (get-text-property end 'part-token))
+            (setq beg reg-beg)
+          (setq beg (next-single-property-change end 'part-token)))
+        (setq end nil)
+        (if (and beg (< beg reg-end))
+            (progn
+              (setq token-type (get-text-property beg 'part-token))
+              (setq face (cond
+                          ((eq token-type 'string) string-face)
+                          ((eq token-type 'comment) comment-face)
+                          ((eq token-type 'context) 'web-mode-json-context-face)
+                          ((eq token-type 'key) 'web-mode-json-key-face)
+                          ((eq token-type 'html) nil)
+                          ;;                          ((eq token-type 'literal-expr) nil)
+                          (t nil)))
+              (setq end (next-single-property-change beg 'part-token))
+              (if (and end (<= end reg-end))
+                  (cond
+                   (face
+                    (remove-text-properties beg end '(face nil))
+                    (put-text-property beg end 'font-lock-face face))
+                   ) ;cond
+                (setq continue nil
+                      end nil)
+                ) ;if end
+              ) ;progn beg
+          (setq continue nil
+                end nil)
+          ) ;if beg
+
+        (when (and beg end
+                   web-mode-enable-comment-keywords
+                   (eq token-type 'comment)
+                   (> (- end beg) 3))
+          (web-mode-interpolate-comment beg end t))
+
+        ) ;while
+
+      (when web-mode-enable-part-face
+        (font-lock-append-text-property reg-beg reg-end 'face 'web-mode-part-face))
+
+      (when (string= content-type "jsx")
+        (goto-char reg-beg)
+        (setq continue t
+              end reg-beg)
+        (while continue
+          (setq beg (next-single-property-change end 'part-expr)
+                end nil)
+;;          (message "beg%S reg-end%S" beg reg-end)
+          (if (and beg (< beg reg-end))
+              (progn
+                (setq end (next-single-property-change beg 'part-expr))
+;;                (message "bounds %S %S"  beg end)
+                (if (and end (< end reg-end))
+                    (progn
+                      (remove-text-properties beg end '(face nil))
+                      (put-text-property beg (1+ beg) 'face 'web-mode-block-delimiter-face)
+                      (put-text-property (1- end) end 'face 'web-mode-block-delimiter-face)
+                      (web-mode-fontify-region (1+ beg) (1- end) web-mode-javascript-font-lock-keywords)
+                      ) ;progn
+                  (setq continue nil
+                        end nil))
+                ) ;progn
+            (setq continue nil
+                  end nil))
+          ) ;while
+        ) ;when jsx
+
+      )))
+
+(defun web-mode-css-rules-highlight (part-beg part-end)
+  "Scan CSS rules."
+  (save-excursion
+    (goto-char part-beg)
+    (let (rule (continue t) (i 0) at-rule)
+      (while continue
+        (setq i (1+ i))
+        (setq rule (web-mode-css-rule-next part-end))
+        (cond
+         ((> i 1000)
+          (message "*** too much css rules ***")
+          (setq continue nil))
+         ((null rule)
+          (setq continue nil))
+         ((and (setq at-rule (plist-get rule :at-rule))
+               (not (member at-rule '("charset" "font-face" "import")))
+               (plist-get rule :dec-end))
+          (web-mode-css-rule-highlight (plist-get rule :sel-beg)
+                                       (plist-get rule :sel-end)
+                                       nil nil)
+          (web-mode-css-rules-highlight (plist-get rule :dec-beg)
+                                        (plist-get rule :dec-end))
+          )
+         (t
+          (web-mode-css-rule-highlight (plist-get rule :sel-beg)
+                                       (plist-get rule :sel-end)
+                                       (plist-get rule :dec-beg)
+                                       (plist-get rule :dec-end))
+          )
+         ) ;cond
+        )
+      )
+    ))
+
+(defun web-mode-css-rule-highlight (sel-beg sel-end dec-beg dec-end)
+  "Fontify css rule."
+  (save-excursion
+;;    (message "sel-beg=%S sel-end=%S dec-beg=%S dec-end=%S" sel-beg sel-end dec-beg dec-end)
+    (web-mode-fontify-region sel-beg sel-end
+                             web-mode-selector-font-lock-keywords)
+    (when (and dec-beg dec-end)
+      (web-mode-fontify-region dec-beg dec-end
+                               web-mode-declaration-font-lock-keywords)
+      (goto-char dec-beg)
+      (while (and web-mode-enable-css-colorization
+                  (re-search-forward "#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgb([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" dec-end t)
+                  (< (point) dec-end))
+        (web-mode-colorize (match-beginning 0) (match-end 0))
+        )
+      )))
+
+(defun web-mode-fontify-region (beg end keywords)
+  "Font-lock region according to the keywords."
+  (save-excursion
+    (let ((font-lock-keywords keywords)
+          (font-lock-multiline nil)
+          (font-lock-keywords-case-fold-search
+           (member web-mode-engine '("asp" "template-toolkit")))
+          (font-lock-keywords-only t)
+          (font-lock-extend-region-functions nil))
+      (when (listp font-lock-keywords)
+        (font-lock-fontify-region beg end))
+      )))
+
+
 (defun web-mode-colorize-foreground (color)
   "Colorize foreground based on background luminance."
   (let* ((values (x-color-values color))
@@ -4947,19 +4883,6 @@ Must be used in conjunction with web-mode-enable-block-face."
       (put-text-property beg end 'face plist))
      ) ;cond
     ))
-
-(defun web-mode-fontify-region (beg end keywords)
-  "Font-lock region according to the keywords."
-  (save-excursion
-    (let ((font-lock-keywords keywords)
-          (font-lock-multiline nil)
-          (font-lock-keywords-case-fold-search
-           (member web-mode-engine '("asp" "template-toolkit")))
-          (font-lock-keywords-only t)
-          (font-lock-extend-region-functions nil))
-      (when (listp font-lock-keywords)
-        (font-lock-fontify-region beg end))
-      )))
 
 (defun web-mode-fill-paragraph (&optional justify)
   "fill paragraph"
@@ -7200,7 +7123,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   )
 
 (defun web-mode-element-is-void (&optional tag)
-  "Test if tag is a void tag."
+  "Test if tag is a void (self-closing) tag."
   (if tag
       (car (member (downcase tag) web-mode-void-elements))
     (eq (get-text-property (point) 'tag-type) 'void)
@@ -9782,6 +9705,86 @@ Must be used in conjunction with web-mode-enable-block-face."
   )
 
 ;;--- end search
+
+;;--- minor modes addons
+
+(defun web-mode-yasnippet-exit-hook ()
+  "Yasnippet exit hook"
+  (when (and (boundp 'yas-snippet-beg) (boundp 'yas-snippet-end))
+;;    (web-mode-highlight-region yas-snippet-beg yas-snippet-end)
+    (indent-region yas-snippet-beg yas-snippet-end)))
+
+(defun web-mode-imenu-index ()
+  (interactive)
+  "return imenu items"
+  (let (toc-index
+        line)
+    (save-excursion
+      (goto-char (point-min))
+      (while (not (eobp))
+        (setq line (buffer-substring-no-properties
+                    (line-beginning-position)
+                    (line-end-position)))
+
+        (let (found
+              (i 0)
+              item
+              regexp
+              type
+              type-idx
+              content
+              content-idx
+              content-regexp
+              close-tag-regexp
+              concat-str
+              jumpto
+              str)
+          (while (and (not found ) (< i (length web-mode-imenu-regexp-list)))
+            (setq item (nth i web-mode-imenu-regexp-list))
+            (setq regexp (nth 0 item))
+            (setq type-idx (nth 1 item))
+            (setq content-idx (nth 2 item))
+            (setq concat-str (nth 3 item))
+            (when (not (numberp content-idx))
+              (setq content-regexp (nth 2 item)
+                    close-tag-regexp (nth 4 item)
+                    content-idx nil))
+
+            (when (string-match regexp line)
+
+              (cond
+               (content-idx
+                (setq type (match-string type-idx line))
+                (setq content (match-string content-idx line))
+                (setq str (concat type concat-str content))
+                (setq jumpto (line-beginning-position)))
+               (t
+                (let (limit )
+                  (setq type (match-string type-idx line))
+                  (goto-char (line-beginning-position))
+                  (save-excursion
+                    (setq limit (re-search-forward close-tag-regexp (point-max) t)))
+
+                  (when limit
+                    (when (re-search-forward content-regexp limit t)
+                      (setq content (match-string 1))
+                      (setq str (concat type concat-str content))
+                      (setq jumpto (line-beginning-position))
+                      )
+                    )))
+               )
+              (when str (setq toc-index
+                              (cons (cons str jumpto)
+                                    toc-index)
+                              )
+                    (setq found t))
+              )
+            (setq i (1+ i))))
+        (forward-line)
+        (goto-char (line-end-position)) ;; make sure we are at eobp
+        ))
+    ;; (message "toc-index=%s" toc-index)
+    (nreverse toc-index)))
 
 (defun web-mode-on-exit ()
   "Exit web-mode."
