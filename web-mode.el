@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.40
+;; Version: 9.0.41
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -50,7 +50,9 @@
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
-(defconst web-mode-version "9.0.40"
+;;---- CONSTS ------------------------------------------------------------------
+
+(defconst web-mode-version "9.0.41"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -700,8 +702,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("crarr"  . 8629)
     ("and"    . 8743)
     ("or"     . 8744)
-    ("sdot"   . 8901))
-  "HTML entities")
+    ("sdot"   . 8901)))
 
 (defvar web-mode-engines-alternate-delimiters
   (if (boundp 'web-mode-engines-alternate-delimiters) web-mode-engines-alternate-delimiters '())
@@ -738,16 +739,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (aset table 10 (vector ?\xB6 ?\n)) ;line feed
     (aset table 32 (vector ?\xB7))
     table)
-  "Display table.")
-
-(defvar web-mode-django-control-blocks
-  (regexp-opt
-   '("assets" "autoescape" "block" "blocktrans" "cache" "call" "comment"
-     "elif" "else" "elseif" "elsif" "embed" "empty" "filter" "foreach" "for"
-     "ifchanged" "ifequal" "ifnotequal" "if"
-     "macro" "draw" "random" "sandbox" "spaceless" "verbatim" "with")
-   t)
-  "Django controls.")
+  "Display table used when switching to the internal whitespace mode.")
 
 (defvar web-mode-engines-closing-blocks
   '(
@@ -1143,6 +1135,14 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-closure-keywords
   (eval-when-compile
     (regexp-opt '("in" "and" "not" "or"))))
+
+(defvar web-mode-django-control-blocks
+  (regexp-opt
+   '("assets" "autoescape" "block" "blocktrans" "cache" "call" "comment"
+     "elif" "else" "elseif" "elsif" "embed" "empty" "filter" "foreach" "for"
+     "ifchanged" "ifequal" "ifnotequal" "if"
+     "macro" "draw" "random" "sandbox" "spaceless" "verbatim" "with")
+   t))
 
 (defvar web-mode-django-keywords
   (eval-when-compile
@@ -3380,8 +3380,8 @@ Must be used in conjunction with web-mode-enable-block-face."
         (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
         )
 
-       ((or (and (= state 8) (not (eq char ?\")))
-            (and (= state 7) (not (eq char ?\'))))
+       ((or (and (= state 8) (not (member char '(?\" ?\\))))
+            (and (= state 7) (not (member char '(?\' ?\\)))))
         )
 
 ;;        ((and (member state '(8 7 6))
@@ -9428,28 +9428,6 @@ Must be used in conjunction with web-mode-enable-block-face."
       (setq ret (search-forward expr limit noerror))
       (if (or (null ret)
               (not (web-mode-is-comment-or-string)))
-          (setq continue nil)))
-    ret))
-
-(defun web-mode-rsb-html (regexp &optional limit noerror)
-  "re-search-backward only in html."
-  (unless noerror (setq noerror t))
-  (let ((continue t) ret)
-    (while continue
-      (setq ret (re-search-backward regexp limit noerror))
-      (if (or (null ret)
-              (not (web-mode-is-part-token-or-server)))
-          (setq continue nil)))
-    ret))
-
-(defun web-mode-rsf-html (regexp &optional limit noerror)
-  "re-search-forward only in html."
-  (unless noerror (setq noerror t))
-  (let ((continue t) ret)
-    (while continue
-      (setq ret (re-search-forward regexp limit noerror))
-      (if (or (null ret)
-              (not (web-mode-is-part-token-or-server)))
           (setq continue nil)))
     ret))
 
