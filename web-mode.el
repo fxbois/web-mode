@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.41
+;; Version: 9.0.43
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -52,7 +52,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.41"
+(defconst web-mode-version "9.0.43"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -572,7 +572,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         'block-side nil 'block-token nil 'block-controls nil
         'block-beg nil 'block-end nil
         'syntax-table)
-  "Text properties used for tokens.")
+  "Text properties used for code regions/tokens and html nodes.")
 
 (defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]-]*\\)"
   "Regular expression for HTML/XML start tag.")
@@ -1577,10 +1577,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-latex-font-lock-keywords
   (list
-;;   '("." 0 'web-mode-inlay-face)
    '("[[:alnum:]_]+" 0 'web-mode-function-name-face t t)
-   )
-  )
+   ))
 
 (defvar web-mode-blade-font-lock-keywords
   (append
@@ -1628,7 +1626,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (modify-syntax-entry ?= "." table)
 
     table)
-  "Syntax table in use in web-mode buffers.")
+  "Syntax table used tp reveal whitespaces.")
 
 (defvar web-mode-map
   (let ((map (make-sparse-keymap)))
@@ -4601,8 +4599,9 @@ Must be used in conjunction with web-mode-enable-block-face."
                           ((eq token-type 'html) nil)
                           ;;                          ((eq token-type 'literal-expr) nil)
                           (t nil)))
-              (setq end (next-single-property-change beg 'part-token))
-              (if (and end (<= end reg-end))
+              (setq end (or (next-single-property-change beg 'part-token) (point-max)))
+;;              (message "end=%S reg-end=%S" end reg-end)
+              (if (<= end reg-end)
                   (cond
                    (face
                     (remove-text-properties beg end '(face nil))
@@ -8236,7 +8235,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (point)
     ))
 
-;;-- position -----------------------------------------------------------------------
+;;---- POSITION ----------------------------------------------------------------
 
 (defun web-mode-opening-paren-position (&optional pos limit)
   "Fetch opening paren."
@@ -8782,9 +8781,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (setq pos (next-single-property-change pos 'part-side)))
   pos)
 
-;;--- /positions
-
-;;--- nav
+;;---- NAV ---------------------------------------------------------------------
 
 (defun web-mode-tag-beginning (&optional pos)
   "Fetch html tag beg."
@@ -8887,62 +8884,6 @@ Must be used in conjunction with web-mode-enable-block-face."
         )
       ;;(message "attrs=%S" attrs)
       )))
-
-(defun web-mode-skip-html-tag (&optional back bound context)
-  "Skip html tag. (smartparens helper)"
-  (interactive)
-  (let ((pos (point)) mb me skipped back delim)
-    (cond
-     (back
-      (unless (or (bobp)
-                  (get-text-property (1- pos) 'tag-end))
-        (when (web-mode-tag-previous)
-          (web-mode-tag-end)
-          )
-        ) ;unless
-      )
-     (t
-      (unless (or (eobp)
-                  (get-text-property pos 'tag-beg))
-        (web-mode-tag-next))
-      )
-     ) ;cond
-    (cond
-     ((get-text-property (point) 'tag-beg)
-      (setq mb (point)
-            me (1+ (web-mode-tag-end-position)))
-      )
-     ((and (not (bobp))
-           (get-text-property (1- (point)) 'tag-end))
-      (setq mb (point)
-            me (web-mode-tag-beginning-position (1- (point))))
-      )
-     ) ;cond
-    (if (and mb me)
-        (progn
-          (setq skipped (- (point) pos))
-          (setq delim (buffer-substring-no-properties mb me))
-          ;;    (message "%S" (list :mb mb :me me :skipped skipped :back back :delim delim))
-          (list :mb mb :me me :skipped skipped :back back :delim delim)
-          )
-      nil)
-    ))
-
-(defun web-mode-tag-get (&optional pos)
-  "Tag get"
-  (unless pos (setq pos (point)))
-  (let (out)
-    (cond
-     ((get-text-property pos 'tag-name)
-      (setq out (buffer-substring-no-properties (web-mode-tag-beginning-position)
-                                                (web-mode-tag-end-position)))
-      )
-     (t
-      (setq out "")
-      )
-     ) ;cond
-    out
-    ))
 
 (defun web-mode-attribute-beginning (&optional pos)
   "Fetch html attribute end."
@@ -9212,9 +9153,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (goto-char pos))
   pos)
 
-;;--- /nav ----------------------------------------------------------------------
-
-;;--- search
+;;---- SEARCH ------------------------------------------------------------------
 
 (defun web-mode-rsf-balanced (regexp-open regexp-close &optional limit noerror)
   "web-mode-rsf-balanced in client."
@@ -9538,9 +9477,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                  (eq (get-text-property pos 'part-token) 'comment))))
   )
 
-;;--- end search
-
-;;--- minor modes addons
+;;---- MINOR MODE ADDONS -------------------------------------------------------
 
 (defun web-mode-yasnippet-exit-hook ()
   "Yasnippet exit hook"
@@ -10136,3 +10073,60 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;         )
 ;; ;;      (message "%S" (get-text-property 58 'block-token))
 ;;       )))
+
+
+;; (defun web-mode-skip-html-tag (&optional back bound context)
+;;   "Skip html tag. (smartparens helper)"
+;;   (interactive)
+;;   (let ((pos (point)) mb me skipped back delim)
+;;     (cond
+;;      (back
+;;       (unless (or (bobp)
+;;                   (get-text-property (1- pos) 'tag-end))
+;;         (when (web-mode-tag-previous)
+;;           (web-mode-tag-end)
+;;           )
+;;         ) ;unless
+;;       )
+;;      (t
+;;       (unless (or (eobp)
+;;                   (get-text-property pos 'tag-beg))
+;;         (web-mode-tag-next))
+;;       )
+;;      ) ;cond
+;;     (cond
+;;      ((get-text-property (point) 'tag-beg)
+;;       (setq mb (point)
+;;             me (1+ (web-mode-tag-end-position)))
+;;       )
+;;      ((and (not (bobp))
+;;            (get-text-property (1- (point)) 'tag-end))
+;;       (setq mb (point)
+;;             me (web-mode-tag-beginning-position (1- (point))))
+;;       )
+;;      ) ;cond
+;;     (if (and mb me)
+;;         (progn
+;;           (setq skipped (- (point) pos))
+;;           (setq delim (buffer-substring-no-properties mb me))
+;;           ;;    (message "%S" (list :mb mb :me me :skipped skipped :back back :delim delim))
+;;           (list :mb mb :me me :skipped skipped :back back :delim delim)
+;;           )
+;;       nil)
+;;     ))
+
+;; (defun web-mode-tag-get (&optional pos)
+;;   "Tag get"
+;;   (unless pos (setq pos (point)))
+;;   (let (out)
+;;     (cond
+;;      ((get-text-property pos 'tag-name)
+;;       (setq out (buffer-substring-no-properties (web-mode-tag-beginning-position)
+;;                                                 (web-mode-tag-end-position)))
+;;       )
+;;      (t
+;;       (setq out "")
+;;       )
+;;      ) ;cond
+;;     out
+;;     ))
