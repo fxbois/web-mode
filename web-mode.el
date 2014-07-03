@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.43
+;; Version: 9.0.44
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -52,7 +52,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.43"
+(defconst web-mode-version "9.0.44"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1929,6 +1929,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                                  ((string= content-type "jsx") 'jsx)
                                  ((string= content-type "css") 'css)
                                  ))
+             (web-mode-scan-blocks beg end)
              (web-mode-part-scan beg end content-type)
              )
             ((member web-mode-content-type '("javascript" "json" "jsx" "css"))
@@ -4220,6 +4221,7 @@ Must be used in conjunction with web-mode-enable-block-face."
              )
             ((= web-mode-change-flags 2)
              (web-mode-part-highlight beg end)
+             (web-mode-highlight-blocks beg end)
              )
             ((or (member web-mode-content-type '("javascript" "json" "jsx" "css"))
                  (member content-type '("javascript" "css")))
