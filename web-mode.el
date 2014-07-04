@@ -1765,6 +1765,16 @@ Must be used in conjunction with web-mode-enable-block-face."
     map)
   "Keymap for `web-mode'.")
 
+(defvar web-mode-before-auto-complete-hooks nil
+  "List of functions to run before triggering the auto-complete library.
+
+Auto-complete sources will sometimes need some tweaking to work
+nicely with web-mode. This hook gives users the chance to adjust
+the environment as needed for ac-sources, right before they're used.")
+
+(defvar web-mode-ac-sources-alist nil
+  "alist mapping language names to ac-sources for that language.")
+
 ;;---- COMPATIBILITY -----------------------------------------------------------
 
 (eval-and-compile
@@ -1895,6 +1905,18 @@ Must be used in conjunction with web-mode-enable-block-face."
   (web-mode-trace "buffer scanned")
 
   )
+
+;;---- ADVICE ------------------------------------------------------------------
+
+(defadvice ac-start (before web-mode-set-up-ac-sources activate)
+  "Set `ac-sources' based on current language before running auto-complete."
+  (if (equal major-mode 'web-mode)
+      (progn
+        (run-hooks 'web-mode-before-auto-complete-hooks)
+        (let ((new-web-mode-ac-sources
+               (assoc (web-mode-language-at-pos)
+                      web-mode-ac-sources-alist)))
+          (setq ac-sources (cdr new-web-mode-ac-sources))))))
 
 ;;---- DEFUNS ------------------------------------------------------------------
 
