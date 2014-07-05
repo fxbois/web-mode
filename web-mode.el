@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.44
+;; Version: 9.0.45
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -52,7 +52,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.44"
+(defconst web-mode-version "9.0.45"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2470,7 +2470,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defun web-mode-scan-parts (reg-beg reg-end)
-  "Scan parts."
+  "Identify tokens in parts."
   (web-mode-process-parts reg-beg reg-end "scan"))
 
 ;;todo : passer en funcall
@@ -2830,7 +2830,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         (continue t)
         (regexp "endif\\|endforeach\\|endfor\\|endwhile\\|else\\|elsif\\|if\\|foreach\\|for\\|while"))
     (while continue
-      (if (not (web-mode-rsf regexp reg-end))
+      (if (not (web-mode-block-rsf regexp reg-end))
           (setq continue nil)
         (setq match (match-string-no-properties 0))
         (cond
@@ -2852,7 +2852,7 @@ Must be used in conjunction with web-mode-enable-block-face."
          ) ; cond
         ) ;if
       ) ;while
-;;    (message "ici=%S" controls)
+    ;;    (message "ici=%S" controls)
     (when (and controls (> (length controls) 1))
       (setq controls (web-mode-block-controls-reduce controls)))
     controls))
@@ -2939,7 +2939,6 @@ Must be used in conjunction with web-mode-enable-block-face."
        ((string= web-mode-engine "django")
         (when (eq (char-after (1+ reg-beg)) ?\%)
           (cond
-;;           ((web-mode-block-starts-with "\\(else\\|elsif\\|elif\\)" reg-beg)
            ((web-mode-block-starts-with "\\(else\\|els?if\\)" reg-beg)
             (setq controls (append controls (list (cons 'inside "if")))))
            ((web-mode-block-starts-with "\\(empty\\)" reg-beg)
@@ -3927,6 +3926,42 @@ Must be used in conjunction with web-mode-enable-block-face."
         ) ;while
       )))
 
+;; bug du ' : issue210
+(defun web-mode-scan-literal (reg-end)
+  "web-mode-scan-literal"
+  (let (beg end)
+    (setq beg (point))
+    (cond
+     ((looking-at "</?\\([[:alnum:]]+\\(?:[-][[:alpha:]]+\\)?\\)")
+      (if (web-mode-sf ">") (setq end (point)))
+      )
+     ((eq (char-after) ?\{)
+      (if (web-mode-closing-paren reg-end) (setq end (1+ (point))))
+      )
+     ((looking-at "[ \t\n]")
+      (skip-chars-forward " \t\n")
+      (if (looking-at-p "[),;]")
+          (setq end nil)
+        (setq end (point)))
+      )
+     (t
+      (skip-chars-forward "^<),;")
+      (when (> (point) beg)
+        (setq end (point)))
+      )
+     ) ;cond
+    (cond
+     ((null end)
+      nil)
+     ((> (point) reg-end)
+      (goto-char reg-end)
+      nil)
+     (t
+      ;;      (message "literal(%S-%S)=%S" beg end (buffer-substring-no-properties beg end))
+      (cons beg end)
+      )
+     )))
+
 (defun web-mode-scan-expr-literal (reg-beg reg-end)
   "web-mode-scan-expr-literal"
   (let ((continue t) beg end)
@@ -3953,51 +3988,6 @@ Must be used in conjunction with web-mode-enable-block-face."
           )
         )
       )))
-
-;; bug du ' : issue210
-(defun web-mode-scan-literal (reg-end)
-  "web-mode-scan-literal"
-  (let (beg end)
-    ;;    (skip-chars-forward " :'\n[:alnum:]")
-    (setq beg (point))
-;;    (message "beg=%S" beg)
-    (cond
-     ((looking-at "</?\\([[:alnum:]]+\\(?:[-][[:alpha:]]+\\)?\\)")
-      (if (web-mode-sf ">") (setq end (point)))
-      )
-     ((eq (char-after) ?\{)
-      (if (web-mode-closing-paren reg-end) (setq end (1+ (point))))
-;;      (message "end=%S" end)
-;;      (if (web-mode-sf "}") (setq end (point)))
-      )
-     ;; ((looking-at "[a-z \n]")
-     ;; (skip-chars-forward "a-z \n")
-     ;; (setq end (point))
-     ;; )
-     ((looking-at "[ \t\n]")
-      (skip-chars-forward " \t\n")
-      ;;      (message "ici%S" (point))
-      (if (looking-at-p "[),;]")
-          (setq end nil)
-        (setq end (point)))
-      )
-     (t
-      (skip-chars-forward "^<),;")
-      (when (> (point) beg)
-        (setq end (point)))
-      )
-     ) ;cond
-    (cond
-     ((null end)
-      nil)
-     ((> (point) reg-end)
-      (goto-char reg-end)
-      nil)
-     (t
-      ;;      (message "literal(%S-%S)=%S" beg end (buffer-substring-no-properties beg end))
-      (cons beg end)
-      )
-     )))
 
 (defun web-mode-velocity-skip-forward (pos)
   "find the end of a velocity block."
@@ -5840,6 +5830,20 @@ Must be used in conjunction with web-mode-enable-block-face."
       (if control (cons control state) nil)
       )))
 
+(defun web-mode-block-is-opening-control (pos)
+  "web-mode-block-is-control"
+  (save-excursion
+    (let (controls pair)
+      (goto-char pos)
+;;      (setq pair (car controls))
+      (if (and (setq controls (web-mode-block-controls-get pos))
+               (= (length controls) 1)
+               (setq pair (car controls))
+               (eq (car pair) 'open))
+          (cdr pair)
+        nil)
+      )))
+
 ;; TODO : prendre en compte le debut de la zone 'part-token -> html
 (defun web-mode-markup-indentation-origin ()
   "web-mode-indentation-origin-pos"
@@ -5856,7 +5860,7 @@ Must be used in conjunction with web-mode-enable-block-face."
               pos (point))
         )
       ) ;while
-;;    (message "indent-origin=%S" pos)
+    ;;(message "indent-origin=%S" pos)
     pos
     ))
 
@@ -5885,33 +5889,30 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Is there any HTML element without a closing tag ?"
   (interactive)
   (let (tag
-        last-tag
+        last-end-tag
         tag-pos block-pos
         state
         n
         ret
         (continue t)
+        controls
+        control
         (buffer (current-buffer))
         (h (make-hash-table :test 'equal))
-        (h2 (make-hash-table :test 'equal))
-        ctrl)
+        (h2 (make-hash-table :test 'equal)))
     (while continue
-      (setq ctrl nil
-            last-tag nil)
-      (when (or (and (get-text-property pos 'tag-beg)
-                     (member (get-text-property pos 'tag-type) '(start end)))
-                (and (get-text-property pos 'block-beg)
-;;                     (progn (message "pos=%S" pos) t)
-                     (setq ctrl (web-mode-block-is-control pos))))
-;;        (message "ctrl=%S" ctrl)
-        (if ctrl
-            (setq tag (car ctrl)
-                  state (cdr ctrl))
-          (setq tag (get-text-property pos 'tag-name)
-                state (eq (get-text-property pos 'tag-type) 'start))
-          (if (null state) (setq last-tag (cons tag pos)))
-          )
-;;        (message "pos=%S tag=%S state=%S" pos tag state)
+      (setq control nil
+            controls nil
+            last-end-tag nil)
+
+
+      (cond
+
+       ((and (get-text-property pos 'tag-beg)
+             (member (get-text-property pos 'tag-type) '(start end)))
+        (setq tag (get-text-property pos 'tag-name)
+              state (eq (get-text-property pos 'tag-type) 'start))
+        (if (null state) (setq last-end-tag (cons tag pos)))
         (setq n (gethash tag h 0))
         (if (null state)
             (progn
@@ -5919,7 +5920,60 @@ Must be used in conjunction with web-mode-enable-block-face."
               (puthash tag (1- n) h2))
           (puthash tag (1+ n) h)
           (puthash tag (1+ n) h2))
-        ) ;when
+        )
+
+       ;; TODO il faut prendre en compte tous les controls
+       ((and (get-text-property pos 'block-beg)
+             (setq controls (web-mode-block-controls-get pos))
+;;             (setq control (web-mode-block-is-control pos))
+             )
+        (dolist (control controls)
+          (setq tag (cdr control))
+          (setq n (gethash tag h 0))
+          (cond
+           ((eq (car control) 'inside)
+            )
+           ((eq (car control) 'open)
+            (puthash tag (1+ n) h))
+           ((> n 0)
+            (puthash tag (1- n) h))
+           ) ;cond
+          ;; (setq tag (cdr control)
+          ;;       state (cdr control))
+          ;; (setq n (gethash tag h 0))
+          ;; (if (null state)
+          ;;     ;;            (progn
+          ;;     (when (> n 0) (puthash tag (1- n) h))
+          ;;   ;;              (puthash tag (1- n) h2)
+          ;;   ;;              )
+          ;;   (puthash tag (1+ n) h)
+          ;;   ;;          (puthash tag (1+ n) h2)
+          ;;   )
+          ) ;dolist
+        )
+
+       ) ;cond
+
+      ;; (when (or (and (get-text-property pos 'tag-beg)
+      ;;                (member (get-text-property pos 'tag-type) '(start end)))
+      ;;           (and (get-text-property pos 'block-beg)
+      ;;                (setq control (web-mode-block-is-control pos))))
+      ;;   (if control
+      ;;       (setq tag (car control)
+      ;;             state (cdr control))
+      ;;     (setq tag (get-text-property pos 'tag-name)
+      ;;           state (eq (get-text-property pos 'tag-type) 'start))
+      ;;     (if (null state) (setq last-end-tag (cons tag pos)))
+      ;;     )
+      ;;   (setq n (gethash tag h 0))
+      ;;   (if (null state)
+      ;;       (progn
+      ;;         (when (> n 0) (puthash tag (1- n) h))
+      ;;         (puthash tag (1- n) h2))
+      ;;     (puthash tag (1+ n) h)
+      ;;     (puthash tag (1+ n) h2))
+      ;;   ) ;when
+
       (setq pos (1+ pos))
       (when (null tag-pos)
         (setq tag-pos (next-single-property-change pos 'tag-beg buffer limit)))
@@ -5949,14 +6003,14 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;    (message "hashtable=%S" h)
     (maphash (lambda (k v) (if (> v 0) (setq ret t))) h)
     (when (and (null ret)
-               last-tag
+               last-end-tag
                (> (hash-table-count h2) 1)
-               (< (gethash (car last-tag) h2) 0))
-;;      (message "last-tag=%S" last-tag)
+               (< (gethash (car last-end-tag) h2) 0))
+;;      (message "last-end-tag=%S" last-end-tag)
       (save-excursion
-        (goto-char (cdr last-tag))
+        (goto-char (cdr last-end-tag))
         (web-mode-tag-match)
-        (when (not (= (point) (cdr last-tag)))
+        (when (not (= (point) (cdr last-end-tag)))
           (setq n (point))
           (back-to-indentation)
           (if (= n (point)) (setq ret (current-indentation))))
@@ -6231,11 +6285,13 @@ Must be used in conjunction with web-mode-enable-block-face."
          ((not (web-mode-block-previous))
           (setq continue nil)
           )
-         ((null (web-mode-block-controls-get (point)))
+         ((null (setq controls (web-mode-block-controls-get (point))))
           )
          (t
-          (setq controls (web-mode-block-controls-get (point)))
-          (setq pair (car controls))
+;;          (setq controls (web-mode-block-controls-get (point)))
+;;          (setq pair (car controls))
+          (setq pair (car (last controls)))
+          (message "pair=%S" pair)
           (cond
            ((eq (car pair) 'open)
             (setq counter (1+ counter)))
@@ -6924,7 +6980,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (interactive)
   (save-excursion
     (let (pos tag-name)
-      (setq tag-name (read-from-minibuffer "Tag name? "))
+      (setq tag-name (read-from-minibuffer "New tag name? "))
       (when (and (> (length tag-name) 0)
                  (web-mode-element-beginning)
                  (looking-at "<\\([[:alnum:]]+\\(:?[-][[:alpha:]]+\\)?\\)"))
@@ -7560,42 +7616,58 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defun web-mode-block-match (&optional pos)
   "Block match"
   (unless pos (setq pos (point)))
-  (let (init controls (counter 1) type control (continue t) pair)
-    (setq init pos)
+  (let (pos-ori controls control (counter 1) type (continue t) pair)
+    (setq pos-ori pos)
     (goto-char pos)
     (setq controls (web-mode-block-controls-get pos))
+;;    (message "controls=%S" controls)
     (cond
      (controls
       (setq pair (car controls))
-      (setq type (car pair))
-      (when (eq type 'inside)
-        (setq type 'close))
       (setq control (cdr pair))
+      (setq type (car pair))
+      (when (eq type 'inside) (setq type 'close))
       (while continue
         (cond
-         ((and (> init 1) (bobp))
+         ((and (> pos-ori 1) (bobp))
           (setq continue nil))
          ((or (and (eq type 'open) (not (web-mode-block-next)))
               (and (eq type 'close) (not (web-mode-block-previous))))
 ;;          (message "ici%S" (point))
           (setq continue nil)
           )
-         ((null (web-mode-block-controls-get (point)))
+         ((null (setq controls (web-mode-block-controls-get (point))))
           )
          (t
-          (setq controls (web-mode-block-controls-get (point)))
-          (setq pair (car controls))
-;;          (message "%S-%S (%S) type=%S control=%S" type control (point) (car pair) (cdr pair))
-          (when (string= control (cdr pair))
+          ;; TODO : est il nécessaire de faire un reverse sur controls si on doit matcher backward
+          (dolist (pair controls)
             (cond
-             ((eq (car pair) type)
-              (setq counter (1+ counter)))
+             ((not (string= (cdr pair) control))
+              )
              ((eq (car pair) 'inside)
               )
+             ((eq (car pair) type)
+              (setq counter (1+ counter)))
              (t
               (setq counter (1- counter)))
              )
-            ) ;when
+            ) ;dolist
+;; ;;          (setq controls (web-mode-block-controls-get (point)))
+;; ;;          (message "controls=%S" controls)
+;; ;;          (if (eq type 'open)
+;;           (setq pair (car controls))
+;; ;;            (setq pair (car (last controls))))
+;; ;;          (message "%S-%S (%S) control=%S type=%S" type control (point) (cdr pair) (car pair))
+;;           (when (string= control (cdr pair))
+;;             (cond
+;;              ((eq (car pair) type)
+;;               (setq counter (1+ counter)))
+;;              ((eq (car pair) 'inside)
+;;               )
+;;              (t
+;;               (setq counter (1- counter)))
+;;              )
+;;             ) ;when
           (when (= counter 0)
             (setq continue nil))
           ) ;t
@@ -7604,8 +7676,9 @@ Must be used in conjunction with web-mode-enable-block-face."
       (if (= counter 0) (point) nil)
       ) ;controls
      (t
-      (goto-char init)
-      nil)
+      (goto-char pos-ori)
+      nil
+      ) ;controls = nul
      ) ;conf
     ))
 
