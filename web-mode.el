@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.47
+;; Version: 9.0.48
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -52,7 +52,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.47"
+(defconst web-mode-version "9.0.48"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -837,7 +837,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("go"               . "{{.")
    '("jsp"              . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]+")
    '("lsp"              . "<%")
-   '("mako"             . "</?%\\|${\\|^[ \t]*% \\|^[ \t]*##")
+   '("mako"             . "</?%\\|${\\|^[ \t]*%.\\|^[ \t]*##")
    '("mason"            . "</?[&%]\\|^%.")
    '("mojolicious"      . "<%.\\|^[ \t]*%.")
    '("php"              . "<\\?")
@@ -1614,6 +1614,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (modify-syntax-entry ?& "." table)
     (modify-syntax-entry ?/ "." table)
     (modify-syntax-entry ?= "." table)
+    (modify-syntax-entry ?% "." table)
 
     table)
   "Syntax table used tp reveal whitespaces.")
@@ -2547,9 +2548,20 @@ the environment as needed for ac-sources, right before they're used.")
 
     (cond
 
-     ((member web-mode-engine '("php" "asp" "lsp" "mako" "python" "web2py" "mason"))
+     ((member web-mode-engine '("php" "asp" "lsp" "python" "web2py" "mason"))
       (setq regexp web-mode-engine-token-regexp)
+;;      (message "%S %S" (point) web-mode-engine-token-regexp)
       )
+
+     ((string= web-mode-engine "mako")
+      (cond
+       ((string= sub2 "##")
+        (setq token-type 'comment)
+        )
+       (t
+        (setq regexp web-mode-engine-token-regexp))
+       )
+      ) ;mako
 
      ((string= web-mode-engine "django")
       (cond
@@ -2726,7 +2738,7 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-block-tokenize (reg-beg reg-end &optional regexp)
   "Tokenize block chunk."
   (unless regexp (setq regexp web-mode-engine-token-regexp))
-;;  (message "tokenize: reg-beg(%S) reg-end(%S) block-end(%S)" reg-beg reg-end block-end)
+;;  (message "tokenize: reg-beg(%S) reg-end(%S) regexp(%S)" reg-beg reg-end regexp)
   (save-excursion
     (let ((pos reg-beg) beg char match continue (flags 0) token-type)
 
@@ -4428,7 +4440,7 @@ the environment as needed for ac-sources, right before they're used.")
       (cond
        ((member sub3 '("<% " "<%\n" "<%!"))
         (setq keywords web-mode-mako-block-font-lock-keywords))
-       ((string= sub2 "% ")
+       ((eq (aref sub2 0) ?\%)
         (setq keywords web-mode-mako-block-font-lock-keywords))
        ((member sub2 '("<%" "</"))
         (setq keywords web-mode-mako-tag-font-lock-keywords))
@@ -4717,6 +4729,7 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-fontify-region (beg end keywords)
   "Font-lock region according to the keywords."
+;;  (message "beg=%S end=%S keywords=%S" beg end keywords)
   (save-excursion
     (let ((font-lock-keywords keywords)
           (font-lock-multiline nil)
@@ -8784,9 +8797,15 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-block-code-end-position (&optional pos)
   (unless pos (setq pos (point)))
+;;  (message "from %S" (point))
   (setq pos (web-mode-block-end-position pos))
-  (when (and pos (eq (get-text-property pos 'block-token) 'delimiter) pos)
-    (setq pos (previous-single-property-change pos 'block-token)))
+;;  (message "to %S" pos)
+  (when (and pos
+             (eq (get-text-property pos 'block-token) 'delimiter)
+             (eq (get-text-property (1- pos) 'block-token) 'delimiter))
+    (setq pos (previous-single-property-change pos 'block-token))
+;;    (message "la%S" pos)
+    )
   pos)
 
 (defun web-mode-block-end-position (&optional pos)
@@ -8796,6 +8815,7 @@ the environment as needed for ac-sources, right before they're used.")
    ((get-text-property pos 'block-end)
     pos)
    ((get-text-property pos 'block-side)
+;;    (message "pos=%S %S" pos (or (next-single-property-change pos 'block-end) (point-max)))
     (or (next-single-property-change pos 'block-end)
         (point-max)))
    (t
