@@ -639,7 +639,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("lsp"              . "\\.lsp\\'")
     ("mako"             . "\\.mako?\\'")
     ("mason"            . "\\.mas\\'")
-    ("mojolicious"      . "mojolicious\\|\\.epl\\|\\.html\\.ep\\'")
+    ("mojolicious"      . "mojolicious\\|\\.epl?\\'")
     ("mustache"         . "\\.mustache\\'")
     ("php"              . "\\.\\(php\\|ctp\\|psp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
