@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.48
+;; Version: 9.0.49
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,23 +36,17 @@
 
 ;; Code goes here
 
-;;todo :
-;;       web-mode-surround : chaque ligne est entourée par un open et un close tag
-;;       tester web-mode avec un fond blanc
-;;       phphint
-;;todo :
-;; tag-type : start / end / void / comment / cdata / doctype / declaration
-;; tag-name uniquement sur les html tag
+;;todo : phphint
+;;todo : tag-name uniquement sur les html tag
 ;;todo : Stickiness of Text Properties
 ;;todo : web-mode-engine-real-name (canonical name)
-;;todo : finir filling
 ;;todo : screenshot : http://www.cockos.com/licecap/
 ;;todo : passer les content-types en symboles
 ;;todo : tester shortcut A -> pour pomme
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.48"
+(defconst web-mode-version "9.0.49"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -269,9 +263,9 @@ See web-mode-part-face."
 
 (defface web-mode-html-tag-face
   '((((class color) (min-colors 88) (background dark))  :foreground "Snow4")
-    (((class color) (min-colors 88) (background light)) :foreground "grey15")
+    (((class color) (min-colors 88) (background light)) :foreground "Snow4")
     (((class color) (min-colors 16) (background dark))  :foreground "Snow4")
-    (((class color) (min-colors 16) (background light)) :foreground "grey15")
+    (((class color) (min-colors 16) (background light)) :foreground "Grey15")
     (((class color) (min-colors 8))                     :foreground "Snow4")
     (((type tty) (class mono))                          :inverse-video t)
     (t                                                  :foreground "Snow4"))
@@ -284,11 +278,10 @@ See web-mode-part-face."
   :group 'web-mode-faces)
 
 (defface web-mode-html-tag-bracket-face
-;;  '((t :inherit web-mode-html-tag-face))
   '((((class color) (min-colors 88) (background dark))  :foreground "Snow3")
-    (((class color) (min-colors 88) (background light)) :foreground "grey14")
+    (((class color) (min-colors 88) (background light)) :foreground "Grey14")
     (((class color) (min-colors 16) (background dark))  :foreground "Snow3")
-    (((class color) (min-colors 16) (background light)) :foreground "grey14")
+    (((class color) (min-colors 16) (background light)) :foreground "Grey14")
     (((class color) (min-colors 8))                     :foreground "Snow3")
     (((type tty) (class mono))                          :inverse-video t)
     (t                                                  :foreground "Snow3"))
@@ -297,9 +290,9 @@ See web-mode-part-face."
 
 (defface web-mode-html-attr-name-face
   '((((class color) (min-colors 88) (background dark))  :foreground "Snow3")
-    (((class color) (min-colors 88) (background light)) :foreground "grey13")
+    (((class color) (min-colors 88) (background light)) :foreground "Snow4")
     (((class color) (min-colors 16) (background dark))  :foreground "Snow3")
-    (((class color) (min-colors 16) (background light)) :foreground "grey13")
+    (((class color) (min-colors 16) (background light)) :foreground "Grey13")
     (((class color) (min-colors 8))                     :foreground "Snow3")
     (((type tty) (class mono))                          :inverse-video t)
     (t                                                  :foreground "Snow4"))
@@ -327,7 +320,7 @@ See web-mode-part-face."
   :group 'web-mode-faces)
 
 (defface web-mode-block-attr-name-face
-  '((t :foreground "#8fbc8f")) ;; inherit web-mode-html-attr-name-face))
+  '((t :foreground "#8fbc8f"))
   "Face for block attribute names."
   :group 'web-mode-faces)
 
@@ -487,24 +480,24 @@ See web-mode-part-face."
   :group 'web-mode-faces)
 
 (defface web-mode-inlay-face
-  '((((class color) (min-colors 88) (background dark))  :background "black")
+  '((((class color) (min-colors 88) (background dark))  :background "Black")
     (((class color) (min-colors 88) (background light)) :background "LightYellow1")
-    (((class color) (min-colors 16) (background dark))  :background "grey18")
+    (((class color) (min-colors 16) (background dark))  :background "Brey18")
     (((class color) (min-colors 16) (background light)) :background "LightYellow1")
     (((class color) (min-colors 8))                     :background "Black")
     (((type tty) (class mono))                          :inverse-video t)
-    (t                                                  :background "grey"))
+    (t                                                  :background "Grey"))
   "Face for inlays. Must be used in conjunction with web-mode-enable-inlays."
   :group 'web-mode-faces)
 
 (defface web-mode-block-face
-  '((((class color) (min-colors 88) (background dark))  :background "black")
+  '((((class color) (min-colors 88) (background dark))  :background "Black")
     (((class color) (min-colors 88) (background light)) :background "LightYellow1")
-    (((class color) (min-colors 16) (background dark))  :background "grey18")
+    (((class color) (min-colors 16) (background dark))  :background "Grey18")
     (((class color) (min-colors 16) (background light)) :background "LightYellow1")
     (((class color) (min-colors 8))                     :background "Black")
     (((type tty) (class mono))                          :inverse-video t)
-    (t                                                  :background "grey"))
+    (t                                                  :background "Grey"))
   "Face for blocks (useful for setting a background for example).
 Must be used in conjunction with web-mode-enable-block-face."
   :group 'web-mode-faces)
@@ -6905,6 +6898,41 @@ the environment as needed for ac-sources, right before they're used.")
       nil)
     ))
 
+(defun web-mode-surround ()
+  "Surround each line of the current REGION with a start/end tag."
+  (interactive)
+  (when mark-active
+    (let (beg end line-beg line-end pos tag tag-start tag-end)
+      (save-excursion
+        (setq tag (read-from-minibuffer "Tag name? ")
+              tag-start (concat "<" tag ">")
+              tag-end (concat "</" tag ">")
+              pos (point)
+              beg (region-beginning)
+              end (region-end)
+              line-beg (web-mode-line-number beg)
+              line-end (web-mode-line-number end))
+        (goto-char end)
+        (unless (bolp)
+          (insert tag-end)
+          (back-to-indentation)
+          (when (> beg (point))
+            (goto-char beg))
+          (insert tag-start))
+        (while (> line-end line-beg)
+          (forward-line -1)
+          (setq line-end (1- line-end))
+          (unless (looking-at-p "[[:space:]]*$")
+            (end-of-line)
+            (insert tag-end)
+            (back-to-indentation)
+            (when (> beg (point))
+              (goto-char beg))
+            (insert tag-start))
+          ) ;while
+        (deactivate-mark)
+        ))))
+
 (defun web-mode-element-wrap ()
   "Wrap current REGION with start and end tags."
   (interactive)
@@ -7756,14 +7784,26 @@ the environment as needed for ac-sources, right before they're used.")
       (goto-char pos))
     ))
 
+(defun web-mode-element-tag-name (&optional pos)
+  (unless pos (setq pos (point)))
+  (save-excursion
+    (goto-char pos)
+    (if (and (web-mode-tag-beginning)
+             (looking-at "<\\(/?[[:alpha:]][[:alnum:]-]*\\)"))
+        (match-string-no-properties 1)
+      nil)))
+
 (defun web-mode-element-close ()
   "Close HTML element."
   (interactive)
   (let (jump epp ins tag)
     (setq epp (web-mode-element-parent-position))
     (when epp
-      (setq tag (get-text-property epp 'tag-name))
+;;      (setq tag (get-text-property epp 'tag-name))
+      (setq tag (web-mode-element-tag-name epp))
       (cond
+       ((null tag)
+        (setq epp nil))
        ((looking-back "</")
         (setq ins tag))
        ((looking-back "<")
@@ -8340,6 +8380,63 @@ the environment as needed for ac-sources, right before they're used.")
     (point)
     ))
 
+(defun web-mode-tag-attributes-sort (&optional pos)
+  "Sort attributes"
+  (interactive)
+  (unless pos (setq pos (point)))
+  (save-excursion
+    (let (attrs (continue t) min max tag-beg tag-end attr attr-name attr-beg attr-end indent indentation sorter ins)
+      (if (not (member (get-text-property pos 'tag-type) '(start void)))
+          nil
+        (setq tag-beg (web-mode-tag-beginning-position pos)
+              tag-end (web-mode-tag-end-position))
+;;        (message "%S %S" tag-beg tag-end)
+        (goto-char tag-beg)
+        (while continue
+          (if (or (not (web-mode-attribute-next))
+                  (>= (point) tag-end))
+              (setq continue nil)
+            ;;(message "attr=%S" (point))
+            (setq attr-beg (web-mode-attribute-beginning-position)
+                  attr-end (1+ (web-mode-attribute-end-position)))
+            (when (null min)
+              (setq min attr-beg))
+            (setq max attr-end)
+            (goto-char attr-beg)
+            (setq attr (buffer-substring-no-properties attr-beg attr-end))
+            (if (string-match "^\\([[:alnum:]-]+\\)=" attr)
+                (setq attr-name (match-string-no-properties 1 attr))
+              (setq attr-name attr))
+            (setq indent (looking-back "^[ \t]*"))
+            (setq attrs (append attrs (list (list attr-beg attr-end attr-name attr indent))))
+            ) ;if
+          ) ;while
+        ) ;if in tag
+      (when attrs
+        (setq sorter (function
+                      (lambda (elt1 elt2)
+                        (string< (nth 2 elt1) (nth 2 elt2))
+                        )))
+        (setq attrs (sort attrs sorter))
+        (delete-region (1- min) max)
+        (setq ins "")
+        (dolist (elt attrs)
+          (if (and (nth 4 elt) (> (length ins) 1))
+              (setq ins (concat ins "\n"))
+            (setq ins (concat ins " ")))
+          (setq ins (concat ins (nth 3 elt)))
+          )
+        (goto-char (1- min))
+        (insert ins)
+        (web-mode-tag-beginning)
+        (setq min (line-beginning-position))
+        (web-mode-tag-end)
+        (setq max (line-end-position))
+        (indent-region min max)
+        )
+      ;;(message "attrs=%S" attrs)
+      )))
+
 ;;---- POSITION ----------------------------------------------------------------
 
 (defun web-mode-opening-paren-position (&optional pos limit)
@@ -8401,16 +8498,6 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;while
       pos)))
 
-(defun web-mode-closing-paren (limit)
-  "web-mode-closing-paren"
-  (let (pos)
-    (setq pos (web-mode-closing-paren-position (point) limit))
-    (if (or (null pos) (> pos limit))
-        nil
-      (goto-char pos)
-      pos)
-    ))
-
 (defun web-mode-closing-paren-position (&optional pos limit)
   "Fetch closing paren."
   (save-excursion
@@ -8451,12 +8538,6 @@ the environment as needed for ac-sources, right before they're used.")
       ;;      (message "n=%S pt=%S" n pt)
       pt
       )))
-
-(defun web-mode-block-opening-paren (pos limit)
-  "opening paren"
-  (setq pos (web-mode-block-opening-paren-position pos limit))
-  (when pos (goto-char pos))
-  )
 
 (defun web-mode-block-opening-paren-position (pos limit)
   "Is opened code line."
@@ -8895,6 +8976,22 @@ the environment as needed for ac-sources, right before they're used.")
 
 ;;---- NAV ---------------------------------------------------------------------
 
+(defun web-mode-closing-paren (limit)
+  "web-mode-closing-paren"
+  (let (pos)
+    (setq pos (web-mode-closing-paren-position (point) limit))
+    (if (or (null pos) (> pos limit))
+        nil
+      (goto-char pos)
+      pos)
+    ))
+
+(defun web-mode-block-opening-paren (pos limit)
+  "opening paren"
+  (setq pos (web-mode-block-opening-paren-position pos limit))
+  (when pos (goto-char pos))
+  )
+
 (defun web-mode-tag-beginning (&optional pos)
   "Fetch html tag beg."
   (interactive)
@@ -8939,63 +9036,6 @@ the environment as needed for ac-sources, right before they're used.")
     (setq pos (next-single-property-change pos 'tag-beg))
     (when pos (goto-char pos)))
   pos)
-
-(defun web-mode-tag-attributes-sort (&optional pos)
-  "Sort attributes"
-  (interactive)
-  (unless pos (setq pos (point)))
-  (save-excursion
-    (let (attrs (continue t) min max tag-beg tag-end attr attr-name attr-beg attr-end indent indentation sorter ins)
-      (if (not (member (get-text-property pos 'tag-type) '(start void)))
-          nil
-        (setq tag-beg (web-mode-tag-beginning-position pos)
-              tag-end (web-mode-tag-end-position))
-;;        (message "%S %S" tag-beg tag-end)
-        (goto-char tag-beg)
-        (while continue
-          (if (or (not (web-mode-attribute-next))
-                  (>= (point) tag-end))
-              (setq continue nil)
-            ;;(message "attr=%S" (point))
-            (setq attr-beg (web-mode-attribute-beginning-position)
-                  attr-end (1+ (web-mode-attribute-end-position)))
-            (when (null min)
-              (setq min attr-beg))
-            (setq max attr-end)
-            (goto-char attr-beg)
-            (setq attr (buffer-substring-no-properties attr-beg attr-end))
-            (if (string-match "^\\([[:alnum:]-]+\\)=" attr)
-                (setq attr-name (match-string-no-properties 1 attr))
-              (setq attr-name attr))
-            (setq indent (looking-back "^[ \t]*"))
-            (setq attrs (append attrs (list (list attr-beg attr-end attr-name attr indent))))
-            ) ;if
-          ) ;while
-        ) ;if in tag
-      (when attrs
-        (setq sorter (function
-                      (lambda (elt1 elt2)
-                        (string< (nth 2 elt1) (nth 2 elt2))
-                        )))
-        (setq attrs (sort attrs sorter))
-        (delete-region (1- min) max)
-        (setq ins "")
-        (dolist (elt attrs)
-          (if (and (nth 4 elt) (> (length ins) 1))
-              (setq ins (concat ins "\n"))
-            (setq ins (concat ins " ")))
-          (setq ins (concat ins (nth 3 elt)))
-          )
-        (goto-char (1- min))
-        (insert ins)
-        (web-mode-tag-beginning)
-        (setq min (line-beginning-position))
-        (web-mode-tag-end)
-        (setq max (line-end-position))
-        (indent-region min max)
-        )
-      ;;(message "attrs=%S" attrs)
-      )))
 
 (defun web-mode-attribute-beginning (&optional pos)
   "Fetch html attribute end."
@@ -9873,13 +9913,14 @@ the environment as needed for ac-sources, right before they're used.")
     (message "colors: fg(%S) bg(%S) "
              (cdr (assoc 'foreground-color default-frame-alist))
              (cdr (assoc 'background-color default-frame-alist)))
-    (message "modes: whitespace-mode(%S) global-whitespace-mode(%S) rainbow-mode(%S) idle-highlight-mode(%S) fic-mode(%S)"
-             (if (boundp 'whitespace-mode) whitespace-mode nil)
-             (if (boundp 'global-whitespace-mode) global-whitespace-mode nil)
-             (if (boundp 'rainbow-mode) rainbow-mode nil)
-             (if (boundp 'idle-highlight-mode) idle-highlight-mode nil)
-             (if (boundp 'fic-mode) fic-mode nil)
-             )
+    ;; (message "modes: whitespace-mode(%S) global-whitespace-mode(%S) rainbow-mode(%S) idle-highlight-mode(%S) fic-mode(%S)"
+    ;;          (if (boundp 'whitespace-mode) whitespace-mode nil)
+    ;;          (if (boundp 'global-whitespace-mode) global-whitespace-mode nil)
+    ;;          (if (boundp 'rainbow-mode) rainbow-mode nil)
+    ;;          (if (boundp 'idle-highlight-mode) idle-highlight-mode nil)
+    ;;          (if (boundp 'fic-mode) fic-mode nil)
+    ;;          )
+;;    (message "locals: %S" (buffer-local-variables))
     (mapc (lambda (mode)
             (condition-case nil
                 (if (and (symbolp mode) (symbol-value mode))
@@ -9887,7 +9928,7 @@ the environment as needed for ac-sources, right before they're used.")
               (error nil))
             ) ;lambda
           minor-mode-list)
-    (message "%S" modes)
+    (message "minor modes: %S" modes)
     (message "--- WEB-MODE DEBUG END ---")
     (switch-to-buffer "*Messages*")
     (goto-char (point-max))
