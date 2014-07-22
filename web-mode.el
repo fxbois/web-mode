@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.49
+;; Version: 9.0.50
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -46,7 +46,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.49"
+(defconst web-mode-version "9.0.50"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5676,7 +5676,7 @@ the environment as needed for ac-sources, right before they're used.")
              )
             )
 
-           ((and (string= language "php")
+           ((and (member language '("php" "javascript" "jsx"))
                  (or (string-match-p "^else$" prev-line)
                      (string-match-p "^\\(if\\|for\\|foreach\\|while\\)[ ]*(.+)$" prev-line))
                  (not (string-match-p "^{" line)))
