@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.51
+;; Version: 9.0.53
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -46,7 +46,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.51"
+(defconst web-mode-version "9.0.53"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8859,9 +8859,7 @@ the environment as needed for ac-sources, right before they're used.")
   pos)
 
 (defun web-mode-block-beginning-position (&optional pos)
-  "web-mode-block-beginning-position"
   (unless pos (setq pos (point)))
-;;  (message "web-mode-block-beginning-position=%S" pos)
   (cond
    ((or (and (get-text-property pos 'block-side)
              (= pos (point-min)))
@@ -8873,8 +8871,7 @@ the environment as needed for ac-sources, right before they're used.")
     )
    ((get-text-property pos 'block-side)
     (setq pos (previous-single-property-change pos 'block-beg))
-    (setq pos (if pos (1- pos) (point-min)))
-;;    (setq pos (if pos pos (point-min)))
+    (setq pos (if (and pos (> pos (point-min))) (1- pos) (point-min)))
     )
    (t
     (setq pos nil))
@@ -8910,45 +8907,64 @@ the environment as needed for ac-sources, right before they're used.")
    ))
 
 (defun web-mode-block-previous-position (&optional pos)
-  "web-mode-block-previous-position"
   (unless pos (setq pos (point)))
+;;  (message "pos=%S" pos)
   (cond
    ((= pos (point-min))
     (setq pos nil))
    ((get-text-property pos 'block-side)
     (setq pos (web-mode-block-beginning-position pos))
-    ;;(message "pos=%S  <%c>" pos (char-after pos))
-    (when (and pos (> pos (point-min)))
+    (cond
+     ((or (= pos (point-min))
+          (null pos))
+      (setq pos nil)
+      )
+     ((and (setq pos (previous-single-property-change pos 'block-beg))
+           (> pos (point-min)))
       (setq pos (1- pos))
-      (while (and (> pos (point-min))
-                  (eq (char-after pos) ?\n))
-        (setq pos (1- pos))
-        ) ;while
-;;      (message "pos=%S  <%c>" pos (char-after pos))
-      (if (get-text-property pos 'block-side)
-          (setq pos (web-mode-block-beginning-position pos))
-;;        (message "pos=%S  <%c> %S" pos (char-after pos) (get-text-property pos 'block-side))
-        (setq pos (previous-single-property-change pos 'block-side))
-;;        (message "pos=%S" pos)
-        (cond
-         ((and (null pos) (get-text-property (point-min) 'block-beg))
-          (setq pos (point-min)))
-         ((and pos (get-text-property pos 'block-beg))
-          )
-         ((and pos (> pos (point-min)))
-          (setq pos (web-mode-block-beginning-position (1- pos))))
-         )
-        ) ;if
-      ) ;when
-;;    (message "pos=%S  <%c>" pos (char-after pos))
+;;      (message "pos=%S" pos)
+      )
+     )
+
+    ;; ;; (when (and pos (> pos (point-min)))
+    ;; ;;   (setq pos (1- pos))
+    ;; ;;   (while (and (> pos (point-min))
+    ;; ;;               (eq (char-after pos) ?\s))
+    ;; ;;     (setq pos (1- pos))
+    ;; ;;     ) ;while
+
+    ;; (if (get-text-property pos 'block-side)
+    ;;     (progn
+    ;;       (setq pos (web-mode-block-beginning-position pos))
+    ;;       )
+    ;;   ;;(message "pos=%S  <%c> %S" pos (char-after pos) (get-text-property pos 'block-side))
+    ;;   (setq pos (previous-single-property-change pos 'block-side))
+    ;;   (cond
+    ;;    ((and (null pos) (get-text-property (point-min) 'block-beg))
+    ;;     (setq pos (point-min)))
+    ;;    ((and pos (get-text-property pos 'block-beg))
+    ;;     )
+    ;;    ((and pos (> pos (point-min)))
+    ;;     (setq pos (web-mode-block-beginning-position (1- pos))))
+    ;;    )
+    ;;   ) ;if
+    ;; ;;    ) ;when
+
+
+    ;;    (message "pos=%S  <%c>" pos (char-after pos))
     ) ;block-side
    (t
     (setq pos (previous-single-property-change pos 'block-side))
-;;    (message "ici")
-    (when (and pos (> pos (point-min)))
+    ;;    (message "ici")
+    (cond
+     ((and (null pos) (get-text-property (point-min) 'block-beg))
+      (setq pos (point-min)))
+     ((and pos (> pos (point-min)))
       (setq pos (web-mode-block-beginning-position (1- pos))))
+     )
     )
    ) ;conf
+;;  (message "->%S" pos)
   pos)
 
 (defun web-mode-block-next-position (&optional pos)
