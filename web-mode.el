@@ -5118,7 +5118,7 @@ the environment as needed for ac-sources, right before they're used.")
 ;; tag-case=lower|upper-case , attr-case=lower|upper-case
 ;; special-chars=unicode|html-entities
 ;; smart-apostrophes=bool , smart-quotes=bool , indentation=bool
-(defun web-mode-buffer-normalize ()
+(defun web-mode-dom-normalize ()
   "Normalize buffer"
   (interactive)
   (save-excursion
