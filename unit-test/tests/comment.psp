@@ -1,0 +1,17 @@
+related issues: #293
+
+<div>
+  <!--   <?php if ($x): ?> -->
+  <!--   <?php endif; ?> -->
+</div>
+<div>
+  <?php
+  /*
+   * lorem lorem lorem lorem
+   * ipsum
+   */
+  ?>
+</div>
+
+<p></p>
+<p>xsxs</p>thisthisthisthisthisss

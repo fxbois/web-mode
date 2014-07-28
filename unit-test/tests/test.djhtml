@@ -1,0 +1,29 @@
+{% if something %}
+{% endif %}
+
+related issues: #293
+
+<div>
+  <!--   {% if something %} -->
+  <!--   {% endif %} -->
+</div>
+
+<!--   {% if something %} -->
+<!--   {% endif %} -->
+
+{% if something %}
+  {% if something2 %}{% endif %} {{  }}
+{% endif %}
+
+{% if something %} {{ }}
+{% endif %}
+
+{% if something %}{{ }}
+{% endif %}
+
+{% if something %} {{ }}
+{% endif %}
+
+{% if something %}
+  {% if something2 %}{% endif %}{{  }}
+{% endif %}

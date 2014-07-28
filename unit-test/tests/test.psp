@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+     .dialog INPUT[type=button]:hover,
+     .btn { color:#0aa; }
+     @media (min-with:900px) {
+       div[name="btn"] {
+         height:10px; /* comment */ }
+     }
+    </style>
+    <script>
+     var name = "fxbois";
+     function hello() {
+       alert("hello " + name); // comment
+     }
+    </script>
+  </head>
+  <body>
+    <ul class="main" id=x1
+        data-content="hello">
+      <?php foreach ($datas as $key => $value): ?>
+        <li><?=Helper::format($value)?></li>
+      <?php endforeach; ?>
+    </ul>
+    <div><?=$obj->show(array('url' => DOC_URL,
+                             'port' => "xx $var zz"))?><img src=""/></div>
+    <section><span-custom>hello</span-custom>
+      <span>world</span><!-- comment -->
+    </section>
+  </body>
+</html>

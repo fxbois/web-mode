@@ -1,1 +1,0 @@
-Feature: Web mode
