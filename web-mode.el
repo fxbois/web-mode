@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.53
+;; Version: 9.0.54
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,6 +36,7 @@
 
 ;; Code goes here
 
+;;todo : attr glitch with issue292.jsx
 ;;todo : phphint
 ;;todo : tag-name uniquement sur les html tag
 ;;todo : Stickiness of Text Properties
@@ -46,7 +47,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.53"
+(defconst web-mode-version "9.0.54"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5929,8 +5930,7 @@ the environment as needed for ac-sources, right before they're used.")
         )
       ) ;while
 ;;    (message "indent-origin=%S" pos)
-    pos
-    ))
+    pos))
 
 ;; state=t <=> start tag
 (defun web-mode-element-is-opened (pos limit)
@@ -5971,7 +5971,6 @@ the environment as needed for ac-sources, right before they're used.")
             (puthash tag (1+ n) h)
             (puthash tag (1+ n) h2))
           ) ;when
-
         (when (setq pos (web-mode-tag-end-position pos))
           (setq tag-pos nil)
           (when (and block-pos (> pos block-pos))
@@ -5993,7 +5992,6 @@ the environment as needed for ac-sources, right before they're used.")
              ) ;cond
             ) ;dolist
           )
-
         (when (setq pos (web-mode-block-end-position pos))
           (setq block-pos nil)
           (when (and tag-pos (> pos tag-pos))
@@ -6011,7 +6009,9 @@ the environment as needed for ac-sources, right before they're used.")
           )
         (when (or (null block-pos) (>= pos block-pos))
           (setq block-pos (web-mode-block-next-position pos limit))
-          ))
+;;          (message "from=%S block-next-pos=%S" pos block-pos)
+          )
+        )
 
       (cond
        ((null pos)
@@ -9098,14 +9098,18 @@ the environment as needed for ac-sources, right before they're used.")
   (cond
    ((and (get-text-property pos 'block-side)
          (setq pos (web-mode-block-end-position pos))
+         (> (point-max) pos)
          (setq pos (1+ pos))
          ;;    (when (and
          ;;         pos
-         (> (point-max) pos)
-         (not (get-text-property pos 'block-side)))
+         ;;         (> (point-max) pos)
+         ;;         (not (get-text-property pos 'block-side)))
+         )
     ;;      (setq pos (1+ pos))
     ;;      (when (not (get-text-property pos 'block-side))
-    (setq pos (next-single-property-change pos 'block-side))
+    (if (get-text-property pos 'block-beg)
+        pos
+      (setq pos (next-single-property-change pos 'block-side)))
     ;;      )
     ;;    ) ;when
     )

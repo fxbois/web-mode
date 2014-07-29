@@ -27,3 +27,7 @@ related issues: #293
 {% if something %}
   {% if something2 %}{% endif %}{{  }}
 {% endif %}
+
+{% block title %}{% endblock %}
+
+Indented
