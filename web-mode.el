@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.55
+;; Version: 9.0.56
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -46,7 +46,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.55"
+(defconst web-mode-version "9.0.56"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2863,15 +2863,15 @@ the environment as needed for ac-sources, right before they're used.")
   (goto-char reg-beg)
   (let (match controls
         (continue t)
-        (regexp "endif\\|endforeach\\|endfor\\|endwhile\\|else\\|elsif\\|if\\|foreach\\|for\\|while"))
+        (regexp "endif\\|endforeach\\|endfor\\|endwhile\\|elseif\\|else\\|if\\|foreach\\|for\\|while"))
     (while continue
       (if (not (web-mode-block-rsf regexp reg-end))
           (setq continue nil)
         (setq match (match-string-no-properties 0))
+;;        (message "%S %S" match (point))
         (cond
-         ((and (>= (length match) 4)
-               (string= match "else")
-               (looking-at-p "[ ]*:"))
+         ((and (member match '("else" "elseif"))
+               (looking-at-p "[ ]*[:(]"))
           (setq controls (append controls (list (cons 'inside "if"))))
           )
          ((and (>= (length match) 3)
