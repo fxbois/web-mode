@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.56
+;; Version: 9.0.57
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -46,7 +46,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.56"
+(defconst web-mode-version "9.0.57"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2342,12 +2342,16 @@ the environment as needed for ac-sources, right before they're used.")
           (cond
 
            ((listp closing-string)
-;;            (message "point=%S sub2=%S" (point) sub2)
+;;            (message "point=%S sub2=%s" (point) sub2)
             (if (web-mode-rsf-balanced (car closing-string) (cdr closing-string) reg-end t)
-                (setq close (match-end 0)
-                      pos (point))
+                (progn
+;;                  (message "found %S" (point))
+                  (setq close (match-end 0)
+                        pos (point)))
               (when (and (string= web-mode-engine "php")
-                         (string= "<?" sub2))
+                         (string= "<?" sub2)
+                         (save-excursion (not (re-search-forward "<?[p=]" reg-end t))))
+;;                (message "not found pos=%S %S" (point) (text-property-any (1+ open) (point) 'block-beg 0))
                 (setq close (point-max) ;;(if (looking-at-p "[ \t\n]*<") (line-end-position) (point-max))
                       delim-close nil
                       pos (point-max))
@@ -2403,6 +2407,10 @@ the environment as needed for ac-sources, right before they're used.")
                   pos (point)))
 
            ) ;cond
+
+;;          (when (and close (text-property-any (1+ open) close 'block-end 0))
+;;            (message "detected")
+;;            )
 
 ;;          (message "close=%S reg-end=%S pos=%S" close reg-end pos)
           (when (and close (>= reg-end pos))
@@ -9491,6 +9499,7 @@ the environment as needed for ac-sources, right before they're used.")
   (unless noerror (setq noerror t))
   (let ((continue t)
         (level 1)
+        (pos (point))
         ret
         (regexp (concat regexp-open "\\|" regexp-close)))
 ;;    (message "regexp=%S" regexp)
@@ -9512,6 +9521,8 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;t
        ) ;cond
       ) ;while
+    (when (not (= level 0)) (goto-char pos))
+;;    (message "ret=%S level=%S" ret level)
     ret))
 
 (defun web-mode-block-sb (expr &optional limit noerror)
