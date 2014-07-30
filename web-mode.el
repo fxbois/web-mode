@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.54
+;; Version: 9.0.55
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,6 @@
 
 ;; Code goes here
 
-;;todo : attr glitch with issue292.jsx
 ;;todo : phphint
 ;;todo : tag-name uniquement sur les html tag
 ;;todo : Stickiness of Text Properties
@@ -47,7 +46,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.54"
+(defconst web-mode-version "9.0.55"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3382,9 +3381,10 @@ the environment as needed for ac-sources, right before they're used.")
 
 ;; attr states:
 ;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after (6)value-uq (7)value-sq (8)value-dq
+;; (9)value-bq : jsx {}
 (defun web-mode-tag-skip (limit)
   "Scan attributes and fetch end of tag."
-  (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0)
+  (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0) (brace-depth 0)
         (pos-ori (point)) (state 0) (equal-offset 0) (go-back nil)
         name-beg name-end val-beg char pos escaped spaced quoted)
 
@@ -3406,8 +3406,15 @@ the environment as needed for ac-sources, right before they're used.")
         )
 
        ((or (and (= state 8) (not (member char '(?\" ?\\))))
-            (and (= state 7) (not (member char '(?\' ?\\)))))
+            (and (= state 7) (not (member char '(?\' ?\\))))
+            (and (= state 9) (not (member char '(?} ?\\))))
+            )
+        (when (and (= state 9) (eq char ?\{))
+          (setq brace-depth (1+ brace-depth)))
         )
+
+       ((and (= state 9) (eq char ?\}) (> brace-depth 1))
+        (setq brace-depth (1- brace-depth)))
 
 ;;        ((and (member state '(8 7 6))
 ;;              (or (and (>= char 97) (<= char 122)) ;a - z
@@ -3425,7 +3432,9 @@ the environment as needed for ac-sources, right before they're used.")
         )
 
        ((or (and (eq ?\" char) (= state 8) (not escaped))
-            (and (eq ?\' char) (= state 7) (not escaped)))
+            (and (eq ?\' char) (= state 7) (not escaped))
+            (and (eq ?\} char) (= state 9) (= brace-depth 1))
+            )
         (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
         (setq state 0
               attr-flags 0
@@ -3435,13 +3444,19 @@ the environment as needed for ac-sources, right before they're used.")
               val-beg nil)
         )
 
-       ((and (member char '(?\' ?\")) (member state '(4 5)))
+       ((and (member char '(?\' ?\" ?\{)) (member state '(4 5)))
         (setq val-beg pos)
         (setq quoted 1)
-        (setq state (if (eq ?\' char) 7 8))
+        (setq state (cond
+                     ((eq ?\' char) 7)
+                     ((eq ?\" char) 8)
+                     (t             9)))
+        (when (= state 9)
+          (setq brace-depth 1))
         )
 
        ((and (eq ?\= char) (member state '(2 3)))
+;;        (message "%S" (get-text-property pos 'part-token))
         (setq equal-offset (- pos name-beg))
         (setq state 4)
         )
@@ -3450,14 +3465,14 @@ the environment as needed for ac-sources, right before they're used.")
         (setq state 1)
         )
 
-       ((and (not (member state '(7 8)))
+       ((and (not (member state '(7 8 9)))
              (eq char ?\<))
         (setq continue nil)
         (setq go-back t)
         (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
         )
 
-       ((and (not (member state '(7 8)))
+       ((and (not (member state '(7 8 9)))
              (eq char ?\>))
         (setq tag-flags (logior tag-flags 16))
         (when (eq (char-before) ?\/)
@@ -3506,7 +3521,7 @@ the environment as needed for ac-sources, right before they're used.")
               val-beg nil)
         )
 
-       ((and (eq char ?\n) (not (member state '(7 8))))
+       ((and (eq char ?\n) (not (member state '(7 8 9))))
         (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
         (setq state 1
               attr-flags 0
