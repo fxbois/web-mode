@@ -9909,7 +9909,7 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-test ()
   "Exec web-mode unit tests. See web-mode-tests-directory."
   (interactive)
-  (let (files)
+  (let (files ret)
     (setq files (directory-files web-mode-tests-directory t "^[[:alnum:]][[:alnum:].]+\\'"))
     (dolist (file files)
       (setq ret (web-mode-test-process file)))
