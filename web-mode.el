@@ -1833,7 +1833,7 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'font-lock-defaults)
   (make-local-variable 'font-lock-end)
   (make-local-variable 'font-lock-extend-region-functions)
-  (make-local-variable 'font-lock-maximum-size)
+;;  (make-local-variable 'font-lock-maximum-size)
   (make-local-variable 'font-lock-support-mode)
   (make-local-variable 'imenu-case-fold-search)
   (make-local-variable 'imenu-create-index-function)
@@ -1852,7 +1852,7 @@ the environment as needed for ac-sources, right before they're used.")
         font-lock-defaults '(web-mode-font-lock-keywords t)
         font-lock-extend-region-functions '(web-mode-font-lock-extend-region)
         font-lock-support-mode nil
-        font-lock-maximum-size nil
+;;        font-lock-maximum-size nil
         imenu-case-fold-search t
         imenu-create-index-function 'web-mode-imenu-index
         indent-line-function 'web-mode-indent-line
@@ -1897,9 +1897,14 @@ the environment as needed for ac-sources, right before they're used.")
   (when web-mode-enable-whitespaces
     (web-mode-whitespaces-on))
 
+;;  (setq web-mode-change-flags -1)
+
   (web-mode-guess-engine-and-content-type)
   (web-mode-scan-region (point-min) (point-max))
   (web-mode-trace "buffer scanned")
+
+  (when (> (buffer-size) 256000)
+    (web-mode-highlight-region (point-min) (point-max)))
 
 ;;  (message "ici2")
 
@@ -4220,8 +4225,13 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-font-lock-extend-region ()
   (save-excursion
-    ;;    (message "before : font-lock-beg=%S - font-lock-end=%S" font-lock-beg font-lock-end)
+;;    (message "before : font-lock-beg=%S - font-lock-end=%S" font-lock-beg font-lock-end)
     (cond
+;;      ((= web-mode-change-flags -1)
+;; ;;      (message "ici")
+;;       (setq font-lock-beg (point-min)
+;;             font-lock-end (point-max))
+;;       (setq web-mode-change-flags 0))
      ((string= web-mode-engine "razor")
       (setq font-lock-beg (point-min)
             font-lock-end (point-max)))
