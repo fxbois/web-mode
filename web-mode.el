@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.57
+;; Version: 9.0.58
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -46,7 +46,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.57"
+(defconst web-mode-version "9.0.58"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1605,6 +1605,16 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("velocity"         . web-mode-velocity-font-lock-keywords))
   "Engines font-lock keywords")
 
+(defvar web-mode-before-auto-complete-hooks nil
+  "List of functions to run before triggering the auto-complete library.
+
+Auto-complete sources will sometimes need some tweaking to work
+nicely with web-mode. This hook gives users the chance to adjust
+the environment as needed for ac-sources, right before they're used.")
+
+(defvar web-mode-ac-sources-alist nil
+  "alist mapping language names to ac-sources for that language.")
+
 (defvar web-mode-syntax-table
   (let ((table (make-syntax-table)))
     (modify-syntax-entry ?_ "w" table)
@@ -1756,16 +1766,6 @@ Must be used in conjunction with web-mode-enable-block-face."
     map)
   "Keymap for `web-mode'.")
 
-(defvar web-mode-before-auto-complete-hooks nil
-  "List of functions to run before triggering the auto-complete library.
-
-Auto-complete sources will sometimes need some tweaking to work
-nicely with web-mode. This hook gives users the chance to adjust
-the environment as needed for ac-sources, right before they're used.")
-
-(defvar web-mode-ac-sources-alist nil
-  "alist mapping language names to ac-sources for that language.")
-
 ;;---- COMPATIBILITY -----------------------------------------------------------
 
 (eval-and-compile
@@ -1903,24 +1903,15 @@ the environment as needed for ac-sources, right before they're used.")
   (web-mode-scan-region (point-min) (point-max))
   (web-mode-trace "buffer scanned")
 
-  (when (> (buffer-size) 256000)
-    (web-mode-highlight-region (point-min) (point-max)))
+;;  (when (> (buffer-size) 256000)
+;;    (web-mode-highlight-region 1 470)
+;;    (web-mode-highlight-region 1 17183)
+;;    (web-mode-highlight-region (point-min) (point-max))
+;;    )
 
 ;;  (message "ici2")
 
   )
-
-;;---- ADVICES -----------------------------------------------------------------
-
-(defadvice ac-start (before web-mode-set-up-ac-sources activate)
-  "Set `ac-sources' based on current language before running auto-complete."
-  (if (equal major-mode 'web-mode)
-      (progn
-        (run-hooks 'web-mode-before-auto-complete-hooks)
-        (let ((new-web-mode-ac-sources
-               (assoc (web-mode-language-at-pos)
-                      web-mode-ac-sources-alist)))
-          (setq ac-sources (cdr new-web-mode-ac-sources))))))
 
 ;;---- DEFUNS ------------------------------------------------------------------
 
@@ -3254,18 +3245,13 @@ the environment as needed for ac-sources, right before they're used.")
     (> n 0)
     ))
 
+(defvar web-mode-regexp1 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|\?xml\\)")
+(defvar web-mode-regexp2 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\)")
+
 (defun web-mode-scan-elements (reg-beg reg-end)
   "Scan html nodes (tags/attrs/comments/doctype)."
   (save-excursion
-    (let (part-beg part-end flags limit close-expr props tname tbeg tend element-content-type regexp regexp1 regexp2 part-close-tag char)
-
-      (setq regexp1 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|\?xml\\)"
-            regexp2 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\)")
-
-;;      (setq regexp1 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!\\(--\\|\\[CDATA\\[\\|doctype\\)\\|\?xml\\)")
-;;      (setq regexp2 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!\\(--\\|\\[CDATA\\[\\)\\)")
-
-      (setq regexp regexp1)
+    (let (part-beg part-end flags limit close-expr props tname tbeg tend element-content-type (regexp web-mode-regexp1) part-close-tag char)
 
       (goto-char reg-beg)
 
@@ -3300,18 +3286,18 @@ the environment as needed for ac-sources, right before they're used.")
             (setq props (list 'tag-name tname 'tag-type 'start)))
            ) ;cond
           )
-         ((string= tname "!--")
+         ((and (eq char ?\!) (eq (aref tname 1) ?\-)) ;;(string= tname "!--"))
           (setq close-expr "-->"
                 props '(tag-type comment)))
          ((string= tname "?xml")
-          (setq regexp regexp2
+          (setq regexp web-mode-regexp2
                 close-expr "?>"
                 props '(tag-type declaration)))
          ((string= tname "![cdata[")
           (setq close-expr "]]>"
                 props '(tag-type cdata)))
          ((string= tname "!doctype")
-          (setq regexp regexp2
+          (setq regexp web-mode-regexp2
                 props '(tag-type doctype)))
          ) ;cond
 
@@ -3320,13 +3306,13 @@ the environment as needed for ac-sources, right before they're used.")
           (setq flags (logior flags 16)
                 tend (1+ (point)))
           )
-         ((and (null close-expr) (looking-at-p "[ ]*/>"))
-          (setq flags (logior flags 24))
-          (search-forward ">")
-          (when (> (logand flags 8) 0)
-;;            (message "ici%S" (point))
-            (setq props (plist-put props 'tag-type 'void)))
-          (setq tend (point)))
+;;          ((and nil (null close-expr) (looking-at-p "[ ]*/>"))
+;;           (setq flags (logior flags 24))
+;;           (search-forward ">")
+;;           (when (> (logand flags 8) 0)
+;; ;;            (message "ici%S" (point))
+;;             (setq props (plist-put props 'tag-type 'void)))
+;;           (setq tend (point)))
          ((null close-expr)
           (setq flags (logior flags (web-mode-tag-skip reg-end)))
           (when (> (logand flags 8) 0) ;;(eq (char-before (1- (point))) ?\/)
@@ -3444,9 +3430,9 @@ the environment as needed for ac-sources, right before they're used.")
           (setq name-end pos))
         )
 
-       ((or (and (eq ?\" char) (= state 8) (not escaped))
-            (and (eq ?\' char) (= state 7) (not escaped))
-            (and (eq ?\} char) (= state 9) (= brace-depth 1))
+       ((or (and (= state 8) (eq ?\" char) (not escaped))
+            (and (= state 7) (eq ?\' char) (not escaped))
+            (and (= state 9) (eq ?\} char) (= brace-depth 1))
             )
         (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
         (setq state 0
@@ -3457,7 +3443,7 @@ the environment as needed for ac-sources, right before they're used.")
               val-beg nil)
         )
 
-       ((and (member char '(?\' ?\" ?\{)) (member state '(4 5)))
+       ((and (member state '(4 5)) (member char '(?\' ?\" ?\{)))
         (setq val-beg pos)
         (setq quoted 1)
         (setq state (cond
@@ -3478,15 +3464,13 @@ the environment as needed for ac-sources, right before they're used.")
         (setq state 1)
         )
 
-       ((and (not (member state '(7 8 9)))
-             (eq char ?\<))
+       ((and (eq char ?\<) (not (member state '(7 8 9))))
         (setq continue nil)
         (setq go-back t)
         (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
         )
 
-       ((and (not (member state '(7 8 9)))
-             (eq char ?\>))
+       ((and (eq char ?\>) (not (member state '(7 8 9))))
         (setq tag-flags (logior tag-flags 16))
         (when (eq (char-before) ?\/)
           (setq tag-flags (logior tag-flags 8))
@@ -3521,10 +3505,9 @@ the environment as needed for ac-sources, right before they're used.")
         )
 
        ((and (= state 3)
-             (or (eq char ?\-)
+             (or (and (>= char 97) (<= char 122)) ;a - z
                  (and (>= char 65) (<= char 90)) ;A - Z
-                 (and (>= char 97) (<= char 122)) ;a - z
-                 ))
+                 (eq char ?\-)))
         (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
         (setq state 2
               attr-flags 0
@@ -3544,7 +3527,7 @@ the environment as needed for ac-sources, right before they're used.")
               val-beg nil)
         )
 
-       ((and (member char '(?\s ?\n ?\/)) (= state 6))
+       ((and (= state 6) (member char '(?\s ?\n ?\/)))
         (setq attrs (+ attrs (web-mode-scan-attr state char name-beg name-end val-beg attr-flags equal-offset)))
         (setq state 1
               attr-flags 0
@@ -3665,6 +3648,7 @@ the environment as needed for ac-sources, right before they're used.")
   (if (null flags) (setq flags 0))
   (cond
    ((or (null name-beg))
+;;    (message "name-beg is null (%S)" (point))
     0)
    ((or (and (= state 8) (not (eq ?\" char)))
         (and (= state 7) (not (eq ?\' char))))
@@ -4779,6 +4763,12 @@ the environment as needed for ac-sources, right before they're used.")
   "Font-lock region according to the keywords."
 ;;  (message "beg=%S end=%S keywords=%S" beg end keywords)
   (save-excursion
+    ;; (setq font-lock-keywords keywords
+    ;;       font-lock-multiline nil
+    ;;       font-lock-keywords-case-fold-search
+    ;;       (member web-mode-engine '("asp" "template-toolkit"))
+    ;;       font-lock-keywords-only t
+    ;;       font-lock-extend-region-functions nil)
     (let ((font-lock-keywords keywords)
           (font-lock-multiline nil)
           (font-lock-keywords-case-fold-search
@@ -4786,8 +4776,10 @@ the environment as needed for ac-sources, right before they're used.")
           (font-lock-keywords-only t)
           (font-lock-extend-region-functions nil))
       (when (listp font-lock-keywords)
-        (font-lock-fontify-region beg end))
-      )))
+        (font-lock-fontify-region beg end)
+        )
+      )
+    ))
 
 (defun web-mode-colorize-foreground (color)
   "Colorize foreground based on background luminance."
@@ -5378,7 +5370,8 @@ the environment as needed for ac-sources, right before they're used.")
        ((member web-mode-content-type '("jsx"))
         (setq language "jsx"
               indent-offset web-mode-code-indent-offset)
-        (when (and (get-text-property pos 'part-expr)
+        (when (and (> pos (point-min))
+                   (get-text-property pos 'part-expr)
                    (get-text-property (1- pos) 'part-expr))
           (setq language "javascript")
           (setq block-beg (1+ (previous-single-property-change pos 'part-expr)))
@@ -5509,18 +5502,21 @@ the environment as needed for ac-sources, right before they're used.")
        ) ;cond
 
       (cond
-       ((or (and (eq (get-text-property pos 'part-token) 'comment)
+       ((or (and (> pos (point-min))
+                 (eq (get-text-property pos 'part-token) 'comment)
                  (eq (get-text-property (1- pos) 'part-token) 'comment)
                  (progn
                    (setq block-beg (previous-single-property-change pos 'part-token))
                    t))
-            (and (eq (get-text-property pos 'block-token) 'comment)
+            (and (> pos (point-min))
+                 (eq (get-text-property pos 'block-token) 'comment)
                  (eq (get-text-property (1- pos) 'block-token) 'comment)
                  (progn
                    (setq block-beg (previous-single-property-change pos 'block-token))
                    t)))
         (setq type "comment"))
-       ((or (and (member (get-text-property pos 'part-token) '(string context key))
+       ((or (and (> pos (point-min))
+                 (member (get-text-property pos 'part-token) '(string context key))
                  (member (get-text-property (1- pos) 'part-token) '(string context key)))
             (and (eq (get-text-property pos 'block-token) 'string)
                  (eq (get-text-property (1- pos) 'block-token) 'string)))
@@ -7162,7 +7158,7 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-element-is-void (&optional tag)
   "Test if tag is a void (self-closing) tag."
   (cond
-   ((and tag (member tag '("div" "a" "li")))
+   ((and tag (member tag '("div" "li" "a" "p")))
 ;;   ((and tag (string= tag "div"))
     nil)
    (tag
@@ -9656,17 +9652,13 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-dom-rsf (regexp &optional limit noerror)
   "re-search-forward outside blocks."
   (unless noerror (setq noerror t))
-  (let ((continue t) (ret nil)
-;;        (i 0)
-        )
+  (let ((continue t) (ret nil))
     (while continue
-;;      (setq i (1+ i))
       (setq ret (re-search-forward regexp limit noerror))
-;;      (message "ret=%S point=%S limit=%S i=%S" ret (point) limit 0)
-      (if (or (null ret)
-;;              (> i 5)
-              (not (get-text-property (match-beginning 0) 'block-side)))
-          (setq continue nil))
+      ;;      (message "ret=%S point=%S limit=%S i=%S" ret (point) limit 0)
+      (when (or (null ret)
+                (not (get-text-property (match-beginning 0) 'block-side)))
+        (setq continue nil))
       ) ;while
     ret))
 
@@ -9834,6 +9826,18 @@ the environment as needed for ac-sources, right before they're used.")
                  (eq (get-text-property pos 'part-token) 'comment))))
   )
 
+;;---- ADVICES -----------------------------------------------------------------
+
+(defadvice ac-start (before web-mode-set-up-ac-sources activate)
+  "Set `ac-sources' based on current language before running auto-complete."
+  (if (equal major-mode 'web-mode)
+      (progn
+        (run-hooks 'web-mode-before-auto-complete-hooks)
+        (let ((new-web-mode-ac-sources
+               (assoc (web-mode-language-at-pos)
+                      web-mode-ac-sources-alist)))
+          (setq ac-sources (cdr new-web-mode-ac-sources))))))
+
 ;;---- MINOR MODE ADDONS -------------------------------------------------------
 
 (defun web-mode-yasnippet-exit-hook ()
@@ -9945,7 +9949,6 @@ the environment as needed for ac-sources, right before they're used.")
         (forward-line)
         (delete-horizontal-space)
         (end-of-line))
-;;      (message "[%s]" (buffer-string))
       (web-mode-buffer-indent)
       (setq sig2 (md5 (current-buffer)))
       (setq success (string= sig1 sig2))
@@ -9953,21 +9956,9 @@ the environment as needed for ac-sources, right before they're used.")
       (setq out (concat (if success "ok" "ko") " : " (file-name-nondirectory file)))
       (message out)
       (when (not success)
-;;        (write-file (concat (file-name-directory file) "err." (file-name-nondirectory file)))
+        (write-file (concat (file-name-directory file) "err." (file-name-nondirectory file)))
         (message "[%s]" (buffer-string)))
       out)))
-
-(defun web-mode-my-indent ()
-  (interactive)
-  (goto-char (point-min))
-  (delete-horizontal-space)
-  (while (not (eobp))
-    (forward-line)
-    (delete-horizontal-space)
-    (end-of-line)
-    )
-  (web-mode-buffer-indent)
-  )
 
 ;;---- MISC --------------------------------------------------------------------
 

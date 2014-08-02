@@ -1,4 +1,4 @@
-if () {
+if (true) {
   var x;
   /*
    * Hello there.
@@ -8,4 +8,11 @@ if () {
   /* lorem
      ipsum */
   var y;
+}
+
+function hello() {
+  if (x)
+    console.log("lorem");
+  else
+    console.log("ipsum");
 }
