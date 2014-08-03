@@ -26,6 +26,23 @@ Landing = React.createClass({
   }
 });
 
+var Component = React.createClass({
+  render : function() {
+    var stuff = this.props.formElements.map(function(elem) {
+      switch(elem) {
+        case "textarea" :
+          return ( <textarea rows="4" /> );
+          break;
+        case "text" :
+          return ( <input type="text" /> );
+        default :
+          return null;
+      }
+    }
+    );
+  }
+});
+
 define(function (require) {
   'use strict';
 
