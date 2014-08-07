@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.60
+;; Version: 9.0.61
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -38,7 +38,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.60"
+(defconst web-mode-version "9.0.61"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7085,7 +7085,6 @@ the environment as needed for ac-sources, right before they're used.")
   "Test if tag is a void (self-closing) tag."
   (cond
    ((and tag (member tag '("div" "li" "a" "p")))
-;;   ((and tag (string= tag "div"))
     nil)
    (tag
     (car (member (downcase tag) web-mode-void-elements)))
@@ -9580,7 +9579,6 @@ the environment as needed for ac-sources, right before they're used.")
       (setq ret (re-search-forward regexp limit noerror)
             beg (if (null ret) (point) (match-beginning 0))
             end (if (null ret) (point) (1- (match-end 0))))
-;;      (message "pt=%S" pos)
       (if (or (null ret)
               (and (web-mode-is-content beg)
                    (web-mode-is-content end)))
@@ -9787,18 +9785,11 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-test-process (file)
   (with-temp-buffer
     (let (out sig1 sig2 success)
-;;      (set-buffer-major-mode (current-buffer))
-;;      (make-local-variable indent-tabs-mode)
       (setq-default indent-tabs-mode nil)
       (insert-file-contents file)
       (set-visited-file-name file)
       (web-mode)
-;;      (message "%s (%S) %s" file (buffer-size) major-mode)
       (setq sig1 (md5 (current-buffer)))
-;;      (message "%s : %S" file sig1)
-;;      (goto-char (point-min))
-;;      (message "[%s]" (buffer-string))
-;;      (setq s (buffer-string))
       (delete-horizontal-space)
       (while (not (eobp))
         (forward-line)
@@ -9807,7 +9798,6 @@ the environment as needed for ac-sources, right before they're used.")
       (web-mode-buffer-indent)
       (setq sig2 (md5 (current-buffer)))
       (setq success (string= sig1 sig2))
-;;      (message "%s : %S" file sig2)
       (setq out (concat (if success "ok" "ko") " : " (file-name-nondirectory file)))
       (message out)
       (when (not success)
@@ -10012,7 +10002,7 @@ the environment as needed for ac-sources, right before they're used.")
   (interactive)
   (let (symbol symbols out)
     (setq symbols (append web-mode-scan-properties '(face)))
-    (setq out (format "[point=%S engine=%S content-type=%S]\n" (point) web-mode-engine web-mode-content-type))
+    (setq out (format "[point=%S engine=%S content-type=%S language-at-pos=%S]\n" (point) web-mode-engine web-mode-content-type (web-mode-language-at-pos (point))))
     (dolist (symbol symbols)
       (when symbol
         (setq out (concat out (format "%s(%S) " (symbol-name symbol) (get-text-property (point) symbol)))))
@@ -10052,6 +10042,7 @@ the environment as needed for ac-sources, right before they're used.")
   ))
 
 ;;---- TODO --------------------------------------------------------------------
+;;- supprimer 2 flags sur blocks
 ;;- phphint
 ;;- tag-name uniquement sur les html tag
 ;;- Stickiness of Text Properties
