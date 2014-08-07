@@ -5255,16 +5255,19 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-language-at-pos (&optional pos)
   "Return the language at pos."
+  (interactive)
   (unless pos (setq pos (point)))
   (cond
    ((get-text-property pos 'block-side)
-    web-mode-engine)
+    (setq language web-mode-engine))
    ((get-text-property pos 'part-side)
-    (symbol-name (get-text-property pos 'part-side)))
+    (setq language (symbol-name (get-text-property pos 'part-side))))
    (t
-    web-mode-content-type)
+    (setq language web-mode-content-type))
    ) ;cond
-  )
+  (if (called-interactively-p 'any)
+      (message language)
+    language))
 
 (defun web-mode-column-at-pos (&optional pos)
   "Column at point"
