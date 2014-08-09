@@ -1882,8 +1882,6 @@ the environment as needed for ac-sources, right before they're used.")
   (when web-mode-enable-whitespaces
     (web-mode-whitespaces-on))
 
-;;  (setq web-mode-change-flags -1)
-
   (web-mode-guess-engine-and-content-type)
   (web-mode-scan-region (point-min) (point-max))
   (web-mode-trace "buffer scanned")
@@ -2386,10 +2384,6 @@ the environment as needed for ac-sources, right before they're used.")
                   pos (point)))
 
            ) ;cond
-
-;;          (when (and close (text-property-any (1+ open) close 'block-end 0))
-;;            (message "detected")
-;;            )
 
 ;;          (message "close=%S reg-end=%S pos=%S" close reg-end pos)
           (when (and close (>= reg-end pos))
@@ -2910,7 +2904,6 @@ the environment as needed for ac-sources, right before they're used.")
    (let ((controls nil))
      (cond
       ((null (get-text-property pos 'block-side))
-       ;;      (backtrace)
        (message "** block-controls-get : invalid (%S) **" pos))
       ((or (get-text-property pos 'block-beg)
            (setq pos (web-mode-block-beginning-position pos)))
@@ -3582,9 +3575,6 @@ the environment as needed for ac-sources, right before they're used.")
 ;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after (6)value-uq (7)value-sq (8)value-dq
 (defun web-mode-scan-attr (state char name-beg name-end val-beg flags equal-offset)
   "propertize attr."
-;;  (when (null char)
-;;    (message "pt=%S" (point)))
-
 ;;  (message "point(%S) state(%S) c(%c) name-beg(%S) name-end(%S) val-beg(%S) flags(%S) equal-offset(%S)"
 ;;           (point) state char name-beg name-end val-beg flags equal-offset)
   (if (null flags) (setq flags 0))
@@ -3859,10 +3849,6 @@ the environment as needed for ac-sources, right before they're used.")
       (cons beg end)
       )))
 
-;; invalidation lorsqu'on modifie
-;; web-mode-scan-virtual-tags
-;; web-mode-scan-block-literals ?
-
 (defun web-mode-scan-literals (reg-beg reg-end)
   "jsx web-mode-scan-literals"
   (let (continue match-beg match-end pair beg end)
@@ -3892,7 +3878,6 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;while
       )))
 
-;; bug du ' : issue210
 (defun web-mode-scan-literal (reg-end)
   "web-mode-scan-literal"
   (let (beg end)
@@ -3973,10 +3958,8 @@ the environment as needed for ac-sources, right before they're used.")
       (forward-char))
     ;;(message "pt=%S %c" (point) (char-after))
     (when (member (char-after) '(?\$ ?\@))
-      ;;              (message "pt=%S" (point))
       (forward-char))
     (when (member (char-after) '(?\!))
-      ;;              (message "pt=%S" (point))
       (forward-char))
     (if (member (char-after) '(?\{))
         (search-forward "}")
@@ -4093,9 +4076,7 @@ the environment as needed for ac-sources, right before they're used.")
     (setq end (1- end))
     (while (re-search-forward "${.*}" end t)
       (remove-text-properties (match-beginning 0) (match-end 0) '(font-lock-face nil))
-      (web-mode-fontify-region (match-beginning 0) (match-end 0)
-                               web-mode-uel-font-lock-keywords)
-      )
+      (web-mode-fontify-region (match-beginning 0) (match-end 0) web-mode-uel-font-lock-keywords))
     ))
 
 ;; todo : parsing plus compliqué: {$obj->values[3]->name}
@@ -4140,11 +4121,6 @@ the environment as needed for ac-sources, right before they're used.")
   (save-excursion
 ;;    (message "before : font-lock-beg=%S - font-lock-end=%S" font-lock-beg font-lock-end)
     (cond
-;;      ((= web-mode-change-flags -1)
-;; ;;      (message "ici")
-;;       (setq font-lock-beg (point-min)
-;;             font-lock-end (point-max))
-;;       (setq web-mode-change-flags 0))
      ((string= web-mode-engine "razor")
       (setq font-lock-beg (point-min)
             font-lock-end (point-max)))
@@ -4157,7 +4133,6 @@ the environment as needed for ac-sources, right before they're used.")
      ((and (null web-mode-change-beg) (null web-mode-change-end))
       )
      (t
-;;      (message "ici")
       (setq font-lock-beg (or (web-mode-previous-tag-at-bol-pos font-lock-beg)
                               (point-min))
             font-lock-end (or (web-mode-next-tag-at-eol-pos font-lock-end)
@@ -4179,7 +4154,6 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-highlight-region (&optional beg end content-type)
   "Highlight region (relying on text-properties setted during the scanning phase)."
-;;  (interactive)
   (unless beg (setq beg web-mode-highlight-beg))
   (unless end (setq end web-mode-highlight-end))
 ;;  (message "highlight: beg(%S) end(%S) ct(%S) wmcf(%S)" beg end content-type web-mode-change-flags)
@@ -4193,7 +4167,6 @@ the environment as needed for ac-sources, right before they're used.")
            (setq beg (if web-mode-is-narrowed 1 beg))
            (remove-text-properties beg end '(font-lock-face nil))
            (cond
-;;            (t )
             ((= web-mode-change-flags 1)
              (web-mode-block-highlight beg end)
              )
@@ -4213,7 +4186,6 @@ the environment as needed for ac-sources, right before they're used.")
              (web-mode-highlight-parts beg end)
              )
             (t
-;;             (message "ixi")
              (web-mode-highlight-tags beg end)
              (web-mode-highlight-parts beg end)
              (web-mode-highlight-blocks beg end))
@@ -4273,8 +4245,7 @@ the environment as needed for ac-sources, right before they're used.")
   (let (;;(beg (point)) end
         name type face flags slash-beg slash-end bracket-end)
 
-    (setq ;;end (1+ (web-mode-tag-end-position beg))
-          flags (get-text-property beg 'tag-beg)
+    (setq flags (get-text-property beg 'tag-beg)
           type (get-text-property beg 'tag-type)
           name (get-text-property beg 'tag-name))
 
@@ -4321,7 +4292,6 @@ the environment as needed for ac-sources, right before they're used.")
      ) ;cond
 
     ))
-
 
 ;; ATTENTION remplacement de font-lock-face par face
 ;; todo : optimisation des zones reg-beg et reg-end
@@ -4452,20 +4422,9 @@ the environment as needed for ac-sources, right before they're used.")
 
     (when keywords
       (web-mode-fontify-region reg-beg reg-end keywords)
-;;      (message "reg-beg(%S) reg-end(%S)" reg-beg reg-end)
-;;      (setq flags (get-text-property reg-beg 'block-beg))
-;;      (setq continue (not (null flags))) ;;(> (logand flags 1) 0))
       (setq continue t)
       (setq end reg-beg)
       (while continue
-;;        (message "end=%S %S" end (get-text-property end 'block-token))
-
-        ;; (if (and (= reg-beg end)
-        ;;          (eq (get-text-property end 'block-token) 'delimiter))
-        ;;     (setq beg end)
-        ;;   (setq beg (next-single-property-change end 'block-token))
-        ;;   )
-
         (if (get-text-property end 'block-token)
             (setq beg end)
           (setq beg (next-single-property-change end 'block-token buffer reg-end)))
@@ -4706,12 +4665,6 @@ the environment as needed for ac-sources, right before they're used.")
   "Font-lock region according to the keywords."
 ;;  (message "beg=%S end=%S keywords=%S" beg end keywords)
   (save-excursion
-    ;; (setq font-lock-keywords keywords
-    ;;       font-lock-multiline nil
-    ;;       font-lock-keywords-case-fold-search
-    ;;       (member web-mode-engine '("asp" "template-toolkit"))
-    ;;       font-lock-keywords-only t
-    ;;       font-lock-extend-region-functions nil)
     (let ((font-lock-keywords keywords)
           (font-lock-multiline nil)
           (font-lock-keywords-case-fold-search
@@ -4785,14 +4738,10 @@ the environment as needed for ac-sources, right before they're used.")
             (setq delim-beg "<!--"
                   delim-end "-->"))
            )
-          ;;          (subst-char-in-region beg end ?\n ?\s)
-          ;;          (message "fill-column=%S pt=%S pair=%S chunk=%S"
-          ;;                   fill-column (point) pair chunk)
           )
         ) ;comment - case
 
        ((web-mode-is-content)
-;;        (message "prop(%S)" prop)
         (setq pair (web-mode-content-boundaries pos))
         (setq beg (car pair)
               end (cdr pair))
@@ -4801,9 +4750,7 @@ the environment as needed for ac-sources, right before they're used.")
        ) ;cond
 ;;      (message "beg(%S) end(%S)" beg end)
       (when (and beg end)
-        (fill-region beg end)
-;;        (indent-for-tab-command)
-        )
+        (fill-region beg end))
       t)))
 
 (defun web-mode-property-boundaries (prop &optional pos)
@@ -4971,10 +4918,7 @@ the environment as needed for ac-sources, right before they're used.")
           ) ;while
 
         (dotimes (i i)
-          (setq tags (cdr tags))
-;;          (setq cell (nth i tags))
-;;          (message "removing=%S" cell)
-          )
+          (setq tags (cdr tags)))
 
         )
        ) ;cond
@@ -5221,7 +5165,6 @@ the environment as needed for ac-sources, right before they're used.")
           (setq beg i
                 keep t))
         ) ;if
-      ;;      (message "out=%s beg=%d" out beg)
       ) ;dotimes
     (if (> beg 0) (setq out (concat out (substring input beg n))))
     (setq out (if (= (length out) 0) input out))
@@ -6427,27 +6370,22 @@ the environment as needed for ac-sources, right before they're used.")
 
            ((and (string= match "switch")
                  (looking-at-p "switch[ ]*("))
-;;            (message "pos=%S" (point))
-;;            (setq case-num 0)
-;;            (setq is-breaked nil)
-            ;;            (message "switch=%S" (match-end 1))
-;;            (message "ln=%S" language)
             (let (tmp)
               (when (null reg-end)
                 (cond
                  ((member language '("css" "javascript" "jsx"))
                   (setq reg-end (web-mode-part-end-position pos))
-;;                  (message "reg-end%S" reg-end)
+                  ;;                  (message "reg-end%S" reg-end)
                   )
                  (t
                   (setq reg-end (web-mode-block-end-position pos))
                   )
                  )
                 ) ;when
-;;              (message "reg-end=%S" reg-end)
+              ;;              (message "reg-end=%S" reg-end)
               (setq tmp (web-mode-bracket-block-end-position (point) reg-end))
               (when (and tmp (< pos tmp))
-;;                (message "bol(%S) is inside switch(%S)" pos (point))
+                ;;                (message "bol(%S) is inside switch(%S)" pos (point))
                 (setq switch-level (1+ switch-level))
                 )
               )
@@ -6458,8 +6396,6 @@ the environment as needed for ac-sources, right before they're used.")
           ) ;unless
         ) ;while
 
-      ;;      (unless inline-pos
-      ;;(message "%S" queues)
       (maphash
        (lambda (char queue)
          (when (member char '(?\{ ?\( ?\[))
@@ -6785,7 +6721,7 @@ the environment as needed for ac-sources, right before they're used.")
   (unless pos (setq pos (point)))
   (let (child children)
     (save-excursion
-      (setq children (reverse (web-mode-element-children-position pos)))
+      (setq children (reverse (web-mode-element-children pos)))
       (dolist (child children)
 ;;        (message "child(%S)" child)
         (goto-char child)
@@ -6801,7 +6737,7 @@ the environment as needed for ac-sources, right before they're used.")
     (save-excursion
       (when (and (setq parent (web-mode-element-boundaries pos))
                  (setq child (web-mode-element-child-position (point))))
-        (setq children (reverse (web-mode-element-children-position)))
+        (setq children (reverse (web-mode-element-children)))
 ;;        (message "%S %S" parent children)
         ;;        (setq end (car (cdr parent)))
         ;;        (message "end=%S" end)
@@ -6828,7 +6764,7 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;when
       )))
 
-(defun web-mode-element-children-position (&optional pos)
+(defun web-mode-element-children (&optional pos)
   (unless pos (setq pos (point)))
   (let ((continue t) (i 0) child children)
     (save-excursion
@@ -8374,9 +8310,7 @@ the environment as needed for ac-sources, right before they're used.")
           (backward-char)
         (setq continue nil))
       ) ;while
-;;    (message "pt=%S" (point))
-    (point)
-    ))
+    (point)))
 
 (defun web-mode-block-skip-blank-forward (&optional pos)
   "skip forward"
@@ -8780,8 +8714,8 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-attribute-next-position (&optional pos)
   "Next attribute position."
+  (unless pos (setq pos (point)))
   (let ((continue t))
-    (unless pos (setq pos (point)))
     (while continue
       (setq pos (next-single-property-change pos 'tag-attr))
       (cond
@@ -8977,7 +8911,6 @@ the environment as needed for ac-sources, right before they're used.")
   (let ((continue t) controls)
     (while continue
       (setq pos (web-mode-block-previous-position pos))
-;;      (message "pos=%S" pos)
       (cond
        ((null pos)
         (setq continue nil
@@ -9133,8 +9066,7 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-closing-paren (limit)
   "web-mode-closing-paren"
-  (let (pos)
-    (setq pos (web-mode-closing-paren-position (point) limit))
+  (let ((pos (web-mode-closing-paren-position (point) limit)))
     (if (or (null pos) (> pos limit))
         nil
       (goto-char pos)
@@ -9144,16 +9076,14 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-tag-beginning ()
   "Fetch html tag beg."
   (interactive)
-  (let (pos)
-    (setq pos (web-mode-tag-beginning-position (point)))
+  (let ((pos (web-mode-tag-beginning-position (point))))
     (when pos (goto-char pos))
     pos))
 
 (defun web-mode-tag-end ()
   "Fetch html tag end."
   (interactive)
-  (let (pos)
-    (setq pos (web-mode-tag-end-position (point)))
+  (let ((pos (web-mode-tag-end-position (point))))
     (when pos
       (setq pos (1+ pos))
       (goto-char pos))
@@ -9162,32 +9092,28 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-tag-previous ()
   "Fetch previous tag."
   (interactive)
-  (let (pos)
-    (setq pos (web-mode-tag-previous-position (point)))
+  (let ((pos (web-mode-tag-previous-position (point))))
     (when pos (goto-char pos))
     pos))
 
 (defun web-mode-tag-next ()
   "Fetch next tag. Might be HTML comment or server tag (ie. JSP)."
   (interactive)
-  (let (pos)
-    (setq pos (web-mode-tag-next-position (point)))
+  (let ((pos (web-mode-tag-next-position (point))))
     (when pos (goto-char pos))
     pos))
 
 (defun web-mode-attribute-beginning ()
   "Fetch html attribute end."
   (interactive)
-  (let ((pos (point)))
-    (setq pos (web-mode-attribute-beginning-position pos))
+  (let ((pos (web-mode-attribute-beginning-position (point))))
     (when pos (goto-char pos))
     pos))
 
 (defun web-mode-attribute-end ()
   "Fetch html attribute end."
   (interactive)
-  (let ((pos (point)))
-    (setq pos (web-mode-attribute-end-position pos))
+  (let ((pos (web-mode-attribute-end-position (point))))
     (when pos
       (setq pos (1+ pos))
       (goto-char pos))
@@ -9204,14 +9130,15 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-element-previous ()
   "Fetch previous element."
   (interactive)
-  (let (continue ret (pos (point)) (props '(start void)))
-    (setq continue (not (bobp)))
+  (let ((continue (not (bobp)))
+        (ret)
+        (pos (point))
+        (props '(start void)))
     (while continue
       (setq ret (web-mode-tag-previous))
       (when (or (null ret)
                 (member (get-text-property (point) 'tag-type) props))
-        (setq continue nil)
-        )
+        (setq continue nil))
       ) ;while
     (unless ret (goto-char pos))
     ret))
@@ -9219,11 +9146,9 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-element-next ()
   "Fetch next element."
   (interactive)
-  (let (pos)
-    (setq pos (web-mode-element-next-position (point)))
+  (let ((pos (web-mode-element-next-position (point))))
     (when pos (goto-char pos))
-    pos
-    ))
+    pos))
 
 (defun web-mode-element-sibling-next ()
   "Fetch next element."
@@ -9360,10 +9285,8 @@ the environment as needed for ac-sources, right before they're used.")
         (pos (point))
         ret
         (regexp (concat regexp-open "\\|" regexp-close)))
-;;    (message "regexp=%S" regexp)
     (while continue
       (setq ret (re-search-forward regexp limit noerror))
-;;      (message "regexp=%S ret=%S pos=%S" regexp ret (point))
       (cond
        ((null ret)
         (setq continue nil)
@@ -9766,7 +9689,6 @@ the environment as needed for ac-sources, right before they're used.")
         (forward-line)
         (goto-char (line-end-position)) ;; make sure we are at eobp
         ))
-    ;; (message "toc-index=%s" toc-index)
     (nreverse toc-index)))
 
 ;;---- UNIT TESTING ------------------------------------------------------------
@@ -10001,8 +9923,12 @@ the environment as needed for ac-sources, right before they're used.")
   "Display text properties at point"
   (interactive)
   (let (symbol symbols out)
+    (setq out (format "[point=%S engine=%S content-type=%S language-at-pos=%S]\n"
+                      (point)
+                      web-mode-engine
+                      web-mode-content-type
+                      (web-mode-language-at-pos (point))))
     (setq symbols (append web-mode-scan-properties '(face)))
-    (setq out (format "[point=%S engine=%S content-type=%S language-at-pos=%S]\n" (point) web-mode-engine web-mode-content-type (web-mode-language-at-pos (point))))
     (dolist (symbol symbols)
       (when symbol
         (setq out (concat out (format "%s(%S) " (symbol-name symbol) (get-text-property (point) symbol)))))
