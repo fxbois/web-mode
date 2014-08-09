@@ -7864,7 +7864,7 @@ the environment as needed for ac-sources, right before they're used.")
     (delete-overlay web-mode-start-tag-overlay)
     (delete-overlay web-mode-end-tag-overlay)))
 
-(defun web-mode-highlight-current-elnment ()
+(defun web-mode-highlight-current-element ()
   (let ((ctx (web-mode-tags-pos)))
 ;;    (message "%S" ctx)
     (if (null ctx)
