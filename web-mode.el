@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.61
+;; Version: 9.0.62
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -38,7 +38,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.61"
+(defconst web-mode-version "9.0.62"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5290,7 +5290,7 @@ the environment as needed for ac-sources, right before they're used.")
         (setq indent-offset web-mode-code-indent-offset)
         (cond
          ((and (string= web-mode-engine "php")
-               (not (web-mode-looking-at-pos "<\\?\\(=\\|php\\)?[ ]*$" block-beg)))
+               (not (web-mode-looking-at "<\\?\\(=\\|php\\)?[ ]*$" block-beg)))
           (save-excursion
             (goto-char block-beg)
             (looking-at "<\\?\\(=\\|php\\)?[ ]*")
@@ -5310,7 +5310,7 @@ the environment as needed for ac-sources, right before they're used.")
                 block-column (+ block-column 3))
           )
          ((and (string= web-mode-engine "jsp")
-               (web-mode-looking-at-pos "<%@\\|<[[:alpha:]]" block-beg))
+               (web-mode-looking-at "<%@\\|<[[:alpha:]]" block-beg))
           (save-excursion
             (goto-char block-beg)
             (looking-at "<%@[ ]*[[:alpha:]]+[ ]+\\|</?[[:alpha:]]+:[[:alpha:]]+[ ]+")
@@ -5319,7 +5319,7 @@ the environment as needed for ac-sources, right before they're used.")
             )
           )
          ((and (string= web-mode-engine "django")
-               (not (web-mode-looking-at-pos "{{[{]?[ ]*$" block-beg)))
+               (not (web-mode-looking-at "{{[{]?[ ]*$" block-beg)))
           (save-excursion
             (goto-char block-beg)
             (looking-at "{{[{]?[ ]*")
@@ -5328,7 +5328,7 @@ the environment as needed for ac-sources, right before they're used.")
             )
           )
          ((and (string= web-mode-engine "freemarker")
-               (web-mode-looking-at-pos "<@\\|<%@\\|<[[:alpha:]]" block-beg))
+               (web-mode-looking-at "<@\\|<%@\\|<[[:alpha:]]" block-beg))
           (save-excursion
             (goto-char block-beg)
             (looking-at "<@[[:alpha:].]+[ ]+\\|<%@[ ]*[[:alpha:]]+[ ]+\\|<[[:alpha:]]+:[[:alpha:]]+[ ]+")
@@ -5573,10 +5573,19 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            ((member first-char '(?\} ?\) ?\]))
+
             (let ((ori (web-mode-opening-paren-position pos)))
               (goto-char ori)
+;;              (message "pos=%S ori=%S" pos ori)
               (back-to-indentation)
               (setq offset (current-indentation))
+
+              ;; (when (and (eq (char-after) ?\.)
+              ;;            (string= language "javascript")
+              ;;            (web-mode-translate-backward (point) "." language block-beg))
+              ;;   (back-to-indentation)
+              ;;   (setq offset (current-column)))
+
               (when (> block-column offset)
                 (setq offset block-column))
               ) ;let
@@ -5709,8 +5718,16 @@ the environment as needed for ac-sources, right before they're used.")
             (setq offset (web-mode-markup-indentation pos))
             )
 
+           ((string= language "javascript")
+            (setq offset (web-mode-js-indentation pos
+                                                  block-column
+                                                  indent-offset
+                                                  language
+                                                  block-beg))
+            )
+
            (t
-;;            (message "%S %S %S" language pos block-beg)
+            ;;            (message "%S %S %S" language pos block-beg)
             (setq offset (web-mode-bracket-indentation pos
                                                        block-column
                                                        indent-offset
@@ -6159,6 +6176,73 @@ the environment as needed for ac-sources, right before they're used.")
          (gethash ?\[ assoc 0))
       )))
 
+
+(defun web-mode-js-indentation (pos initial-column language-offset language &optional limit)
+  "Js indentation"
+  (let (ctx offset)
+    (setq ctx (web-mode-bracket-up pos language block-beg))
+;;    (message "%S" ctx)
+    (cond
+     ((or (null ctx) (null (plist-get ctx :pos)))
+      (setq offset initial-column))
+     ((not (plist-get ctx :eol)) ;;inline
+      (setq offset (1+ (plist-get ctx :col))))
+     ((and (member language '("javascript" "jsx" "php"))
+           (eq (plist-get ctx :char) ?\{)
+           (web-mode-looking-back "switch[ ]*(.*)[ ]*" (plist-get ctx :pos))
+           (not (looking-at-p "case\\|default")))
+      (setq offset (+ (plist-get ctx :ind) (* language-offset 2)))
+      )
+     (t
+      (setq offset (+ (plist-get ctx :ind) language-offset))
+      )
+     )
+    (if (< offset initial-column) initial-column offset)
+    ))
+
+;; optim ? qd on passe à -1 remonter directement à la paren ouvrante
+(defun web-mode-bracket-up (pos language &optional limit)
+  (unless limit (setq limit nil))
+  (save-excursion
+    (goto-char pos)
+    (let ((continue t)
+          (regexp "[\]\[}{)(]")
+          (match nil)
+          (char nil)
+          (n 0)
+          (queue nil)
+          pos col eol ind)
+
+      (while (and continue (web-mode-part-rsb regexp limit))
+        (setq match (match-string-no-properties 0))
+        (setq char (aref match 0))
+        (setq key char)
+        (cond
+         ((eq char ?\)) (setq key ?\())
+         ((eq char ?\}) (setq key ?\{))
+         ((eq char ?\]) (setq key ?\[)))
+        (setq n (or (plist-get queue key) 0))
+;;        (message "n=%S" n)
+        (setq n (if (member char '(?\{ ?\( ?\[)) (1+ n) (1- n)))
+        (setq queue (plist-put queue key n))
+;;        (message "pos=%S char=%c n=%S queue=%S" (point) char n queue)
+        (when (> n 0)
+          (setq continue nil)
+          (setq pos (point))
+          (setq ind (current-indentation))
+          (setq col (current-column))
+          (setq eol (web-mode-is-void-after))
+          ) ;when
+        ;;        (setq props (plist-put queue 'tag-type 'void)))
+        ) ;while
+      (list :pos pos
+            :char char
+            :col col
+            :ind ind
+            :eol eol)
+      ) ;let
+    ))
+
 ;; (plist-get ctx :block-beg)
 ;; :opened-blocks :col-num :inline-pos
 ;;                         cddr
@@ -6266,6 +6350,7 @@ the environment as needed for ac-sources, right before they're used.")
       (if (>= counter 0) counter 0)
       )))
 
+
 (defun web-mode-count-opened-brackets (pos language &optional limit)
   "Count opened brackets at POS."
   (interactive)
@@ -6341,7 +6426,7 @@ the environment as needed for ac-sources, right before they're used.")
             (when (and (= num-opened 1) (null inline-checked))
               (setq inline-checked t)
 ;;              (message "la%S" (point))
-              (when (not (web-mode-is-void-after (1+ (point)))) ;(not (looking-at-p ".[ ]*$"))
+              (when (not (web-mode-is-void-after)) ;(not (looking-at-p ".[ ]*$"))
                 (setq inline-pos t
                       col-num (1+ (current-column)))
                 (when (string= language "lsp")
@@ -6402,7 +6487,7 @@ the environment as needed for ac-sources, right before they're used.")
            ;;(message "%c : " char queue)
            (dolist (pair queue)
              ;;(message "   %S" pair)
-             (if (not (web-mode-is-void-after (1+ (car pair))))
+             (if (not (web-mode-is-void-after (car pair)))
                  ()
                (setq line (cdr pair))
                (unless (member line lines)
@@ -6426,7 +6511,6 @@ the environment as needed for ac-sources, right before they're used.")
         )
 
       (list :opened-blocks opened-blocks
-;;            :brackets queues
             :col-num col-num
             :inline-pos inline-pos
             :inline-arg inline-arg)
@@ -6449,11 +6533,13 @@ the environment as needed for ac-sources, right before they're used.")
     )
   pos)
 
-(defun web-mode-is-void-after (pos)
-  "Only spaces or comment after pos"
+(defun web-mode-is-void-after (&optional pos)
+  "Only spaces or comment after (1+ pos)"
+  (unless pos (setq pos (point)))
   (save-excursion
+    (setq pos (1+ pos))
     (goto-char pos)
-;;    (message "pos=%S" pos)
+;;    (message "after pos=%S" pos)
     (let ((eol (line-end-position)) (continue t) c (ret t) part-side)
       (setq part-side (or (member web-mode-content-type '("javascript" "css"))
                           (not (null (get-text-property pos 'part-side)))))
@@ -7289,11 +7375,18 @@ the environment as needed for ac-sources, right before they're used.")
 ;;  (goto-char pos)
   )
 
-(defun web-mode-looking-at-pos (regexp pos)
+(defun web-mode-looking-at (regexp pos)
   "Performs a looking-at at POS."
   (save-excursion
     (goto-char pos)
     (looking-at regexp)
+    ))
+
+(defun web-mode-looking-back (regexp pos)
+  "Performs a looking-at at POS."
+  (save-excursion
+    (goto-char pos)
+    (looking-back regexp)
     ))
 
 (defun web-mode-insert-text-at-pos (text pos)
@@ -7416,7 +7509,7 @@ the environment as needed for ac-sources, right before they're used.")
     (setq beg (web-mode-block-beginning-position pos)
           end (web-mode-block-end-position pos))
     (web-mode-insert-text-at-pos "*/" (- end 1))
-    (web-mode-insert-text-at-pos "/*" (+ beg (if (web-mode-looking-at-pos "<\\?php" beg) 5 3)))
+    (web-mode-insert-text-at-pos "/*" (+ beg (if (web-mode-looking-at "<\\?php" beg) 5 3)))
     ))
 
 (defun web-mode-uncomment (&optional pos)
