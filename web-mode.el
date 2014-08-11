@@ -6180,21 +6180,21 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-js-indentation (pos initial-column language-offset language &optional limit)
   "Js indentation"
   (let (ctx offset)
-    (setq ctx (web-mode-bracket-up pos language block-beg))
+    (setq ctx (web-mode-bracket-up pos language limit))
 ;;    (message "%S" ctx)
     (cond
      ((or (null ctx) (null (plist-get ctx :pos)))
       (setq offset initial-column))
      ((not (plist-get ctx :eol)) ;;inline
-      (setq offset (1+ (plist-get ctx :col))))
+      (setq offset (1+ (plist-get ctx :column))))
      ((and (member language '("javascript" "jsx" "php"))
            (eq (plist-get ctx :char) ?\{)
            (web-mode-looking-back "switch[ ]*(.*)[ ]*" (plist-get ctx :pos))
            (not (looking-at-p "case\\|default")))
-      (setq offset (+ (plist-get ctx :ind) (* language-offset 2)))
+      (setq offset (+ (plist-get ctx :indentation) (* language-offset 2)))
       )
      (t
-      (setq offset (+ (plist-get ctx :ind) language-offset))
+      (setq offset (+ (plist-get ctx :indentation) language-offset))
       )
      )
     (if (< offset initial-column) initial-column offset)
@@ -6207,39 +6207,30 @@ the environment as needed for ac-sources, right before they're used.")
     (goto-char pos)
     (let ((continue t)
           (regexp "[\]\[}{)(]")
-          (match nil)
+          (key nil)
           (char nil)
           (n 0)
-          (queue nil)
-          pos col eol ind)
-
+          (queue nil))
       (while (and continue (web-mode-part-rsb regexp limit))
-        (setq match (match-string-no-properties 0))
-        (setq char (aref match 0))
+        (setq char (aref (match-string-no-properties 0) 0))
         (setq key char)
         (cond
          ((eq char ?\)) (setq key ?\())
          ((eq char ?\}) (setq key ?\{))
          ((eq char ?\]) (setq key ?\[)))
         (setq n (or (plist-get queue key) 0))
-;;        (message "n=%S" n)
-        (setq n (if (member char '(?\{ ?\( ?\[)) (1+ n) (1- n)))
+        (setq n (if (member char '(?\( ?\{ ?\[)) (1+ n) (1- n)))
         (setq queue (plist-put queue key n))
-;;        (message "pos=%S char=%c n=%S queue=%S" (point) char n queue)
-        (when (> n 0)
-          (setq continue nil)
-          (setq pos (point))
-          (setq ind (current-indentation))
-          (setq col (current-column))
-          (setq eol (web-mode-is-void-after))
-          ) ;when
-        ;;        (setq props (plist-put queue 'tag-type 'void)))
+        ;;        (message "pos=%S char=%c n=%S queue=%S" (point) char n queue)
+        (setq continue (< n 1))
         ) ;while
-      (list :pos pos
-            :char char
-            :col col
-            :ind ind
-            :eol eol)
+      (if (> n 0)
+          (list :pos (point)
+                :char char
+                :column (current-column)
+                :indentation (current-indentation)
+                :eol (web-mode-is-void-after))
+        nil)
       ) ;let
     ))
 
