@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.62
+;; Version: 9.0.63
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -38,7 +38,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.62"
+(defconst web-mode-version "9.0.63"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -743,7 +743,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                       ("<%@" "%>")
                       ("<%:" "%>")
                       ("<%-" "- " " --%>")))
-    ("blade"       . (("{{{ " " }}}")
+    ("blade"       . (("{{{" " " " }}}")
                       ("{{ " " }}")
                       ("{{-" "- " " --}}")))
     ("django"      . (("{{ " " }}")
@@ -6179,25 +6179,25 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-js-indentation (pos initial-column language-offset language &optional limit)
   "Js indentation"
-  (let (ctx offset)
+  (let (ctx indentation)
     (setq ctx (web-mode-bracket-up pos language limit))
 ;;    (message "%S" ctx)
     (cond
      ((or (null ctx) (null (plist-get ctx :pos)))
-      (setq offset initial-column))
+      (setq indentation initial-column))
      ((not (plist-get ctx :eol)) ;;inline
-      (setq offset (1+ (plist-get ctx :column))))
+      (setq indentation (1+ (plist-get ctx :column))))
      ((and (member language '("javascript" "jsx" "php"))
            (eq (plist-get ctx :char) ?\{)
            (web-mode-looking-back "switch[ ]*(.*)[ ]*" (plist-get ctx :pos))
            (not (looking-at-p "case\\|default")))
-      (setq offset (+ (plist-get ctx :indentation) (* language-offset 2)))
+      (setq indentation (+ (plist-get ctx :indentation) (* language-offset 2)))
       )
      (t
-      (setq offset (+ (plist-get ctx :indentation) language-offset))
+      (setq indentation (+ (plist-get ctx :indentation) language-offset))
       )
      )
-    (if (< offset initial-column) initial-column offset)
+    (if (< indentation initial-column) initial-column indentation)
     ))
 
 ;; optim ? qd on passe à -1 remonter directement à la paren ouvrante
@@ -6213,16 +6213,16 @@ the environment as needed for ac-sources, right before they're used.")
           (queue nil))
       (while (and continue (web-mode-part-rsb regexp limit))
         (setq char (aref (match-string-no-properties 0) 0))
-        (setq key char)
-        (cond
-         ((eq char ?\)) (setq key ?\())
-         ((eq char ?\}) (setq key ?\{))
-         ((eq char ?\]) (setq key ?\[)))
+        (setq key (cond
+                   ((eq char ?\)) ?\()
+                   ((eq char ?\}) ?\{)
+                   ((eq char ?\]) ?\[)
+                   (t             char)))
         (setq n (or (plist-get queue key) 0))
         (setq n (if (member char '(?\( ?\{ ?\[)) (1+ n) (1- n)))
         (setq queue (plist-put queue key n))
-        ;;        (message "pos=%S char=%c n=%S queue=%S" (point) char n queue)
         (setq continue (< n 1))
+        ;;        (message "pos=%S char=%c n=%S queue=%S" (point) char n queue)
         ) ;while
       (if (> n 0)
           (list :pos (point)

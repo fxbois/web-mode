@@ -19,14 +19,16 @@ var pathData = this.barData
                      return a.concat(b);
                    });
 
-switch(elem) {
-  case "textarea" :
-    return ( <textarea rows="4" /> );
-    break;
-  case "text" :
-    return ( <input type="text" /> );
-  default :
-    return null;
+function toto(c) {
+  switch(elem) {
+    case "textarea" :
+      return ( <textarea rows="4" /> );
+      break;
+    case "text" :
+      return ( <input type="text" /> );
+    default :
+      return null;
+  }
 }
 
 function hello() {
@@ -35,3 +37,31 @@ function hello() {
   else
     console.log("ipsum");
 }
+
+var obj = {
+  "a": 1,
+  "b": 2,
+  "c": 3
+};
+
+var arr = [1,
+           2,
+           3
+];
+
+function onYouTubePlayerAPIReady(videoid) {
+  ytPlayer = new YT.Player('media_area',
+                           {videoId: videoid,
+                            playerVars: { 'rel': 0 }
+                           });
+}
+
+var newB = new example();
+
+newB.firstMethod('x')
+    .secondMethod('y')
+    .thirdMethod(1,15,'z');
+
+var bar = 1;
+var foo = (bar == 1) ?
+          "ONE" : "OTHER";  // THIS IS THE PROBLEM
