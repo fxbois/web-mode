@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.63
+;; Version: 9.0.64
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -38,7 +38,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.63"
+(defconst web-mode-version "9.0.64"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -587,7 +587,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("ctemplate"   . ("mustache" "handlebars" "hapax" "ngtemplate" "ember" "kite" "meteor" "blaze"))
     ("django"      . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl" "liquid"))
     ("dust"        . ("dustjs"))
-    ("erb"         . ("eruby" "erubis"))
+    ("erb"         . ("eruby" "erubis" "ejs"))
     ("go"          . ("gtl"))
     ("jsp"         . ("grails"))
     ("mason"       . ("poet"))
@@ -623,7 +623,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("django"           . "\\.\\(djhtml\\|tmpl\\|dtl\\|liquid\\)\\'")
     ("django"           . "twig")
     ("dust"             . "\\.dust\\'")
-    ("erb"              . "\\.\\(erb\\|rhtml\\)\\'")
+    ("erb"              . "\\.\\(erb\\|rhtml\\|ejs\\)\\'")
     ("freemarker"       . "\\.ftl\\'")
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
     ("handlebars"       . "\\(handlebars\\|.\\hbs\\'\\)")
