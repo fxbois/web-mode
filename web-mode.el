@@ -3956,7 +3956,6 @@ the environment as needed for ac-sources, right before they're used.")
   (let (continue)
     (when (eq ?\# (char-after))
       (forward-char))
-    ;;(message "pt=%S %c" (point) (char-after))
     (when (member (char-after) '(?\$ ?\@))
       (forward-char))
     (when (member (char-after) '(?\!))
@@ -4242,8 +4241,7 @@ the environment as needed for ac-sources, right before they're used.")
   "web-mode-highlight-nodes"
   (unless beg (setq beg (point)))
   (unless end (setq end (1+ (web-mode-tag-end-position beg))))
-  (let (;;(beg (point)) end
-        name type face flags slash-beg slash-end bracket-end)
+  (let (name type face flags slash-beg slash-end bracket-end)
 
     (setq flags (get-text-property beg 'tag-beg)
           type (get-text-property beg 'tag-type)
@@ -4451,16 +4449,11 @@ the environment as needed for ac-sources, right before they're used.")
           (setq continue nil
                 end nil)
           ) ;if beg
-        ;;(message "%S %S %S" beg end flags)
-        (when (and beg end);; flags)
-;;          (message "%S %S %S" beg end flags)
+        (when (and beg end)
           (save-match-data
             (when (and web-mode-enable-heredoc-fontification
                        (eq char ?\<)
                        (> (- end beg) 8)
-                       ;;                     (progn (message "ici%S" (buffer-substring-no-properties beg end)) t)
-                       ;;                   (member web-mode-engine '("php"))
-                       ;;                       (> (logand flags 2) 0)
                        (string-match-p "JS\\|JAVASCRIPT\\|HTM\\|CSS" (buffer-substring-no-properties beg end)))
               (setq keywords (if (eq ?H (char-after (+ beg 3)))
                                  web-mode-html-font-lock-keywords
@@ -5727,7 +5720,6 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            (t
-            ;;            (message "%S %S %S" language pos block-beg)
             (setq offset (web-mode-bracket-indentation pos
                                                        block-column
                                                        indent-offset
@@ -6340,7 +6332,6 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;while
       (if (>= counter 0) counter 0)
       )))
-
 
 (defun web-mode-count-opened-brackets (pos language &optional limit)
   "Count opened brackets at POS."
