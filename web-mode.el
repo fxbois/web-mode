@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.64
+;; Version: 9.0.65
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -38,7 +38,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.64"
+(defconst web-mode-version "9.0.65"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -615,32 +615,37 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-file-regexps
   '(("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
-    ("angular"          . "angular")
-    ("blade"            . "\\.blade")
-    ("blaze"            . "\\.blaze")
+;;    ("angular"          . "angular")
+;;    ("blade"            . "\\.blade")
+;;    ("blaze"            . "\\.blaze")
     ("closure"          . "\\.soy\\'")
-    ("ctemplate"        . "\\.\\(chtml\\)\\'")
+    ("ctemplate"        . "\\.chtml\\'")
     ("django"           . "\\.\\(djhtml\\|tmpl\\|dtl\\|liquid\\)\\'")
-    ("django"           . "twig")
-    ("dust"             . "\\.dust\\'")
-    ("erb"              . "\\.\\(erb\\|rhtml\\|ejs\\)\\'")
+;;    ("django"           . "twig")
+;;    ("dust"             . "\\.dust\\'")
+    ("erb"              . "\\.\\(erb\\|rhtml\\|ejs\\|erb\\.html\\)\\'")
     ("freemarker"       . "\\.ftl\\'")
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
-    ("handlebars"       . "\\(handlebars\\|.\\hbs\\'\\)")
+    ("handlebars"       . "\\.\\(hb\\.html\\|hbs\\)\\'")
     ("jsp"              . "\\.[gj]sp\\'")
     ("lsp"              . "\\.lsp\\'")
     ("mako"             . "\\.mako?\\'")
     ("mason"            . "\\.mas\\'")
-    ("mojolicious"      . "mojolicious\\|\\.epl?\\'")
-    ("mustache"         . "\\.mustache\\'")
+    ("mojolicious"      . "\\.epl?\\'")
+;;    ("mustache"         . "\\.mustache\\'")
     ("php"              . "\\.\\(php\\|ctp\\|psp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
-    ("razor"            . "scala\\|\\.razor\\'\\|\\.cshtml\\'\\|\\.vbhtml\\'")
+    ("razor"            . "\\.\\(razor\\|cshtml\\|vbhtml\\)\\'")
     ("smarty"           . "\\.tpl\\'")
     ("template-toolkit" . "\\.tt.?\\'")
-    ("underscore"       . "\\.underscore\\'")
-    ("velocity"         . "\\.\\(vsl\\|vtl\\|vm\\)\\'")
-    ("web2py"           . "web2py"))
+;;    ("underscore"       . "\\.underscore\\'")
+    ("velocity"         . "\\.v\\(sl\\|tl\\|m\\)\\'")
+;;    ("web2py"           . "web2py")
+
+    ("django"           . "twig")
+    ("razor"            . "scala")
+
+    )
   "Engine file extensions.")
 
 (defvar web-mode-smart-quotes
@@ -9450,13 +9455,13 @@ the environment as needed for ac-sources, right before they're used.")
       ) ;while
     ret))
 
-(defun web-mode-part-rsb (regexp &optional limit noerror)
-  "re-search-backward inside a part (outside part tokens and blocks)."
-  (unless limit (setq limit (web-mode-part-beginning-position (point))))
+(defun web-mode-part-sf (expr &optional limit noerror)
+  "search-forward inside a part (outside part tokens and block)."
+  (unless limit (setq limit (web-mode-part-end-position (point))))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
-      (setq ret (re-search-backward regexp limit noerror))
+      (setq ret (search-forward expr limit noerror))
       (when (or (null ret)
                 (and (not (get-text-property (point) 'part-token))
                      (not (get-text-property (point) 'block-side)))
@@ -9466,13 +9471,13 @@ the environment as needed for ac-sources, right before they're used.")
       ) ;while
     ret))
 
-(defun web-mode-part-sf (expr &optional limit noerror)
-  "search-forward inside a part (outside part tokens and block)."
-  (unless limit (setq limit (web-mode-part-end-position (point))))
+(defun web-mode-part-rsb (regexp &optional limit noerror)
+  "re-search-backward inside a part (outside part tokens and blocks)."
+  (unless limit (setq limit (web-mode-part-beginning-position (point))))
   (unless noerror (setq noerror t))
   (let ((continue t) ret)
     (while continue
-      (setq ret (search-forward expr limit noerror))
+      (setq ret (re-search-backward regexp limit noerror))
       (when (or (null ret)
                 (and (not (get-text-property (point) 'part-token))
                      (not (get-text-property (point) 'block-side)))
@@ -9498,6 +9503,18 @@ the environment as needed for ac-sources, right before they're used.")
       ) ;while
     ret))
 
+(defun web-mode-dom-sf (expr &optional limit noerror)
+  "search-forward outside blocks."
+  (unless noerror (setq noerror t))
+  (let ((continue t) ret)
+    (while continue
+      (setq ret (search-forward expr limit noerror))
+      (if (or (null ret)
+              (not (get-text-property (- (point) (length expr)) 'block-side)))
+          (setq continue nil))
+      )
+    ret))
+
 (defun web-mode-dom-rsf (regexp &optional limit noerror)
   "re-search-forward outside blocks."
   (unless noerror (setq noerror t))
@@ -9509,18 +9526,6 @@ the environment as needed for ac-sources, right before they're used.")
                 (not (get-text-property (match-beginning 0) 'block-side)))
         (setq continue nil))
       ) ;while
-    ret))
-
-(defun web-mode-dom-sf (expr &optional limit noerror)
-  "search-forward outside blocks."
-  (unless noerror (setq noerror t))
-  (let ((continue t) ret)
-    (while continue
-      (setq ret (search-forward expr limit noerror))
-      (if (or (null ret)
-              (not (get-text-property (- (point) (length expr)) 'block-side)))
-          (setq continue nil))
-      )
     ret))
 
 (defun web-mode-rsb (regexp &optional limit noerror)
@@ -9801,16 +9806,16 @@ the environment as needed for ac-sources, right before they're used.")
         (message "[%s]" (buffer-string)))
       out)))
 
-(defun web-mode-indent-test ()
-  (interactive)
-  (goto-char (point-min))
-  (delete-horizontal-space)
-  (while (not (eobp))
-    (forward-line)
-    (delete-horizontal-space)
-    (end-of-line))
-  (web-mode-buffer-indent)
-  (goto-char (point-min)))
+;; (defun web-mode-indent-test ()
+;;   (interactive)
+;;   (goto-char (point-min))
+;;   (delete-horizontal-space)
+;;   (while (not (eobp))
+;;     (forward-line)
+;;     (delete-horizontal-space)
+;;     (end-of-line))
+;;   (web-mode-buffer-indent)
+;;   (goto-char (point-min)))
 
 ;;---- MISC --------------------------------------------------------------------
 
@@ -9889,7 +9894,6 @@ the environment as needed for ac-sources, right before they're used.")
     (unless buff-name (setq buff-name (buffer-name)))
     (setq web-mode-is-scratch (string= buff-name "*scratch*"))
     (setq web-mode-content-type nil)
-
     (when (boundp 'web-mode-content-types-alist)
       (setq found nil)
       (dolist (elt web-mode-content-types-alist)
@@ -9928,9 +9932,20 @@ the environment as needed for ac-sources, right before they're used.")
                 found t))
         )
       )
+    (unless web-mode-engine
+      (setq found nil)
+      (dolist (elt web-mode-engines)
+;;        (message "%S %S" (car elt) buff-name)
+        (when (and (not found) (string-match-p (car elt) buff-name))
+          (setq web-mode-engine (car elt)
+                found t))
+        )
+      )
+    ;; TODO : remplacer par web-mode-engine-canonical
     (when web-mode-engine
       (setq found nil)
       (dolist (elt web-mode-engines)
+;;        (message "%S" elt)
         (when (and (not found) (member web-mode-engine (cdr elt)))
           (setq web-mode-engine (car elt)
                 found t))
@@ -9943,7 +9958,6 @@ the environment as needed for ac-sources, right before they're used.")
       (setq web-mode-engine "php"
             found t)
       )
-
     (when (and (string= web-mode-content-type "javascript")
                (string-match-p "@jsx"
                                 (buffer-substring-no-properties
@@ -9951,7 +9965,6 @@ the environment as needed for ac-sources, right before they're used.")
                                  (if (< (point-max) 16) (point-max) 16)
                                  )))
       (setq web-mode-content-type "jsx"))
-
     (web-mode-on-engine-setted)
     ))
 
@@ -9974,12 +9987,12 @@ the environment as needed for ac-sources, right before they're used.")
    (load "web-mode.el")
    (setq web-mode-change-beg nil
          web-mode-change-end nil
-         web-mode-change-flags 0)
-   (setq web-mode-highlight-beg nil)
-   (setq web-mode-highlight-end nil)
+         web-mode-change-flags 0
+         web-mode-highlight-beg nil
+         web-mode-highlight-end nil)
    (web-mode)
-   (if (fboundp 'web-mode-hook)
-       (web-mode-hook))
+   (when (fboundp 'web-mode-hook)
+     (web-mode-hook))
    ) ;silent
   )
 
