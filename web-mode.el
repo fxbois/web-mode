@@ -3,13 +3,11 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.65
+;; Version: 9.0.66
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
-;; Keywords: html template php javascript js css web
-;;           django jsp asp erb twig jinja blade dust closure
-;;           freemarker mustache velocity cheetah smarty
+;; Keywords: html template javascript css web php django erb jsp
 ;; URL: http://web-mode.org
 ;; Repository: http://github.com/fxbois/web-mode
 
@@ -38,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.65"
+(defconst web-mode-version "9.0.66"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -635,7 +633,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;    ("mustache"         . "\\.mustache\\'")
     ("php"              . "\\.\\(php\\|ctp\\|psp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
-    ("razor"            . "\\.\\(razor\\|cshtml\\|vbhtml\\)\\'")
+    ("razor"            . "\\.\\(cshtml\\|vbhtml\\)\\'")
     ("smarty"           . "\\.tpl\\'")
     ("template-toolkit" . "\\.tt.?\\'")
 ;;    ("underscore"       . "\\.underscore\\'")
@@ -2197,9 +2195,7 @@ the environment as needed for ac-sources, right before they're used.")
          ((string= web-mode-engine "mason")
           (cond
            ((and (member sub2 '("<%" "</"))
-                 ;;                 (progn (message "%S" (point)) t)
                  (looking-at "[[:alpha:]]+"))
-            ;;(member tagopen '("<%def" "</%def" "<%method" "</%method"))
             (if (member (match-string-no-properties 0) '("def" "method"))
                 (setq closing-string ">"
                       delim-open "<[^>]+>")
@@ -2207,7 +2203,6 @@ the environment as needed for ac-sources, right before they're used.")
                     delim-open "<[^>]+>"
                     delim-close "<[^>]+>")
               ) ;if
-;;            (message "closing-string=%S" closing-string)
             )
            ((and (string= sub2 "<%")
                  (eq (char-after) ?\s))
@@ -3500,7 +3495,6 @@ the environment as needed for ac-sources, right before they're used.")
         )
 
        ((and quoted (= quoted 2) (member char '(?\s ?\n ?\>)))
-;;        (message "ici %S %S" state val-beg)
         (when (eq char ?\>)
           (setq tag-flags (logior tag-flags 16))
           (setq continue nil))
@@ -6844,60 +6838,53 @@ the environment as needed for ac-sources, right before they're used.")
       (when (and (member (get-text-property pos 'tag-type) '(start end))
                  (setq child (web-mode-element-child-position pos)))
         (while continue
-          (setq i (1+ i))
           (cond
+           ((> (setq i (1+ i)) 100)
+            (setq continue nil)
+            (message "** invalid loop **"))
            ((= i 1)
-            (goto-char child)
-            )
+            (goto-char child))
            ((web-mode-element-sibling-next)
             )
            (t
-            (setq continue nil)
-            )
-           ) ;cond
-          (when (> i 100)
-            (message "** invalid loop **")
             (setq continue nil))
+           ) ;cond
           (when continue
-;;            (message "child(%S)" (point))
+            ;;            (message "child(%S)" (point))
             (setq children (append children (list (point)))))
           ) ;while
         ) ;when
       ) ;save-excursion
-    children
-    ))
+    children))
 
-;; return ((start-tag-beg . start-tag-end) . (end-tag-beg end-tag-end))
-;; car and cdr are the same with void elements
 (defun web-mode-element-boundaries (&optional pos)
-  "pos should be in a tag"
+  "Return ((start-tag-beg . start-tag-end) . (end-tag-beg . end-tag-end))
+First level car and cdr are the same with void elements.
+Pos should be in a tag."
   (unless pos (setq pos (point)))
   (let (start-tag-beg start-tag-end end-tag-beg end-tag-end)
-    (save-excursion
-      (cond
-       ((eq (get-text-property pos 'tag-type) 'start)
-        (setq start-tag-beg (web-mode-tag-beginning-position pos)
-              start-tag-end (web-mode-tag-end-position pos))
-        (web-mode-tag-match pos)
-;;        (message "pos=%S point=%S" pos (point))
-        (setq end-tag-beg (point)
-              end-tag-end (web-mode-tag-end-position (point)))
-        )
-       ((eq (get-text-property pos 'tag-type) 'end)
-        (setq end-tag-beg (web-mode-tag-beginning-position pos)
-              end-tag-end (web-mode-tag-end-position pos))
-        (web-mode-tag-match pos)
-        (setq start-tag-beg (point)
-              start-tag-end (web-mode-tag-end-position (point)))
-        )
-       ((eq (get-text-property pos 'tag-type) 'void)
-        (setq start-tag-beg (web-mode-tag-beginning-position pos)
-              start-tag-end (web-mode-tag-end-position pos))
-        (setq end-tag-beg start-tag-beg
-              end-tag-end start-tag-end)
-        )
-       ) ;cond
+    (cond
+     ((eq (get-text-property pos 'tag-type) 'start)
+      (setq start-tag-beg (web-mode-tag-beginning-position pos)
+            start-tag-end (web-mode-tag-end-position pos))
+      (when (setq pos (web-mode-tag-match-position pos))
+        (setq end-tag-beg pos
+              end-tag-end (web-mode-tag-end-position pos)))
       )
+     ((eq (get-text-property pos 'tag-type) 'end)
+      (setq end-tag-beg (web-mode-tag-beginning-position pos)
+            end-tag-end (web-mode-tag-end-position pos))
+      (when (setq pos (web-mode-tag-match-position pos))
+        (setq start-tag-beg pos
+              start-tag-end (web-mode-tag-end-position pos)))
+      )
+     ((eq (get-text-property pos 'tag-type) 'void)
+      (setq start-tag-beg (web-mode-tag-beginning-position pos)
+            start-tag-end (web-mode-tag-end-position pos))
+      (setq end-tag-beg start-tag-beg
+            end-tag-end start-tag-end)
+      )
+     ) ;cond
     (if (and start-tag-beg start-tag-end end-tag-beg end-tag-end)
         (cons (cons start-tag-beg start-tag-end) (cons end-tag-beg end-tag-end))
       nil)
@@ -7834,35 +7821,6 @@ the environment as needed for ac-sources, right before they're used.")
     epp
     ))
 
-(defun web-mode-tags-pos ()
-  (save-excursion
-    (let (start-beg start-end end-beg end-end (pos (point)))
-      (cond
-       ((eq (get-text-property pos 'tag-type) 'start)
-        (setq start-beg (web-mode-tag-beginning-position pos)
-              start-end (web-mode-tag-end-position pos))
-        (when (web-mode-tag-match)
-          (setq end-beg (point)
-                end-end (web-mode-tag-end-position (point))))
-;;        (message "%S %S %S %S" start-beg start-end end-beg end-end)
-        )
-       ((eq (get-text-property pos 'tag-type) 'end)
-        (setq end-beg (web-mode-tag-beginning-position pos)
-              end-end (web-mode-tag-end-position pos))
-        (when (web-mode-tag-match)
-;;          (message "ici%S" (point))
-          (setq start-beg (point)
-                start-end (web-mode-tag-end-position (point)))
-;;          (message "%S %S %S %S" start-beg start-end end-beg end-end)
-          ) ;when
-        )
-       )
-      (if (and start-beg end-beg)
-          (cons (cons start-beg (1+ start-end))
-                (cons end-beg (1+ end-end)))
-        nil)
-      )))
-
 (defun web-mode-make-tag-overlays ()
   (unless web-mode-start-tag-overlay
     (setq web-mode-start-tag-overlay (make-overlay 1 1)
@@ -7880,13 +7838,13 @@ the environment as needed for ac-sources, right before they're used.")
     (delete-overlay web-mode-end-tag-overlay)))
 
 (defun web-mode-highlight-current-element ()
-  (let ((ctx (web-mode-tags-pos)))
+  (let ((ctx (web-mode-element-boundaries)))
 ;;    (message "%S" ctx)
     (if (null ctx)
         (web-mode-delete-tag-overlays)
       (web-mode-make-tag-overlays)
-      (move-overlay web-mode-start-tag-overlay (caar ctx) (cdar ctx))
-      (move-overlay web-mode-end-tag-overlay (cadr ctx) (cddr ctx)))
+      (move-overlay web-mode-start-tag-overlay (caar ctx) (1+ (cdar ctx)))
+      (move-overlay web-mode-end-tag-overlay (cadr ctx) (1+ (cddr ctx))))
     ))
 
 ;; (1)inside block (2)inside part
@@ -7960,7 +7918,7 @@ the environment as needed for ac-sources, right before they're used.")
       (setq atomic-insertion (and (= len 0)
                                   (= 1 (- end beg))))
 
-      (if (web-mode-buffer-narrowed-p)  ;;    (if (not (= (point-max) (+ (buffer-size) 1)))
+      (if (web-mode-buffer-narrowed-p)
           (setq web-mode-is-narrowed t)
 
         ;;not narrowed
@@ -7968,11 +7926,8 @@ the environment as needed for ac-sources, right before they're used.")
         ;;-- auto-closing and auto-pairing
 
         (when (and (> web-mode-jshint-errors 0)
-                   (get-text-property pos 'part-side)
-                   )
-          ;;        (message "%S %S" beg (1+ end))
-          (remove-overlays beg (1+ end) 'font-lock-face 'web-mode-error-face)
-          )
+                   (get-text-property pos 'part-side))
+          (remove-overlays beg (1+ end) 'font-lock-face 'web-mode-error-face))
 
         (when (and (> pos 3) atomic-insertion)
 
@@ -9067,14 +9022,11 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-block-code-end-position (&optional pos)
   (unless pos (setq pos (point)))
-;;  (message "from %S" (point))
   (setq pos (web-mode-block-end-position pos))
-;;  (message "to %S" pos)
   (when (and pos
              (eq (get-text-property pos 'block-token) 'delimiter)
              (eq (get-text-property (1- pos) 'block-token) 'delimiter))
     (setq pos (previous-single-property-change pos 'block-token))
-;;    (message "la%S" pos)
     )
   pos)
 
@@ -9119,7 +9071,6 @@ the environment as needed for ac-sources, right before they're used.")
      )
     )
    ) ;conf
-;;  (message "->%S" pos)
   pos)
 
 (defun web-mode-block-next-position (&optional pos limit)
@@ -10054,6 +10005,14 @@ the environment as needed for ac-sources, right before they're used.")
     (recenter)
   ))
 
+;;; web-mode.el ends here
+(provide 'web-mode)
+
+;; Local Variables:
+;; coding: utf-8
+;; indent-tabs-mode: nil
+;; End:
+
 ;;---- TODO --------------------------------------------------------------------
 ;;- supprimer 2 flags sur blocks
 ;;- phphint
@@ -10064,19 +10023,9 @@ the environment as needed for ac-sources, right before they're used.")
 ;;- passer les content-types en symboles
 ;;- tester shortcut A -> pour pomme
 
-;;; web-mode.el ends here
-(provide 'web-mode)
-
-;; Local Variables:
-;; coding: utf-8
-;; indent-tabs-mode: nil
-;; End:
 
 
-
-
-
-;;-- TO SUPPRESS --------
+;;---- SUPPRESS ----------------------------------------------------------------
 
 ;; (defun web-mode-indent-cycle (regex-line regex-sym block-beg indent-offset)
 ;;   "Returns next position in the indent cycle for REGEX-SYM on
@@ -10108,3 +10057,34 @@ the environment as needed for ac-sources, right before they're used.")
 ;;           ((or web-mode-indent-cycle-left-first
 ;;                (equal last-command 'indent-for-tab-command)) (car farther-syms))
 ;;           (t (car (last farther-syms))))))
+
+
+
+;; ;; TODO : only use web-mode-element-boundaries
+;; (defun web-mode-tags-pos ()
+;;   (save-excursion
+;;     (let (start-beg start-end end-beg end-end (pos (point)))
+;;       (cond
+;;        ((eq (get-text-property pos 'tag-type) 'start)
+;;         (setq start-beg (web-mode-tag-beginning-position pos)
+;;               start-end (web-mode-tag-end-position pos))
+;;         (when (web-mode-tag-match)
+;;           (setq end-beg (point)
+;;                 end-end (web-mode-tag-end-position (point))))
+;;         )
+;;        ((eq (get-text-property pos 'tag-type) 'end)
+;;         (setq end-beg (web-mode-tag-beginning-position pos)
+;;               end-end (web-mode-tag-end-position pos))
+;;         (when (web-mode-tag-match)
+;;           (setq start-beg (point)
+;;                 start-end (web-mode-tag-end-position (point)))
+;;           ) ;when
+;;         )
+;;        )
+;;       (if (and start-beg end-beg)
+;;           (cons (cons start-beg (1+ start-end))
+;;                 (cons end-beg (1+ end-end)))
+;;         nil)
+;;       )))
+
+;; TODO : se passer de save-excursion en utilisant web-mode-tag-match-position
