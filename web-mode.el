@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.66
+;; Version: 9.0.67
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.66"
+(defconst web-mode-version "9.0.67"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -577,7 +577,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Regexps to match imenu items (see http://web-mode.org/doc/imenu.txt)")
 
 (defvar web-mode-engines
-  '(("angular"     . ("angular.js" "angularjs"))
+  '(("angular"     . ("angularjs" "angular.js"))
     ("asp"         . ())
     ("aspx"        . ())
     ("blade"       . ("laravel"))
@@ -593,7 +593,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("mojolicious" . ())
     ("python"      . ())
     ("razor"       . ("play" "play2"))
-    ("underscore"  . ("underscorejs"))
+    ("underscore"  . ("underscore.js"))
     ("velocity"    . ("vtl" "cheetah"))
     ("web2py"      . ()))
   "Engine name aliases")
@@ -717,7 +717,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (or delim default)
     ))
 
-;;    http://webdesign.about.com/od/localization/l/blhtmlcodes-ascii.htm
+;; http://webdesign.about.com/od/localization/l/blhtmlcodes-ascii.htm
 (defvar web-mode-display-table
   (let ((table (make-display-table)))
     (aset table 9  (vector ?\xBB ?\t)) ;tab
@@ -754,7 +754,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                       ("{# " " #}")))
     ("erb"         . (("<% " " %>")
                       ("<%=" "%>")
-                      ("<%#" "%>")))
+                      ("<%#" "%>")
+                      ("<%-" "%>")))
     ("freemarker"  . (("<% " " %>")
                       ("${ " " }")
                       ("[% " " %]")
@@ -3939,12 +3940,10 @@ the environment as needed for ac-sources, right before they're used.")
           (setq end (1+ end))
           ;;(remove-text-properties (1+ beg) (1- end) '(part-token nil))
 
-          ;; garder { et } en part-token est util pour l'indentation
+          ;; REMINDER: garder { et } en part-token est util pour l'indentation
           (put-text-property (1+ beg) (1- end) 'part-token nil)
-;;          (put-text-property beg end 'part-token nil)
           (put-text-property beg end 'part-expr t)
           (web-mode-part-scan beg end "javascript")
-;;          (message "scan part %S %S" beg end)
           )
         )
       )))
@@ -6176,7 +6175,7 @@ the environment as needed for ac-sources, right before they're used.")
     (cond
      ((or (null ctx) (null (plist-get ctx :pos)))
       (setq indentation initial-column))
-     ((not (plist-get ctx :eol)) ;;inline
+     ((not (plist-get ctx :eol)) ;bracket is not at EOL
       (setq indentation (1+ (plist-get ctx :column))))
      ((and (member language '("javascript" "jsx" "php"))
            (eq (plist-get ctx :char) ?\{)
@@ -6675,26 +6674,22 @@ the environment as needed for ac-sources, right before they're used.")
   "Select the current block."
   (interactive)
   (let (beg)
-    (setq beg (web-mode-block-beginning-position (point)))
-    (when beg
+    (when (setq beg (web-mode-block-beginning-position (point)))
       (goto-char beg)
       (set-mark (point))
       (web-mode-block-end)
-      (exchange-point-and-mark)
-      )
+      (exchange-point-and-mark))
     beg))
 
 (defun web-mode-tag-select ()
   "Select the current HTML tag."
   (interactive)
   (let (beg)
-    (setq beg (web-mode-tag-beginning-position (point)))
-    (when beg
+    (when (setq beg (web-mode-tag-beginning-position (point)))
       (goto-char beg)
       (set-mark (point))
       (web-mode-tag-end)
-      (exchange-point-and-mark)
-      )
+      (exchange-point-and-mark))
     beg))
 
 (defun web-mode-element-content-select ()
@@ -6743,8 +6738,7 @@ the environment as needed for ac-sources, right before they're used.")
   "Is the HTML element collapsed ?"
   (unless pos (setq pos (point)))
   (let (boundaries ret)
-    (setq boundaries (web-mode-element-boundaries pos))
-    (setq ret (and boundaries
+    (setq ret (and (setq boundaries (web-mode-element-boundaries pos))
                    (or (= (car (car boundaries)) (car (cdr boundaries)))
                        (= (cdr (car boundaries)) (1- (car (cdr boundaries)))))
                    ))
@@ -6760,7 +6754,7 @@ the environment as needed for ac-sources, right before they're used.")
       (cond
        ((get-text-property pos 'tag-type)
         (setq start1 (web-mode-element-beginning-position pos)
-            end1 (1+ (web-mode-element-end-position pos)))
+              end1 (1+ (web-mode-element-end-position pos)))
         )
        ((setq start1 (web-mode-element-parent-position pos))
         (setq end1 (1+ (web-mode-element-end-position pos)))
@@ -6775,12 +6769,11 @@ the environment as needed for ac-sources, right before they're used.")
                 end2 (1+ (web-mode-element-end-position (point))))
           )
         )
-;;      (message "start1(%S) end1(%S) start2(%S) end2(%S)"
+      ;;      (message "start1(%S) end1(%S) start2(%S) end2(%S)"
 ;;               start1 end1 start2 end2)
       (transpose-regions start1 end1 start2 end2)
       ) ;save-excursion
-    start2
-    ))
+    start2))
 
 (defun web-mode-element-children-fold-or-unfold (&optional pos)
   "Fold/Unfold all the children of the current HTML element."
@@ -7349,32 +7342,6 @@ Pos should be in a tag."
 ;;  (goto-char pos)
   )
 
-(defun web-mode-looking-at (regexp pos)
-  "Performs a looking-at at POS."
-  (save-excursion
-    (goto-char pos)
-    (looking-at regexp)
-    ))
-
-(defun web-mode-looking-back (regexp pos)
-  "Performs a looking-at at POS."
-  (save-excursion
-    (goto-char pos)
-    (looking-back regexp)
-    ))
-
-(defun web-mode-insert-text-at-pos (text pos)
-  "Insert TEXT at POS."
-  (save-excursion
-    (goto-char pos)
-    (insert text)
-    ))
-
-(defun web-mode-remove-text-at-pos (n &optional pos)
-  "Remove N chars at POS."
-  (unless pos (setq pos (point)))
-  (delete-region pos (+ pos n)))
-
 (defun web-mode-uncomment-erb-block (pos)
   "Uncomment an erb block."
   (let (beg end)
@@ -7634,6 +7601,32 @@ Pos should be in a tag."
 ;;      (message "indent : beg(%S) end(%S)" beg end)
     ))
 
+(defun web-mode-looking-at (regexp pos)
+  "Performs a looking-at at POS."
+  (save-excursion
+    (goto-char pos)
+    (looking-at regexp)
+    ))
+
+(defun web-mode-looking-back (regexp pos)
+  "Performs a looking-at at POS."
+  (save-excursion
+    (goto-char pos)
+    (looking-back regexp)
+    ))
+
+(defun web-mode-insert-text-at-pos (text pos)
+  "Insert TEXT at POS."
+  (save-excursion
+    (goto-char pos)
+    (insert text)
+    ))
+
+(defun web-mode-remove-text-at-pos (n &optional pos)
+  "Remove N chars at POS."
+  (unless pos (setq pos (point)))
+  (delete-region pos (+ pos n)))
+
 (defun web-mode-insert-and-indent (text)
   "Insert and indent text."
   (interactive)
@@ -7889,7 +7882,6 @@ Pos should be in a tag."
           web-mode-change-end nil)
     )
    (t
-
     )
    )
   )
@@ -8428,8 +8420,7 @@ Pos should be in a tag."
                (setq next-beg (web-mode-attribute-next-position pos))
                (setq next-end (web-mode-attribute-end-position next-beg))
                (setq tag-end (web-mode-tag-end-position pos))
-               (> tag-end next-end)
-               )
+               (> tag-end next-end))
       (setq attr-beg (web-mode-attribute-beginning-position pos)
             attr-end (web-mode-attribute-end-position pos))
 ;;      (message "%S %S - %S %S" attr-beg attr-end next-beg next-end)
@@ -10014,6 +10005,7 @@ Pos should be in a tag."
 ;; End:
 
 ;;---- TODO --------------------------------------------------------------------
+;;- parameter for function chaining
 ;;- supprimer 2 flags sur blocks
 ;;- phphint
 ;;- tag-name uniquement sur les html tag
