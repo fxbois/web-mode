@@ -949,7 +949,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     (regexp-opt
      '("charset" "import" "media" "page" "font-face"
        "namespace" "supports" "document"
-       "keyframes" "-moz-keyframes" "-webkit-keyframes"))))
+       "keyframes" "-moz-keyframes" "-webkit-keyframes"
+       "mixin"))))
 
 (defvar web-mode-css-pseudo-classes
   (eval-when-compile
@@ -1264,6 +1265,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\([[:alpha:]-]+\\)[ ]?(" 1 'web-mode-css-function-face)
    '("#[[:alnum:]]\\{1,6\\}" 0 'web-mode-css-color-face t t)
    '("![ ]?important" 0 'web-mode-css-priority-face t t)
+   '("\\([[:alnum:]-.]+\\)[ ]+{" 1 'web-mode-css-selector-face)
    ))
 
 (defvar web-mode-html-font-lock-keywords
