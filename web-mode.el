@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.69
+;; Version: 9.0.70
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.69"
+(defconst web-mode-version "9.0.70"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -619,8 +619,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Engine name aliases")
 
 (defvar web-mode-content-types
-  '(("css"        . "\\.css\\'\\|\\.sass\\'\\|\\.scss\\'\\|\\.css\\.erb\\'")
-    ("javascript" . "\\.js\\'\\|\\.js\\.erb\\'")
+  '(("css"        . "\\.\\(s?css\\|css\\.erb\\)\\'")
+    ("javascript" . "\\.\\(js\\|js\\.erb\\)\\'")
     ("json"       . "\\.\\(json\\|jsonld\\)\\'")
     ("jsx"        . "\\.jsx\\'")
     ("html"       . "."))
@@ -1243,6 +1243,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-selector-font-lock-keywords
   (list
+   '("$[[:alnum:]-]+" 0 'web-mode-css-variable-face)
    (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>")
          '(1 'web-mode-css-at-rule-face))
    '("\\<\\(all\|braille\\|embossed\\|handheld\\|print\\|projection\\|screen\\|speech\\|tty\\|tv\\|and\\|or\\)\\>" 1 'web-mode-keyword-face)
@@ -1256,6 +1257,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-declaration-font-lock-keywords
   (list
    '("--[[:alnum:]-]+" 0 'web-mode-css-variable-face)
+   '("$[[:alnum:]-]+" 0 'web-mode-css-variable-face)
    (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>") '(1 'web-mode-css-at-rule-face))
    '("url(\\([^)]+\\)" 1 'web-mode-string-face)
    '("\\([[:alpha:]-]+\\)[ ]?:" 1 'web-mode-css-property-name-face)
