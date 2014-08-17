@@ -6719,6 +6719,11 @@ the environment as needed for ac-sources, right before they're used.")
       (web-mode-attribute-select pos)
       (setq web-mode-expand-previous-state "html-attr"))
 
+     ((and (eq (get-text-property pos 'tag-type) 'comment)
+           (not (member web-mode-expand-previous-state '("html-tag" "html-comment" "html-elt" "html-parent"))))
+      (web-mode-tag-select)
+      (setq web-mode-expand-previous-state "html-comment"))
+
      ((and (get-text-property pos 'tag-name)
            (not (member web-mode-expand-previous-state '("html-tag" "html-elt" "html-parent"))))
       (web-mode-tag-select)
