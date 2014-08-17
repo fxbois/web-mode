@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.68
+;; Version: 9.0.69
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.68"
+(defconst web-mode-version "9.0.69"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -619,7 +619,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Engine name aliases")
 
 (defvar web-mode-content-types
-  '(("css"        . "\\.css\\'\\|\\.css\\.erb\\'")
+  '(("css"        . "\\.css\\'\\|\\.sass\\'\\|\\.scss\\'\\|\\.css\\.erb\\'")
     ("javascript" . "\\.js\\'\\|\\.js\\.erb\\'")
     ("json"       . "\\.\\(json\\|jsonld\\)\\'")
     ("jsx"        . "\\.jsx\\'")
