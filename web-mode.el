@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.70
+;; Version: 9.0.71
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.70"
+(defconst web-mode-version "9.0.71"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5891,26 +5891,33 @@ the environment as needed for ac-sources, right before they're used.")
         nil)
       )))
 
-;; TODO : prendre en compte le debut de la zone 'part-token -> html
 (defun web-mode-markup-indentation-origin ()
   "web-mode-indentation-origin-pos"
-  (let ((continue t) pos)
+  (let* ((continue (not (bobp)))
+         (pos (point))
+         (part-side (not (null (get-text-property pos 'part-side))))
+         (types '(start end void)))
     (while continue
       (forward-line -1)
       (back-to-indentation)
-      (setq continue (not (bobp)))
-      (when (or (and (get-text-property (point) 'tag-beg)
-                     (member (get-text-property (point) 'tag-type) '(start end void)))
-                (and (get-text-property (point) 'block-beg)
-                     (web-mode-block-is-control (point))
-                     (not (looking-at-p "{% comment"))))
-        (setq continue nil
-              pos (point))
-        )
+      (setq pos (point))
+      (setq continue (not (or (bobp)
+                              (and (null part-side)
+                                   (null (get-text-property pos 'part-side))
+                                   (get-text-property pos 'tag-beg)
+                                   (member (get-text-property pos 'tag-type) types))
+                              (and part-side
+                                   (get-text-property pos 'part-side)
+                                   (get-text-property pos 'tag-beg)
+                                   (member (get-text-property pos 'tag-type) types))
+                              (and (get-text-property pos 'block-beg)
+                                   (web-mode-block-is-control pos)
+                                   (not (looking-at-p "{% comment"))))))
       ) ;while
-;;    (message "indent-origin=%S" pos)
+    ;;    (message "indent-origin=%S" pos)
     pos))
 
+;;TODO : prendre en compte part-token
 ;; state=t <=> start tag
 (defun web-mode-element-is-opened (pos limit)
   "Is there any HTML element (or control block) without a closing tag ?"
