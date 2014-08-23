@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.73
+;; Version: 9.0.74
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.73"
+(defconst web-mode-version "9.0.74"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -571,6 +571,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-snippets nil)
 (defvar web-mode-start-tag-overlay nil)
 (defvar web-mode-time (current-time))
+
+(defvar web-mode-pre-elements
+  '("code" "pre" "textarea"))
 
 (defvar web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
@@ -5630,9 +5633,16 @@ the environment as needed for ac-sources, right before they're used.")
           (setq offset (current-indentation))
           )
 
-         ((and (eq (get-text-property pos 'tag-type) 'end)
-               (web-mode-tag-match))
-          (setq offset (current-indentation))
+         ((eq (get-text-property pos 'tag-type) 'end)
+;;          (message "end")
+          (cond
+           ((and nil
+                 web-mode-pre-elements
+                 (member (get-text-property pos 'tag-name) web-mode-pre-elements))
+            (setq offset nil))
+           ((web-mode-tag-match)
+            (setq offset (current-indentation)))
+           ) ;cond
           )
 
          ((and prev-props (plist-get prev-props 'tag-attr))
@@ -5853,6 +5863,17 @@ the environment as needed for ac-sources, right before they're used.")
                  (string-match-p "^%" line))
             (setq offset 0)
             )
+
+           ((and web-mode-pre-elements
+                 (null (get-text-property pos 'block-side))
+                 (null (get-text-property pos 'part-side))
+                 (and (null (get-text-property pos 'tag-beg))
+                      (save-excursion
+                        (and (web-mode-element-parent)
+                             (member (get-text-property (point) 'tag-name) web-mode-pre-elements))))
+                 )
+;;            (message "ici%S" pos)
+            (setq offset nil))
 
            ((or (eq (length line) 0)
                 (= web-mode-indent-style 2)
