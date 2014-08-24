@@ -4487,7 +4487,7 @@ the environment as needed for ac-sources, right before they're used.")
                            web-mode-freemarker-square-font-lock-keywords
                          web-mode-freemarker-font-lock-keywords)))
        (t
-        (setq keywords web-mode-jsp-tag-font-lock-keywords))
+        (setq keywords web-mode-engine-tag-font-lock-keywords))
        )) ;freemarker
 
      ) ;cond
