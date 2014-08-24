@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.74
+;; Version: 9.0.75
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.74"
+(defconst web-mode-version "9.0.75"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3321,6 +3321,7 @@ the environment as needed for ac-sources, right before they're used.")
            (t
 ;;            (intern tname web-mode-obarray)
             (setq props (list 'tag-name tname 'tag-type 'start)))
+;;            (setq props (list 'tag-name (intern tname web-mode-obarray) 'tag-type 'start)))
            ) ;cond
           )
          ((and (eq char ?\!) (eq (aref tname 1) ?\-))
@@ -7337,7 +7338,7 @@ Pos should be in a tag."
 
 (defun web-mode-comment (pos)
   "Comment line(s) at point."
-  (interactive)
+;;  (interactive)
   (save-excursion
     (let (ctx language sel beg end tmp block-side single-line-block)
 
@@ -7347,73 +7348,26 @@ Pos should be in a tag."
       (cond
 
        ((and block-side
-             (string= web-mode-engine "django")
+             (intern-soft (concat "web-mode-comment-" web-mode-engine "-block"))
              single-line-block)
-        (web-mode-comment-django-block pos)
-        )
-
-       ((and block-side
-             (string= web-mode-engine "dust")
-             single-line-block)
-        (web-mode-comment-dust-block pos)
-        )
-
-       ((and block-side
-             (string= web-mode-engine "erb")
-             single-line-block)
-        (web-mode-comment-erb-block pos)
-        )
-
-       ((and block-side
-             (string= web-mode-engine "aspx")
-             single-line-block)
-        (web-mode-comment-aspx-block pos)
-        )
-
-       ((and block-side
-             (string= web-mode-engine "jsp")
-             single-line-block)
-        (web-mode-comment-jsp-block pos)
-        )
-
-       ((and block-side
-             (string= web-mode-engine "go")
-             single-line-block)
-        (web-mode-comment-go-block pos)
-        )
-
-       ((and block-side
-             (string= web-mode-engine "php")
-             single-line-block)
-        (web-mode-comment-php-block pos)
-        )
+        (funcall (intern (concat "web-mode-comment-" web-mode-engine "-block")) pos))
 
        (t
-
         (setq ctx (web-mode-point-context
                    (if mark-active (region-beginning) (line-beginning-position))))
-;;        (message "ctx=%S" ctx)
         (setq language (plist-get ctx :language))
-
-        (if mark-active
-            (progn
-              (setq beg (region-beginning)
-                    end (region-end))
-;;              (message "beg=%S end=%S" beg end)
-              )
-          (if (and (string= language "html")
-                   (progn (back-to-indentation) t)
-                   (get-text-property (point) 'tag-beg))
-              ;;              (progn
-              ;;                (back-to-indentation)
-              (web-mode-element-select)
-            ;;            )
-            (end-of-line)
-            (set-mark (line-beginning-position))
-            ) ;if
-          (setq beg (region-beginning)
-                end (region-end))
-          ) ;if mark-active
+        (cond
+         (mark-active
+          )
+         ((and (string= language "html")
+               (get-text-property (progn (back-to-indentation) (point)) 'tag-beg))
+          (web-mode-element-select))
+         (t
+          (end-of-line)
+          (set-mark (line-beginning-position)))
+         ) ;cond
+        (setq beg (region-beginning)
+              end (region-end))
 
         (when (> (point) (mark))
           (exchange-point-and-mark))
@@ -7421,9 +7375,7 @@ Pos should be in a tag."
         (if (eq (char-before end) ?\n)
             (setq end (1- end)))
 
-;;        (message "language=%S beg=%S end=%S" language beg end)
         (setq sel (web-mode-trim (buffer-substring-no-properties beg end)))
-        ;;      (message "[language=%s] sel=%s" language sel)
         (delete-region beg end)
         (deactivate-mark)
 
@@ -7460,7 +7412,7 @@ Pos should be in a tag."
             )
            )
 
-          )
+          ) ;case html
 
          ((member language '("php" "javascript" "css"))
           (web-mode-insert-and-indent (concat "/* " sel " */")))
@@ -7485,12 +7437,53 @@ Pos should be in a tag."
 ;;  (goto-char pos)
   )
 
-(defun web-mode-uncomment-erb-block (pos)
-  "Uncomment an erb block."
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-remove-text-at-pos 1 (+ beg 2))
+(defun web-mode-uncomment (&optional pos)
+  "Uncomment line(s) at point."
+  (interactive)
+  (unless pos (setq pos (point)))
+  (let ((beg pos) (end pos) (sub2 "") comment prop)
+    (cond
+     ((and (get-text-property pos 'block-side)
+           (intern-soft (concat "web-mode-uncomment-" web-mode-engine "-block")))
+      (funcall (intern (concat "web-mode-uncomment-" web-mode-engine "-block")) pos)
+      )
+     (t
+      (cond
+       ((eq (get-text-property pos 'block-token) 'comment)
+        (setq prop 'block-token))
+       ((eq (get-text-property pos 'tag-type) 'comment)
+        (setq prop 'tag-type))
+       ((eq (get-text-property pos 'part-token) 'comment)
+        (setq prop 'part-token))
+       ) ;cond
+      (if (and (not (bobp))
+               (eq (get-text-property pos prop) (get-text-property (1- pos) prop)))
+          (setq beg (or (previous-single-property-change pos prop)
+                        (point-min))))
+      (if (and (not (eobp))
+               (eq (get-text-property pos prop) (get-text-property (1+ pos) prop)))
+          (setq end (or (next-single-property-change pos prop)
+                        (point-max))))
+      (when (> (- end beg) 4)
+        (setq comment (buffer-substring-no-properties beg end))
+        (setq sub2 (substring comment 0 2))
+        (cond
+         ((member sub2 '("<!" "<%"))
+          (setq comment (replace-regexp-in-string "\\(^<[!%]--[ ]?\\|[ ]?--[%]?>$\\)" "" comment)))
+         ((string= sub2 "{#")
+          (setq comment (replace-regexp-in-string "\\(^{#[ ]?\\|[ ]?#}$\\)" "" comment)))
+         ((string= sub2 "/*")
+          (setq comment (replace-regexp-in-string "\\(^/\\*[ ]?\\|[ ]?\\*/$\\)" "" comment)))
+         ((string= sub2 "//")
+          (setq comment (replace-regexp-in-string "\\(^//\\)" "" comment)))
+         )
+        (delete-region beg end)
+        (web-mode-insert-and-indent comment)
+        (goto-char beg)
+        ) ;when
+      ) ;t
+     ) ;cond
+    (indent-for-tab-command)
     ))
 
 (defun web-mode-comment-erb-block (pos)
@@ -7498,16 +7491,8 @@ Pos should be in a tag."
   (let (beg end)
     (setq beg (web-mode-block-beginning-position pos)
           end (web-mode-block-end-position pos))
+;;    (message "%S %S" beg end)
     (web-mode-insert-text-at-pos "#" (+ beg 2))
-    ))
-
-(defun web-mode-uncomment-django-block (pos)
-  "Uncomment a django block."
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-remove-text-at-pos 2 (1- end))
-    (web-mode-remove-text-at-pos 2 beg)
     ))
 
 (defun web-mode-comment-django-block (pos)
@@ -7517,15 +7502,6 @@ Pos should be in a tag."
           end (web-mode-block-end-position pos))
     (web-mode-insert-text-at-pos "#" end)
     (web-mode-insert-text-at-pos "#" (1+ beg))
-    ))
-
-(defun web-mode-uncomment-dust-block (pos)
-  "Uncomment a dust block."
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-remove-text-at-pos 1 (1- end))
-    (web-mode-remove-text-at-pos 1 (1+ beg))
     ))
 
 (defun web-mode-comment-dust-block (pos)
@@ -7546,37 +7522,12 @@ Pos should be in a tag."
     (web-mode-insert-text-at-pos "#" (1+ beg))
     ))
 
-(defun web-mode-uncomment-aspx-block (pos)
-  "Uncomment a aspx block."
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-remove-text-at-pos 1 (1- end))
-    (web-mode-remove-text-at-pos 1 (1+ beg))
-    ))
-
-(defun web-mode-uncomment-jsp-block (pos)
-  "Uncomment a jsp block."
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-remove-text-at-pos 2 (+ beg 2))
-    ))
-
 (defun web-mode-comment-jsp-block (pos)
   "Turn a jsp block into a comment block."
   (let (beg end)
     (setq beg (web-mode-block-beginning-position pos)
           end (web-mode-block-end-position pos))
     (web-mode-insert-text-at-pos "--" (+ beg 2))
-    ))
-
-(defun web-mode-uncomment-go-block (pos)
-  "Uncomment a go block."
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-remove-text-at-pos 1 (+ beg 2))
     ))
 
 (defun web-mode-comment-go-block (pos)
@@ -7596,104 +7547,55 @@ Pos should be in a tag."
     (web-mode-insert-text-at-pos "/*" (+ beg (if (web-mode-looking-at "<\\?php" beg) 5 3)))
     ))
 
-(defun web-mode-uncomment (&optional pos)
-  "Uncomment line(s) at point."
-  (interactive)
-  (unless pos (setq pos (point)))
-  (let ((beg pos)
-        (end pos)
-        (sub2 "")
-        comment prop)
+(defun web-mode-uncomment-erb-block (pos)
+  "Uncomment an erb block."
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-remove-text-at-pos 1 (+ beg 2))
+    ))
 
-    (cond
+(defun web-mode-uncomment-django-block (pos)
+  "Uncomment a django block."
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-remove-text-at-pos 2 (1- end))
+    (web-mode-remove-text-at-pos 2 beg)
+    ))
 
-     ((and (get-text-property pos 'block-side)
-           (string= web-mode-engine "django"))
-        (web-mode-uncomment-django-block pos)
-        )
+(defun web-mode-uncomment-dust-block (pos)
+  "Uncomment a dust block."
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-remove-text-at-pos 1 (1- end))
+    (web-mode-remove-text-at-pos 1 (1+ beg))
+    ))
 
-     ((and (get-text-property pos 'block-side)
-           (string= web-mode-engine "dust"))
-        (web-mode-uncomment-dust-block pos)
-        )
+(defun web-mode-uncomment-aspx-block (pos)
+  "Uncomment a aspx block."
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-remove-text-at-pos 1 (1- end))
+    (web-mode-remove-text-at-pos 1 (1+ beg))
+    ))
 
-     ((and (get-text-property pos 'block-side)
-           (string= web-mode-engine "erb"))
-        (web-mode-uncomment-erb-block pos)
-        )
+(defun web-mode-uncomment-jsp-block (pos)
+  "Uncomment a jsp block."
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-remove-text-at-pos 2 (+ beg 2))
+    ))
 
-     ((and (get-text-property pos 'block-side)
-           (string= web-mode-engine "aspx"))
-      (web-mode-uncomment-aspx-block pos)
-      )
-
-     ((and (get-text-property pos 'block-side)
-           (string= web-mode-engine "jsp"))
-      (web-mode-uncomment-jsp-block pos)
-      )
-
-     ((and (get-text-property pos 'block-side)
-           (string= web-mode-engine "go"))
-      (web-mode-uncomment-go-block pos)
-      )
-
-     (t
-
-      (cond
-       ((eq (get-text-property pos 'block-token) 'comment)
-        (setq prop 'block-token))
-       ((eq (get-text-property pos 'tag-type) 'comment)
-        (setq prop 'tag-type))
-       ((eq (get-text-property pos 'part-token) 'comment)
-        (setq prop 'part-token))
-       )
-
-      (if (and (not (bobp))
-               (eq (get-text-property pos prop) (get-text-property (- pos 1) prop)))
-          (setq beg (or (previous-single-property-change pos prop)
-                        (point-min))))
-
-      (if (and (not (eobp))
-               (eq (get-text-property pos prop) (get-text-property (+ pos 1) prop)))
-          (setq end (or (next-single-property-change pos prop)
-                        (point-max))))
-
-      ;;    (message "beg(%d) end(%d)" beg end)
-
-      (when (> (- end beg) 4)
-
-        (setq comment (buffer-substring-no-properties beg end))
-        ;;    (message "before[%s]" comment)
-
-        (setq sub2 (substring comment 0 2))
-
-        (cond
-
-         ((member sub2 '("<!" "<%"))
-          (setq comment (replace-regexp-in-string "\\(^<[!%]--[ ]?\\|[ ]?--[%]?>$\\)" "" comment)))
-
-         ((string= sub2 "{#")
-          (setq comment (replace-regexp-in-string "\\(^{#[ ]?\\|[ ]?#}$\\)" "" comment)))
-
-         ((string= sub2 "/*")
-          (setq comment (replace-regexp-in-string "\\(^/\\*[ ]?\\|[ ]?\\*/$\\)" "" comment)))
-
-         ((string= sub2 "//")
-          (setq comment (replace-regexp-in-string "\\(^//\\)" "" comment)))
-
-         )
-
-        ;;    (message "after[%s]" comment)
-
-        (delete-region beg end)
-        (web-mode-insert-and-indent comment)
-        (goto-char beg)
-;;        (back-to-indentation)
-
-        ) ;when
-
-      ))
-    (indent-for-tab-command)
+(defun web-mode-uncomment-go-block (pos)
+  "Uncomment a go block."
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-remove-text-at-pos 1 (+ beg 2))
     ))
 
 (defun web-mode-snippet-names ()
@@ -7767,10 +7669,13 @@ Pos should be in a tag."
 
 (defun web-mode-insert-text-at-pos (text pos)
   "Insert TEXT at POS."
-  (save-excursion
-    (goto-char pos)
-    (insert text)
-    ))
+  (let ((mem web-mode-enable-auto-pairing))
+    (setq web-mode-enable-auto-pairing nil)
+    (save-excursion
+      (goto-char pos)
+      (insert text)
+      (setq web-mode-enable-auto-pairing mem)
+      )))
 
 (defun web-mode-remove-text-at-pos (n &optional pos)
   "Remove N chars at POS."
@@ -8127,9 +8032,6 @@ Pos should be in a tag."
               (while (and (< i l) (not self-insertion))
                 (setq expr (elt web-mode-auto-pairs i))
                 (setq i (1+ i))
-                ;;              (message "%S" expr)
-                ;;              (when (string= (elt expr 0) chunk)
-                ;;              (message "expr1=%S after=%S" (or (elt expr 2) (elt expr 1)) after)
                 (when (and (string= (elt expr 0) chunk)
                            ;;                         (progn (message "%S %S" (elt expr 1) after) t)
                            (not (string-match-p (or (elt expr 2) (elt expr 1)) after)))
@@ -10174,8 +10076,82 @@ Pos should be in a tag."
 ;;- Stickiness of Text Properties
 ;;- web-mode-engine-real-name (canonical name)
 ;;- screenshot : http://www.cockos.com/licecap/
-;;- passer les content-types en symboles
 ;;- tester shortcut A -> pour pomme
+
+
+
+;; ((and block-side
+;;       (string= web-mode-engine "django")
+;;       single-line-block)
+;;  (web-mode-comment-django-block pos)
+;;  )
+
+;; ((and block-side
+;;       (string= web-mode-engine "dust")
+;;       single-line-block)
+;;  (web-mode-comment-dust-block pos)
+;;  )
+
+;; ((and block-side
+;;       (string= web-mode-engine "erb")
+;;       single-line-block)
+;;  (web-mode-comment-erb-block pos)
+;;  )
+
+;; ((and block-side
+;;       (string= web-mode-engine "aspx")
+;;       single-line-block)
+;;  (web-mode-comment-aspx-block pos)
+;;  )
+
+;; ((and block-side
+;;       (string= web-mode-engine "jsp")
+;;       single-line-block)
+;;  (web-mode-comment-jsp-block pos)
+;;  )
+
+;; ((and block-side
+;;       (string= web-mode-engine "go")
+;;       single-line-block)
+;;  (web-mode-comment-go-block pos)
+;;  )
+
+;; ((and block-side
+;;       (string= web-mode-engine "php")
+;;       single-line-block)
+;;  (web-mode-comment-php-block pos)
+;;  )
+
+
+     ;; ((and (get-text-property pos 'block-side)
+     ;;       (string= web-mode-engine "django"))
+     ;;  (web-mode-uncomment-django-block pos)
+     ;;  )
+
+     ;; ((and (get-text-property pos 'block-side)
+     ;;       (string= web-mode-engine "dust"))
+     ;;  (web-mode-uncomment-dust-block pos)
+     ;;  )
+
+     ;; ((and (get-text-property pos 'block-side)
+     ;;       (string= web-mode-engine "erb"))
+     ;;  (web-mode-uncomment-erb-block pos)
+     ;;  )
+
+     ;; ((and (get-text-property pos 'block-side)
+     ;;       (string= web-mode-engine "aspx"))
+     ;;  (web-mode-uncomment-aspx-block pos)
+     ;;  )
+
+     ;; ((and (get-text-property pos 'block-side)
+     ;;       (string= web-mode-engine "jsp"))
+     ;;  (web-mode-uncomment-jsp-block pos)
+     ;;  )
+
+     ;; ((and (get-text-property pos 'block-side)
+     ;;       (string= web-mode-engine "go"))
+     ;;  (web-mode-uncomment-go-block pos)
+     ;;  )
 
 
 
@@ -10211,34 +10187,3 @@ Pos should be in a tag."
 ;;           ((or web-mode-indent-cycle-left-first
 ;;                (equal last-command 'indent-for-tab-command)) (car farther-syms))
 ;;           (t (car (last farther-syms))))))
-
-
-
-;; ;; TODO : only use web-mode-element-boundaries
-;; (defun web-mode-tags-pos ()
-;;   (save-excursion
-;;     (let (start-beg start-end end-beg end-end (pos (point)))
-;;       (cond
-;;        ((eq (get-text-property pos 'tag-type) 'start)
-;;         (setq start-beg (web-mode-tag-beginning-position pos)
-;;               start-end (web-mode-tag-end-position pos))
-;;         (when (web-mode-tag-match)
-;;           (setq end-beg (point)
-;;                 end-end (web-mode-tag-end-position (point))))
-;;         )
-;;        ((eq (get-text-property pos 'tag-type) 'end)
-;;         (setq end-beg (web-mode-tag-beginning-position pos)
-;;               end-end (web-mode-tag-end-position pos))
-;;         (when (web-mode-tag-match)
-;;           (setq start-beg (point)
-;;                 start-end (web-mode-tag-end-position (point)))
-;;           ) ;when
-;;         )
-;;        )
-;;       (if (and start-beg end-beg)
-;;           (cons (cons start-beg (1+ start-end))
-;;                 (cons end-beg (1+ end-end)))
-;;         nil)
-;;       )))
-
-;; TODO : se passer de save-excursion en utilisant web-mode-tag-match-position
