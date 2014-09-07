@@ -1,0 +1,41 @@
+<span>
+  {% for o in some_list %}
+    <tr class="{% cycle 'row1' 'row2' %}">
+      ...{{ value|center:"15" }}
+    </tr>
+  {% endfor %}
+</span>
+
+{{ value|removetags:"b span"|safe }}
+
+{{ some_list|safeseq|join:", " }}
+
+{% for x, y in points %}
+  There is a point at {{ x }},{{ y }}
+{% endfor %}
+
+<ul>
+  <li>
+    {% autoescape on %}
+      This is escaped: {{ var1 }}
+      {% autoescape off %}
+        This is not escaped: {{ var1 }}
+        This is escaped: {{ var1|escape }}
+      {% endautoescape %}
+    {% endautoescape %}
+  </li>
+  <li>
+    {% if 99 99 %}
+      if: 99 and 99 are equal
+    {% else %}
+      else: 99 and 99 are not equal
+    {% endif %}
+  </li>
+  <li>
+    {% ifequal 99 99 %}
+      if: 99 and 99 are equal
+    {% else %}
+      else: 99 and 99 are not equal
+    {% endifequal %}
+  </li>
+</ul>
