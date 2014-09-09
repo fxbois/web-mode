@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.78
+;; Version: 9.0.79
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.78"
+(defconst web-mode-version "9.0.79"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2636,8 +2636,8 @@ the environment as needed for ac-sources, right before they're used.")
       ) ;django
 
     ((string= web-mode-engine "ctemplate")
-      (cond
-       ((string= sub3 "{{%")
+     (cond
+       ((member sub3 '("{{%" "{{#"))
         (setq regexp "\"\\|'"))
        ((string= sub3 "{{!")
         (setq token-type 'comment))
@@ -3190,7 +3190,7 @@ the environment as needed for ac-sources, right before they're used.")
         (cond
          ((looking-at-p "{{else")
           (setq controls (append controls (list (cons 'inside "if")))))
-         ((looking-at "{{[#^/][ ]*\\([[:alpha:]]+\\)")
+         ((looking-at "{{[#^/][ ]*\\([[:alpha:]-]+\\)")
           (setq control (match-string-no-properties 1)
                 type (if (eq (aref (match-string-no-properties 0) 2) ?\/) 'close 'open))
           (setq controls (append controls (list (cons type control))))
@@ -3320,8 +3320,6 @@ the environment as needed for ac-sources, right before they're used.")
       ;;      (message "(%S) controls=%S" reg-beg controls)
 
       )))
-
-
 
 (defun web-mode-block-is-opened-sexp (reg-beg reg-end)
   "web-mode-block-is-opened-sexp"
@@ -3470,7 +3468,7 @@ the environment as needed for ac-sources, right before they're used.")
 ;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after (6)value-uq (7)value-sq (8)value-dq
 ;; (9)value-bq : jsx {}
 (defun web-mode-tag-skip (limit)
-  "Scan attributes and fetch end of tag."
+  "Scan attributes and fetch end of current tag."
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0) (brace-depth 0)
         (pos-ori (point)) (state 0) (equal-offset 0) (go-back nil)
         name-beg name-end val-beg char pos escaped spaced quoted)
@@ -4171,55 +4169,58 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;while
       )))
 
-(defun web-mode-propertize ()
+(defun web-mode-propertize (&optional beg end)
   "Propertize."
-  (let ((beg web-mode-change-beg)
-        (end web-mode-change-end))
+;;  (let ((beg web-mode-change-beg)
+;;        (end web-mode-change-end))
 ;;    (message "propertize: beg(%S) end(%S)" web-mode-change-beg web-mode-change-end)
-    (setq web-mode-change-beg nil
-          web-mode-change-end nil)
-    (cond
+  (unless beg (setq beg web-mode-change-beg))
+  (unless end (setq end web-mode-change-end))
+  (setq web-mode-change-beg nil
+        web-mode-change-end nil)
+  (cond
 
-     ((or (null beg) (null end))
-;;      (message "nothing todo")
-      nil)
+   ((or (null beg) (null end))
+    ;;      (message "nothing todo")
+    nil)
 
-     ((and web-mode-enable-block-partial-invalidation
-           web-mode-engine-token-regexp
-           (get-text-property beg 'block-side)
-           (get-text-property end 'block-side)
-           (> beg (point-min))
-           (not (eq (get-text-property (1- beg) 'block-token) 'delimiter))
-           (not (eq (get-text-property end 'block-token) 'delimiter))
+   ((and web-mode-enable-block-partial-invalidation
+         web-mode-engine-token-regexp
+         (get-text-property beg 'block-side)
+         (get-text-property end 'block-side)
+         (> beg (point-min))
+         (not (eq (get-text-property (1- beg) 'block-token) 'delimiter))
+         (not (eq (get-text-property end 'block-token) 'delimiter))
 
-           ;; (not (looking-back "\\*/\\|\\?>"))
-           ;; (progn
-           ;;   (setq chunk (buffer-substring-no-properties beg end))
-           ;;   (not (string-match-p "\\*/\\|\\?>" chunk))
-           ;;   )
+         ;; (not (looking-back "\\*/\\|\\?>"))
+         ;; (progn
+         ;;   (setq chunk (buffer-substring-no-properties beg end))
+         ;;   (not (string-match-p "\\*/\\|\\?>" chunk))
+         ;;   )
            )
-      (web-mode-invalidate-block-region beg end))
+    (web-mode-invalidate-block-region beg end))
 
-     ((and web-mode-enable-part-partial-invalidation
-           (get-text-property beg 'part-side)
-           (get-text-property end 'part-side)
-           (> beg (point-min))
-           (get-text-property (1- beg) 'part-side)
-           (get-text-property end 'part-side)
-           ;; (not (looking-back "\\*/\\|</"))
-           ;; (progn
-           ;;   (setq chunk (buffer-substring-no-properties beg end))
-           ;;   (not (string-match-p "\\*/\\|</" chunk))
-           ;;   )
-           )
-;;      (message "invalidate part")
-      (web-mode-invalidate-part-region beg end))
+   ((and web-mode-enable-part-partial-invalidation
+         (get-text-property beg 'part-side)
+         (get-text-property end 'part-side)
+         (> beg (point-min))
+         (get-text-property (1- beg) 'part-side)
+         (get-text-property end 'part-side)
+         ;; (not (looking-back "\\*/\\|</"))
+         ;; (progn
+         ;;   (setq chunk (buffer-substring-no-properties beg end))
+         ;;   (not (string-match-p "\\*/\\|</" chunk))
+         ;;   )
+         )
+    ;;      (message "invalidate part")
+    (web-mode-invalidate-part-region beg end))
 
-     (t
-      (web-mode-invalidate-region beg end))
+   (t
+    (web-mode-invalidate-region beg end))
 
-     ) ;cond
-    ))
+   ) ;cond
+  ;;    )
+  )
 
 ;; Note : il est important d'identifier des caractères en fin de ligne
 ;; web-mode-block-tokenize travaille en effet sur les fins de lignes pour
@@ -4374,6 +4375,8 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-font-lock-highlight (limit)
   "font-lock matcher"
 ;;  (message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
+  (when (or (null web-mode-change-beg) (null web-mode-change-end))
+    (message "font-lock-highlight: untouched buffer (%S)" this-command))
   (let ((inhibit-modification-hooks t)
         (buffer-undo-list t)
         (region (web-mode-propertize)))

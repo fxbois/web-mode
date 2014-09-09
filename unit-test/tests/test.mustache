@@ -1,0 +1,12 @@
+<ul>
+  {{#items}}
+    {{#first}}
+      <li><strong>{{name}}</strong></li>
+    {{/first}}
+    {{#link}}
+      <li>
+        {{#link-to 'photos.edit' photo}}{{photo.title}}{{/link-to}}
+      </li>
+    {{/link}}
+  {{/items}}
+</ul>
