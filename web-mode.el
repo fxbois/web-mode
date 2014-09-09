@@ -8533,6 +8533,7 @@ Pos should be in a tag."
     (save-excursion
       (setq h (make-hash-table :test 'equal))
       (while (and continue (web-mode-block-previous))
+;;        (message "ici")
         (when (setq ctx (web-mode-block-is-control (point)))
           (setq ctrl (car ctx))
           (setq n (gethash ctrl h 0))
@@ -9141,8 +9142,21 @@ Pos should be in a tag."
       )
      )
     ) ;block-side
+   ((get-text-property (1- pos) 'block-side)
+    (setq pos (web-mode-block-beginning-position (1- pos)))
+    (cond
+     ((or (null pos) (= pos (point-min)))
+      (setq pos nil)
+      )
+     ((and (setq pos (previous-single-property-change pos 'block-beg))
+           (> pos (point-min)))
+      (setq pos (1- pos))
+      )
+     )
+    ) ;block-side
    (t
     (setq pos (previous-single-property-change pos 'block-side))
+;;    (message "pos(%S)" pos)
     (cond
      ((and (null pos) (get-text-property (point-min) 'block-beg))
       (setq pos (point-min)))
