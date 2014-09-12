@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.79
+;; Version: 9.0.81
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.79"
+(defconst web-mode-version "9.0.81"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -639,6 +639,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-file-regexps
   '(("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
+    ("blade"            . "\\.blade\\.php\\'")
     ("clip"             . "\\.ctml\\'")
     ("closure"          . "\\.soy\\'")
     ("ctemplate"        . "\\.\\(chtml\\|mustache\\)\\'")
@@ -4374,12 +4375,16 @@ the environment as needed for ac-sources, right before they're used.")
 ;;RQ : nous sommes sûrs d'être passés par propertize
 (defun web-mode-font-lock-highlight (limit)
   "font-lock matcher"
-;;  (message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
-  (when (or (null web-mode-change-beg) (null web-mode-change-end))
-    (message "font-lock-highlight: untouched buffer (%S)" this-command))
+  ;;  (message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
+  ;;  (when (or (null web-mode-change-beg) (null web-mode-change-end))
+  ;;    (message "font-lock-highlight: untouched buffer (%S)" this-command))
   (let ((inhibit-modification-hooks t)
         (buffer-undo-list t)
-        (region (web-mode-propertize)))
+        (region nil))
+    (if (and web-mode-change-beg web-mode-change-end)
+        (setq region (web-mode-propertize))
+      (message "font-lock-highlight: untouched buffer (%S)" this-command)
+      (setq region (web-mode-propertize (point) limit)))
     (when (and region (car region))
       (web-mode-highlight-region (car region) (cdr region))
       ))
@@ -4894,6 +4899,7 @@ the environment as needed for ac-sources, right before they're used.")
            (member web-mode-engine '("asp" "template-toolkit")))
           (font-lock-keywords-only t)
           (font-lock-extend-region-functions nil))
+      ;;      (message "%S" keywords)
       (when (listp font-lock-keywords)
         (font-lock-fontify-region beg end)
         )
@@ -4929,6 +4935,7 @@ the environment as needed for ac-sources, right before they're used.")
       (put-text-property beg end 'face plist))
      ) ;cond
     ))
+
 (defun web-mode-interpolate-block-tag (beg end)
   "Scan a block tag (jsp / mako) to fontify ${ } blocks"
   (save-excursion
@@ -10068,7 +10075,7 @@ Pos should be in a tag."
                       web-mode-engine
                       web-mode-content-type
                       (web-mode-language-at-pos (point))))
-    (setq symbols (append web-mode-scan-properties '(face)))
+    (setq symbols (append web-mode-scan-properties '(font-lock-face)))
     (dolist (symbol symbols)
       (when symbol
         (setq out (concat out (format "%s(%S) " (symbol-name symbol) (get-text-property (point) symbol)))))
