@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.81
+;; Version: 9.0.82
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.81"
+(defconst web-mode-version "9.0.82"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -119,6 +119,11 @@
 
 (defcustom web-mode-enable-current-element-highlight nil
   "Disable element highlight."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-current-column-highlight nil
+  "Show current region."
   :type 'boolean
   :group 'web-mode)
 
@@ -537,6 +542,11 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Overlay face for element highlight."
   :group 'web-mode-faces)
 
+(defface web-mode-current-column-highlight-face
+  '((t :background "#2b2b40"))
+  "Overlay face for current column."
+  :group 'web-mode-faces)
+
 (defface web-mode-comment-keyword-face
   '((t :weight bold :box t))
   "Comment keywords."
@@ -550,6 +560,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-auto-pairs nil)
 (defvar web-mode-block-regexp nil)
 (defvar web-mode-closing-blocks nil)
+(defvar web-mode-column-overlays nil)
 (defvar web-mode-comments-invisible nil)
 (defvar web-mode-content-type "")
 (defvar web-mode-end-tag-overlay nil)
@@ -565,7 +576,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-hl-line-mode-flag nil)
 (defvar web-mode-hook nil)
 (defvar web-mode-inlay-regexp nil)
-;;(defvar web-mode-is-narrowed nil)
 (defvar web-mode-is-scratch nil)
 (defvar web-mode-jshint-errors 0)
 (defvar web-mode-obarray nil)
@@ -1851,6 +1861,7 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-engine-open-delimiter-regexps)
   (make-local-variable 'web-mode-change-beg)
   (make-local-variable 'web-mode-change-end)
+  (make-local-variable 'web-mode-column-overlays)
   (make-local-variable 'web-mode-comment-style)
   (make-local-variable 'web-mode-content-type)
   (make-local-variable 'web-mode-display-table)
@@ -4545,7 +4556,7 @@ the environment as needed for ac-sources, right before they're used.")
   (let (sub1 sub2 sub3 continue char keywords token-type face beg end (buffer (current-buffer)))
     ;;(message "reg-beg=%S reg-end=%S" reg-beg reg-end)
 
-    ;;KEEP ME: required for block inside tag attr
+    ;;NOTE: required for block inside tag attr
     (remove-text-properties reg-beg reg-end '(font-lock-face nil))
 
     (goto-char reg-beg)
@@ -4996,6 +5007,45 @@ the environment as needed for ac-sources, right before they're used.")
   (when web-mode-start-tag-overlay
     (delete-overlay web-mode-start-tag-overlay)
     (delete-overlay web-mode-end-tag-overlay)))
+
+(defun web-mode-column-overlay-factory (index)
+  (let (overlay)
+    (when (null web-mode-column-overlays)
+      (dotimes (i 100)
+        (setq overlay (make-overlay 1 1))
+        (overlay-put overlay 'font-lock-face 'web-mode-current-column-highlight-face)
+        (setq web-mode-column-overlays (append web-mode-column-overlays (list overlay)))
+        )
+      )
+    (setq overlay (nth index web-mode-column-overlays))
+    (when (null overlay)
+      (message "new overlay(%S)" index)
+      (setq overflay (make-overlay 1 1))
+      (overlay-put overlay 'font-lock-face 'web-mode-current-column-highlight-face)
+      (setq web-mode-column-overlays (append web-mode-column-overlays (list overlay)))
+      ) ;when
+    overlay))
+
+(defun web-mode-column-hide ()
+  (remove-overlays (point-min) (point-max) 'font-lock-face 'web-mode-current-column-highlight-face))
+
+(defun web-mode-column-show (column line-from line-to)
+  (let ((current line-from) (index 0) overlay)
+    (save-excursion
+      (goto-char (point-min))
+      (when (> line-from 1)
+        (forward-line (1- line-from)))
+      (while (<= current line-to)
+        (move-to-column (1+ column) t)
+        (backward-char)
+        (setq overlay (web-mode-column-overlay-factory index))
+        (move-overlay overlay (point) (1+ (point)))
+        ;;(if (overlayp overlay) (message "good") (message "bad"))
+        (setq current (1+ current))
+        (forward-line)
+        (setq index (1+ index))
+        )
+      )))
 
 (defun web-mode-highlight-current-element ()
   (let ((ctx (web-mode-element-boundaries)))
@@ -6464,8 +6514,7 @@ the environment as needed for ac-sources, right before they're used.")
         (setq out prev-indentation))
        )
       ) ;when
-    out
-    ))
+    out))
 
 (defun web-mode-previous-line (pos limit)
   "Previous line"
@@ -8252,6 +8301,25 @@ Pos should be in a tag."
 
     (when web-mode-enable-current-element-highlight
       (web-mode-highlight-current-element))
+
+    (when web-mode-enable-current-column-highlight
+      (web-mode-column-hide)
+      (save-excursion
+        (let (pos column line-to line-from)
+          (back-to-indentation)
+          (setq pos (point)
+                column (current-column)
+                line-to (web-mode-line-number))
+          (when (and (get-text-property (point) 'tag-beg)
+                     (eq (get-text-property (point) 'tag-type) 'end)
+                     (web-mode-tag-match)
+                     (setq line-from (web-mode-line-number))
+                     (not (= line-from line-to)))
+            (web-mode-column-show column line-from line-to)
+            ) ;if
+          ) ;let
+        ) ;save-excursion
+      )
 
     ;;    (message "post-command (%S) (%S)" web-mode-change-end web-mode-change-end)
     ))
