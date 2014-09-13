@@ -543,7 +543,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   :group 'web-mode-faces)
 
 (defface web-mode-current-column-highlight-face
-  '((t :background "#2b2b40"))
+  '((t :background "#292929"))
   "Overlay face for current column."
   :group 'web-mode-faces)
 
@@ -5019,8 +5019,8 @@ the environment as needed for ac-sources, right before they're used.")
       )
     (setq overlay (nth index web-mode-column-overlays))
     (when (null overlay)
-      (message "new overlay(%S)" index)
-      (setq overflay (make-overlay 1 1))
+;;      (message "new overlay(%S)" index)
+      (setq overlay (make-overlay 1 1))
       (overlay-put overlay 'font-lock-face 'web-mode-current-column-highlight-face)
       (setq web-mode-column-overlays (append web-mode-column-overlays (list overlay)))
       ) ;when
@@ -5030,22 +5030,33 @@ the environment as needed for ac-sources, right before they're used.")
   (remove-overlays (point-min) (point-max) 'font-lock-face 'web-mode-current-column-highlight-face))
 
 (defun web-mode-column-show (column line-from line-to)
-  (let ((current line-from) (index 0) overlay)
-    (save-excursion
-      (goto-char (point-min))
-      (when (> line-from 1)
-        (forward-line (1- line-from)))
-      (while (<= current line-to)
-        (move-to-column (1+ column) t)
-        (backward-char)
-        (setq overlay (web-mode-column-overlay-factory index))
-        (move-overlay overlay (point) (1+ (point)))
-        ;;(if (overlayp overlay) (message "good") (message "bad"))
-        (setq current (1+ current))
-        (forward-line)
-        (setq index (1+ index))
-        )
-      )))
+  (let (current index overlay)
+    (when (> line-from line-to)
+      (let (tmp)
+        (setq tmp line-from)
+        (setq line-from line-to)
+        (setq line-to tmp)
+        ))
+    (setq current line-from
+          index 0)
+;;    (message "column(%S) from(%S) to(%S)" column line-from line-to)
+    (web-mode-with-silent-modifications
+      (save-excursion
+        (goto-char (point-min))
+        (when (> line-from 1)
+          (forward-line (1- line-from)))
+        (while (<= current line-to)
+          (move-to-column (1+ column) t)
+          (backward-char)
+          (setq overlay (web-mode-column-overlay-factory index))
+          (move-overlay overlay (point) (1+ (point)))
+          (setq current (1+ current))
+          (forward-line)
+          (setq index (1+ index))
+          )
+        ) ;save-excursion
+      ) ;silent
+    ))
 
 (defun web-mode-highlight-current-element ()
   (let ((ctx (web-mode-element-boundaries)))
@@ -8302,7 +8313,8 @@ Pos should be in a tag."
     (when web-mode-enable-current-element-highlight
       (web-mode-highlight-current-element))
 
-    (when web-mode-enable-current-column-highlight
+    (when (and web-mode-enable-current-column-highlight
+               (not (web-mode-buffer-narrowed-p)))
       (web-mode-column-hide)
       (save-excursion
         (let (pos column line-to line-from)
@@ -8311,9 +8323,10 @@ Pos should be in a tag."
                 column (current-column)
                 line-to (web-mode-line-number))
           (when (and (get-text-property (point) 'tag-beg)
-                     (eq (get-text-property (point) 'tag-type) 'end)
+                     (member (get-text-property (point) 'tag-type) '(start end))
                      (web-mode-tag-match)
                      (setq line-from (web-mode-line-number))
+;;                     (progn (message "cool %S %S" line-from line-to) t)
                      (not (= line-from line-to)))
             (web-mode-column-show column line-from line-to)
             ) ;if
