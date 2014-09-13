@@ -1191,8 +1191,10 @@ Must be used in conjunction with web-mode-enable-block-face."
   (regexp-opt
    '("assets" "autoescape" "block" "blocktrans" "cache" "call" "comment"
      "elif" "else" "elseif" "elsif" "embed" "empty" "filter" "foreach" "for"
-     "ifchanged" "ifequal" "ifnotequal" "if"
-     "macro" "draw" "random" "safe" "sandbox" "spaceless" "verbatim" "with")
+     "ifchanged" "ifequal" "ifnotequal" "if" "with"
+     "macro" "draw" "random" "safe" "sandbox" "spaceless" "verbatim"
+     "form" ;; liquid
+     )
    t))
 
 (defvar web-mode-django-keywords
@@ -1213,7 +1215,7 @@ Must be used in conjunction with web-mode-enable-block-face."
        "use" "url" "var" "verbatim" "widthratio" "with"
 
        "assign" "capture" "endcapture" "case" "layout" "tablerow" "endtablerow" ;;liquid
-       "unless" "endunless" ;; liquid
+       "unless" "endunless" "form" "endform" ;; liquid
 
        ))))
 
