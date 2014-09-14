@@ -595,8 +595,9 @@ Must be used in conjunction with web-mode-enable-block-face."
         'tag-attr nil 'tag-attr-end nil
         'part-side nil 'part-token nil 'part-expr nil
         'block-side nil 'block-token nil 'block-controls nil
-        'block-beg nil 'block-end nil 'face nil
-        'syntax-table)
+        'block-beg nil 'block-end nil ;;'face nil
+        ;;'syntax-table
+        )
   "Text properties used for code regions/tokens and html nodes.")
 
 (defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]-]*\\)"
@@ -4187,7 +4188,7 @@ the environment as needed for ac-sources, right before they're used.")
   "Propertize."
 ;;  (let ((beg web-mode-change-beg)
 ;;        (end web-mode-change-end))
-;;    (message "propertize: beg(%S) end(%S)" web-mode-change-beg web-mode-change-end)
+;;  (message "propertize: beg(%S) end(%S)" web-mode-change-beg web-mode-change-end)
   (unless beg (setq beg web-mode-change-beg))
   (unless end (setq end web-mode-change-end))
   (setq web-mode-change-beg nil
@@ -4212,6 +4213,7 @@ the environment as needed for ac-sources, right before they're used.")
          ;;   (not (string-match-p "\\*/\\|\\?>" chunk))
          ;;   )
            )
+    ;;    (message "invalidate block")
     (web-mode-invalidate-block-region beg end))
 
    ((and web-mode-enable-part-partial-invalidation
@@ -4326,10 +4328,28 @@ the environment as needed for ac-sources, right before they're used.")
                     (point-min))
         reg-end (or (web-mode-next-tag-at-eol-pos reg-end)
                     (point-max)))
-  ;;  (message "invalidate-region: reg-beg(%S) reg-end(%S) : hl-beg(%S) hl-end(%S)" reg-beg reg-end web-mode-highlight-beg web-mode-highlight-end)
+;;  (message "invalidate-region: reg-beg(%S) reg-end(%S)" reg-beg reg-end)
   (web-mode-scan-region reg-beg reg-end))
 
 ;;---- HIGHLIGHTING ------------------------------------------------------------
+
+;;RQ : nous sommes sûrs d'être passés par propertize
+(defun web-mode-font-lock-highlight (limit)
+  "font-lock matcher"
+;;  (message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
+  ;;  (when (or (null web-mode-change-beg) (null web-mode-change-end))
+  ;;    (message "font-lock-highlight: untouched buffer (%S)" this-command))
+  (let ((inhibit-modification-hooks t)
+        (buffer-undo-list t)
+        (region nil))
+    (if (and web-mode-change-beg web-mode-change-end)
+        (setq region (web-mode-propertize))
+      (message "font-lock-highlight: untouched buffer (%S)" this-command)
+      (setq region (web-mode-propertize (point) limit)))
+    (when (and region (car region))
+      (web-mode-highlight-region (car region) (cdr region))
+      ))
+  nil)
 
 (defun web-mode-buffer-highlight ()
   "Scan entine buffer."
@@ -4384,24 +4404,6 @@ the environment as needed for ac-sources, right before they're used.")
              (web-mode-highlight-whitespaces beg end)
              )
            ))))))
-
-;;RQ : nous sommes sûrs d'être passés par propertize
-(defun web-mode-font-lock-highlight (limit)
-  "font-lock matcher"
-  ;;  (message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
-  ;;  (when (or (null web-mode-change-beg) (null web-mode-change-end))
-  ;;    (message "font-lock-highlight: untouched buffer (%S)" this-command))
-  (let ((inhibit-modification-hooks t)
-        (buffer-undo-list t)
-        (region nil))
-    (if (and web-mode-change-beg web-mode-change-end)
-        (setq region (web-mode-propertize))
-      (message "font-lock-highlight: untouched buffer (%S)" this-command)
-      (setq region (web-mode-propertize (point) limit)))
-    (when (and region (car region))
-      (web-mode-highlight-region (car region) (cdr region))
-      ))
-  nil)
 
 (defun web-mode-highlight-blocks (reg-beg reg-end)
   "Highlight blocks."
@@ -5185,6 +5187,39 @@ the environment as needed for ac-sources, right before they're used.")
     (move-to-column (1- column))
     (point)))
 
+(defun web-mode-engine-syntax-check ()
+  (interactive)
+  (let ((proc nil)
+        (errors nil)
+        (file (concat temporary-file-directory "emacs-web-mode-tmp")))
+    (write-region (point-min) (point-max) file)
+    (cond
+     ;;       ((null (buffer-file-name))
+     ;;        )
+     ((string= web-mode-engine "php")
+      (setq proc (start-process "php-proc" nil "php" "-l" file))
+      (set-process-filter proc
+                          (lambda (proc output)
+                            (cond
+                             ((string-match-p "No syntax errors" output)
+                              (message "No syntax errors")
+                              )
+                             (t
+;;                              (setq output (replace-regexp-in-string temporary-file-directory "" output))
+;;                              (message output)
+                              (message "Syntax error")
+                              (setq errors t))
+                             ) ;cond
+;;                            (delete-file file)
+                            ) ;lambda
+                          )
+      ) ;php
+     (t
+      (message "no syntax checker found")
+      ) ;t
+     ) ;cond
+    errors))
+
 (defun web-mode-jshint ()
   "Run JSHint on all the JavaScript parts."
   (interactive)
@@ -5894,7 +5929,7 @@ the environment as needed for ac-sources, right before they're used.")
                        pos)))
           (setq offset (current-column))
           (cond
-           ((string= (buffer-substring-no-properties (point) (+ (point) 2)) "/*")
+           ((member (buffer-substring-no-properties (point) (+ (point) 2)) '("/*" "{*"))
             (cond
              ((eq ?\* first-char)
               (setq offset (1+ offset)))
@@ -6164,14 +6199,6 @@ the environment as needed for ac-sources, right before they're used.")
 
            )) ;end case script block
 
-         ;; ((string= language "css")
-         ;;  (setq offset (web-mode-bracket-indentation pos
-         ;;                                             block-column
-         ;;                                             indent-offset
-         ;;                                             "css"
-         ;;                                             block-beg))
-         ;;  ) ;case style
-
          (t ; case html
 
           (cond
@@ -6211,6 +6238,13 @@ the environment as needed for ac-sources, right before they're used.")
     ;;    (message "offset=%S" offset)
     (when offset
       (let ((diff (- (current-column) (current-indentation))))
+
+        (when (not (= offset (current-indentation)))
+          (setq web-mode-change-beg (line-beginning-position)
+                web-mode-change-end (+ web-mode-change-beg offset)))
+
+        ;;        (message "offset=%S ci=%S" )
+
         (setq offset (max 0 offset))
         (indent-line-to offset)
         (if (> diff 0) (forward-char diff))
@@ -6221,6 +6255,7 @@ the environment as needed for ac-sources, right before they're used.")
           (web-mode-highlight-region (line-beginning-position) (line-end-position)))
 
         ) ;let
+
       ) ;when
 
     ))
