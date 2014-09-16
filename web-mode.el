@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.83
+;; Version: 9.0.84
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.83"
+(defconst web-mode-version "9.0.84"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -84,6 +84,11 @@
 
 (defcustom web-mode-code-indent-offset 2
   "Code (JavaScript, PHP, etc.) indentation level."
+  :type 'integer
+  :group 'web-mode)
+
+(defcustom web-mode-sql-indent-offset 4
+  "Sql (inside strings) indentation level."
   :type 'integer
   :group 'web-mode)
 
@@ -595,8 +600,8 @@ Must be used in conjunction with web-mode-enable-block-face."
         'tag-attr nil 'tag-attr-end nil
         'part-side nil 'part-token nil 'part-expr nil
         'block-side nil 'block-token nil 'block-controls nil
-        'block-beg nil 'block-end nil ;;'face nil
-        ;;'syntax-table
+        'block-beg nil 'block-end nil
+        ;;'face nil 'syntax-table
         )
   "Text properties used for code regions/tokens and html nodes.")
 
@@ -5917,7 +5922,22 @@ the environment as needed for ac-sources, right before they're used.")
           )
 
          ((string= type "string")
-          (setq offset nil)
+          (cond
+           ((and (get-text-property pos 'block-token)
+                 (web-mode-block-token-starts-with "[ \n]*\\(SELECT\\)"))
+            (save-excursion
+              (let (col)
+                (web-mode-block-rsb "SELECT")
+                (setq col (current-column))
+                (goto-char pos)
+                (if (looking-at-p "\\(SELECT\\|FROM\\|LEFT\\|JOIN\\|WHERE\\|GROUP\\|LIMIT\\)")
+                    (setq offset col)
+                  (setq offset (+ col web-mode-sql-indent-offset)))
+                ))
+            )
+           (t
+            (setq offset nil))
+           )
           )
 
          ((string= type "comment")
@@ -5929,7 +5949,7 @@ the environment as needed for ac-sources, right before they're used.")
                        pos)))
           (setq offset (current-column))
           (cond
-           ((member (buffer-substring-no-properties (point) (+ (point) 2)) '("/*" "{*"))
+           ((member (buffer-substring-no-properties (point) (+ (point) 2)) '("/*" "{*" "@*"))
             (cond
              ((eq ?\* first-char)
               (setq offset (1+ offset)))
@@ -6004,11 +6024,11 @@ the environment as needed for ac-sources, right before they're used.")
               ) ;let
             )
            (t
-            (setq offset (web-mode-part-indentation pos
-                                                    block-column
-                                                    indent-offset
-                                                    language
-                                                    block-beg))
+            (setq offset (car (web-mode-part-indentation pos
+                                                         block-column
+                                                         indent-offset
+                                                         language
+                                                         block-beg)))
             )
            ) ;cond
           )
@@ -6182,12 +6202,31 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            ((member language '("javascript"))
-            (setq offset (web-mode-part-indentation pos
-                                                    block-column
-                                                    indent-offset
-                                                    language
-                                                    block-beg))
-            )
+            (if (and nil
+                     (member prev-char '(?\,))
+                     (web-mode-translate-backward pos "\\(var \\|let \\|const \\|{\\)" language block-beg)
+                     (not (member (char-after) '(?\{))))
+                (setq offset (+ (current-column)
+                                (cond
+                                 ((eq (char-after) ?\c) 6)
+                                 (t 4)
+                                 )
+                                ))
+              (setq offset (car (web-mode-part-indentation pos
+                                                           block-column
+                                                           indent-offset
+                                                           language
+                                                           block-beg)))
+
+              )
+
+            ;; (setq offset (car (web-mode-part-indentation pos
+            ;;                                              block-column
+            ;;                                              indent-offset
+            ;;                                              language
+            ;;                                              block-beg)))
+
+            ) ;javascript
 
            (t
             (setq offset (web-mode-bracket-indentation pos
@@ -6655,7 +6694,6 @@ the environment as needed for ac-sources, right before they're used.")
          (gethash ?\[ assoc 0))
       )))
 
-
 (defun web-mode-part-indentation (pos initial-column language-offset language &optional limit)
   "Part indentation"
   (let ((ctx (web-mode-bracket-up pos language limit)) indentation)
@@ -6682,7 +6720,7 @@ the environment as needed for ac-sources, right before they're used.")
 ;;      (message "indentation:%S" indentation)
       )
      )
-    (if (< indentation initial-column) initial-column indentation)
+    (cons (if (< indentation initial-column) initial-column indentation) ctx)
     ))
 
 ;; optim ? qd on passe à -1 remonter directement à la paren ouvrante
@@ -7338,7 +7376,6 @@ the environment as needed for ac-sources, right before they're used.")
             (setq continue nil))
            ) ;cond
           (when continue
-            ;;            (message "child(%S)" (point))
             (setq children (append children (list (point)))))
           ) ;while
         ) ;when
@@ -8226,7 +8263,6 @@ Pos should be in a tag."
                                 (line-end-position))))
     (web-mode-set-engine "php")
     )
-
    ((and (string= web-mode-content-type "javascript")
          (< (point) 16)
          (eq (char-after 1) ?\/)
@@ -8523,6 +8559,16 @@ Pos should be in a tag."
           ) ;let
         ) ;if
       )))
+
+(defun web-mode-block-token-starts-with (regexp &optional pos)
+  "Check if current token starts with regexp"
+  (unless pos (setq pos (point)))
+  (save-excursion
+    (and (goto-char pos)
+         (web-mode-block-token-beginning)
+         (skip-chars-forward "[\"']")
+         (looking-at regexp))
+    ))
 
 (defun web-mode-block-starts-with (regexp &optional pos)
   "Check if current block starts with regexp"
@@ -9223,6 +9269,28 @@ Pos should be in a tag."
 ;;  (message "web-mode-block-beginning-position=%S" pos)
   pos)
 
+(defun web-mode-block-token-beginning-position (&optional pos)
+  (unless pos (setq pos (point)))
+  (cond
+   ((and (get-text-property pos 'block-token)
+         (= pos (point-min)))
+    )
+   ((and (> pos (point-min))
+         (get-text-property pos 'block-token)
+         (not (get-text-property (1- pos) 'block-token)))
+    ;; (setq pos (1- pos))
+    )
+   ((get-text-property pos 'block-token)
+    (setq pos (previous-single-property-change pos 'block-token))
+    (setq pos (if (and pos (> pos (point-min))) pos (point-min)))
+    )
+   (t
+    (setq pos nil))
+   ) ;cond
+  ;;(message "web-mode-block-token-beginning-position=%S" pos)
+  pos)
+
+
 (defun web-mode-block-code-end-position (&optional pos)
   (unless pos (setq pos (point)))
   (setq pos (web-mode-block-end-position pos))
@@ -9511,6 +9579,14 @@ Pos should be in a tag."
   (interactive)
   (let ((pos (point)))
     (setq pos (web-mode-block-beginning-position pos))
+    (when pos (goto-char pos))
+    pos))
+
+(defun web-mode-block-token-beginning ()
+  "Move point to the beginning of the current block token."
+  (interactive)
+  (let ((pos (point)))
+    (setq pos (web-mode-block-token-beginning-position pos))
     (when pos (goto-char pos))
     pos))
 

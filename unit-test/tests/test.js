@@ -10,6 +10,15 @@ if (true) {
   var y;
 }
 
+var x = y,
+cd = 3;
+if (true) {
+  var x = y,
+  cd = 3;
+  export const {x, y} = z,
+  a = 10;
+}
+
 var pathData = this.barData
                    .map(function(d) {
                      return [{x: d.start_time_ms, vol: d.volume},
