@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.84
+;; Version: 9.0.85
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.84"
+(defconst web-mode-version "9.0.85"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -557,6 +557,12 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Comment keywords."
   :group 'web-mode-faces)
 
+(defface web-mode-sql-keyword-face
+  '((t :weight bold :slant italic))
+  "Sql keywords."
+  :group 'web-mode-faces)
+
+
 ;;---- VARS --------------------------------------------------------------------
 
 (defvar font-lock-beg)
@@ -931,6 +937,14 @@ Must be used in conjunction with web-mode-enable-block-face."
    (append
     (cdr (assoc "comment" web-mode-extra-keywords))
     '("FIXME" "TODO" "BUG" "KLUDGE" "WORKAROUND" "OPTIMIZE" "HACK" "REFACTOR" "REVIEW"))))
+
+(defvar web-mode-sql-keywords
+  (regexp-opt
+   (append
+    (cdr (assoc "sql" web-mode-extra-keywords))
+    '("SELECT" "FROM" "WHERE" "GROUP BY" "LIMIT" "HAVING" "JOIN" "LEFT" "INNER"
+      "AND" "OR" "ON"))))
+
 
 (defvar web-mode-python-constants
   (regexp-opt
@@ -4361,7 +4375,8 @@ the environment as needed for ac-sources, right before they're used.")
   (interactive)
   (setq web-mode-change-beg (point-min)
         web-mode-change-end (point-max))
-  (font-lock-fontify-buffer))
+  (web-mode-font-lock-highlight (point-max))
+  )
 
 (defun web-mode-highlight-region (&optional beg end content-type)
   "Highlight region (relying on text-properties setted during the scanning phase)."
@@ -4695,7 +4710,8 @@ the environment as needed for ac-sources, right before they're used.")
                   (progn
 ;;                    (message "%S > %S face(%S)" beg end face)
                     (remove-text-properties beg end '(face nil))
-                    (put-text-property beg end 'font-lock-face face))
+                    (put-text-property beg end 'font-lock-face face)
+                    )
                 (setq continue nil
                       end nil)
                 ) ;if end
@@ -4720,11 +4736,17 @@ the environment as needed for ac-sources, right before they're used.")
                      (member char '(?\" ?\<))
                      (member web-mode-engine '("php" "erb"))
                      (> (- end beg) 4))
-            (web-mode-interpolate-string beg end))
+            (web-mode-interpolate-string beg end)
+            ) ;when
           (when (and web-mode-enable-comment-keywords
                      (eq token-type 'comment)
                      (> (- end beg) 3))
             (web-mode-interpolate-comment beg end t)
+            ) ;when
+          (when (and (eq token-type 'string)
+                     (> (- end beg) 6)
+                     (web-mode-looking-at-p "[ ]*SELECT" (1+ beg)))
+            (web-mode-interpolate-sql beg end)
             ) ;when
           ) ;when beg end
         ) ;while continue
@@ -4998,6 +5020,18 @@ the environment as needed for ac-sources, right before they're used.")
         (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
                                          'font-lock-face
                                          'web-mode-comment-keyword-face)
+        ) ;while
+      )))
+
+(defun web-mode-interpolate-sql (beg end)
+  "Interpolate comment"
+  (save-excursion
+    (let ((regexp (concat "\\<\\(" web-mode-sql-keywords "\\)\\>")))
+      (goto-char beg)
+      (while (re-search-forward regexp end t)
+        (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
+                                         'font-lock-face
+                                         'web-mode-sql-keyword-face)
         ) ;while
       )))
 
@@ -5930,7 +5964,7 @@ the environment as needed for ac-sources, right before they're used.")
                 (web-mode-block-rsb "SELECT")
                 (setq col (current-column))
                 (goto-char pos)
-                (if (looking-at-p "\\(SELECT\\|FROM\\|LEFT\\|JOIN\\|WHERE\\|GROUP\\|LIMIT\\)")
+                (if (looking-at-p "\\(SELECT\\|FROM\\|LEFT\\|JOIN\\|WHERE\\|GROUP\\|LIMIT\\|HAVING\\)")
                     (setq offset col)
                   (setq offset (+ col web-mode-sql-indent-offset)))
                 ))
@@ -7191,7 +7225,9 @@ the environment as needed for ac-sources, right before they're used.")
       (web-mode-element-parent)
       (if (and reg-beg (= reg-beg (region-beginning)))
           (progn
-            (mark-whole-buffer)
+            (push-mark (point))
+            (push-mark (point-max) nil t)
+            (goto-char (point-min))
             (setq web-mode-expand-previous-state "mark-whole"))
         (web-mode-element-select)
         (setq web-mode-expand-previous-state "html-parent"))
