@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.85
+;; Version: 9.0.86
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.85"
+(defconst web-mode-version "9.0.86"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -942,9 +942,10 @@ Must be used in conjunction with web-mode-enable-block-face."
   (regexp-opt
    (append
     (cdr (assoc "sql" web-mode-extra-keywords))
-    '("SELECT" "FROM" "WHERE" "GROUP BY" "LIMIT" "HAVING" "JOIN" "LEFT" "INNER"
+    '("SELECT" "INSERT" "UPDATE" "DELETE"
+      "FROM" "WHERE" "GROUP BY" "LIMIT" "HAVING" "JOIN" "LEFT" "INNER"
+      "FULL" "OUTER" "VALUES"
       "AND" "OR" "ON"))))
-
 
 (defvar web-mode-python-constants
   (regexp-opt
@@ -4745,7 +4746,7 @@ the environment as needed for ac-sources, right before they're used.")
             ) ;when
           (when (and (eq token-type 'string)
                      (> (- end beg) 6)
-                     (web-mode-looking-at-p "[ ]*SELECT" (1+ beg)))
+                     (web-mode-looking-at-p "[ \n]*\\(SELECT\\|INSERT\\|UPDATE\\|DELETE\\)" (1+ beg)))
             (web-mode-interpolate-sql beg end)
             ) ;when
           ) ;when beg end
@@ -5958,13 +5959,15 @@ the environment as needed for ac-sources, right before they're used.")
          ((string= type "string")
           (cond
            ((and (get-text-property pos 'block-token)
-                 (web-mode-block-token-starts-with "[ \n]*\\(SELECT\\)"))
+                 (web-mode-block-token-starts-with "[ \n]*\\(SELECT\\|INSERT\\|UPDATE\\|DELETE\\)"))
             (save-excursion
               (let (col)
-                (web-mode-block-rsb "SELECT")
+;;                (web-mode-block-rsb "SELECT")
+                (web-mode-block-token-beginning)
+                (skip-chars-forward "[ \"'\n]")
                 (setq col (current-column))
                 (goto-char pos)
-                (if (looking-at-p "\\(SELECT\\|FROM\\|LEFT\\|JOIN\\|WHERE\\|GROUP\\|LIMIT\\|HAVING\\)")
+                (if (looking-at-p "\\(SELECT\\|INSERT\\|DELETE\\|UPDATE\\|FROM\\|LEFT\\|JOIN\\|WHERE\\|GROUP\\|LIMIT\\|HAVING\\)")
                     (setq offset col)
                   (setq offset (+ col web-mode-sql-indent-offset)))
                 ))
