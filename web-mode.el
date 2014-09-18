@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.86
+;; Version: 9.0.87
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.86"
+(defconst web-mode-version "9.0.87"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -937,6 +937,10 @@ Must be used in conjunction with web-mode-enable-block-face."
    (append
     (cdr (assoc "comment" web-mode-extra-keywords))
     '("FIXME" "TODO" "BUG" "KLUDGE" "WORKAROUND" "OPTIMIZE" "HACK" "REFACTOR" "REVIEW"))))
+
+(defvar web-mode-sql-queries
+  (regexp-opt
+   '("SELECT" "INSERT" "UPDATE" "DELETE")))
 
 (defvar web-mode-sql-keywords
   (regexp-opt
@@ -4746,7 +4750,7 @@ the environment as needed for ac-sources, right before they're used.")
             ) ;when
           (when (and (eq token-type 'string)
                      (> (- end beg) 6)
-                     (web-mode-looking-at-p "[ \n]*\\(SELECT\\|INSERT\\|UPDATE\\|DELETE\\)" (1+ beg)))
+                     (web-mode-looking-at-p (concat "[ \n]*" web-mode-sql-queries) (1+ beg)))
             (web-mode-interpolate-sql beg end)
             ) ;when
           ) ;when beg end
@@ -5959,7 +5963,7 @@ the environment as needed for ac-sources, right before they're used.")
          ((string= type "string")
           (cond
            ((and (get-text-property pos 'block-token)
-                 (web-mode-block-token-starts-with "[ \n]*\\(SELECT\\|INSERT\\|UPDATE\\|DELETE\\)"))
+                 (web-mode-block-token-starts-with (concat "[ \n]*" web-mode-sql-queries)))
             (save-excursion
               (let (col)
 ;;                (web-mode-block-rsb "SELECT")
