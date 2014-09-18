@@ -7,5 +7,21 @@
                 products
             WHERE
                 id > 1";
+
+  $query = "SELECT
+                products.id,
+                name
+            FROM
+                products
+            LEFT JOIN(
+            SELECT
+                id
+            FROM
+                persons
+            ) ON persons.id = personId
+            WHERE
+                persons.id > 12
+"
+
   ?>
 </div>
