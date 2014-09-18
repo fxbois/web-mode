@@ -948,7 +948,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (cdr (assoc "sql" web-mode-extra-keywords))
     '("SELECT" "INSERT" "UPDATE" "DELETE"
       "FROM" "WHERE" "GROUP BY" "LIMIT" "HAVING" "JOIN" "LEFT" "INNER"
-      "FULL" "OUTER" "VALUES"
+      "FULL" "OUTER" "VALUES" "ORDER BY" "SEPARATOR" "ASC" "DESC"
       "AND" "OR" "ON"))))
 
 (defvar web-mode-python-constants
