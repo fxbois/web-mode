@@ -1193,7 +1193,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      "elif" "else" "elseif" "elsif" "embed" "empty" "filter" "foreach" "for"
      "ifchanged" "ifequal" "ifnotequal" "if" "with"
      "macro" "draw" "random" "safe" "sandbox" "spaceless" "verbatim"
-     "form" ;; liquid
+     "form" "unless" "capture" ;; liquid
      )
    t))
 
