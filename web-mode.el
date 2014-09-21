@@ -2411,7 +2411,7 @@ the environment as needed for ac-sources, right before they're used.")
           (cond
 
            ((listp closing-string)
-;;            (message "point=%S sub2=%s reg-end=%S engine=%S" (point) sub2 reg-end web-mode-engine)
+            ;;(message "point=%S sub2=%s reg-end=%S engine=%S" (point) sub2 reg-end web-mode-engine)
             (if (web-mode-rsf-balanced (car closing-string) (cdr closing-string) reg-end t)
                 (progn
 ;;                  (message "found %S" (point))
@@ -2419,7 +2419,9 @@ the environment as needed for ac-sources, right before they're used.")
                         pos (point)))
               (when (and (string= web-mode-engine "php")
                          (string= "<?" sub2)
-                         (save-excursion (not (re-search-forward "?>" reg-end t))))
+;;                         (progn (message "ici%S" closing-string))
+;;                         (save-excursion (not (re-search-forward "?>" reg-end t)))
+                         )
 ;;                (message "not found pos=%S %S" (point) (text-property-any (1+ open) (point) 'block-beg 0))
                 (setq close (point-max) ;;(if (looking-at-p "[ \t\n]*<") (line-end-position) (point-max))
                       delim-close nil
@@ -5927,7 +5929,6 @@ the environment as needed for ac-sources, right before they're used.")
       ctx
       )))
 
-;; TODO : detect if font-lock is desabled : in that case, call web-mode-propertize
 (defun web-mode-indent-line ()
   "Indent current line according to language."
 
@@ -8340,7 +8341,6 @@ Pos should be in a tag."
 
     ;;-- auto-pairing
     (when (and web-mode-enable-auto-pairing
-               ;;(not auto-opened)
                (not auto-closed)
                (not (get-text-property end 'part-side)))
       (let ((i 0) expr p after pos-end (l (length web-mode-auto-pairs)))
