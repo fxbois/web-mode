@@ -20,8 +20,7 @@
                 persons
             ) ON persons.id = personId
             WHERE
-                persons.id > 12
-"
+                persons.id > 12";
 
   ?>
 </div>
