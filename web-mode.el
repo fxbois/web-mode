@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.89
+;; Version: 9.0.90
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.89"
+(defconst web-mode-version "9.0.90"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1904,7 +1904,6 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-expand-previous-state)
   (make-local-variable 'web-mode-hl-line-mode-flag)
   (make-local-variable 'web-mode-indent-style)
-;;  (make-local-variable 'web-mode-is-narrowed)
   (make-local-variable 'web-mode-is-scratch)
   (make-local-variable 'web-mode-jshint-errors)
   (make-local-variable 'web-mode-start-tag-overlay)
@@ -1970,12 +1969,6 @@ the environment as needed for ac-sources, right before they're used.")
 
 ;;---- DEFUNS ------------------------------------------------------------------
 
-(defun web-mode-buffer-scan ()
-  "Scan entine buffer."
-  (interactive)
-  (web-mode-scan-region (point-min) (point-max))
-  )
-
 (defun web-mode-scan-region (beg end &optional content-type)
   "Identify nodes/parts/blocks and syntactic symbols (strings/comments)."
 ;;  (message "scan-region: beg(%d) end(%d) content-type(%S)" beg end content-type)
@@ -1985,7 +1978,6 @@ the environment as needed for ac-sources, right before they're used.")
        (save-match-data
          (let ((inhibit-point-motion-hooks t)
                (inhibit-quit t))
-;;           (setq beg (if web-mode-is-narrowed 1 beg))
            (remove-text-properties beg end web-mode-scan-properties)
 ;;           (remove-text-properties beg end '(face nil))
            (cond
@@ -3476,6 +3468,7 @@ the environment as needed for ac-sources, right before they're used.")
           ) ;script
          )
 
+;;        (message "ect=%S" element-content-type)
 ;;        (message "%S %S %S %S" tname (point) part-close-tag reg-end)
 
         (add-text-properties tbeg tend props)
@@ -3487,7 +3480,9 @@ the environment as needed for ac-sources, right before they're used.")
                    (setq part-beg tend)
                    (setq part-end (match-beginning 0))
                    (> part-end part-beg))
-          (put-text-property part-beg part-end 'part-side (intern element-content-type web-mode-obarray))
+          (put-text-property part-beg part-end 'part-side
+                             (intern element-content-type web-mode-obarray))
+          (setq tend part-end)
           )
 
         (goto-char tend)
@@ -3903,6 +3898,7 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;while
 
       (when (string= content-type "jsx")
+;;        (message "scan-literals")
         (web-mode-scan-literals reg-beg reg-end))
 
       )))
@@ -4380,6 +4376,11 @@ the environment as needed for ac-sources, right before they're used.")
                     (point-max)))
 ;;  (message "invalidate-region: reg-beg(%S) reg-end(%S)" reg-beg reg-end)
   (web-mode-scan-region reg-beg reg-end))
+
+(defun web-mode-buffer-scan ()
+  "Scan entine buffer."
+  (interactive)
+  (web-mode-scan-region (point-min) (point-max)))
 
 ;;---- HIGHLIGHTING ------------------------------------------------------------
 
@@ -8336,8 +8337,8 @@ Pos should be in a tag."
     (web-mode-set-engine "php")
     )
    ((and (string= web-mode-content-type "javascript")
-         (< (point) 16)
-         (eq (char-after 1) ?\/)
+         (< (point) 64)
+         (eq (char-after (point-min)) ?\/)
          (string-match-p "@jsx" (buffer-substring-no-properties
                                  (line-beginning-position)
                                  (line-end-position))))
@@ -8415,7 +8416,8 @@ Pos should be in a tag."
     (cond
      ((<= (point) 3)
       )
-     ((member this-command '(self-insert-command))
+     ((and (member this-command '(self-insert-command))
+           (not (get-text-property (point) 'part-side)))
       (setq ctx (web-mode-complete))
       )
      ((and web-mode-enable-auto-opening
@@ -10274,7 +10276,7 @@ Pos should be in a tag."
                (string-match-p "@jsx"
                                 (buffer-substring-no-properties
                                  (point-min)
-                                 (if (< (point-max) 16) (point-max) 16)
+                                 (if (< (point-max) 64) (point-max) 64)
                                  )))
       (setq web-mode-content-type "jsx"))
     (web-mode-on-engine-setted)
