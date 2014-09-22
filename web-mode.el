@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.88
+;; Version: 9.0.89
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.88"
+(defconst web-mode-version "9.0.89"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4027,7 +4027,7 @@ the environment as needed for ac-sources, right before they're used.")
         (setq beg (match-beginning 0)
               end nil)
 
-        (when (web-mode-dom-rsf ">[ \t\n]*\\([;,)]\\)" reg-end)
+        (when (web-mode-dom-rsf ">[ \t\n]*\\([;,)]\\|\\'\\)" reg-end)
           (setq end (match-beginning 1))
           )
 
