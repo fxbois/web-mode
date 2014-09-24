@@ -1,0 +1,14 @@
+<div>
+  <style>
+   h1 { width:100%; }
+  </style>
+  <script type="text/jsx">
+   function() {
+     return(
+       <span>
+         <p>ici</p>
+       </span>
+     );
+   }
+  </script>
+</div>

@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.90
+;; Version: 9.0.91
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.90"
+(defconst web-mode-version "9.0.91"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2403,25 +2403,24 @@ the environment as needed for ac-sources, right before they're used.")
           (cond
 
            ((listp closing-string)
-            ;;(message "point=%S sub2=%s reg-end=%S engine=%S" (point) sub2 reg-end web-mode-engine)
-            (if (web-mode-rsf-balanced (car closing-string) (cdr closing-string) reg-end t)
-                (progn
-;;                  (message "found %S" (point))
-                  (setq close (match-end 0)
-                        pos (point)))
-              (when (and (string= web-mode-engine "php")
-                         (string= "<?" sub2)
-;;                         (progn (message "ici%S" closing-string))
-;;                         (save-excursion (not (re-search-forward "?>" reg-end t)))
-                         )
-;;                (message "not found pos=%S %S" (point) (text-property-any (1+ open) (point) 'block-beg 0))
-                (setq close (point-max) ;;(if (looking-at-p "[ \t\n]*<") (line-end-position) (point-max))
+            (cond
+             ((web-mode-rsf-balanced (car closing-string) (cdr closing-string) reg-end t)
+              (setq close (match-end 0)
+                    pos (point))
+              )
+             ((and (string= web-mode-engine "php")
+                   (string= "<?" sub2))
+              (if (text-property-not-all (+ open 2) (point-max) 'tag-beg nil)
+                  (setq close (line-end-position)
+                        delim-close nil
+                        pos (line-end-position))
+                (setq close (point-max)
                       delim-close nil
                       pos (point-max))
-;;                (message "close=%S" close)
-                ) ;when
-              ) ;if
-            )
+                ) ;if
+              ) ;case
+             ) ;cond
+            ) ;case listp
 
            ((and (string= web-mode-engine "smarty")
                  (string= closing-string (web-mode-engine-delimiter-close web-mode-engine "}")))
@@ -4046,6 +4045,7 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;while
       )))
 
+;;TODO remove
 (defun web-mode-scan-literal2 (reg-end)
   "web-mode-scan-literal"
   (let (beg end)
@@ -4057,12 +4057,6 @@ the environment as needed for ac-sources, right before they're used.")
         (skip-chars-forward " \t\n")
         (setq end (point))
         )
-      ;; (when (looking-at "[ \t\n]")
-      ;;   (skip-chars-forward " \t\n")
-      ;;   (if (looking-at-p "[),;]")
-      ;;       (setq end nil)
-      ;;     (setq end (point)))
-      ;;   )
       )
      ((eq (char-after) ?\{)
       (when (web-mode-closing-paren reg-end)
