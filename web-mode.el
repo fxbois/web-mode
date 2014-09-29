@@ -604,7 +604,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-scan-properties
   (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil
         'tag-attr nil 'tag-attr-end nil
-        'part-side nil 'part-token nil 'part-expr nil
+        'part-side nil 'part-token nil 'part-element nil 'part-expr nil
         'block-side nil 'block-token nil 'block-controls nil
         'block-beg nil 'block-end nil
         ;;'face nil
@@ -3769,8 +3769,8 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-part-scan (reg-beg reg-end &optional content-type)
   "Scan client part (e.g. javascript, json, css)."
   (save-excursion
-;;    (message "part-scan: reg-beg=%S reg-end=%S" reg-beg reg-end)
-    (let (token-re ch-before ch-at ch-next token-type start continue)
+
+    (let (token-re ch-before ch-at ch-next token-type beg end continue)
       (cond
        (content-type
         )
@@ -3781,32 +3781,39 @@ the environment as needed for ac-sources, right before they're used.")
        ) ;cond
       (goto-char reg-beg)
 
-      (when (string= content-type "jsx")
+      ;;(message "part-scan: reg-beg(%S) reg-end(%S) content-type(%S)" reg-beg reg-end content-type)
+
+;;      (when (string= content-type "jsx")
 ;;        (message "scan-literals")
-        (web-mode-scan-literals reg-beg reg-end)
-        )
+;;        (web-mode-scan-literals reg-beg reg-end)
+;;        )
 
       (cond
-       ((string= content-type "javascript")
+       ((member content-type '("javascript" "json"))
         (setq token-re "//\\|/\\*\\|\"\\|'"))
-       ((member content-type '("json" "jsx"))
-        (setq token-re "//\\|/\\*\\|\"\\|'"))
+       ((member content-type '("jsx"))
+        (setq token-re "//\\|/\\*\\|\"\\|'\\|</?[[:alpha:]]"))
        ((string= content-type "css")
         (setq token-re "/\\*\\|\"\\|'"))
        (t
         (setq token-re "/\\*\\|\"\\|'"))
        )
+      ;;(message "%S" token-re)
       (while (and token-re (web-mode-dom-rsf token-re reg-end t))
-        (setq start (match-beginning 0)
+        (setq beg (match-beginning 0)
+              end nil
               token-type nil
-              continue t)
-        (setq ch-at (char-after start))
-        (setq ch-next (or (char-after (1+ start)) ?\d))
-        (setq ch-before (or (char-before start) ?\d))
-;;        (message "beg=%S : before(%c) at(%c) next(%c)" start ch-before ch-at ch-next)
+              continue t
+              ch-at (char-after beg)
+              ch-next (or (char-after (1+ beg)) ?\d)
+              ch-before (or (char-before beg) ?\d))
+        ;;(message "beg=%S : before(%c) at(%c) next(%c)" beg ch-before ch-at ch-next)
         (cond
-         ((get-text-property start 'part-expr)
-          (setq start nil))
+         ;;((and (get-text-property beg 'part-expr) (string= content-type "jsx"))
+         ;; (setq beg nil))
+         ;;((and (eq (get-text-property beg 'part-token) 'html)
+         ;;      (string= content-type "jsx"))
+         ;; (setq beg nil))
          ((eq ?\' ch-at)
           (while (and continue (search-forward "'" reg-end t))
             (cond
@@ -3845,7 +3852,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((string= content-type "json")
             (if (looking-at-p "[ ]*:")
                 (cond
-                 ((eq ?\@ (char-after (1+ start)))
+                 ((eq ?\@ (char-after (1+ beg)))
                   (setq token-type 'context))
                  (t
                   (setq token-type 'key))
@@ -3863,6 +3870,15 @@ the environment as needed for ac-sources, right before they're used.")
              ) ;cond
             ) ;t
            ) ;cond
+          )
+
+         ((eq ?\< ch-at)
+          (when (web-mode-dom-rsf ">[ \t\n]*\\([;,)]\\|\\'\\)" reg-end)
+            (setq end (match-beginning 1))
+            (put-text-property beg end 'part-element t)
+            (web-mode-scan-elements beg end)
+            (web-mode-scan-expr-literal beg end)
+            ) ;when
           )
 
          ((eq ?\/ ch-next)
@@ -3897,18 +3913,48 @@ the environment as needed for ac-sources, right before they're used.")
 
          ) ;cond
 
-        (when (and start (>= reg-end (point)) token-type)
-;;          (message "%S %S %S" start (point) token-type)
-          (put-text-property start (point) 'part-token token-type)
+        (when (and beg (>= reg-end (point)) token-type)
+;;          (message "%S %S %S" beg (point) token-type)
+          (put-text-property beg (point) 'part-token token-type)
           (when (eq token-type 'comment)
-            (put-text-property start (1+ start) 'syntax-table (string-to-syntax "<"))
+            (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
             (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">"))
             )
           )
 
         ) ;while
 
+      )))
 
+
+(defun web-mode-scan-expr-literal (reg-beg reg-end)
+  "web-mode-scan-expr-literal"
+  (let ((continue t) beg end)
+    (save-excursion
+      (goto-char reg-beg)
+;;      (message "reg-beg=%S reg-end=%S" reg-beg reg-end)
+      (while (and continue (search-forward "{" reg-end t))
+;;        (message "pt=%S" (point))
+        (backward-char)
+        (setq beg (point)
+              end (web-mode-closing-paren reg-end)
+;;              end (search-forward "}" reg-end t)
+              )
+;;        (message "beg(%S) end(%S)" beg end)
+        (if (not end)
+            (setq continue nil)
+          ;;          (web-mode-part-scan beg end)
+          (setq end (1+ end))
+          ;;(remove-text-properties (1+ beg) (1- end) '(part-token nil))
+
+          ;; KEEPME: garder { et } en part-token est util pour l'indentation
+          (put-text-property (1+ beg) (1- end) 'part-token nil)
+;;          (put-text-property (1+ beg) (1- end) 'face nil)
+          (put-text-property beg end 'part-expr t)
+;;          (message "beg(%S) end(%S)" (1+ beg) (1- end))
+          (web-mode-part-scan (1+ beg) (1- end) "javascript")
+          )
+        )
       )))
 
 ;; css rule = selector(s) + declaration (properties)
@@ -4010,78 +4056,6 @@ the environment as needed for ac-sources, right before they're used.")
       (when (eq (char-after beg) ?\n)
         (setq beg (1+ beg)))
       (cons beg end)
-      )))
-
-(defun web-mode-scan-literals (reg-beg reg-end)
-  "jsx web-mode-scan-literals"
-  (let (continue match-beg match-end pair beg end)
-    (save-excursion
-      (goto-char reg-beg)
-;;      (message "reg-beg(%S) reg-end(%S)" reg-beg reg-end)
-      (while (and (< (point) reg-end) (web-mode-dom-rsf "</?[[:alnum:]]" reg-end))
-
-        ;; (setq match-beg (match-beginning 0)
-        ;;       match-end (match-end 0))
-        ;; (goto-char match-beg)
-        ;; (setq beg nil
-        ;;       end nil
-        ;;       continue t
-        ;;       )
-
-        (setq beg (match-beginning 0)
-              end nil)
-
-        (when (web-mode-dom-rsf ">[ \t\n]*\\([;,)]\\|\\'\\)" reg-end)
-          (setq end (match-beginning 1))
-          )
-
-;;         (while continue
-;;           (if (setq pair (web-mode-scan-literal reg-end))
-;;               (setq beg (or beg (car pair))
-;;                     end (cdr pair))
-;;             (setq continue nil))
-;; ;;          (message "pair=%S" pair)
-;;           ) ;while continue
-
-;;        (when (= (point) match-beg)
-;;          (goto-char match-end))
-
-        (when (and beg end)
-          (put-text-property beg end 'part-token 'html)
-          (web-mode-scan-elements beg end)
-          (web-mode-scan-expr-literal beg end)
-          ) ;when
-        ) ;while
-      )))
-
-(defun web-mode-scan-expr-literal (reg-beg reg-end)
-  "web-mode-scan-expr-literal"
-  (let ((continue t) beg end)
-    (save-excursion
-      (goto-char reg-beg)
-;;      (message "reg-beg=%S reg-end=%S" reg-beg reg-end)
-      (while (and continue (search-forward "{" reg-end t))
-;;        (message "pt=%S" (point))
-        (backward-char)
-        (setq beg (point)
-              end (web-mode-closing-paren reg-end)
-;;              end (search-forward "}" reg-end t)
-              )
-;;        (message "beg(%S) end(%S)" beg end)
-        (if (not end)
-            (setq continue nil)
-          ;;          (web-mode-part-scan beg end)
-          (setq end (1+ end))
-          ;;(remove-text-properties (1+ beg) (1- end) '(part-token nil))
-
-          ;; KEEPME: garder { et } en part-token est util pour l'indentation
-          (put-text-property (1+ beg) (1- end) 'part-token nil)
-;;          (put-text-property (1+ beg) (1- end) 'face nil)
-          (put-text-property beg end 'part-expr t)
-;;          (message "beg(%S) end(%S)" (1+ beg) (1- end))
-          (web-mode-part-scan (1+ beg) (1- end) "javascript")
-          )
-        )
       )))
 
 ;;TODO remove
@@ -4427,24 +4401,29 @@ the environment as needed for ac-sources, right before they're used.")
          (let ((inhibit-modification-hooks t)
                (inhibit-point-motion-hooks t)
                (inhibit-quit t))
-;;           (setq beg (if web-mode-is-narrowed 1 beg))
+           ;;           (setq beg (if web-mode-is-narrowed 1 beg))
            (remove-text-properties beg end '(font-lock-face nil))
            (cond
             ((and (get-text-property beg 'block-side)
                   (not (get-text-property beg 'block-beg)));;(= web-mode-change-flags 1)
              (web-mode-block-highlight beg end)
              )
-            ((get-text-property beg 'part-side)
+            ((or (member web-mode-content-type '("javascript" "json" "jsx" "css"))
+                 (member content-type '("javascript" "json" "jsx" "css"))
+                 (get-text-property beg 'part-side)
+                 ;;(member (get-text-property beg 'part-side) '(jsx))
+                 )
              (web-mode-part-highlight beg end)
+             ;;             (when (or (member web-mode-content-type '("jsx"))
+             ;;                       (member (get-text-property beg 'part-side) '(jsx)))
+             ;;               (web-mode-highlight-tags beg end)
+             ;;               )
              (web-mode-highlight-blocks beg end)
              )
-            ((or (member web-mode-content-type '("javascript" "json" "jsx" "css"))
-                 (member content-type '("javascript" "css")))
-             (web-mode-part-highlight beg end)
-             (when (member web-mode-content-type '("jsx"))
-               (web-mode-highlight-tags beg end)
-               )
-             (web-mode-highlight-blocks beg end))
+            ;; ((get-text-property beg 'part-side)
+            ;;  (web-mode-part-highlight beg end)
+            ;;  (web-mode-highlight-blocks beg end)
+            ;;  )
             ((string= web-mode-engine "none")
              (web-mode-highlight-tags beg end)
              (web-mode-highlight-parts beg end)
@@ -4480,6 +4459,7 @@ the environment as needed for ac-sources, right before they're used.")
       (web-mode-tag-highlight)
       (when (or (not (web-mode-tag-next))
                 (>= (point) reg-end))
+        ;;        (message "stop %S" (point))
         (setq continue nil))
       ) ;while
     (when web-mode-enable-inlays
@@ -4511,7 +4491,7 @@ the environment as needed for ac-sources, right before they're used.")
   "web-mode-highlight-nodes"
   (unless beg (setq beg (point)))
   (unless end (setq end (1+ (web-mode-tag-end-position beg))))
-;;  (message "%S %S" beg end)
+;;  (message "tag-highlight: %S %S" beg end)
   (let (name type face flags slash-beg slash-end bracket-end)
 
     (setq flags (get-text-property beg 'tag-beg)
@@ -4599,7 +4579,9 @@ the environment as needed for ac-sources, right before they're used.")
                                        'web-mode-html-attr-equal-face)
                     (put-text-property (+ beg offset 1) (1+ end)
                                        'font-lock-face
-                                       'web-mode-html-attr-value-face)
+                                       (if (get-text-property (+ beg offset 1) 'part-expr)
+                                           nil
+                                         'web-mode-html-attr-value-face))
 ;;                    (message "attr-value=%S %S" (+ beg offset 1) (1+ end))
                     ) ;if offset
                   (setq pos (1+ end))
@@ -4837,6 +4819,10 @@ the environment as needed for ac-sources, right before they're used.")
         )
        )
 
+      (when (string= content-type "jsx")
+        (web-mode-highlight-tags reg-beg reg-end)
+        )
+
       (setq continue t
             end reg-beg)
       (while continue
@@ -4854,7 +4840,7 @@ the environment as needed for ac-sources, right before they're used.")
                           ((eq token-type 'comment) comment-face)
                           ((eq token-type 'context) 'web-mode-json-context-face)
                           ((eq token-type 'key) 'web-mode-json-key-face)
-                          ((eq token-type 'html) nil)
+                          ;;((eq token-type 'html) nil)
                           ;;                          ((eq token-type 'literal-expr) nil)
                           (t nil)))
               (setq end (or (next-single-property-change beg 'part-token) (point-max)))
@@ -4864,14 +4850,12 @@ the environment as needed for ac-sources, right before they're used.")
                    (face
                     (remove-text-properties beg end '(face nil))
                     (put-text-property beg end 'font-lock-face face))
-                   ((eq token-type 'html)
-;;                    (message "html : %S %S" beg end)
-;;                    (remove-text-properties beg end '(face nil))
-                    (web-mode-highlight-tags beg end)
-
-                    ;;TODO : placer le traitement des part expr ici
-
-                    )
+                   ;;((eq token-type 'html)
+                   ;; (message "html : %S %S" beg end)
+;;                 ;;   (remove-text-properties beg end '(face nil))
+                   ;; (web-mode-highlight-tags beg end)
+                   ;; ;;TODO : placer le traitement des part expr ici
+                   ;; )
                    ) ;cond
                 (setq continue nil
                       end nil)
@@ -4894,6 +4878,7 @@ the environment as needed for ac-sources, right before they're used.")
 
       (when (string= content-type "jsx")
         (goto-char reg-beg)
+        ;;(web-mode-highlight-tags reg-beg reg-end)
         (setq continue t
               end reg-beg)
         (while continue
@@ -4906,7 +4891,7 @@ the environment as needed for ac-sources, right before they're used.")
 ;;                (message "bounds %S %S"  beg end)
                 (if (and end (< end reg-end))
                     (progn
-                      (remove-text-properties beg end '(face nil))
+;;                      (remove-text-properties beg end '(face nil))
                       (put-text-property beg (1+ beg) 'font-lock-face 'web-mode-block-delimiter-face)
                       (put-text-property (1- end) end 'font-lock-face 'web-mode-block-delimiter-face)
                       (web-mode-fontify-region (1+ beg) (1- end) web-mode-javascript-font-lock-keywords)
@@ -6220,7 +6205,7 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            ((and (member prev-char '(?\? ?\:))
-                 (not (eq (get-text-property pos 'part-token) 'html))
+                 (not (get-text-property pos 'part-element))
                  (not (string-match-p "^\\(case\\|default\\)[ :]" prev-line)))
 ;;            (message "ici")
             (web-mode-sb "?" block-beg)
@@ -6234,7 +6219,7 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            ((and (member prev-char '(?\. ?\+ ?\? ?\:))
-                 (not (eq (get-text-property pos 'part-token) 'html))
+                 (not (get-text-property pos 'part-element))
                  (not (string-match-p "^\\(case\\|default\\)[ :]" prev-line)))
 ;;            (message "coucou")
             (web-mode-rsb "=\\|(" block-beg)
@@ -6273,9 +6258,9 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            ((and (string= language "jsx")
-                 (eq (get-text-property pos 'part-token) 'html)
-                 (and prev-props (eq (plist-get prev-props 'part-token) 'html))
-;;                 (eq (get-text-property (1- pos) 'part-token) 'html)
+                 (get-text-property pos 'part-element)
+                 (and prev-props (plist-get prev-props 'part-element))
+                 ;;(eq (get-text-property (1- pos) 'part-token) 'html)
                  )
 ;;            (message "jsx %S" prev-props)
             (setq offset (web-mode-markup-indentation pos))
@@ -10413,6 +10398,47 @@ Pos should be in a tag."
 ;;- tester shortcut A -> pour pomme
 
 
+;; (defun web-mode-scan-literals (reg-beg reg-end)
+;;   "jsx web-mode-scan-literals"
+;;   (let (continue match-beg match-end pair beg end)
+;;     (save-excursion
+;;       (goto-char reg-beg)
+;; ;;      (message "reg-beg(%S) reg-end(%S)" reg-beg reg-end)
+;;       (while (and (< (point) reg-end) (web-mode-dom-rsf "</?[[:alnum:]]" reg-end))
+
+;;         ;; (setq match-beg (match-beginning 0)
+;;         ;;       match-end (match-end 0))
+;;         ;; (goto-char match-beg)
+;;         ;; (setq beg nil
+;;         ;;       end nil
+;;         ;;       continue t
+;;         ;;       )
+
+;;         (setq beg (match-beginning 0)
+;;               end nil)
+
+;;         (when (web-mode-dom-rsf ">[ \t\n]*\\([;,)]\\|\\'\\)" reg-end)
+;;           (setq end (match-beginning 1))
+;;           )
+
+;; ;;         (while continue
+;; ;;           (if (setq pair (web-mode-scan-literal reg-end))
+;; ;;               (setq beg (or beg (car pair))
+;; ;;                     end (cdr pair))
+;; ;;             (setq continue nil))
+;; ;; ;;          (message "pair=%S" pair)
+;; ;;           ) ;while continue
+
+;; ;;        (when (= (point) match-beg)
+;; ;;          (goto-char match-end))
+
+;;         (when (and beg end)
+;;           (put-text-property beg end 'part-token 'html)
+;;           (web-mode-scan-elements beg end)
+;;           (web-mode-scan-expr-literal beg end)
+;;           ) ;when
+;;         ) ;while
+;;       )))
 
 ;; ((and block-side
 ;;       (string= web-mode-engine "django")
