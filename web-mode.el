@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.93
+;; Version: 9.0.95
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.93"
+(defconst web-mode-version "9.0.95"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3873,8 +3873,12 @@ the environment as needed for ac-sources, right before they're used.")
           )
 
          ((eq ?\< ch-at)
-          (when (web-mode-dom-rsf ">[ \t\n]*\\([;,)]\\|\\'\\)" reg-end)
-            (setq end (match-beginning 1))
+          ;;(when (web-mode-dom-rsf ">[ \t\n]*\\([;,)]\\|\\'\\)" reg-end)
+          (when (web-mode-jsx-skip-forward reg-end)
+            ;;(message "skip (%S)" (point))
+            ;;(setq end (match-beginning 1))
+            ;;(message "end=%S" end)
+            (setq end (point))
             (put-text-property beg end 'part-element t)
             (web-mode-scan-elements beg end)
             (web-mode-scan-expr-literal beg end)
@@ -3926,6 +3930,33 @@ the environment as needed for ac-sources, right before they're used.")
 
       )))
 
+(defun web-mode-jsx-skip-forward (reg-end)
+  "web-mode-jsx-elt-skip-forward"
+  (let ((continue t) (pos nil) (i 0))
+    (save-excursion
+      (while continue
+        (cond
+         ((> (setq i (1+ i)) 100)
+          (message "jsx-skip-forward ** invalid loop **")
+          (setq continue nil))
+         ((not (web-mode-dom-rsf ">\\([ \t\n]*[;,)']\\)\\|{" reg-end))
+          ;;(backward-char)
+          (setq continue nil))
+         ((eq (char-before) ?\{)
+          (backward-char)
+          (if (web-mode-closing-paren reg-end)
+              (forward-char)
+            (setq continue nil))
+          )
+         (t
+          (setq continue nil)
+          (setq pos (match-beginning 1))
+          ) ;t
+         ) ;cond
+        ) ;while
+      ) ;save-excursion
+    (when pos (goto-char pos))
+    pos))
 
 (defun web-mode-scan-expr-literal (reg-beg reg-end)
   "web-mode-scan-expr-literal"
@@ -6259,41 +6290,27 @@ the environment as needed for ac-sources, right before they're used.")
 
            ((and (string= language "jsx")
                  (get-text-property pos 'part-element)
-                 (and prev-props (plist-get prev-props 'part-element))
+                 ;;(get-text-property pos 'tag-type)
+                 (not (and (get-text-property pos 'part-expr)
+                           (get-text-property (1- pos) 'part-expr)))
+                 (and prev-props (plist-get prev-props 'tag-type))
                  ;;(eq (get-text-property (1- pos) 'part-token) 'html)
                  )
-;;            (message "jsx %S" prev-props)
+            ;;(message "jsx %S" prev-props)
             (setq offset (web-mode-markup-indentation pos))
             )
 
-           ((member language '("javascript"))
-            (if (and nil
-                     (member prev-char '(?\,))
-                     (web-mode-translate-backward pos "\\(var \\|let \\|const \\|{\\)" language block-beg)
-                     (not (member (char-after) '(?\{))))
-                (setq offset (+ (current-column)
-                                (cond
-                                 ((eq (char-after) ?\c) 6)
-                                 (t 4)
-                                 )
-                                ))
-              (setq offset (car (web-mode-part-indentation pos
-                                                           block-column
-                                                           indent-offset
-                                                           language
-                                                           block-beg)))
-;;              (message "quiqui")
-              )
-
-            ;; (setq offset (car (web-mode-part-indentation pos
-            ;;                                              block-column
-            ;;                                              indent-offset
-            ;;                                              language
-            ;;                                              block-beg)))
-
+           ((member language '("javascript" "jsx"))
+            (setq offset (car (web-mode-part-indentation pos
+                                                         block-column
+                                                         indent-offset
+                                                         language
+                                                         block-beg)))
             ) ;javascript
 
            (t
+            ;;(message "bracket indent")
+            ;;TODO : prendre l'origine du bracket indent
             (setq offset (web-mode-bracket-indentation pos
                                                        block-column
                                                        indent-offset
