@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.95
+;; Version: 9.0.96
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.95"
+(defconst web-mode-version "9.0.96"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7396,6 +7396,7 @@ the environment as needed for ac-sources, right before they're used.")
   "Fold/Unfold all the children of the current HTML element."
   (interactive)
   (unless pos (setq pos (point)))
+
   (let (child children)
     (save-excursion
       (setq children (reverse (web-mode-element-children pos)))
@@ -7712,6 +7713,7 @@ Pos should be in a tag."
 (defun web-mode-fold-or-unfold (&optional pos)
   "Toggle folding on an HTML element or a control block."
   (interactive)
+  (web-mode-propertize)
   (web-mode-with-silent-modifications
    (save-excursion
      (if pos (goto-char pos))
