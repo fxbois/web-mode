@@ -4790,7 +4790,7 @@ the environment as needed for ac-sources, right before they're used.")
                      (member char '(?\" ?\<))
                      (member web-mode-engine '("php" "erb"))
                      (> (- end beg) 4))
-            (web-mode-interpolate-string beg end)
+            (web-mode-interpolate-block-string beg end)
             ) ;when
           (when (and web-mode-enable-comment-keywords
                      (eq token-type 'comment)
@@ -5051,22 +5051,19 @@ the environment as needed for ac-sources, right before they're used.")
     ))
 
 (defun web-mode-interpolate-javascript-string (beg end)
-  "Scan js string to fontify ${ } blocks"
+  "Scan js string to fontify ${ } vars"
   (save-excursion
-    ;;(message "ici")
     (goto-char (+ 4 beg))
     (setq end (1- end))
     (while (re-search-forward "${.*?}" end t)
-      ;;(remove-text-properties (match-beginning 0) (match-end 0)
-      ;;                        '(font-lock-face nil))
       (put-text-property (match-beginning 0) (match-end 0)
-                         'face
+                         'font-lock-face
                          'web-mode-variable-name-face)
       )
     ))
 
 ;; todo : parsing plus compliqué: {$obj->values[3]->name}
-(defun web-mode-interpolate-string (beg end)
+(defun web-mode-interpolate-block-string (beg end)
   "Interpolate php/erb strings."
   (save-excursion
     (goto-char (1+ beg))
