@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.96
+;; Version: 9.0.97
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.96"
+(defconst web-mode-version "9.0.97"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4880,7 +4880,10 @@ the environment as needed for ac-sources, right before they're used.")
                   (cond
                    (face
                     (remove-text-properties beg end '(face nil))
-                    (put-text-property beg end 'font-lock-face face))
+                    (put-text-property beg end 'font-lock-face face)
+                    (when (string= content-type "javascript")
+                      (web-mode-interpolate-javascript-string beg end))
+                    ) ;face
                    ;;((eq token-type 'html)
                    ;; (message "html : %S %S" beg end)
 ;;                 ;;   (remove-text-properties beg end '(face nil))
@@ -5040,9 +5043,26 @@ the environment as needed for ac-sources, right before they're used.")
   (save-excursion
     (goto-char (+ 4 beg))
     (setq end (1- end))
-    (while (re-search-forward "${.*}" end t)
-      (remove-text-properties (match-beginning 0) (match-end 0) '(font-lock-face nil))
-      (web-mode-fontify-region (match-beginning 0) (match-end 0) web-mode-uel-font-lock-keywords))
+    (while (re-search-forward "${.*?}" end t)
+      (remove-text-properties (match-beginning 0) (match-end 0)
+                              '(font-lock-face nil))
+      (web-mode-fontify-region (match-beginning 0) (match-end 0)
+                               web-mode-uel-font-lock-keywords))
+    ))
+
+(defun web-mode-interpolate-javascript-string (beg end)
+  "Scan js string to fontify ${ } blocks"
+  (save-excursion
+    ;;(message "ici")
+    (goto-char (+ 4 beg))
+    (setq end (1- end))
+    (while (re-search-forward "${.*?}" end t)
+      ;;(remove-text-properties (match-beginning 0) (match-end 0)
+      ;;                        '(font-lock-face nil))
+      (put-text-property (match-beginning 0) (match-end 0)
+                         'face
+                         'web-mode-variable-name-face)
+      )
     ))
 
 ;; todo : parsing plus compliqué: {$obj->values[3]->name}
@@ -10146,6 +10166,13 @@ Pos should be in a tag."
         (message "[%s]" (buffer-string))
         ) ;if
       out)))
+
+;;(defun web-mode-profile ()
+;;  (interactive)
+;;  (profiler-start 'cpu+mem)
+;;  (web-mode-buffer-scan)
+;;  (profiler-report)
+;;  )
 
 ;;---- MISC --------------------------------------------------------------------
 
