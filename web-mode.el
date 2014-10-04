@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.98
+;; Version: 9.0.99
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.98"
+(defconst web-mode-version "9.0.99"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4881,7 +4881,8 @@ the environment as needed for ac-sources, right before they're used.")
                    (face
                     (remove-text-properties beg end '(face nil))
                     (put-text-property beg end 'font-lock-face face)
-                    (when (string= content-type "javascript")
+                    (when (and (string= content-type "javascript")
+                               (>= (- end beg) 6))
                       (web-mode-interpolate-javascript-string beg end))
                     ) ;face
                    ;;((eq token-type 'html)
@@ -5053,7 +5054,7 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-interpolate-javascript-string (beg end)
   "Scan js string to fontify ${ } vars"
   (save-excursion
-    (goto-char (+ 4 beg))
+    (goto-char (1+ beg))
     (setq end (1- end))
     (while (re-search-forward "${.*?}" end t)
       (put-text-property (match-beginning 0) (match-end 0)
