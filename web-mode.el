@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.97
+;; Version: 9.0.98
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.97"
+(defconst web-mode-version "9.0.98"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3372,7 +3372,7 @@ the environment as needed for ac-sources, right before they're used.")
     (> n 0)
     ))
 
-(defvar web-mode-regexp1 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|\?xml\\)")
+(defvar web-mode-regexp1 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
 (defvar web-mode-regexp2 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\)")
 
 (defun web-mode-scan-elements (reg-beg reg-end)
