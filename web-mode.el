@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.99
+;; Version: 9.0.100
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.99"
+(defconst web-mode-version "9.0.100"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -68,12 +68,12 @@
   :group 'web-mode)
 
 (defcustom web-mode-block-padding 0
-  "Multi-line block (PHP, Ruby, Java, etc.) left padding."
+  "Multi-line block (php, ruby, java, python, asp, etc.) left padding."
   :type 'integer
   :group 'web-mode)
 
 (defcustom web-mode-markup-indent-offset 2
-  "HTML indentation level."
+  "Html indentation level."
   :type 'integer
   :group 'web-mode)
 
@@ -83,7 +83,7 @@
   :group 'web-mode)
 
 (defcustom web-mode-code-indent-offset 2
-  "Code (JavaScript, PHP, etc.) indentation level."
+  "Code (javascript, php, etc.) indentation level."
   :type 'integer
   :group 'web-mode)
 
@@ -1397,8 +1397,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-velocity-font-lock-keywords
   (list
-   '("#\\([[:alpha:]_]+\\)\\>"
-     (1 'web-mode-block-control-face))
+   '("#\\([[:alpha:]_]+\\)\\>" (1 'web-mode-block-control-face))
    (cons (concat "[ ]\\(" web-mode-velocity-keywords "\\)[ ]") '(1 'web-mode-keyword-face t t))
    '("#macro([ ]*\\([[:alpha:]]+\\)[ ]+" 1 'web-mode-function-name-face)
    '("[.]\\([[:alnum:]_-]+\\)" 1 'web-mode-variable-name-face)
@@ -1449,6 +1448,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-ctemplate-font-lock-keywords
   (list
    '("{{[#/>][ ]*\\([[:alnum:]_-]+\\)" 1 'web-mode-block-control-face)
+;;   '(" \\([[:alnum:]_]\\)\\(=\\)\"" (1 'web-mode-variable-name-face))
    '("[[:alnum:]_]" 0 'web-mode-variable-name-face)
    '("[ ]+\\([[:alnum:]_]+=\\)" 1 'web-mode-param-name-face t t)
    '("[:=]\\([[:alpha:]_]+\\)" 1 'web-mode-function-call-face t t)
@@ -2671,12 +2671,15 @@ the environment as needed for ac-sources, right before they're used.")
        )
       ) ;django
 
-    ((string= web-mode-engine "ctemplate")
-     (cond
-       ((member sub3 '("{{%" "{{#"))
-        (setq regexp "\"\\|'"))
+     ((string= web-mode-engine "ctemplate")
+      (cond
        ((string= sub3 "{{!")
-        (setq token-type 'comment))
+        (setq token-type 'comment)
+        )
+       ((member sub2 '("{{"))
+        ;;((member sub3 '("{{%" "{{#"))
+        (setq regexp "\"\\|'")
+        )
        )
       ) ;ctemplate
 
@@ -4089,50 +4092,6 @@ the environment as needed for ac-sources, right before they're used.")
       (cons beg end)
       )))
 
-;;TODO remove
-(defun web-mode-scan-literal2 (reg-end)
-  "web-mode-scan-literal"
-  (let (beg end)
-    (setq beg (point))
-    (cond
-     ((looking-at "</?\\([[:alnum:]]+\\(?:[-][[:alpha:]]+\\)?\\)")
-      (when (web-mode-closing-paren reg-end)
-        (forward-char)
-        (skip-chars-forward " \t\n")
-        (setq end (point))
-        )
-      )
-     ((eq (char-after) ?\{)
-      (when (web-mode-closing-paren reg-end)
-        (forward-char)
-        (setq end (point))
-        )
-      )
-     ((looking-at "[ \t\n]")
-      (skip-chars-forward " \t\n")
-      (if (looking-at-p "[),;]")
-          (setq end nil)
-        (setq end (point)))
-      )
-     (t
-      (skip-chars-forward "^<,);") ;;"^<),;")
-      (when (> (point) beg)
-        (setq end (point)))
-      )
-     ) ;cond
-;;    (message "beg=%S end=%S" beg end)
-    (cond
-     ((null end)
-      nil)
-     ((> (point) reg-end)
-      (goto-char reg-end)
-      nil)
-     (t
-;;      (message "literal(%S-%S)=%S" beg end (buffer-substring-no-properties beg end))
-      (cons beg end)
-      )
-     )))
-
 (defun web-mode-velocity-skip-forward (pos)
   "find the end of a velocity block."
   (goto-char pos)
@@ -4881,7 +4840,8 @@ the environment as needed for ac-sources, right before they're used.")
                    (face
                     (remove-text-properties beg end '(face nil))
                     (put-text-property beg end 'font-lock-face face)
-                    (when (and (string= content-type "javascript")
+                    (when (and web-mode-enable-string-interpolation
+                               (string= content-type "javascript")
                                (>= (- end beg) 6))
                       (web-mode-interpolate-javascript-string beg end))
                     ) ;face
@@ -5078,7 +5038,7 @@ the environment as needed for ac-sources, right before they're used.")
                                  web-mode-php-var-interpolation-font-lock-keywords)
         ))
      ((string= web-mode-engine "erb")
-      (while (re-search-forward "#{.*}" end t)
+      (while (re-search-forward "#{.*?}" end t)
         (remove-text-properties (match-beginning 0) (match-end 0) '(font-lock-face nil))
         (put-text-property (match-beginning 0) (match-end 0)
                            'font-lock-face 'web-mode-variable-name-face)
@@ -10847,6 +10807,48 @@ Pos should be in a tag."
 
 ;;       nil)))
 
+;; (defun web-mode-scan-literal2 (reg-end)
+;;   "web-mode-scan-literal"
+;;   (let (beg end)
+;;     (setq beg (point))
+;;     (cond
+;;      ((looking-at "</?\\([[:alnum:]]+\\(?:[-][[:alpha:]]+\\)?\\)")
+;;       (when (web-mode-closing-paren reg-end)
+;;         (forward-char)
+;;         (skip-chars-forward " \t\n")
+;;         (setq end (point))
+;;         )
+;;       )
+;;      ((eq (char-after) ?\{)
+;;       (when (web-mode-closing-paren reg-end)
+;;         (forward-char)
+;;         (setq end (point))
+;;         )
+;;       )
+;;      ((looking-at "[ \t\n]")
+;;       (skip-chars-forward " \t\n")
+;;       (if (looking-at-p "[),;]")
+;;           (setq end nil)
+;;         (setq end (point)))
+;;       )
+;;      (t
+;;       (skip-chars-forward "^<,);") ;;"^<),;")
+;;       (when (> (point) beg)
+;;         (setq end (point)))
+;;       )
+;;      ) ;cond
+;; ;;    (message "beg=%S end=%S" beg end)
+;;     (cond
+;;      ((null end)
+;;       nil)
+;;      ((> (point) reg-end)
+;;       (goto-char reg-end)
+;;       nil)
+;;      (t
+;; ;;      (message "literal(%S-%S)=%S" beg end (buffer-substring-no-properties beg end))
+;;       (cons beg end)
+;;       )
+;;      )))
 
 ;;---- SUPPRESS ----------------------------------------------------------------
 
