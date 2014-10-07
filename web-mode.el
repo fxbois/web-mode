@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.100
+;; Version: 9.0.101
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.100"
+(defconst web-mode-version "9.0.101"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -795,6 +795,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                       ("{{ " " }}")
                       ("{{-" "- " " --}}")))
     ("ctemplate"   . (("{{ " "}}")
+                      ("{{{" "}}}")
+                      ("{~{" "}}")
                       ("{{/" "}}")
                       ("{{#" "}}")))
     ("django"      . (("{{ " " }}")
@@ -879,7 +881,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("blade"            . "{{.\\|^[ \t]*@[[:alpha:]]")
    '("closure"          . "{.\\|/\\*\\| //")
    '("clip"             . "</?c:[[:alpha:]-]+")
-   '("ctemplate"        . "[$]?{{.")
+   '("ctemplate"        . "[$]?{[{~].")
    '("django"           . "{[#{%]")
    '("dust"             . "{.")
    '("erb"              . "<%\\|^%.")
@@ -2140,16 +2142,28 @@ the environment as needed for ac-sources, right before they're used.")
           ) ;mojolicious
 
          ((string= web-mode-engine "ctemplate")
+          ;;(message "ctemplate")
           (cond
-           ((string= tagopen "{{{")
-            (setq closing-string "}}}"
-                  delim-open "{{{"
-                  delim-close "}}}")
+           ((member tagopen '("{{{" "{{~"))
+            (setq closing-string "}~?}}"
+                  delim-open "{{~?{"
+                  delim-close "}~?}}")
+            )
+           ;;((string= tagopen "{{~")
+           ;; (message "ici%S %s" (point) tagopen)
+           ;; (setq closing-string "}[~]?}}?"
+           ;;       delim-open "{{~{"
+           ;;       delim-close "}[~]?}}")
+           ;; )
+           ((string= tagopen "{~{")
+            (setq closing-string "}~?}"
+                  delim-open "{~{"
+                  delim-close "}~?}")
             )
            ((string= sub2 "{{")
-            (setq closing-string "}}"
+            (setq closing-string "}[~]?}"
                   delim-open "{{[>#/%^&]?"
-                  delim-close "}}"))
+                  delim-close "}[~]?}"))
            (t
             (setq closing-string "}}"
                   delim-open "${{"
@@ -2271,14 +2285,14 @@ the environment as needed for ac-sources, right before they're used.")
            )
           ) ;closure
 
-         ((string= web-mode-engine "ctemplate")
-          (cond
-           ((string= tagopen "{{{")
-            (setq closing-string "}}}"))
-           (t
-            (setq closing-string "}}"))
-           )
-          ) ;ctemplate
+         ;; ((string= web-mode-engine "ctemplate")
+         ;;  (cond
+         ;;   ((string= tagopen "{{{")
+         ;;    (setq closing-string "}}}"))
+         ;;   (t
+         ;;    (setq closing-string "}}"))
+         ;;   )
+         ;;  ) ;ctemplate
 
          ((string= web-mode-engine "go")
           (setq closing-string "}}"
@@ -2464,6 +2478,12 @@ the environment as needed for ac-sources, right before they're used.")
            ((string= closing-string "EOV")
             (web-mode-velocity-skip-forward open)
             (setq close (point)
+                  pos (point)))
+
+           ((and (member web-mode-engine '("ctemplate"))
+;;                 (progn (message "ici%S %S" (point) closing-string) t)
+                 (re-search-forward closing-string reg-end t))
+            (setq close (match-end 0)
                   pos (point)))
 
            ((search-forward closing-string reg-end t)
