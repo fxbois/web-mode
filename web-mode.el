@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 9.0.101
+;; Version: 9.0.102
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -36,7 +36,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "9.0.101"
+(defconst web-mode-version "9.0.102"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4288,7 +4288,22 @@ the environment as needed for ac-sources, right before they're used.")
                (>= pos-beg code-beg)
                (<= pos-end code-end)
                (> code-end code-beg))
-          (progn
+          (cond
+           ((member web-mode-engine '("asp"))
+            (goto-char pos-beg)
+            (forward-line -1)
+            (setq beg (line-beginning-position))
+            (when (> code-beg beg)
+              (setq beg code-beg))
+            (goto-char pos-beg)
+            (forward-line)
+            (setq end (line-end-position))
+            (when (< code-end end)
+              (setq end code-end))
+            ;;(message "beg(%S) end(%S)" beg end)
+            (cons beg end)
+            )
+           (t
             (goto-char pos-beg)
             (if (web-mode-block-rsb "[;{}(][ ]*\n" code-beg)
                 (setq beg (match-end 0))
@@ -4299,7 +4314,8 @@ the environment as needed for ac-sources, right before they're used.")
               (setq end code-end))
             (web-mode-block-tokenize beg end)
             (cons beg end)
-            ) ;progn
+            )
+           ) ;cond
         (web-mode-invalidate-region pos-beg pos-end)
         ) ;if
       )))
