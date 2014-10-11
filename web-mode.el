@@ -5366,8 +5366,7 @@ the environment as needed for ac-sources, right before they're used.")
   "web-mode-highlight-elements"
   (save-excursion
     (goto-char beg)
-    (let ((continue (or (get-text-property (point) 'tag-beg)
-                        (web-mode-tag-next)))
+    (let ((continue (or (get-text-property (point) 'tag-beg) (web-mode-tag-next)))
           (i 0) (ctx nil) (face nil))
       (while continue
         (cond
