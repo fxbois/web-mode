@@ -1,0 +1,11 @@
+related issues: #352
+
+<? if($b): ?>
+  <span>
+  </span>
+<? endif; ?>
+
+<? if('a'): ?>
+  <span>
+  </span>
+<? endif; ?>
