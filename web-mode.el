@@ -2976,13 +2976,14 @@ the environment as needed for ac-sources, right before they're used.")
          ((and (progn (skip-chars-forward "[ ]") t)
                (eq (char-after) ?\()
                (web-mode-closing-paren reg-end)
+;;               (progn (message "ixi%S" (point)))
                (looking-at-p ")[ ]*:"))
           (setq controls (append controls (list (cons 'open match))))
           )
          ) ; cond
         ) ;if
       ) ;while
-    ;;    (message "ici=%S" controls)
+    ;;(message "%S-%S %S" reg-beg reg-end controls)
     (when (and controls (> (length controls) 1))
       (setq controls (web-mode-block-controls-reduce controls)))
     controls))
@@ -8802,8 +8803,9 @@ Pos should be in a tag."
            (continue (not (null regexp))))
       (while (and continue (re-search-forward regexp limit t))
         (cond
-         ((or (web-mode-is-comment-or-string)
+         ((or (web-mode-is-comment-or-string (1- (point)))
               (and block-side (not (get-text-property (point) 'block-side))))
+          ;;(message "pt=%S" (point))
           )
          ((eq (char-before) paren)
           (setq n (1+ n)))
