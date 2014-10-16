@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.1
+;; Version: 10.0.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.1"
+(defconst web-mode-version "10.0.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -156,6 +156,11 @@ See web-mode-part-face."
 
 (defcustom web-mode-enable-element-tag-fontification nil
   "Enable tag name fontification."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-engine-detection nil
+  "Detect directive like -*- engine: ENGINE -*- at the top of the file."
   :type 'boolean
   :group 'web-mode)
 
@@ -8276,6 +8281,22 @@ Pos should be in a tag."
    ) ;cond
   )
 
+(defun web-mode-detect-engine ()
+  "Engine detection"
+  (save-excursion
+    (let (engine)
+;;      (message "detect-engine: %S" (point))
+      (goto-char (point-min))
+      (when (and (re-search-forward "-\\*- engine:[ ]*\\([[:alnum:]-]+\\)[ ]*-\\*-" 64 t)
+                 (or (eq (get-text-property (point) 'part-token) 'comment)
+                     (eq (get-text-property (point) 'block-token) 'comment)
+                     (eq (get-text-property (point) 'tag-type) 'comment)))
+        (setq engine (web-mode-engine-canonical-name (match-string-no-properties 1))
+              web-mode-engine engine)
+        )
+      engine)
+    ))
+
 (defun web-mode-complete ()
   "Autocomple at point."
   (interactive)
@@ -8338,10 +8359,27 @@ Pos should be in a tag."
 
     ))
 
+(defun web-mode-on-after-change (beg end len)
+  "Handles auto-pairing, auto-closing, and region-refresh after buffer alteration."
+  ;;(message "after-change: pos=%d, beg=%d, end=%d, len=%d, cur=%d, cmd=%S" (point) beg end len (current-column) this-original-command)
+  ;;  (backtrace)
+  (when (or (null web-mode-change-beg) (< beg web-mode-change-beg))
+    (setq web-mode-change-beg beg))
+  (when (or (null web-mode-change-end) (> end web-mode-change-end))
+    (setq web-mode-change-end end))
+  )
+
 (defun web-mode-on-post-command ()
   (let (ctx)
     (when (< (point) 16)
-      (web-mode-detect-content-type)
+      (web-mode-detect-content-type))
+    (when (and web-mode-enable-engine-detection
+               (or (null web-mode-engine) (string= web-mode-engine "none"))
+               (< (point) 64)
+               (web-mode-detect-engine))
+      (message "la")
+      (web-mode-on-engine-setted)
+      (web-mode-buffer-highlight)
       )
     (cond
      ((<= (point) 3)
@@ -8414,16 +8452,6 @@ Pos should be in a tag."
 
     ;;    (message "post-command (%S) (%S)" web-mode-change-end web-mode-change-end)
     ))
-
-(defun web-mode-on-after-change (beg end len)
-  "Handles auto-pairing, auto-closing, and region-refresh after buffer alteration."
-  ;;(message "after-change: pos=%d, beg=%d, end=%d, len=%d, cur=%d, cmd=%S" (point) beg end len (current-column) this-original-command)
-  ;;  (backtrace)
-  (when (or (null web-mode-change-beg) (< beg web-mode-change-beg))
-    (setq web-mode-change-beg beg))
-  (when (or (null web-mode-change-end) (> end web-mode-change-end))
-    (setq web-mode-change-end end))
-  )
 
 (defun web-mode-dom-apostrophes-replace ()
   "Replace ' with ’."
@@ -10183,7 +10211,7 @@ Pos should be in a tag."
                 found t))
         )
       )
-    ;; TODO : remplacer par web-mode-engine-canonical
+    ;; TODO : remplacer par web-mode-engine-canonical-name
     (when web-mode-engine
       (setq found nil)
       (dolist (elt web-mode-engines)
@@ -10206,9 +10234,32 @@ Pos should be in a tag."
                                  (point-min)
                                  (if (< (point-max) 64) (point-max) 64)
                                  )))
-      (setq web-mode-content-type "jsx"))
+      (setq web-mode-content-type "jsx")
+      ) ;when
+    (when (and web-mode-enable-engine-detection
+               (or (null web-mode-engine)
+                   (string= web-mode-engine "none")))
+      ;;(message "%S %S" web-mode-enable-engine-detection web-mode-engine)
+      (web-mode-detect-engine))
     (web-mode-on-engine-setted)
     ))
+
+(defun web-mode-engine-canonical-name (name)
+  (let (engine)
+    (cond
+     ((null name)
+      )
+     ((assoc name web-mode-engines)
+      (setq engine name))
+     (t
+      (dolist (elt web-mode-engines)
+        (when (and (null engine) (member name (cdr elt)))
+          (setq engine (car elt)))
+        ) ;dolist
+      ) ;t
+     )
+    ;;(message "name=%S engine=%S" name engine)
+    engine))
 
 (defun web-mode-on-after-save ()
   (when web-mode-is-scratch
@@ -10321,7 +10372,6 @@ Pos should be in a tag."
 ;;- phphint
 ;;- tag-name uniquement sur les html tag
 ;;- Stickiness of Text Properties
-;;- web-mode-engine-real-name (canonical name)
 ;;- screenshot : http://www.cockos.com/licecap/
 ;;- tester shortcut A -> pour pomme
 
