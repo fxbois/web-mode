@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.5
+;; Version: 10.0.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.5"
+(defconst web-mode-version "10.0.6"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3937,6 +3937,7 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;while
       ) ;save-excursion
     (when pos (goto-char pos))
+    ;;(message "jsx-skip: %S" pos)
     pos))
 
 (defun web-mode-scan-expr-literal (reg-beg reg-end)
@@ -6217,6 +6218,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((and (string= language "jsx")
                  (eq (get-text-property pos 'tag-type) 'end)
                  (web-mode-tag-match))
+            ;;(message "jsx indent")
             (setq offset (current-indentation))
             )
 
@@ -6225,14 +6227,16 @@ the environment as needed for ac-sources, right before they're used.")
                  ;;(get-text-property pos 'tag-type)
                  (not (and (get-text-property pos 'part-expr)
                            (get-text-property (1- pos) 'part-expr)))
-                 (and prev-props (plist-get prev-props 'tag-type))
-                 ;;(eq (get-text-property (1- pos) 'part-token) 'html)
+;;                 (progn (message "la") t)
+;;                 (and prev-props (plist-get prev-props 'tag-type))
+                 (and prev-props (plist-get prev-props 'part-element))
                  )
             ;;(message "jsx %S" prev-props)
             (setq offset (web-mode-markup-indentation pos))
             )
 
            ((member language '("javascript" "jsx"))
+            ;;(message "jsx indent")
             (setq offset (car (web-mode-part-indentation pos
                                                          block-column
                                                          indent-offset
