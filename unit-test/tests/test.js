@@ -74,3 +74,13 @@ newB.firstMethod('x')
 var bar = 1;
 var foo = (bar == 1) ?
           "ONE" : "OTHER";  // THIS IS THE PROBLEM
+
+function fieldIsValid( field, fieldSpec) {
+  // todo: add remote possibility
+  var value = field.value;
+  if( value.length < fieldSpec.minNumberOfChar ||
+      value.length > fieldSpec.maxNumberOfChar ||
+      value.match( fieldSpec.pattern) )
+    return true;
+  return false;
+}

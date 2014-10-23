@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.6
+;; Version: 10.0.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -19,9 +19,12 @@
 
 ;; Code goes here
 
+;;TODO : web-mode-enable-autoclosing
+;;       + web-mode-autoclosing-style
+
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.6"
+(defconst web-mode-version "10.0.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1907,6 +1910,7 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'font-lock-defaults)
   (make-local-variable 'font-lock-end)
   (make-local-variable 'font-lock-support-mode)
+  (make-local-variable 'font-lock-unfontify-region-function)
   (make-local-variable 'imenu-case-fold-search)
   (make-local-variable 'imenu-create-index-function)
   (make-local-variable 'imenu-generic-expression)
@@ -1917,12 +1921,11 @@ the environment as needed for ac-sources, right before they're used.")
 
   ;; required for block-code-beg|end
   (add-to-list 'text-property-default-nonsticky '(block-token . t))
-;;  (add-to-list 'text-property-default-nonsticky '((block-token . t)
-;;                                                  (tag-end . t)))
 
   (setq fill-paragraph-function 'web-mode-fill-paragraph
         font-lock-defaults '(web-mode-font-lock-keywords t)
         font-lock-support-mode nil
+        font-lock-unfontify-region-function 'web-mode-unfontify-region
         imenu-case-fold-search t
         imenu-create-index-function 'web-mode-imenu-index
         indent-line-function 'web-mode-indent-line
@@ -4355,6 +4358,7 @@ the environment as needed for ac-sources, right before they're used.")
         (setq region (web-mode-propertize))
       (message "font-lock-highlight ** untouched buffer (%S) **" this-command)
       (setq region (web-mode-propertize (point) limit)))
+    ;;(message "region=%S" region)
     (when (and region (car region))
       (web-mode-highlight-region (car region) (cdr region))
       ))
@@ -4366,6 +4370,10 @@ the environment as needed for ac-sources, right before they're used.")
   (setq web-mode-change-beg (point-min)
         web-mode-change-end (point-max))
   (web-mode-font-lock-highlight (point-max))
+  )
+
+(defun web-mode-unfontify-region (beg end)
+;;  (message "unfontify: %S %S" beg end)
   )
 
 (defun web-mode-highlight-region (&optional beg end content-type)
@@ -4682,7 +4690,7 @@ the environment as needed for ac-sources, right before they're used.")
 ;;              (message "end=%S" end)
               (if (and end (<= end reg-end))
                   (progn
-;;                    (message "%S > %S face(%S)" beg end face)
+                    ;;(message "%S > %S face(%S)" beg end face)
                     (remove-text-properties beg end '(face nil))
                     (put-text-property beg end 'font-lock-face face)
                     )
@@ -6145,13 +6153,6 @@ the environment as needed for ac-sources, right before they're used.")
              )
             )
 
-           ((and (member language '("php" "javascript" "jsx"))
-                 (or (string-match-p "^else$" prev-line)
-                     (string-match-p "^\\(if\\|for\\|foreach\\|while\\)[ ]*(.+)$" prev-line))
-                 (not (string-match-p "^{" line)))
-            (setq offset (+ prev-indentation web-mode-code-indent-offset))
-            )
-
            ((and (member language '("javascript" "jsx"))
                  (eq ?\. first-char))
             (when (web-mode-translate-backward pos "[[:alnum:][:blank:]]\\.[[:alpha:]]" language block-beg)
@@ -6166,6 +6167,29 @@ the environment as needed for ac-sources, right before they're used.")
                        (looking-at-p " =>"))
               (setq offset (1+ offset))
               )
+            )
+
+           ((and (member language '("php" "javascript" "jsx"))
+                 (or (eq prev-char ?\))
+                     (string-match-p "^else$" prev-line))
+                 ;;                 (or (string-match-p "^else$" prev-line)
+                 ;;                     (string-match-p "^\\(if\\|for\\|foreach\\|while\\)[ ]*(.+)$" prev-line))
+                 (not (string-match-p "^{" line)))
+
+            (cond
+             ((member language '("javascript" "jsx"))
+              (setq offset
+                    (+ (car (web-mode-part-indentation pos
+                                                       block-column
+                                                       indent-offset
+                                                       language
+                                                       block-beg))
+                       web-mode-code-indent-offset))
+              )
+             (t
+              (setq offset (+ prev-indentation web-mode-code-indent-offset))
+              )
+             )
             )
 
            ((and (member prev-char '(?\? ?\:))
@@ -10297,10 +10321,15 @@ Pos should be in a tag."
   (web-mode-with-silent-modifications
    (put-text-property (point-min) (point-max) 'invisible nil)
    (remove-overlays)
+;;   (message "1- %S" font-lock-unfontify-region-function)
+   (setq font-lock-unfontify-region-function
+         'font-lock-default-unfontify-region)
    (unload-feature 'web-mode t)
+;;   (message "2- %S" font-lock-unfontify-region-function)
    (load "web-mode.el")
    (setq web-mode-change-beg nil
          web-mode-change-end nil)
+
    (web-mode)
    (when (fboundp 'web-mode-hook)
      (web-mode-hook))
