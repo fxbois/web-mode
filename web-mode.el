@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.9
+;; Version: 10.0.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -19,20 +19,15 @@
 
 ;; Code goes here
 
-;;TODO : web-mode-enable-autoclosing
-;;       + web-mode-autoclosing-style
-
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.9"
+(defconst web-mode-version "10.0.10"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
 
 (defgroup web-mode nil
-  "Major mode for editing web templates:
-   html files embedding parts (css/javascript)
-   and blocks (php, erb, django/twig, smarty, jsp, asp, etc.)"
+  "Major mode for editing web templates"
   :group 'languages
   :prefix "web-"
   :link '(url-link :tag "Site" "http://web-mode.org")
@@ -87,6 +82,11 @@
 
 (defcustom web-mode-enable-auto-indentation (display-graphic-p)
   "Auto-indentation."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-auto-closing (display-graphic-p)
+  "Auto-closing."
   :type 'boolean
   :group 'web-mode)
 
@@ -184,13 +184,11 @@ See web-mode-part-face."
   :type '(choice (const :tag "default (all lines are indented)" 2)
                  (const :tag "text at the beginning of line is not indented" 1)))
 
-(defcustom web-mode-tag-auto-close-style (if (display-graphic-p) 1 0)
-  "Tag auto-close style:
-0=no auto-closing
-1=auto-close with </
-2=auto-close with > and </."
-  :type 'integer
-  :group 'web-mode)
+(defcustom web-mode-auto-close-style 1
+  "Auto-close style."
+  :group 'web-mode
+  :type '(choice (const :tag "Auto-close on </" 1)
+                 (const :tag "Auto-close on > and </" 2)))
 
 (defcustom web-mode-extra-auto-pairs '()
   "A list of additional snippets."
@@ -8346,14 +8344,14 @@ Pos should be in a tag."
         (auto-paired nil))
 
     ;;-- auto-closing
-    (when (and (> web-mode-tag-auto-close-style 0)
-               (or (and (= web-mode-tag-auto-close-style 2)
+    (when (and web-mode-enable-auto-closing
+               (or (and (= web-mode-auto-close-style 2)
                         (not (get-text-property end 'part-side))
                         (string-match-p "[[:alnum:]'\"]>" chunk))
                    (string= "</" chunk))
                (not (get-text-property (- beg 1) 'block-side)))
       (when (web-mode-element-close)
-;;        (message "auto-close %S" web-mode-change-end)
+        ;;        (message "auto-close %S" web-mode-change-end)
         (setq auto-closed t))
       )
 
