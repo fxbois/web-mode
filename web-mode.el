@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.10
+;; Version: 10.0.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.10"
+(defconst web-mode-version "10.0.11"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -593,14 +593,20 @@ Must be used in conjunction with web-mode-enable-block-face."
     "link" "meta" "param" "source" "track" "wbr"))
 
 (defvar web-mode-scan-properties
-  (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil
-        'tag-attr nil 'tag-attr-end nil
-        'part-side nil 'part-token nil 'part-element nil 'part-expr nil
-        'block-side nil 'block-token nil 'block-controls nil
-        'block-beg nil 'block-end nil
-        ;;'face nil
-        ;;'syntax-table nil
-        )
+
+  (list 'tag-beg 'tag-end 'tag-name 'tag-type 'tag-attr 'tag-attr-end
+        'part-side 'part-token 'part-element 'part-expr
+        'block-side 'block-token 'block-controls 'block-beg 'block-end)
+
+  ;; (list 'tag-beg nil 'tag-end nil 'tag-name nil 'tag-type nil
+  ;;       'tag-attr nil 'tag-attr-end nil
+  ;;       'part-side nil 'part-token nil 'part-element nil 'part-expr nil
+  ;;       'block-side nil 'block-token nil 'block-controls nil
+  ;;       'block-beg nil 'block-end nil
+  ;;       ;;'font-lock-face nil 'face nil
+  ;;       ;;'syntax-table nil
+  ;;       )
+
   "Text properties used for code regions/tokens and html nodes.")
 
 (defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]-]*\\)"
@@ -1974,7 +1980,8 @@ the environment as needed for ac-sources, right before they're used.")
        (save-match-data
          (let ((inhibit-point-motion-hooks t)
                (inhibit-quit t))
-           (remove-text-properties beg end web-mode-scan-properties)
+           (remove-list-of-text-properties beg end web-mode-scan-properties)
+;;           (remove-list-of-text-properties beg end web-mode-scan-properties)
 ;;           (remove-text-properties beg end '(face nil))
            (cond
             ((and content-type (string= content-type "php"))
@@ -2830,105 +2837,82 @@ the environment as needed for ac-sources, right before they're used.")
   (unless regexp (setq regexp web-mode-engine-token-regexp))
 ;;  (message "tokenize: reg-beg(%S) reg-end(%S) regexp(%S)" reg-beg reg-end regexp)
   (save-excursion
-    (let ((pos reg-beg) beg char match continue (flags 0) token-type)
+    (let ((pos reg-beg) beg char match continue (flags 0) token-type token-end)
 
-      (remove-text-properties reg-beg reg-end '(block-token nil))
+      (remove-list-of-text-properties reg-beg reg-end '(block-token))
+
       (goto-char reg-beg)
 
       (when (> reg-beg reg-end)
-        (message "block-tokenise: %S %S" reg-beg reg-end))
+        (message "block-tokenize ** reg-beg(%S) reg-end(%S) **" reg-beg reg-end))
 
-      ;;FIXME
-      ;;(setq reg-end (1+ reg-end))
       (while (and (< reg-beg reg-end) (re-search-forward regexp reg-end t))
-
         (setq beg (match-beginning 0)
               match (match-string 0)
               continue t
               flags (logior flags 1)
-              token-type nil)
-
-        (setq char (aref match 0))
-
+              token-type 'comment
+              token-end (if (< reg-end (line-end-position)) reg-end (line-end-position))
+              char (aref match 0))
         (cond
 
          ((and (string= web-mode-engine "asp")
                (eq char ?\'))
-          (setq token-type 'comment)
-          (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
-          )
+          (goto-char token-end))
 
          ((eq char ?\')
           (setq token-type 'string)
           (while (and continue (search-forward "'" reg-end t))
             (if (looking-back "\\\\+'" reg-beg t)
                 (setq continue (= (mod (- (point) (match-beginning 0)) 2) 0))
-              (setq continue nil))
-            )
-          )
+              (setq continue nil))))
 
          ((eq char ?\")
           (setq token-type 'string)
           (while (and continue (search-forward "\"" reg-end t))
             (if (looking-back "\\\\+\"" reg-beg t)
                 (setq continue (= (mod (- (point) (match-beginning 0)) 2) 0))
-              (setq continue nil))
-            )
-          )
+              (setq continue nil))))
 
          ((string= match "//")
-          (setq token-type 'comment)
-          (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
-          )
+          (goto-char token-end))
 
          ((eq char ?\;)
-          (setq token-type 'comment)
-          (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
-          )
+          (goto-char token-end))
 
          ((string= match "#|")
-          (setq token-type 'comment)
           (unless (search-forward "|#" reg-end t)
-            (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
-            )
-          )
+            (goto-char token-end)))
 
          ((eq char ?\#)
-          (setq token-type 'comment)
-          (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
-          )
+          (goto-char token-end))
 
          ((string= match "/*")
-          (setq token-type 'comment)
           (unless (search-forward "*/" reg-end t)
-            (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
-            )
-          )
+            (goto-char token-end)))
 
          ((string= match "@*")
-          (setq token-type 'comment)
           (unless (search-forward "*@" reg-end t)
-            (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
-            )
-          )
+            (goto-char token-end)))
 
          ((eq char ?\<)
           (when (and web-mode-enable-heredoc-fontification
                      (string-match-p "JS\\|JAVASCRIPT\\|HTM\\|CSS" (match-string 1)))
-            (setq flags (logior flags 2))
-            )
+            (setq flags (logior flags 2)))
           (setq token-type 'string)
-          (re-search-forward (concat "^[ ]*" (match-string 1)) reg-end t)
-          )
+          (re-search-forward (concat "^[ ]*" (match-string 1)) reg-end t))
+
+         (t
+          (message "block-tokenize ** token end ** beg(%S)")
+          (setq token-type nil))
 
          ) ;cond
 
-;;        (message "%S %S %S" beg (point) token-type)
         (put-text-property beg (point) 'block-token token-type)
+
         (when (eq token-type 'comment)
           (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
-          (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">"))
-          )
+          (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">")))
 
         ) ;while
 
@@ -4161,7 +4145,7 @@ the environment as needed for ac-sources, right before they're used.")
         (if (not (re-search-forward tag-end reg-end t))
             (setq continue nil)
           (setq end (point))
-          (remove-text-properties beg end web-mode-scan-properties)
+          (remove-list-of-text-properties beg end web-mode-scan-properties)
           (add-text-properties beg end '(block-side t block-token comment))
           (put-text-property beg (1+ beg) 'block-beg t)
           (put-text-property (1- end) end 'block-end t)
@@ -4171,12 +4155,15 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-propertize (&optional beg end)
   "Propertize."
-;;  (message "propertize: beg(%S) end(%S)" web-mode-change-beg web-mode-change-end)
   (unless beg (setq beg web-mode-change-beg))
   (unless end (setq end web-mode-change-end))
 
+;;  (message "propertize: beg(%S) end(%S)" web-mode-change-beg web-mode-change-end)
+
   (when (and end (> end (point-max)))
     (setq end (point-max)))
+
+;;  (remove-text-properties beg end '(font-lock-face nil))
 
   (setq web-mode-change-beg nil
         web-mode-change-end nil)
@@ -4200,7 +4187,7 @@ the environment as needed for ac-sources, right before they're used.")
          ;;   (not (string-match-p "\\*/\\|\\?>" chunk))
          ;;   )
            )
-    ;;    (message "invalidate block")
+    ;;(message "invalidate block")
     (web-mode-invalidate-block-region beg end))
 
    ((and web-mode-enable-part-partial-invalidation
@@ -4386,7 +4373,11 @@ the environment as needed for ac-sources, right before they're used.")
          (let ((inhibit-modification-hooks t)
                (inhibit-point-motion-hooks t)
                (inhibit-quit t))
-           (remove-text-properties beg end '(font-lock-face nil))
+
+           ;; NOTE: 'face is required because unfontify-region is not called any more
+           ;;       'font-lock-face
+           (remove-list-of-text-properties beg end '(font-lock-face face))
+
            (cond
             ((and (get-text-property beg 'block-side)
                   (not (get-text-property beg 'block-beg)))
@@ -4563,7 +4554,7 @@ the environment as needed for ac-sources, right before they're used.")
     ;;(message "reg-beg=%S reg-end=%S" reg-beg reg-end)
 
     ;;NOTE: required for block inside tag attr
-    (remove-text-properties reg-beg reg-end '(font-lock-face nil))
+    (remove-list-of-text-properties reg-beg reg-end '(font-lock-face))
 
     (goto-char reg-beg)
 
@@ -4689,7 +4680,7 @@ the environment as needed for ac-sources, right before they're used.")
               (if (and end (<= end reg-end))
                   (progn
                     ;;(message "%S > %S face(%S)" beg end face)
-                    (remove-text-properties beg end '(face nil))
+                    (remove-list-of-text-properties beg end '(face))
                     (put-text-property beg end 'font-lock-face face)
                     )
                 (setq continue nil
@@ -4803,7 +4794,7 @@ the environment as needed for ac-sources, right before they're used.")
               (if (<= end reg-end)
                   (cond
                    (face
-                    (remove-text-properties beg end '(face nil))
+                    (remove-list-of-text-properties beg end '(face))
                     (put-text-property beg end 'font-lock-face face)
                     (when (and web-mode-enable-string-interpolation
                                (string= content-type "javascript")
@@ -4969,8 +4960,8 @@ the environment as needed for ac-sources, right before they're used.")
     (goto-char (+ 4 beg))
     (setq end (1- end))
     (while (re-search-forward "${.*?}" end t)
-      (remove-text-properties (match-beginning 0) (match-end 0)
-                              '(font-lock-face nil))
+      (remove-list-of-text-properties (match-beginning 0) (match-end 0)
+                              '(font-lock-face))
       (web-mode-fontify-region (match-beginning 0) (match-end 0)
                                web-mode-uel-font-lock-keywords))
     ))
@@ -4997,13 +4988,13 @@ the environment as needed for ac-sources, right before they're used.")
      ((string= web-mode-engine "php")
       (while (re-search-forward "$[[:alnum:]_]+\\(->[[:alnum:]_]+\\)*\\|{[ ]*$.+?}" end t)
 ;;        (message "%S > %S" (match-beginning 0) (match-end 0))
-        (remove-text-properties (match-beginning 0) (match-end 0) '(font-lock-face nil))
+        (remove-list-of-text-properties (match-beginning 0) (match-end 0) '(font-lock-face))
         (web-mode-fontify-region (match-beginning 0) (match-end 0)
                                  web-mode-php-var-interpolation-font-lock-keywords)
         ))
      ((string= web-mode-engine "erb")
       (while (re-search-forward "#{.*?}" end t)
-        (remove-text-properties (match-beginning 0) (match-end 0) '(font-lock-face nil))
+        (remove-list-of-text-properties (match-beginning 0) (match-end 0) '(font-lock-face))
         (put-text-property (match-beginning 0) (match-end 0)
                            'font-lock-face 'web-mode-variable-name-face)
         ))
@@ -10361,7 +10352,7 @@ Pos should be in a tag."
                       web-mode-engine
                       web-mode-content-type
                       (web-mode-language-at-pos (point))))
-    (setq symbols (append web-mode-scan-properties '(font-lock-face)))
+    (setq symbols (append web-mode-scan-properties '(font-lock-face face)))
     (dolist (symbol symbols)
       (when symbol
         (setq out (concat out (format "%s(%S) " (symbol-name symbol) (get-text-property (point) symbol)))))
