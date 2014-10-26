@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.11
+;; Version: 10.0.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.11"
+(defconst web-mode-version "10.0.12"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2410,10 +2410,17 @@ the environment as needed for ac-sources, right before they're used.")
               )
              ((and (string= web-mode-engine "php")
                    (string= "<?" sub2))
-              (if (text-property-not-all (+ open 2) (point-max) 'tag-beg nil)
-                  (setq close (line-end-position)
+              (if (or (text-property-not-all (+ open 2) (point-max) 'tag-beg nil)
+                      (text-property-not-all (+ open 2) (point-max) 'block-beg nil))
+
+                  (setq close nil
                         delim-close nil
-                        pos (line-end-position))
+                        pos (point))
+
+                  ;; (setq close (line-end-position)
+                  ;;       delim-close nil
+                  ;;       pos (line-end-position))
+
                 (setq close (point-max)
                       delim-close nil
                       pos (point-max))
@@ -8349,7 +8356,8 @@ Pos should be in a tag."
     ;;-- auto-pairing
     (when (and web-mode-enable-auto-pairing
                (not auto-closed)
-               (not (get-text-property end 'part-side)))
+               ;;(not (get-text-property end 'part-side))
+               )
       (let ((i 0) expr p after pos-end (l (length web-mode-auto-pairs)))
         (setq pos-end (if (> (+ end 32) (line-end-position))
                           (line-end-position)
@@ -8357,10 +8365,11 @@ Pos should be in a tag."
         (setq chunk (buffer-substring-no-properties (- beg 2) end)
               after (buffer-substring-no-properties end pos-end))
         (while (and (< i l) (not auto-paired))
-          (setq expr (elt web-mode-auto-pairs i))
-          (setq i (1+ i))
+          (setq expr (elt web-mode-auto-pairs i)
+                i (1+ i))
+          ;;(message "chunk=%S expr=%S after=%S" chunk expr after)
           (when (and (string= (elt expr 0) chunk)
-                     (not (string-match-p (or (elt expr 2) (elt expr 1)) after)))
+                     (not (string-match-p (regexp-quote (or (elt expr 2) (elt expr 1))) after)))
             (setq auto-paired t)
             (insert (elt expr 1))
             (if (not (elt expr 2))
@@ -8372,7 +8381,6 @@ Pos should be in a tag."
           ) ;while
         ) ;let
       ) ; end auto-pairing
-
 
     (cond
      ((or auto-closed auto-paired)
