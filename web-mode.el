@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.12
+;; Version: 10.0.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -19,9 +19,11 @@
 
 ;; Code goes here
 
+;; TODO : enable-auto-attr-value
+
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.12"
+(defconst web-mode-version "10.0.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1940,10 +1942,10 @@ the environment as needed for ac-sources, right before they're used.")
            global-hl-line-mode)
       (setq web-mode-hl-line-mode-flag t))
 
-  (add-hook 'after-change-functions  'web-mode-on-after-change nil t)
-  (add-hook 'after-save-hook         'web-mode-on-after-save t t)
-  (add-hook 'change-major-mode-hook  'web-mode-on-exit nil t)
-  (add-hook 'post-command-hook       'web-mode-on-post-command nil t)
+  (add-hook 'after-change-functions 'web-mode-on-after-change nil t)
+  (add-hook 'after-save-hook        'web-mode-on-after-save t t)
+  (add-hook 'change-major-mode-hook 'web-mode-on-exit nil t)
+  (add-hook 'post-command-hook      'web-mode-on-post-command nil t)
 
   (cond
    ((boundp 'yas-after-exit-snippet-hook)
@@ -8406,7 +8408,7 @@ Pos should be in a tag."
   )
 
 (defun web-mode-on-post-command ()
-  (let (ctx)
+  (let (ctx n)
     (when (< (point) 16)
       (web-mode-detect-content-type))
     (when (and web-mode-enable-engine-detection
@@ -8415,6 +8417,7 @@ Pos should be in a tag."
                (web-mode-detect-engine))
       (web-mode-on-engine-setted)
       (web-mode-buffer-highlight))
+    ;;(message "%S %S" this-command web-mode-enable-auto-opening)
     (cond
      ((<= (point) 3)
       )
@@ -8423,15 +8426,19 @@ Pos should be in a tag."
       (setq ctx (web-mode-complete))
       )
      ((and web-mode-enable-auto-opening
-           (member this-command '(newline))
+           (member this-command '(newline electric-newline-and-maybe-indent))
            ;;           (not (web-mode-buffer-narrowed-p))
-           (or (and (eq (char-before) ?\n)   ;;(string= ">\n" chunk)
-                    (eq (char-before (1- (point))) ?\>)
+           (or (and (eq (get-text-property (point) 'tag-type) 'end)
                     (not (eobp))
-                    (eq (get-text-property (- (point) 2) 'tag-type) 'start)
-                    (eq (get-text-property (point) 'tag-type) 'end)
-                    (string= (get-text-property (- (point) 2) 'tag-name)
-                             (get-text-property (point) 'tag-name)))
+                    (looking-back ">\n[ \t]*")
+                    (setq n (length (match-string-no-properties 0)))
+                    ;;(progn (message "n=%S" n))
+                    ;;(eq (char-before) ?\n)
+                    ;;(eq (char-before (1- (point))) ?\>)
+                    (eq (get-text-property (- (point) n) 'tag-type) 'start)
+                    (string= (get-text-property (- (point) n) 'tag-name)
+                             (get-text-property (point) 'tag-name))
+                    )
                (and (get-text-property (1- (point)) 'block-side)
                     (string= web-mode-engine "php")
                     (looking-back "<\\?php[ ]*\n")
