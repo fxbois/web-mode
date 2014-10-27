@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.13
+;; Version: 10.0.14
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.13"
+(defconst web-mode-version "10.0.14"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3916,7 +3916,10 @@ the environment as needed for ac-sources, right before they're used.")
           (setq continue nil))
          ((not (web-mode-dom-rsf ">\\([ \t\n]*[;,)']\\)\\|{" reg-end))
           ;;(backward-char)
-          (setq continue nil))
+          (setq continue nil)
+          (when (string= web-mode-content-type "jsx")
+            (setq pos (point-max)))
+          )
          ((eq (char-before) ?\{)
           (backward-char)
           (if (web-mode-closing-paren reg-end)
@@ -8428,8 +8431,9 @@ Pos should be in a tag."
      ((and web-mode-enable-auto-opening
            (member this-command '(newline electric-newline-and-maybe-indent))
            ;;           (not (web-mode-buffer-narrowed-p))
-           (or (and (eq (get-text-property (point) 'tag-type) 'end)
-                    (not (eobp))
+           (or (and (not (eobp))
+                    (eq (char-after) ?\<)
+                    (eq (get-text-property (point) 'tag-type) 'end)
                     (looking-back ">\n[ \t]*")
                     (setq n (length (match-string-no-properties 0)))
                     ;;(progn (message "n=%S" n))
