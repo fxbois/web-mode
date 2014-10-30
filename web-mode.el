@@ -1993,7 +1993,7 @@ the environment as needed for ac-sources, right before they're used.")
   (when (> (point-max) 256000)
     (web-mode-buffer-highlight))
 
-  ;;(web-mode-trace "buffer loaded")
+  (web-mode-trace "buffer loaded")
 
   )
 
@@ -2940,7 +2940,7 @@ the environment as needed for ac-sources, right before they're used.")
           (re-search-forward (concat "^[ ]*" (match-string 1)) reg-end t))
 
          (t
-          (message "block-tokenize ** token end ** beg(%S)" token-end)
+          (message "block-tokenize ** token end ** beg(%S)" beg)
           (setq token-type nil))
 
          ) ;cond
