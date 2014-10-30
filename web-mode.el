@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.15
+;; Version: 10.0.16
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.15"
+(defconst web-mode-version "10.0.16"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -99,6 +99,11 @@
 
 (defcustom web-mode-enable-auto-opening (display-graphic-p)
   "Html element auto-opening."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-auto-quoting (display-graphic-p)
+  "Add double quotes after the character = in a tag."
   :type 'boolean
   :group 'web-mode)
 
@@ -1993,7 +1998,7 @@ the environment as needed for ac-sources, right before they're used.")
   (when (> (point-max) 256000)
     (web-mode-buffer-highlight))
 
-  (web-mode-trace "buffer loaded")
+;;  (web-mode-trace "buffer loaded")
 
   )
 
@@ -2182,7 +2187,7 @@ the environment as needed for ac-sources, right before they're used.")
                   delim-close "}~?}")
             )
            ((string= tagopen "{{!")
-            (setq closing-string "--}}")
+            (setq closing-string (if (looking-at-p "--") "--}}" "}}"))
             )
            ((string= sub2 "{{")
             (setq closing-string "}~?}"
@@ -8452,6 +8457,14 @@ Pos should be in a tag."
     (cond
      ((<= (point) 3)
       )
+     ((and web-mode-enable-auto-quoting
+           (member this-command '(self-insert-command))
+           (get-text-property (1- (point)) 'tag-attr)
+           (eq (char-before) ?\=)
+           (not (looking-at-p "[ ]*[\"']")))
+      (insert "\"\"")
+      (backward-char)
+      )
      ((and (member this-command '(self-insert-command))
            (not (get-text-property (point) 'part-side)))
       (setq ctx (web-mode-complete))
@@ -10040,10 +10053,10 @@ Pos should be in a tag."
       (progn
         (run-hooks 'web-mode-before-auto-complete-hooks)
         (when web-mode-ac-sources-alist
-         (let ((new-web-mode-ac-sources
-                (assoc (web-mode-language-at-pos)
-                       web-mode-ac-sources-alist)))
-           (setq ac-sources (cdr new-web-mode-ac-sources)))))))
+          (let ((new-web-mode-ac-sources
+                 (assoc (web-mode-language-at-pos)
+                        web-mode-ac-sources-alist)))
+            (setq ac-sources (cdr new-web-mode-ac-sources)))))))
 
 ;;---- MINOR MODE ADDONS -------------------------------------------------------
 
