@@ -10039,10 +10039,11 @@ Pos should be in a tag."
   (if (equal major-mode 'web-mode)
       (progn
         (run-hooks 'web-mode-before-auto-complete-hooks)
-        (let ((new-web-mode-ac-sources
-               (assoc (web-mode-language-at-pos)
-                      web-mode-ac-sources-alist)))
-          (setq ac-sources (cdr new-web-mode-ac-sources))))))
+        (when web-mode-ac-sources-alist
+         (let ((new-web-mode-ac-sources
+                (assoc (web-mode-language-at-pos)
+                       web-mode-ac-sources-alist)))
+           (setq ac-sources (cdr new-web-mode-ac-sources)))))))
 
 ;;---- MINOR MODE ADDONS -------------------------------------------------------
 
