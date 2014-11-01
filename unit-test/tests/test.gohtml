@@ -1,0 +1,17 @@
+{{range $foo := .Bar}}
+  123
+{{end}}
+
+{{if .Bar}}
+  true
+{{end}}
+
+{{rangeFn}}
+{{if .Bar}}
+  {{endTheWorld}}
+  123
+{{end}}
+
+{{   if .Bar }}
+  true
+{{  end}}
