@@ -3288,7 +3288,7 @@ the environment as needed for ac-sources, right before they're used.")
           (setq controls (append controls (list (cons 'close "ctrl")))))
          ((web-mode-block-starts-with "else" reg-beg)
           (setq controls (append controls (list (cons 'inside "ctrl")))))
-         ((web-mode-block-starts-with "range\\|with" reg-beg)
+         ((web-mode-block-starts-with "range\\|with\\|if" reg-beg)
           (setq controls (append controls (list (cons 'open "ctrl")))))
          )
         ) ;go
