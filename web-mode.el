@@ -3284,11 +3284,11 @@ the environment as needed for ac-sources, right before they're used.")
 
        ((string= web-mode-engine "go")
         (cond
-         ((web-mode-block-starts-with "end" reg-beg)
+         ((web-mode-block-matches "^end$" reg-beg)
           (setq controls (append controls (list (cons 'close "ctrl")))))
-         ((web-mode-block-starts-with "else" reg-beg)
+         ((web-mode-block-matches "^else$" reg-beg)
           (setq controls (append controls (list (cons 'inside "ctrl")))))
-         ((web-mode-block-starts-with "range\\|with\\|if" reg-beg)
+         ((web-mode-block-starts-with "\\(range\\|with\\|if\\) " reg-beg)
           (setq controls (append controls (list (cons 'open "ctrl")))))
          )
         ) ;go
@@ -8654,6 +8654,27 @@ Pos should be in a tag."
         )
       (message "/%s" (mapconcat 'identity path "/"))
       )))
+
+(defun web-mode-block (&optional pos)
+  "Return the current block as a string"
+  (unless pos (setq pos (point)))
+  (let (start)
+  (save-excursion
+    (goto-char pos)
+    (and (web-mode-block-beginning)
+         (web-mode-block-skip-blank-forward)
+         (progn (setq start (point)) t)
+         (web-mode-block-end)
+         (progn (backward-char) t)
+         (web-mode-block-skip-blank-backward)
+         (progn (forward-char) t)
+         (buffer-substring-no-properties start (point))))))
+
+(defun web-mode-block-matches (regexp &optional pos)
+  "Check if the current block matches regexp"
+  (let ((block (web-mode-block pos)))
+    (and block
+         (string-match regexp block))))
 
 (defun web-mode-block-ends-with (regexp &optional pos)
   "Check if current block ends with regexp"
