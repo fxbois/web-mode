@@ -1,0 +1,49 @@
+<div>
+  {{range .}} {{/* a comment */}}
+    {{with .Author}}
+      <p><b>{{.}}</b> wrote:</p>
+    {{else}}
+      <p>An anonymous person wrote:</p>
+    {{end}}
+    <pre>{{.Content}}</pre>
+    <form action="/sign" method="post">
+      <div>{{$piOver2}}
+        {{define "myPage"}}
+        {{template "head" .}}
+        <textarea name="content" rows="3" cols="60"></textarea>
+      </div>
+      <span>Name: {{.Text.Name | html}}</span>{{index .Keys 3}}
+      <div><input type="submit" value="Sign Guestbook"></div>
+    </form>
+    {{$checkinUsers := .CheckinUsers}}
+    {{range $i, $v := .Checkins}}
+      {{$user := index $checkinUsers $i}}
+      <ul>
+        <li>
+          {{"put" | printf "%s%s" "out" | printf "%q"}}
+          {{$user.FirstName}} <em>{{"\"output\""}}</em>
+        </li>
+      </ul>
+    {{end}}
+  {{end}}
+  <span>
+    {{range $foo := .Bar}}
+      123
+    {{end}}
+
+    {{if .Bar}}
+      true
+    {{end}}
+
+
+    {{rangeFn}}
+    {{if .Bar}}
+      true
+      {{endTheWorld}}
+    {{end}}
+
+    {{ if .Bar }}
+      true
+    {{ end}}
+  </span>
+</div>
