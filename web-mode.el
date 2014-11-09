@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.17
+;; Version: 10.0.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.17"
+(defconst web-mode-version "10.0.18"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2130,7 +2130,8 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((string= web-mode-engine "mako")
           (cond
-           ((member tagopen '("<% " "<%!"))
+           ((and (string= tagopen "<%")
+                 (member (char-after) '(?\s ?\n ?\!)))
             (setq closing-string "%>"
                   delim-open "<%[!]?"
                   delim-close "%>"))
@@ -3182,10 +3183,15 @@ the environment as needed for ac-sources, right before they're used.")
        ((string= web-mode-engine "mako")
         (cond
          ((looking-at "</?%\\([[:alpha:]]+\\(?:[:][[:alpha:]]+\\)?\\)")
-          (setq control (match-string-no-properties 1)
-                type (if (eq (aref (match-string-no-properties 0) 1) ?\/) 'close 'open))
-          (setq controls (append controls (list (cons type control))))
-         )
+          (cond
+           ((eq (char-after (- (web-mode-block-end-position reg-beg) 1)) ?\/)
+            )
+           (t
+            (setq control (match-string-no-properties 1)
+                  type (if (eq (aref (match-string-no-properties 0) 1) ?\/) 'close 'open))
+            (setq controls (append controls (list (cons type control)))))
+           )
+          )
          ((web-mode-block-starts-with "\\(else\\|elif\\)" reg-beg)
           (setq controls (append controls (list (cons 'inside "if")))))
          ((web-mode-block-starts-with "end\\(if\\|for\\)" reg-beg)
@@ -4407,6 +4413,7 @@ the environment as needed for ac-sources, right before they're used.")
              (web-mode-highlight-elements beg end))
            (when web-mode-enable-whitespace-fontification
              (web-mode-highlight-whitespaces beg end))
+;;           (message "%S %S" font-lock-keywords font-lock-keywords-alist)
            ))))))
 
 (defun web-mode-highlight-tags (reg-beg reg-end)
