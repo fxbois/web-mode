@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.18
+;; Version: 10.0.19
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.18"
+(defconst web-mode-version "10.0.19"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2776,7 +2776,7 @@ the environment as needed for ac-sources, right before they're used.")
 
      ((string= web-mode-engine "elixir")
       (cond
-       ((string= sub2 "<%#")
+       ((string= sub3 "<%#")
         (setq token-type 'comment))
        (t
         (setq regexp "\"\\|'"))
