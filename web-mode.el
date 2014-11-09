@@ -321,7 +321,7 @@ See web-mode-part-face."
   :group 'web-mode-faces)
 
 (defface web-mode-html-attr-engine-face
-  '((t :inherit web-mode-html-attr-custom-face))
+  '((t :inherit web-mode-block-delimiter-face));;web-mode-html-attr-custom-face))
   "Face for custom engine attribute names (e.g. ng-*)."
   :group 'web-mode-faces)
 
@@ -641,8 +641,9 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("mojolicious" . ())
     ("python"      . ())
     ("razor"       . ("play" "play2"))
+    ("thymeleaf"   . ())
     ("underscore"  . ("underscore.js"))
-    ("velocity"    . ("vtl" "cheetah"))
+    ("velocity"    . ("vtl" "cheetah" "ssp"))
     ("web2py"      . ()))
   "Engine name aliases")
 
@@ -655,7 +656,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   "content types")
 
 (defvar web-mode-engine-attr-regexps
-  '(("angular" . "ng-"))
+  '(("angular"   . "ng-")
+    ("thymeleaf" . "th:"))
   "Engine custom attributes")
 
 (defvar web-mode-engine-file-regexps
@@ -681,6 +683,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("razor"            . "\\.\\(cs\\|vb\\)html\\'")
     ("smarty"           . "\\.tpl\\'")
     ("template-toolkit" . "\\.tt.?\\'")
+    ("thymeleaf"        . "\\.thtml\\'")
     ("velocity"         . "\\.v\\(sl\\|tl\\|m\\)\\'")
 
     ("django"           . "twig")
@@ -3734,9 +3737,9 @@ the environment as needed for ac-sources, right before they're used.")
 
        ((= state 2)
         (setq name-end pos)
-        (when (and (= attr-flags 0) (eq char ?\-))
-          (setq attr-flags (logior attr-flags 1)))
-        (when (= (logand attr-flags 1) 1)
+;;        (when (and (= attr-flags 0) (member char '(?\- ?\:)))
+;;          (setq attr-flags (logior attr-flags 1)))
+        (when (and (= attr-flags 0) (member char '(?\- ?\:))) ;;(= (logand attr-flags 1) 1)
           (let (attr)
             (setq attr (buffer-substring-no-properties name-beg (1+ name-end)))
             (cond
@@ -3745,10 +3748,12 @@ the environment as needed for ac-sources, right before they're used.")
               )
              ((and web-mode-engine-attr-regexp
                    (string-match-p web-mode-engine-attr-regexp attr))
-              ;;            (message "%S" web-mode-engine-attr-regexp)
+              ;;(message "%S: %S" pos web-mode-engine-attr-regexp)
               (setq attr-flags (logior attr-flags 2))
-              (setq attr-flags (1- attr-flags))
+              ;;(setq attr-flags (1- attr-flags))
               )
+             ((and (eq char ?\-) (not (string= attr "http-")))
+              (setq attr-flags (logior attr-flags 1)))
              ) ;cond
             ) ;let
           ) ;when attr-flags = 1
@@ -10226,9 +10231,12 @@ Pos should be in a tag."
 (defun web-mode-on-engine-setted ()
   "engine setted"
   (let (elt elts engines)
+
     (when (string= web-mode-engine "razor") (setq web-mode-enable-block-face t))
     (setq web-mode-engine-attr-regexp (cdr (assoc web-mode-engine web-mode-engine-attr-regexps)))
     (setq web-mode-engine-token-regexp (cdr (assoc web-mode-engine web-mode-engine-token-regexps)))
+
+    ;;(message "%S %S" web-mode-engine-attr-regexp web-mode-engine)
 
     (setq elt (assoc web-mode-engine web-mode-engine-open-delimiter-regexps))
     (if elt
