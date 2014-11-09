@@ -666,6 +666,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("closure"          . "\\.soy\\'")
     ("ctemplate"        . "\\.\\(chtml\\|mustache\\)\\'")
     ("django"           . "\\.\\(djhtml\\|tmpl\\|dtl\\|liquid\\)\\'")
+    ("elixir"           . "\\.eex\\'")
     ("erb"              . "\\.\\(erb\\|rhtml\\|ejs\\|erb\\.html\\)\\'")
     ("freemarker"       . "\\.ftl\\'")
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
@@ -803,6 +804,10 @@ Must be used in conjunction with web-mode-enable-block-face."
                       ("{% " " %}")
                       ("{%-" " " " %}")
                       ("{# " " #}")))
+    ("elixir"      . (("<% " " %>")
+                      ("<%=" " " " %>")
+                      ("<%%" " " " %>")
+                      ("<%#" " " " %>")))
     ("erb"         . (("<% " " %>")
                       ("<%=" "%>")
                       ("<%#" "%>")
@@ -885,6 +890,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("ctemplate"        . "[$]?{[{~].")
    '("django"           . "{[#{%]")
    '("dust"             . "{.")
+   '("elixir"           . "<%.")
    '("erb"              . "<%\\|^%.")
    '("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#].\\|\\[/?[@#].")
    '("go"               . "{{.")
@@ -960,6 +966,18 @@ Must be used in conjunction with web-mode-enable-block-face."
    (append
     (cdr (assoc "python" web-mode-extra-constants))
     '("True" "False" "None" "__debug__" "NotImplemented" "Ellipsis"))))
+
+(defvar web-mode-erlang-constants
+  (regexp-opt
+   (append
+    (cdr (assoc "erlang" web-mode-extra-constants))
+    '("true" "false"))))
+
+(defvar web-mode-erlang-keywords
+  (regexp-opt
+   (append
+    (cdr (assoc "erlang" web-mode-extra-keywords))
+    '("else" "if" "do" "end"))))
 
 (defvar web-mode-lsp-constants
   (regexp-opt
@@ -1633,6 +1651,16 @@ Must be used in conjunction with web-mode-enable-block-face."
          '(0 'web-mode-keyword-face))
    ))
 
+(defvar web-mode-erlang-font-lock-keywords
+  (list
+   (cons (concat "\\<\\(" web-mode-erlang-keywords "\\)\\>")
+         '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-erlang-constants "\\)\\>")
+         '(0 'web-mode-constant-face))
+   '("@\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
+   '("[ ]\\(:[[:alnum:]-_]+\\)" 1 'web-mode-symbol-face)
+   ))
+
 (defvar web-mode-mason-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-mason-keywords "\\)\\>")
@@ -1701,6 +1729,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("closure"          . web-mode-closure-font-lock-keywords)
     ("ctemplate"        . web-mode-ctemplate-font-lock-keywords)
     ("dust"             . web-mode-dust-font-lock-keywords)
+    ("elixir"           . web-mode-erlang-font-lock-keywords)
     ("erb"              . web-mode-erb-font-lock-keywords)
     ("go"               . web-mode-go-font-lock-keywords)
     ("lsp"              . web-mode-lsp-font-lock-keywords)
@@ -2149,6 +2178,17 @@ the environment as needed for ac-sources, right before they're used.")
            )
           ) ;mako
 
+         ((string= web-mode-engine "elixir")
+          (cond
+           ((string= tagopen "<%#")
+            (setq closing-string "%>"))
+           ((string= sub2 "<%")
+            (setq closing-string "%>"
+                  delim-open "<%[=%]?"
+                  delim-close "%>"))
+           )
+          ) ;mojolicious
+
          ((string= web-mode-engine "mojolicious")
           (cond
            ((string= tagopen "<%#")
@@ -2575,7 +2615,7 @@ the environment as needed for ac-sources, right before they're used.")
   ;;  (message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine
                 '("asp" "aspx" "clip" "closure" "ctemplate" "django" "dust"
-                  "erb" "freemarker" "jsp" "lsp" "mako" "mason" "mojolicious"
+                  "elixir" "erb" "freemarker" "jsp" "lsp" "mako" "mason" "mojolicious"
                   "smarty" "template-toolkit" "web2py"))
     (save-excursion
       (when delim-open
@@ -2733,6 +2773,15 @@ the environment as needed for ac-sources, right before they're used.")
         (setq regexp "\"\\|'"))
        )
       ) ;blade
+
+     ((string= web-mode-engine "elixir")
+      (cond
+       ((string= sub2 "<%#")
+        (setq token-type 'comment))
+       (t
+        (setq regexp "\"\\|'"))
+       )
+      ) ;elixir
 
      ((string= web-mode-engine "mojolicious")
       (cond
@@ -3283,6 +3332,17 @@ the environment as needed for ac-sources, right before they're used.")
           (setq controls (append controls (list (cons 'open "ctrl")))))
          )
         ) ;template-toolkit
+
+       ((string= web-mode-engine "elixir")
+        (cond
+         ((web-mode-block-starts-with "end" reg-beg)
+          (setq controls (append controls (list (cons 'close "ctrl")))))
+         ((web-mode-block-starts-with "else" reg-beg)
+          (setq controls (append controls (list (cons 'inside "ctrl")))))
+         ((web-mode-block-starts-with "if\\|for\\|while" reg-beg)
+          (setq controls (append controls (list (cons 'open "ctrl")))))
+         )
+        ) ;elixir
 
        ((string= web-mode-engine "velocity")
         (cond
