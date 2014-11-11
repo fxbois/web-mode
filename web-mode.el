@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.1.01
+;; Version: 10.1.02
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.01"
+(defconst web-mode-version "10.1.02"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -620,6 +620,10 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(("<\\(h[1-9]\\)\\([^>]*\\)>\\([^<]*\\)" 1 3 ">")
     ("^[ \t]*<\\([@a-z]+\\)[^>]*>? *$" 1 "id=\"\\([a-zA-Z0-9_]+\\)\"" "#" ">"))
   "Regexps to match imenu items (see http://web-mode.org/doc/imenu.txt)")
+
+(defvar web-mode-indentation-params
+  '(("lineup-args" . t)
+    ))
 
 (defvar web-mode-engines
   '(("angular"     . ("angularjs" "angular.js"))
@@ -6205,6 +6209,13 @@ the environment as needed for ac-sources, right before they're used.")
               (setq offset (current-column)))
             )
 
+           ((and (string= language "php")
+                 (string-match-p ",$" prev-line)
+                 (null (cdr (assoc "lineup-args" web-mode-indentation-params))))
+            (when (web-mode-translate-backward pos "[(\[]" language block-beg)
+              (setq offset (1+ (current-indentation))))
+            )
+
            ((and (string= language "php") (string-match-p "\\.$" prev-line))
             (cond
              ((and (string-match-p "\\(=\\|echo \\|return \\)" prev-line)
@@ -6338,6 +6349,7 @@ the environment as needed for ac-sources, right before they're used.")
 
            (t
             ;;TODO : prendre l'origine du bracket indent
+            ;;(message "coucou")
             (setq offset (web-mode-bracket-indentation pos
                                                        block-column
                                                        indent-offset
@@ -6751,7 +6763,7 @@ the environment as needed for ac-sources, right before they're used.")
     (goto-char pos)
     (let ((continue t) searcher depth (i 0))
       (setq depth (web-mode-bracket-depth (point) language limit))
-;;      (message "depth=%S" depth)
+      ;;(message "depth=%S" depth)
       (if (> (length regexp) 3)
           (setq searcher 'web-mode-rsb)
         (setq searcher 'web-mode-sb))
@@ -6767,6 +6779,11 @@ the environment as needed for ac-sources, right before they're used.")
                 pos nil)
           )
          ((= depth (web-mode-bracket-depth (point) language limit))
+          (setq continue nil
+                pos (point))
+          )
+         ((and (member (match-string-no-properties 0) '("(" "[" "{"))
+               (= depth (1+ (web-mode-bracket-depth (point) language limit))))
           (setq continue nil
                 pos (point))
           )
@@ -6900,7 +6917,7 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;while
       (goto-char pos)
       (setq block-info (web-mode-count-opened-brackets pos language limit))
-;;      (message "%S" block-info)
+      ;;(message "%S" block-info)
       (setq col initial-column)
       (cond
        ((plist-get block-info :inline-arg) ;;lsp
@@ -7046,10 +7063,12 @@ the environment as needed for ac-sources, right before they're used.")
 ;;              (message "num-opened=%S %S" num-opened (point))
               )
              )
-
-            (when (and (= num-opened 1) (null inline-checked))
+            ;;(message "%S" (cdr (assoc "align-args" web-mode-indentation-params)))
+            (when (and ;;nil (cdr (assoc "align-args" web-mode-indentation-params))
+                       (= num-opened 1)
+                       (null inline-checked))
               (setq inline-checked t)
-;;              (message "la%S" (point))
+              ;;              (message "la%S" (point))
               (when (not (web-mode-is-void-after)) ;(not (looking-at-p ".[ ]*$"))
                 (setq inline-pos t
                       col-num (1+ (current-column)))
