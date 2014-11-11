@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.19
+;; Version: 10.0.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.19"
+(defconst web-mode-version "10.0.20"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4426,7 +4426,7 @@ the environment as needed for ac-sources, right before they're used.")
         (region nil))
     (if (and web-mode-change-beg web-mode-change-end)
         (setq region (web-mode-propertize))
-      (message "font-lock-highlight ** untouched buffer (%S) **" this-command)
+      ;;(message "font-lock-highlight ** untouched buffer (%S) **" this-command)
       (setq region (web-mode-propertize (point) limit)))
     ;;(message "region=%S" region)
     (when (and region (car region))
@@ -8488,12 +8488,27 @@ Pos should be in a tag."
       )
      ((and web-mode-enable-auto-quoting
            (member this-command '(self-insert-command))
-           (get-text-property (1- (point)) 'tag-attr)
-           (not (get-text-property (point) 'part-element))
-           (eq (char-before) ?\=)
-           (not (looking-at-p "[ ]*[\"']")))
-      (insert "\"\"")
-      (backward-char))
+           (get-text-property (- (point) 2) 'tag-attr)
+           (not (get-text-property (point) 'part-element)))
+      (cond
+       ((and (eq (char-before) ?\=)
+             (not (looking-at-p "[ ]*[\"']")))
+        ;;(message "ici1")
+        (insert "\"\"")
+        (backward-char))
+       ((and (eq (char-before) ?\")
+             (not (looking-at-p "[ ]*[\"]")))
+        ;;(message "ici2")
+        (insert "\"")
+        (backward-char))
+       ((and (eq (char-before) ?\")
+             (eq (char-after) ?\")
+             (looking-at-p "[\"]"))
+        ;;(message "ici3")
+        (delete-char 1)
+        (backward-char))
+       )
+      )
      ((and (member this-command '(self-insert-command))
            (not (get-text-property (point) 'part-side)))
       (setq ctx (web-mode-complete))
