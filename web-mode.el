@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.0.20
+;; Version: 10.1.01
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.0.20"
+(defconst web-mode-version "10.1.01"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3248,7 +3248,8 @@ the environment as needed for ac-sources, right before they're used.")
           (setq controls (append controls (list (cons 'inside "if")))))
          ((web-mode-block-starts-with "end\\(if\\|for\\)" reg-beg)
           (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
-         ((web-mode-block-starts-with "if\\|for" reg-beg)
+         ((and (web-mode-block-starts-with "if\\|for" reg-beg)
+               (web-mode-block-ends-with ":" reg-beg))
           (setq controls (append controls (list (cons 'open (match-string-no-properties 0))))))
          )
         ) ;mako
@@ -5948,13 +5949,16 @@ the environment as needed for ac-sources, right before they're used.")
         )
 
       (when (string= web-mode-content-type "html")
+
         (cond
          ((member language '("javascript" "jsx"))
           (setq block-column (+ block-column web-mode-script-padding)))
          ((string= language "css")
           (setq block-column (+ block-column web-mode-style-padding)))
          ((not (member language '("html" "razor")))
-          (setq block-column (+ block-column web-mode-block-padding)))
+          (setq block-column (+ block-column web-mode-block-padding))
+          ;;(message "bc=%S" block-column)
+          )
          )
         )
 
@@ -6645,6 +6649,7 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-python-indentation (pos line initial-column language-offset limit)
   "Calc indent column."
   (interactive)
+  ;;(message "ic=%S" initial-column)
   (unless limit (setq limit nil))
   (let (h out prev-line prev-indentation ctx)
     (setq h (web-mode-previous-line pos limit))
@@ -6664,7 +6669,9 @@ the environment as needed for ac-sources, right before they're used.")
         )
        ) ;cond
       ) ;when
-    out))
+    ;;out
+    (if (< out initial-column) initial-column out)
+    ))
 
 (defun web-mode-asp-indentation (pos line initial-column language-offset limit)
   "Calc indent column."
