@@ -60,17 +60,20 @@
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-markup-indent-offset 2
+(defcustom web-mode-markup-indent-offset
+  (if (and (boundp 'standard-indent) standard-indent) standard-indent 2)
   "Html indentation level."
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-css-indent-offset 2
+(defcustom web-mode-css-indent-offset
+  (if (and (boundp 'standard-indent) standard-indent) standard-indent 2)
   "CSS indentation level."
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-code-indent-offset 2
+(defcustom web-mode-code-indent-offset
+  (if (and (boundp 'standard-indent) standard-indent) standard-indent 2)
   "Code (javascript, php, etc.) indentation level."
   :type 'integer
   :group 'web-mode)
@@ -6211,9 +6214,10 @@ the environment as needed for ac-sources, right before they're used.")
 
            ((and (string= language "php")
                  (string-match-p ",$" prev-line)
-                 (null (cdr (assoc "lineup-args" web-mode-indentation-params))))
+                 (null (cdr (assoc "lineup-args" web-mode-indentation-params)))
+                 )
             (when (web-mode-translate-backward pos "[(\[]" language block-beg)
-              (setq offset (1+ (current-indentation))))
+              (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
             )
 
            ((and (string= language "php") (string-match-p "\\.$" prev-line))
