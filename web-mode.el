@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.1.02
+;; Version: 10.1.03
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.02"
+(defconst web-mode-version "10.1.03"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -176,7 +176,7 @@ See web-mode-part-face."
   :group 'web-mode)
 
 (defcustom web-mode-enable-engine-detection nil
-  "Detect directive like -*- engine: ENGINE -*- at the top of the file."
+  "Detect such directive -*- engine: ENGINE -*- at the top of the file."
   :type 'boolean
   :group 'web-mode)
 
@@ -6165,13 +6165,21 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            ((member first-char '(?\} ?\) ?\]))
-
             (let ((ori (web-mode-opening-paren-position pos)))
               (cond
                ((null ori)
                 (message "indent-line ** invalid closing bracket (%S) **" pos)
                 (setq offset block-column))
+               ((and (looking-back ")[ ]*")
+                     (re-search-backward ")[ ]*" nil t)
+                     (web-mode-block-opening-paren block-beg))
+                (back-to-indentation)
+                (setq offset (current-indentation))
+                (when (> block-column offset)
+                  (setq offset block-column))
+                )
                (t
+                ;;(message "pos=%S" (point))
                 (goto-char ori)
                 (back-to-indentation)
                 (setq offset (current-indentation))
@@ -6216,8 +6224,15 @@ the environment as needed for ac-sources, right before they're used.")
                  (string-match-p ",$" prev-line)
                  (null (cdr (assoc "lineup-args" web-mode-indentation-params)))
                  )
-            (when (web-mode-translate-backward pos "[(\[]" language block-beg)
-              (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+            (cond
+             ((web-mode-translate-backward pos "[(\[]" language block-beg)
+              ;;(message "ixi")
+              (setq offset (+ (current-indentation)
+                              web-mode-code-indent-offset)))
+             ((web-mode-translate-backward pos "var " language block-beg)
+              ;;(message "ixi2")
+              (setq offset (+ (current-indentation) 4)))
+             )
             )
 
            ((and (string= language "php") (string-match-p "\\.$" prev-line))
