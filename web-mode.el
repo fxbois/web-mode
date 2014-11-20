@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.1.03
+;; Version: 10.1.05
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -14,14 +14,14 @@
 ;; Distribution: This file is not part of Emacs
 
 ;; =============================================================================
-;; WEB-MODE is sponsored by Kernix : Best Digital Agency (Web & Mobile) in Paris
+;; WEB-MODE is sponsored by Kernix: Best Digital Agency (Web & Mobile) in Paris
 ;; =============================================================================
 
 ;; Code goes here
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.03"
+(defconst web-mode-version "10.1.05"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -110,6 +110,11 @@
 
 (defcustom web-mode-enable-auto-quoting (display-graphic-p)
   "Add double quotes after the character = in a tag."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-auto-expanding nil
+  "e.g. s/ expands to <span>|</span>."
   :type 'boolean
   :group 'web-mode)
 
@@ -609,7 +614,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-scan-properties
   (list 'tag-beg 'tag-end 'tag-name 'tag-type 'tag-attr 'tag-attr-end
         'part-side 'part-token 'part-element 'part-expr
-        'block-side 'block-token 'block-controls 'block-beg 'block-end)
+        'block-side 'block-token 'block-controls 'block-beg 'block-end
+        ;; NOTE: syntax-table is required to have forward-word inside
+        ;;       a comment
+        'syntax-table)
   "Text properties used for code regions/tokens and html nodes.")
 
 (defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]-]*\\)"
@@ -626,6 +634,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-indentation-params
   '(("lineup-args" . t)
+    ("lineup-calls" . t)
     ))
 
 (defvar web-mode-engines
@@ -790,6 +799,24 @@ Must be used in conjunction with web-mode-enable-block-face."
 ;;     )
 ;;   "Closing blocks (see web-mode-block-close)")
 
+(defvar web-mode-expanders
+  '(("a/" . "<a href=\"|\"></a>")
+    ("b/" . "<table><tbody><tr><td>|</td><td></td></tr></tbody></table>")
+    ("c/" . "<div class=\"|\"></div>")
+    ("d/" . "<div>|</div>")
+    ("e/" . "<em>|</em>")
+    ("f/" . "<form>|</form>")
+    ("g/" . "<strong>|</strong>")
+    ("h/" . "<h1>|</h1>")
+    ("i/" . "<img src=\"|\" />")
+    ("l/" . "<li>|</li>")
+    ("n/" . "<input type=\"|\" />")
+    ("p/" . "<p>|</p>")
+    ("s/" . "<span>|</span>")
+    ("t/" . "<td>|</td>")
+    ("u/" . "<ul><li>|</li><li></li></ul>")
+    ("?/" . "<?php | ?>")))
+
 (defvar web-mode-engines-auto-pairs
   '(("angular"     . (("{{ " " }}")))
     ("asp"         . (("<% " " %>")))
@@ -859,6 +886,7 @@ Must be used in conjunction with web-mode-enable-block-face."
               ("while"   . ("<?php while ("   . "): ?>\n\n<?php endwhile; ?>"))
               ("for"     . ("<?php for ("     . " ; ; ): ?>\n\n<?php endfor; ?>"))
               ("foreach" . ("<?php foreach (" . " as ): ?>\n\n<?php endforeach; ?>"))
+              ("each"    . ("<?php foreach (" . " as ): ?>\n\n<?php endforeach; ?>"))
               ("switch"  . ("<?php switch ("  . "): ?>\n<?php case 1: ?>\n\n<?php break ;?>\n<?php case 2: ?>\n\n<?php break ;?>\n<?php endswitch;?>"))))
     ("django" . (("block"      . ("{% block "      . " %}\n\n{% endblock %}"))
                  ("comment"    . ("{% comment "    . " %}\n\n{% endcomment %}"))
@@ -3011,7 +3039,9 @@ the environment as needed for ac-sources, right before they're used.")
 
         (when (eq token-type 'comment)
           (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
-          (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">")))
+          ;;(put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">"))
+          (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax ">"))
+          )
 
         ) ;while
 
@@ -3979,7 +4009,7 @@ the environment as needed for ac-sources, right before they're used.")
          ) ;cond
 
         (when (and beg (>= reg-end (point)) token-type)
-;;          (message "%S %S %S" beg (point) token-type)
+          ;;(message "%S %S %S" beg (point) token-type)
           (put-text-property beg (point) 'part-token token-type)
           (when (eq token-type 'comment)
             (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
@@ -6216,22 +6246,38 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            ((and (string= language "php") (string-match-p "^->" line))
-            (when (web-mode-translate-backward pos "->" language block-beg)
-              (setq offset (current-column)))
+            (cond
+             ((cdr (assoc "lineup-calls" web-mode-indentation-params))
+              (when (web-mode-translate-backward pos "->" language block-beg)
+                (setq offset (current-column))))
+             ((string-match-p "^->" prev-line)
+              (setq offset prev-indentation))
+             (t
+              (setq offset (+ prev-indentation web-mode-code-indent-offset)))
+             )
             )
 
-           ((and (string= language "php")
+           ((and (member language '("javascript" "jsx")) (eq ?\. first-char))
+            (cond
+             ((cdr (assoc "lineup-calls" web-mode-indentation-params))
+              (when (web-mode-translate-backward pos "[[:alnum:][:blank:]]\\.[[:alpha:]]" language block-beg)
+                (setq offset (1+ (current-column)))))
+             ((string-match-p "^\\." prev-line)
+              (setq offset prev-indentation))
+             (t
+              (setq offset (+ prev-indentation web-mode-code-indent-offset)))
+             )
+            )
+
+           ((and (member language '("php"))
                  (string-match-p ",$" prev-line)
-                 (null (cdr (assoc "lineup-args" web-mode-indentation-params)))
-                 )
+                 (null (cdr (assoc "lineup-args" web-mode-indentation-params))))
             (cond
              ((web-mode-translate-backward pos "[(\[]" language block-beg)
-              ;;(message "ixi")
               (setq offset (+ (current-indentation)
                               web-mode-code-indent-offset)))
-             ((web-mode-translate-backward pos "var " language block-beg)
-              ;;(message "ixi2")
-              (setq offset (+ (current-indentation) 4)))
+             ;;((web-mode-translate-backward pos "var " language block-beg)
+             ;; (setq offset (+ (current-indentation) 4)))
              )
             )
 
@@ -6251,11 +6297,6 @@ the environment as needed for ac-sources, right before they're used.")
              )
             )
 
-           ((and (member language '("javascript" "jsx"))
-                 (eq ?\. first-char))
-            (when (web-mode-translate-backward pos "[[:alnum:][:blank:]]\\.[[:alpha:]]" language block-beg)
-              (setq offset (1+ (current-column))))
-            )
 
            ((and (member first-char '(?\? ?\. ?\:))
                  (not (member language '("erb"))))
@@ -6808,7 +6849,7 @@ the environment as needed for ac-sources, right before they're used.")
           )
          ) ;cond
         ) ;while
-;;      (message "%S: %S" regexp pos)
+      ;;(message "%S: %S" regexp pos)
       pos)))
 
 (defun web-mode-bracket-depth (pos language &optional limit)
@@ -8444,69 +8485,6 @@ Pos should be in a tag."
       engine)
     ))
 
-(defun web-mode-complete ()
-  "Autocomple at point."
-  (interactive)
-  (let ((beg (1- (point)))
-        (end (point))
-        (chunk (buffer-substring-no-properties (- (point) 2) (point)))
-        (auto-closed nil)
-        (auto-paired nil))
-
-    ;;-- auto-closing
-    (when (and web-mode-enable-auto-closing
-               (or (and (= web-mode-auto-close-style 2)
-                        (not (get-text-property end 'part-side))
-                        (string-match-p "[[:alnum:]'\"]>" chunk))
-                   (string= "</" chunk))
-               (not (get-text-property (- beg 1) 'block-side)))
-      (when (web-mode-element-close)
-        ;;        (message "auto-close %S" web-mode-change-end)
-        (setq auto-closed t))
-      )
-
-    ;;-- auto-pairing
-    (when (and web-mode-enable-auto-pairing
-               (not auto-closed)
-               ;;(not (get-text-property end 'part-side))
-               )
-      (let ((i 0) expr p after pos-end (l (length web-mode-auto-pairs)))
-        (setq pos-end (if (> (+ end 32) (line-end-position))
-                          (line-end-position)
-                        (+ end 10)))
-        (setq chunk (buffer-substring-no-properties (- beg 2) end)
-              after (buffer-substring-no-properties end pos-end))
-        (while (and (< i l) (not auto-paired))
-          (setq expr (elt web-mode-auto-pairs i)
-                i (1+ i))
-          ;;(message "chunk=%S expr=%S after=%S" chunk expr after)
-          (when (and (string= (elt expr 0) chunk)
-                     (not (string-match-p (regexp-quote (or (elt expr 2) (elt expr 1))) after)))
-            (setq auto-paired t)
-            (insert (elt expr 1))
-            (if (not (elt expr 2))
-                (goto-char end)
-              (setq p (point))
-              (insert (elt expr 2))
-              (goto-char p))
-            ) ;when
-          ) ;while
-        ) ;let
-      ) ; end auto-pairing
-
-    (cond
-     ((or auto-closed auto-paired)
-      (when (and web-mode-change-end (>= (line-end-position) web-mode-change-end))
-        (setq web-mode-change-end (line-end-position))
-        ;;        (message "new change-end=%S" web-mode-change-end)
-        )
-      (list :auto-closed auto-closed :auto-paired auto-paired))
-     (t
-      nil)
-     )
-
-    ))
-
 (defun web-mode-on-after-change (beg end len)
   "Handles auto-pairing, auto-closing, and region-refresh after buffer alteration."
   ;;(message "after-change: pos=%d, beg=%d, end=%d, len=%d, cur=%d, cmd=%S" (point) beg end len (current-column) this-original-command)
@@ -8517,36 +8495,131 @@ Pos should be in a tag."
     (setq web-mode-change-end end))
   )
 
+(defun web-mode-complete ()
+  "Autocomple at point."
+  (interactive)
+  (let ((pos (point))
+        (chunk (buffer-substring-no-properties (- (point) 2) (point)))
+        (auto-closed nil)
+        (auto-expanded nil)
+        (auto-paired nil))
+
+    ;;(message "(%S) chunk=%S" (point) chunk)
+
+    ;;-- auto-closing
+    (when (and web-mode-enable-auto-closing
+               (>= pos 4)
+               (or (and (= web-mode-auto-close-style 2)
+                        (not (get-text-property pos 'part-side))
+                        (string-match-p "[[:alnum:]'\"]>" chunk))
+                   (string= "</" chunk))
+               (not (get-text-property (- pos 2) 'block-side))
+               (web-mode-element-close))
+      (setq auto-closed t))
+
+    ;;-- auto-pairing
+    (when (and web-mode-enable-auto-pairing
+               (>= pos 4)
+               (not auto-closed))
+      (let ((i 0) expr p after pos-end (l (length web-mode-auto-pairs)))
+        (setq pos-end (if (> (+ pos 32) (line-end-position))
+                          (line-end-position)
+                        (+ pos 10)))
+        (setq chunk (buffer-substring-no-properties (- pos 3) pos)
+              after (buffer-substring-no-properties pos pos-end))
+        (while (and (< i l) (not auto-paired))
+          (setq expr (elt web-mode-auto-pairs i)
+                i (1+ i))
+          ;;(message "chunk=%S expr=%S after=%S" chunk expr after)
+          (when (and (string= (elt expr 0) chunk)
+                     (not (string-match-p (regexp-quote (or (elt expr 2) (elt expr 1))) after)))
+            (setq auto-paired t)
+            (insert (elt expr 1))
+            (if (not (elt expr 2))
+                (goto-char pos)
+              (setq p (point))
+              (insert (elt expr 2))
+              (goto-char p))
+            ) ;when
+          ) ;while
+        ) ;let
+      ) ; end auto-pairing
+
+    ;;-- auto-expanding
+    (when (and web-mode-enable-auto-expanding
+               (not auto-closed)
+               (not auto-paired)
+               (eq (char-before) ?\/)
+               (not (get-text-property (1- pos) 'tag-type))
+               (not (get-text-property (1- pos) 'part-side))
+               (not (get-text-property (1- pos) 'block-side))
+               (looking-back "\\(^\\|[[:punct:][:space:]>]\\)./"))
+      (let ((i 0) pair (l (length web-mode-expanders)))
+        (setq chunk (buffer-substring-no-properties (- pos 2) pos))
+        ;;(message "%S" chunk)
+        (while (and (< i l) (not auto-expanded))
+          (setq pair (elt web-mode-expanders i)
+                i (1+ i))
+          (when (string= (car pair) chunk)
+            (setq auto-expanded t)
+            (delete-char -2)
+            (insert (cdr pair))
+            (when (string-match-p "|" (cdr pair))
+              (search-backward "|")
+              (delete-char 1))
+            ) ;when
+          ) ;while
+        ) ; let
+      ) ; end auto-expanding
+
+    (cond
+     ((or auto-closed auto-paired auto-expanded)
+      (when (and web-mode-change-end (>= (line-end-position) web-mode-change-end))
+        (setq web-mode-change-end (line-end-position)))
+      (list :auto-closed auto-closed :auto-paired auto-paired :auto-expanded auto-expanded))
+     (t
+      nil)
+     )
+
+    ))
+
 (defun web-mode-on-post-command ()
-  (let (ctx n)
+  (let (ctx n char)
+
     (when (< (point) 16)
       (web-mode-detect-content-type))
+
     (when (and web-mode-enable-engine-detection
                (or (null web-mode-engine) (string= web-mode-engine "none"))
                (< (point) web-mode-chunk-length)
                (web-mode-detect-engine))
       (web-mode-on-engine-setted)
       (web-mode-buffer-highlight))
-    ;;(message "%S %S" this-command web-mode-enable-auto-opening)
+
+    (when (> (point) 1)
+      (setq char (char-before)))
+
     (cond
-     ((<= (point) 3)
+
+     ((null char)
       )
-     ((and web-mode-enable-auto-quoting
+
+     ;; move auto-quoting in web-mode-complete
+     ((and (>= (point) 3)
+           web-mode-enable-auto-quoting
            (member this-command '(self-insert-command))
            (get-text-property (- (point) 2) 'tag-attr)
            (not (get-text-property (point) 'part-element)))
       (cond
-       ((and (eq (char-before) ?\=)
+       ((and (eq char ?\=)
              (not (looking-at-p "[ ]*[\"']")))
-        ;;(message "ici1")
         (insert "\"\"")
         (backward-char))
-       ((and (eq (char-before) ?\")
+       ((and (eq char ?\")
              (not (looking-at-p "[ ]*[\"]")))
-        ;;(message "ici2")
         (insert "\"")
         (backward-char))
-       ((and (eq (char-before) ?\")
+       ((and (eq char ?\")
              (eq (char-after) ?\")
              (looking-at-p "[\"]"))
         ;;(message "ici3")
@@ -8554,10 +8627,11 @@ Pos should be in a tag."
         (backward-char))
        )
       )
-     ((and (member this-command '(self-insert-command))
-           (not (get-text-property (point) 'part-side)))
-      (setq ctx (web-mode-complete))
-      )
+
+     ((and (>= (point) 3)
+           (member this-command '(self-insert-command)))
+      (setq ctx (web-mode-complete)))
+
      ((and web-mode-enable-auto-opening
            (member this-command '(newline electric-newline-and-maybe-indent))
            ;;           (not (web-mode-buffer-narrowed-p))
@@ -8589,7 +8663,9 @@ Pos should be in a tag."
     (when (and web-mode-enable-auto-indentation
                (member this-command '(self-insert-command))
                ;;(not auto-opened)
-               (or (and ctx (plist-get ctx :auto-closed))
+               (or (and ctx
+                        (or (plist-get ctx :auto-closed)
+                            (plist-get ctx :auto-expanded)))
                    (and (> (point) (point-min))
                         (get-text-property (1- (point)) 'tag-end)
                         (get-text-property (line-beginning-position) 'tag-beg))))
