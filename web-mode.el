@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.1.05
+;; Version: 10.1.06
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.05"
+(defconst web-mode-version "10.1.06"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -702,7 +702,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("thymeleaf"        . "\\.thtml\\'")
     ("velocity"         . "\\.v\\(sl\\|tl\\|m\\)\\'")
 
-    ("django"           . "twig")
+    ("django"           . "[st]wig")
     ("razor"            . "scala")
 
     )
@@ -2515,8 +2515,8 @@ the environment as needed for ac-sources, right before they're used.")
               )
              ((and (string= web-mode-engine "php")
                    (string= "<?" sub2))
-              (if (or (text-property-not-all (+ open 2) (point-max) 'tag-beg nil)
-                      (text-property-not-all (+ open 2) (point-max) 'block-beg nil))
+              (if (or (text-property-not-all (1+ open) (point-max) 'tag-beg nil)
+                      (text-property-not-all (1+ open) (point-max) 'block-beg nil))
 
                   (setq close nil
                         delim-close nil
@@ -3040,10 +3040,8 @@ the environment as needed for ac-sources, right before they're used.")
         (when (eq token-type 'comment)
           (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
           ;;(put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">"))
-          (if (>= (point) (point-max))
-              (setq end (1- (point)))
-            (setq end (point)))
-          (put-text-property end (1+ end) 'syntax-table (string-to-syntax ">"))
+          (when (< (point) (point-max))
+            (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax ">")))
           )
 
         ) ;while
@@ -4016,10 +4014,8 @@ the environment as needed for ac-sources, right before they're used.")
           (put-text-property beg (point) 'part-token token-type)
           (when (eq token-type 'comment)
             (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
-            ;;(if (>= (point) (point-max))
-            ;;    (setq end (1- (point-max)))
-            ;;  (setq end (point)))
-            (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">"))
+            (when (< (point) (point-max))
+              (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax ">")))
             )
           )
 
@@ -10596,6 +10592,7 @@ Pos should be in a tag."
         (setq out (concat out (format "%s(%S) " (symbol-name symbol) (get-text-property (point) symbol)))))
       )
     (message "%s\n" out)
+    ;;(message "syntax-class=%S" (syntax-class (syntax-after (point))))
     (message nil)
     ))
 
