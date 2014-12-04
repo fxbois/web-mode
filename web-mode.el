@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.1.07
+;; Version: 10.1.08
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.07"
+(defconst web-mode-version "10.1.08"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1506,10 +1506,15 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-ctemplate-font-lock-keywords
   (list
-   '("{{[#/>][ ]*\\([[:alnum:]_-]+\\)" 1 'web-mode-block-control-face)
-   '("[[:alnum:]_]" 0 'web-mode-variable-name-face)
-   '("[ \t]+\\([[:alnum:]_]+=\\)" 1 'web-mode-param-name-face t t)
-   '("[:=]\\([[:alpha:]_]+\\)" 1 'web-mode-function-call-face t t)
+   '("{[~]?{[#/>]?[ ]*\\([[:alnum:]_-]+\\)" 1 'web-mode-block-control-face)
+   '("[ \t]+\\([[:alnum:]_]+\\)=\\([[:alnum:]_.]+\\|\"[^\"]+\"\\)"
+     (1 'web-mode-block-attr-name-face)
+     (2 'web-mode-block-attr-value-face))
+   '("\"[^\"]+\"" 0 'web-mode-block-string-face)
+   ;;'("[[:alnum:]_]" 0 'web-mode-block-attr-name-face)
+   ;;'("[[:alnum:]_]" 0 'web-mode-variable-name-face)
+   ;;'("=\\([[:alnum:]_.]+\\)" 1 'web-mode-block-string-face t t)
+   ;;'("[:=]\\([[:alpha:]_]+\\)" 1 'web-mode-function-call-face t t)
    ))
 
 (defvar web-mode-razor-font-lock-keywords
@@ -2777,7 +2782,7 @@ the environment as needed for ac-sources, right before they're used.")
         (setq token-type 'comment)
         )
        ((member sub2 '("{{"))
-        (setq regexp "\"\\|'")
+        ;;(setq regexp "\"\\|'")
         )
        )
       ) ;ctemplate
