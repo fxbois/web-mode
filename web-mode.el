@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.1.08
+;; Version: 10.1.09
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.08"
+(defconst web-mode-version "10.1.09"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1970,14 +1970,16 @@ the environment as needed for ac-sources, right before they're used.")
 (define-derived-mode web-mode web-mode-prog-mode "Web"
   "Major mode for editing web templates."
 
+  (make-local-variable 'web-mode-attr-indent-offset)
   (make-local-variable 'web-mode-auto-pairs)
   (make-local-variable 'web-mode-block-regexp)
-  (make-local-variable 'web-mode-engine-open-delimiter-regexps)
   (make-local-variable 'web-mode-change-beg)
   (make-local-variable 'web-mode-change-end)
+  (make-local-variable 'web-mode-code-indent-offset)
   (make-local-variable 'web-mode-column-overlays)
   (make-local-variable 'web-mode-comment-style)
   (make-local-variable 'web-mode-content-type)
+  (make-local-variable 'web-mode-css-indent-offset)
   (make-local-variable 'web-mode-display-table)
   (make-local-variable 'web-mode-enable-block-face)
   (make-local-variable 'web-mode-enable-inlays)
@@ -1986,6 +1988,7 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-engine)
   (make-local-variable 'web-mode-engine-attr-regexp)
   (make-local-variable 'web-mode-engine-file-regexps)
+  (make-local-variable 'web-mode-engine-open-delimiter-regexps)
   (make-local-variable 'web-mode-engine-token-regexp)
   (make-local-variable 'web-mode-expand-initial-pos)
   (make-local-variable 'web-mode-expand-previous-state)
@@ -1993,8 +1996,11 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-indent-style)
   (make-local-variable 'web-mode-is-scratch)
   (make-local-variable 'web-mode-jshint-errors)
+  (make-local-variable 'web-mode-markup-indent-offset)
+  (make-local-variable 'web-mode-sql-indent-offset)
   (make-local-variable 'web-mode-start-tag-overlay)
   (make-local-variable 'web-mode-time)
+
 
   (make-local-variable 'fill-paragraph-function)
   (make-local-variable 'font-lock-beg)
