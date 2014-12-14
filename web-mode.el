@@ -6345,14 +6345,11 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            ((and (member language '("javascript" "jsx"))
-                 (or (eq prev-char ?\,) (eq first-char ?\,))
-                 ;;(string-match-p ",$" prev-line)
-                 ;;(cdr (assoc "lineup-args" web-mode-indentation-params))
-                 )
+                 (or (eq prev-char ?\,) (eq first-char ?\,)))
             (cond
-             ((web-mode-translate-backward pos "\\(var \\|[({\[]\\)" language reg-beg)
+             ((web-mode-part-args-beginning pos reg-beg)
               ;;(message "%S" (point))
-              (setq offset (1+ (current-column)))
+              (setq offset (current-column))
               (when (eq first-char ?\,)
                 (goto-char pos)
                 (looking-at ",[ \t\n]*")
@@ -6420,7 +6417,7 @@ the environment as needed for ac-sources, right before they're used.")
                ((and (not (null (string-match-p ")$" prev-line)))
                      (web-mode-block-sb ")")
                      (web-mode-block-opening-paren reg-beg)
-                     (progn (message "ici %S" (point)) t)                     ()
+                     (progn (message "ici %S" (point)) t)
                      nil)
                 )
                ((web-mode-rsb "[^!=][=(]" reg-beg)
@@ -6968,7 +6965,7 @@ the environment as needed for ac-sources, right before they're used.")
                 pos nil)
           )
          ((= depth (web-mode-bracket-depth (point) language limit))
-          ;;(message "regexp=%S ms=%S pos=%S" regexp (match-string-no-properties 0) pos)
+          ;;(message "depth=%S regexp=%S ms=%S pos=%S point=%S" depth regexp (match-string-no-properties 0) pos (point))
           (setq continue nil
                 pos (+ (point) (1- (length (match-string-no-properties 0)))))
           ;;(message "pos=%S" pos)
@@ -9689,6 +9686,14 @@ Pos should be in a tag."
   (when pos (goto-char pos))
   pos)
 
+(defun web-mode-part-args-beginning (&optional pos part-beg)
+  (interactive)
+  (unless pos (setq pos (point)))
+  (unless part-beg (setq part-beg (web-mode-part-beginning-position pos)))
+  (setq pos (web-mode-part-args-beginning-position pos part-beg))
+  (when pos (goto-char pos))
+  pos)
+
 (defun web-mode-block-string-beginning-position (pos &optional block-beg)
   (interactive)
   (unless pos (setq pos (point)))
@@ -9738,7 +9743,7 @@ Pos should be in a tag."
         (setq pos (web-mode-part-token-beginning-position pos)))
        ((get-text-property pos 'block-side)
         (setq pos (web-mode-block-beginning-position pos)))
-       ((member char '(?\) ?\]))
+       ((member char '(?\) ?\] ?\}))
         (setq pos (web-mode-opening-paren-position pos part-beg))
         (setq pos (1- pos)))
        ((member char '(?\( ?\{ ?\= ?\[ ?\? ?\: ?\; ?\,))
@@ -9752,6 +9757,39 @@ Pos should be in a tag."
        ) ;cond
       ) ;while
     pos))
+
+(defun web-mode-part-args-beginning-position (pos &optional part-beg)
+  (interactive)
+  (unless pos (setq pos (point)))
+  (unless part-beg (setq part-beg (web-mode-part-beginning-position pos)))
+  (let (char (continue (not (null pos))))
+    (while continue
+      (setq char (char-after pos))
+      (cond
+       ((< pos part-beg)
+        (message "part-args-beginning-position ** failure **")
+        (setq continue nil
+              pos part-beg))
+       ((and (member (get-text-property pos 'part-token) '(string comment))
+             (eq (get-text-property pos 'part-token) (get-text-property (1- pos) 'part-token)))
+        (setq pos (web-mode-part-token-beginning-position pos)))
+       ((get-text-property pos 'block-side)
+        (setq pos (web-mode-block-beginning-position pos)))
+       ((member char '(?\) ?\] ?\}))
+        (setq pos (web-mode-opening-paren-position pos part-beg))
+        (setq pos (1- pos)))
+       ((member char '(?\( ?\{ ?\[))
+        (setq continue nil)
+        (web-mode-looking-at ".[ \t\n]*" pos)
+        (setq pos (+ pos (length (match-string-no-properties 0)))))
+       ((web-mode-looking-back "\\(var\\|let\\|return\\)[ \n\t]*" pos)
+        (setq continue nil))
+       (t
+        (setq pos (1- pos)))
+       ) ;cond
+      ) ;while
+    pos))
+
 
 (defun web-mode-part-token-beginning-position (&optional pos)
   (cond

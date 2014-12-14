@@ -1,0 +1,29 @@
+<div>
+  <script>
+   func(x,
+        y);
+   var a= 47,
+       b     = 48,
+       c = 49
+     , x;
+   var a= 47
+     , b = 48
+     , c = 49
+   ;
+   var a = require('titi')
+     , b = 48
+     , c = 49;
+   var x = "scd" +
+           "sxqsx" +
+           toto
+         + "xs";
+   func("scd" +
+        "sxqsx" +
+        toto
+      + "xs");
+   return "scd" +
+          "sxqsx" +
+          toto
+        + "xs";
+  </script>
+</div>
