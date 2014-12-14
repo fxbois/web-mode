@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.1.14
+;; Version: 10.1.15
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,12 +21,12 @@
 
 ;;---- TODO --------------------------------------------------------------------
 
-;; web-mode-call-begining
+;; web-mode-call-begining -> aligner sur le premier . ex. toto.titi.tata.\ntutu
 ;; uniformiser lineup args
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.14"
+(defconst web-mode-version "10.1.15"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6110,18 +6110,19 @@ the environment as needed for ac-sources, right before they're used.")
              (prev-line (plist-get ctx :prev-line))
              (prev-char (plist-get ctx :prev-char))
              (prev-props (plist-get ctx :prev-props))
-             (prev-indentation (plist-get ctx :prev-indentation)))
+             (prev-indentation (plist-get ctx :prev-indentation))
+             (chars (list first-char prev-char)))
 
+      (cond
+
+       ((or (bobp) (= (line-number-at-pos pos) 1))
+        (setq offset 0)
+        )
+
+       ((string= type "string")
         (cond
-
-         ((or (bobp) (= (line-number-at-pos pos) 1))
-          (setq offset 0)
-          )
-
-         ((string= type "string")
-          (cond
-           ((and (get-text-property pos 'block-token)
-                 (web-mode-block-token-starts-with (concat "[ \n]*" web-mode-sql-queries)))
+         ((and (get-text-property pos 'block-token)
+               (web-mode-block-token-starts-with (concat "[ \n]*" web-mode-sql-queries)))
             (save-excursion
               (let (col)
 ;;                (web-mode-block-rsb "SELECT")
@@ -6235,6 +6236,13 @@ the environment as needed for ac-sources, right before they're used.")
             (setq offset (current-column)))
           )
 
+         ((and (get-text-property pos 'block-side)
+               (eq (get-text-property pos 'block-token) 'delimiter-end))
+          (when (web-mode-block-beginning)
+            (setq offset (current-column)))
+          )
+
+
          ((member language '("asp" "aspx" "blade" "code" "django" "erb"
                              "freemarker" "javascript" "jsp" "jsx" "lsp"
                              "mako" "mason" "mojolicious"
@@ -6242,12 +6250,6 @@ the environment as needed for ac-sources, right before they're used.")
                              "template-toolkit" "web2py"))
 
           (cond
-
-           ((and (get-text-property pos 'block-side)
-                 (eq (get-text-property pos 'block-token) 'delimiter-end))
-            (when (web-mode-block-beginning)
-              (setq offset (current-column)))
-            )
 
            ((string= language "lsp")
             (setq offset (web-mode-bracket-indentation pos
@@ -6320,18 +6322,6 @@ the environment as needed for ac-sources, right before they're used.")
              )
             )
 
-           ((and (member language '("javascript" "jsx")) (eq ?\. first-char))
-            (cond
-             ((cdr (assoc "lineup-calls" web-mode-indentation-params))
-              (when (web-mode-translate-backward pos "[[:alnum:][:blank:]]\\.[[:alpha:]]" language reg-beg)
-                (setq offset (1+ (current-column)))))
-             ((string-match-p "^\\." prev-line)
-              (setq offset prev-indentation))
-             (t
-              (setq offset (+ prev-indentation web-mode-code-indent-offset)))
-             )
-            )
-
            ((and (member language '("php"))
                  (string-match-p ",$" prev-line)
                  (null (cdr (assoc "lineup-args" web-mode-indentation-params))))
@@ -6341,24 +6331,6 @@ the environment as needed for ac-sources, right before they're used.")
                               web-mode-code-indent-offset)))
              ;;((web-mode-translate-backward pos "var " language reg-beg)
              ;; (setq offset (+ (current-indentation) 4)))
-             )
-            )
-
-           ((and (member language '("javascript" "jsx"))
-                 (or (eq prev-char ?\,) (eq first-char ?\,)))
-            (cond
-             ((web-mode-part-args-beginning pos reg-beg)
-              ;;(message "%S" (point))
-              (setq offset (current-column))
-              (when (eq first-char ?\,)
-                (goto-char pos)
-                (looking-at ",[ \t\n]*")
-                (setq offset (- offset (length (match-string-no-properties 0)))))
-              (when (< offset reg-column) (setq offset reg-column))
-                    ;;web-mode-code-indent-offset)))
-             ;;((web-mode-translate-backward pos "var " language reg-beg)
-              ;; (setq offset (+ (current-indentation) 4)))
-              )
              )
             )
 
@@ -6374,7 +6346,41 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            ((and (member language '("javascript" "jsx"))
-                 (or (eq prev-char ?\+) (eq first-char ?\+)))
+                 (member ?\. chars))
+            (when (web-mode-part-calls-beginning pos reg-beg)
+              (cond
+               ((cdr (assoc "lineup-calls" web-mode-indentation-params))
+                (search-forward ".")
+                (setq offset (current-column))
+                (when (eq first-char ?\.)
+                  (goto-char pos)
+                  (looking-at ".[ \t\n]*")
+                  (setq offset (- offset (length (match-string-no-properties 0)))))
+                )
+               (t
+                (setq offset (+ (current-indentation) web-mode-code-indent-offset))
+                ) ;t
+               ) ;cond
+              ) ;when
+            )
+
+           ((and (member language '("javascript" "jsx"))
+                 (member ?\, chars))
+            (cond
+             ((web-mode-part-args-beginning pos reg-beg)
+              ;;(message "%S" (point))
+              (setq offset (current-column))
+              (when (eq first-char ?\,)
+                (goto-char pos)
+                (looking-at ",[ \t\n]*")
+                (setq offset (- offset (length (match-string-no-properties 0)))))
+              (when (< offset reg-column) (setq offset reg-column))
+              )
+             )
+            )
+
+           ((and (member language '("javascript" "jsx"))
+                 (member ?\+ chars))
             (when (web-mode-part-string-beginning pos reg-beg)
               (setq offset (current-column))
               (when (eq first-char ?\+)
@@ -6383,23 +6389,6 @@ the environment as needed for ac-sources, right before they're used.")
                 (setq offset (- offset (length (match-string-no-properties 0)))))
               (when (< offset reg-column) (setq offset reg-column)))
             )
-
-           ;; ((and (string= language "php")
-           ;;       (string-match-p "\\.$" prev-line))
-           ;;  (cond
-           ;;   ((and (string-match-p "\\(=\\|echo \\|return \\)" prev-line)
-           ;;         (web-mode-rsb "\\(=\\|echo\\|return\\)[ ]+" reg-beg))
-           ;;    (goto-char (match-end 0))
-           ;;    (setq offset (current-column))
-           ;;    )
-           ;;   ((string-match-p "^['\"$0-9.]" prev-line)
-           ;;    (setq offset prev-indentation)
-           ;;    )
-           ;;   (t
-           ;;    (setq offset reg-column)
-           ;;    )
-           ;;   )
-           ;;  )
 
            ;; TODO : web-mode-block-token-beg-pos
            ((and (member first-char '(?\? ?\. ?\:))
@@ -9694,6 +9683,14 @@ Pos should be in a tag."
   (when pos (goto-char pos))
   pos)
 
+(defun web-mode-part-calls-beginning (&optional pos part-beg)
+  (interactive)
+  (unless pos (setq pos (point)))
+  (unless part-beg (setq part-beg (web-mode-part-beginning-position pos)))
+  (setq pos (web-mode-part-calls-beginning-position pos part-beg))
+  (when pos (goto-char pos))
+  pos)
+
 (defun web-mode-block-string-beginning-position (pos &optional block-beg)
   (interactive)
   (unless pos (setq pos (point)))
@@ -9746,7 +9743,7 @@ Pos should be in a tag."
        ((member char '(?\) ?\] ?\}))
         (setq pos (web-mode-opening-paren-position pos part-beg))
         (setq pos (1- pos)))
-       ((member char '(?\( ?\{ ?\= ?\[ ?\? ?\: ?\; ?\,))
+       ((member char '(?\( ?\{ ?\[ ?\= ?\? ?\: ?\; ?\,))
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
@@ -9790,6 +9787,37 @@ Pos should be in a tag."
       ) ;while
     pos))
 
+(defun web-mode-part-calls-beginning-position (pos &optional part-beg)
+  (interactive)
+  (unless pos (setq pos (point)))
+  (unless part-beg (setq part-beg (web-mode-part-beginning-position pos)))
+  (let (char (continue (not (null pos))))
+    (while continue
+      (setq char (char-after pos))
+      (cond
+       ((< pos part-beg)
+        (message "part-args-beginning-position ** failure **")
+        (setq continue nil
+              pos part-beg))
+       ((and (member (get-text-property pos 'part-token) '(string comment))
+             (eq (get-text-property pos 'part-token) (get-text-property (1- pos) 'part-token)))
+        (setq pos (web-mode-part-token-beginning-position pos)))
+       ((get-text-property pos 'block-side)
+        (setq pos (web-mode-block-beginning-position pos)))
+       ((member char '(?\) ?\] ?\}))
+        (setq pos (web-mode-opening-paren-position pos part-beg))
+        (setq pos (1- pos)))
+       ((member char '(?\( ?\{ ?\[ ?\= ?\? ?\: ?\; ?\,))
+        (setq continue nil)
+        (web-mode-looking-at ".[ \t\n]*" pos)
+        (setq pos (+ pos (length (match-string-no-properties 0)))))
+       ((web-mode-looking-back "\\(return\\)[ \n\t]*" pos)
+        (setq continue nil))
+       (t
+        (setq pos (1- pos)))
+       ) ;cond
+      ) ;while
+    pos))
 
 (defun web-mode-part-token-beginning-position (&optional pos)
   (cond

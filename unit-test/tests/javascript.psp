@@ -1,6 +1,8 @@
 <div>
   <script>
    func(x,
+        hello()
+       ,z
         y);
    var a= 47,
        b     = 48,
@@ -25,5 +27,8 @@
           "sxqsx" +
           toto
         + "xs";
+   var x = aaa.bbb().ccc.
+               ddd
+              .eee();
   </script>
 </div>
