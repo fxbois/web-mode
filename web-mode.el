@@ -21,7 +21,7 @@
 
 ;;---- TODO --------------------------------------------------------------------
 
-;; web-mode-call-begining -> aligner sur le premier . ex. toto.titi.tata.\ntutu
+;; ne plus regarder eol (arg-lineup) dans bracket indentation
 ;; uniformiser lineup args
 
 ;;---- CONSTS ------------------------------------------------------------------
@@ -6284,11 +6284,11 @@ the environment as needed for ac-sources, right before they're used.")
               ) ;let
             )
 
-           ((and (string= language "mason")
-                 (string-match-p "</%" line))
-            (if (web-mode-block-beginning)
-                (setq offset (current-column)))
-            )
+           ;; ((and (string= language "mason")
+           ;;       (string-match-p "</%" line))
+           ;;  (if (web-mode-block-beginning)
+           ;;      (setq offset (current-column)))
+           ;;  )
 
            ((and (string= language "razor")
                  (string-match-p "^\\." line)
@@ -6303,14 +6303,13 @@ the environment as needed for ac-sources, right before they're used.")
             (setq offset (current-column))
             )
 
-           ((and (string-match-p "^[=]?%]" line)
-                 (string= web-mode-engine "template-toolkit"))
-            (if (web-mode-block-beginning)
-                (setq offset (current-column)))
-            )
+           ;; ((and (string-match-p "^[=]?%]" line)
+           ;;       (string= web-mode-engine "template-toolkit"))
+           ;;  (if (web-mode-block-beginning)
+           ;;      (setq offset (current-column)))
+           ;;  )
 
-           ((and (member language '("javascript" "jsx"))
-                 (member ?\. chars))
+           ((and (member language '("javascript" "jsx")) (member ?\. chars))
             (when (web-mode-part-calls-beginning pos reg-beg)
               (cond
                ((cdr (assoc "lineup-calls" web-mode-indentation-params))
@@ -6328,8 +6327,7 @@ the environment as needed for ac-sources, right before they're used.")
               ) ;when
             )
 
-           ((and (member language '("javascript" "jsx"))
-                 (member ?\+ chars))
+           ((and (member language '("javascript" "jsx")) (member ?\+ chars))
             (when (web-mode-part-string-beginning pos reg-beg)
               (setq offset (current-column))
               (when (eq first-char ?\+)
@@ -6339,8 +6337,8 @@ the environment as needed for ac-sources, right before they're used.")
               (when (< offset reg-column) (setq offset reg-column)))
             )
 
-           ((and (member language '("javascript" "jsx"))
-                 (member ?\, chars)) ;; TODO : tout caractère de ponctuation cf. || && & + - etc.
+           ;; TODO : tout caractère de ponctuation cf. || && & + - etc.
+           ((and (member language '("javascript" "jsx")) (member ?\, chars))
             (cond
              ((web-mode-part-args-beginning pos reg-beg)
               (setq offset (current-column))
@@ -6354,40 +6352,18 @@ the environment as needed for ac-sources, right before they're used.")
             )
 
            ((and (string= language "php") (string-match-p "^->" line))
-
             (when (web-mode-block-calls-beginning pos reg-beg)
               (cond
                ((cdr (assoc "lineup-calls" web-mode-indentation-params))
                 (search-forward "->")
-                (setq offset (- (current-column) 2))
-                ;; (message "#ici%S" (point))
-                ;; (setq offset (current-column))
-                ;; (goto-char pos)
-                ;; (looking-at "->[ \t\n]*")
-                ;; (setq offset (- offset (length (match-string-no-properties 0))))
-                ;; (when (< offset reg-column) (setq offset reg-column))
-                )
+                (setq offset (- (current-column) 2)))
                (t
                 (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
                )
               )
-
-            ;; (cond
-            ;;  ((cdr (assoc "lineup-calls" web-mode-indentation-params))
-            ;;   (when (web-mode-translate-backward pos "->" language reg-beg)
-            ;;     (setq offset (current-column))))
-            ;;  ((string-match-p "^->" prev-line)
-            ;;   (setq offset prev-indentation))
-            ;;  (t
-            ;;   (setq offset (+ prev-indentation web-mode-code-indent-offset)))
-            ;;  )
-
             )
 
            ((member ?\, chars)
-            ;;(member language '("php"))
-            ;;(null (cdr (assoc "lineup-args" web-mode-indentation-params))))
-            ;;(message "ici")
             (when (web-mode-block-args-beginning pos reg-beg)
               (cond
                ((cdr (assoc "lineup-args" web-mode-indentation-params))
@@ -6402,15 +6378,9 @@ the environment as needed for ac-sources, right before they're used.")
                 (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
                )
               )
-            ;; (cond
-            ;;  ((web-mode-translate-backward pos "[(\[]" language reg-beg)
-            ;;   (setq offset (+ (current-indentation)
-            ;;                   web-mode-code-indent-offset)))
-            ;;  )
             )
 
-           ((and (string= language "php")
-                 (member ?\. chars))
+           ((and (string= language "php") (member ?\. chars))
             (when (web-mode-block-string-beginning pos reg-beg)
               (setq offset (current-column))
               (when (eq first-char ?\.)
@@ -6456,7 +6426,6 @@ the environment as needed for ac-sources, right before they're used.")
                  (or (eq prev-char ?\))
                      (string-match-p "^else$" prev-line))
                  (not (string-match-p "^{" line)))
-
             (cond
              ((member language '("javascript" "jsx"))
               (setq offset
