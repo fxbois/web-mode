@@ -10977,8 +10977,8 @@ Pos should be in a tag."
     (recenter)
   ))
 
-;;; web-mode.el ends here
 (provide 'web-mode)
+;;; web-mode.el ends here
 
 ;; Local Variables:
 ;; coding: utf-8
