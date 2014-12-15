@@ -31,4 +31,22 @@
                ddd
               .eee();
   </script>
+  <?php
+  func($aaa,
+       $bbb,
+       $ccc
+     , $ddd) {
+
+  }
+
+  $a->b($x->y()
+          ->z("aaa" . "bbb"
+            . "ccc"))
+    ->c();
+
+  $aa->f1()->f2()
+     ->f2();
+  return $aa->f1()->f2()
+            ->f2();
+  ?>
 </div>

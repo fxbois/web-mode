@@ -11,12 +11,12 @@ if (true) {
 }
 
 var x = y,
-cd = 3;
+    cd = 3;
 if (true) {
   var x = y,
-  cd = 3;
+      cd = 3;
   export const {x, y} = z,
-  a = 10;
+               a = 10;
 }
 
 var pathData = this.barData
