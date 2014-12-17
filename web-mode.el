@@ -6142,7 +6142,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((member (buffer-substring-no-properties (point) (+ (point) 2)) '("/*" "{*" "@*"))
             (cond
              ((eq ?\* first-char)
-              (setq offset (1+ offset)))
+              (setq offset (+ offset 1)))
              (t
               (setq offset (+ offset 3)))
              ) ;cond
@@ -6168,8 +6168,7 @@ the environment as needed for ac-sources, right before they're used.")
           (when (web-mode-block-match)
             (setq offset (current-indentation))))
 
-         ((and (get-text-property pos 'block-side)
-               (eq (get-text-property pos 'block-token) 'delimiter-end))
+         ((eq (get-text-property pos 'block-token) 'delimiter-end)
           (when (web-mode-block-beginning)
             (setq offset (current-column))))
 
@@ -6398,12 +6397,9 @@ the environment as needed for ac-sources, right before they're used.")
                            'web-mode-block-statement-beginning)
                          pos reg-beg)
             (setq offset (current-column))
-            ;;(message "before %c" first-char)
             (when (member first-char '(?\+ ?\- ?\& ?\| ?\? ?\:))
-              ;;(message "%c" first-char)
               (goto-char pos)
               (looking-at "\\(||\\|&&\\|[+-&|?:]\\)[ \t\n]*")
-              ;;(message "[%s]" (match-string-no-properties 0))
               (setq offset (- offset (length (match-string-no-properties 0)))))
             ) ;when
           )
@@ -6443,8 +6439,7 @@ the environment as needed for ac-sources, right before they're used.")
             )
            (t
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
-           ) ;cond
-          )
+           ))
 
          ((and (string= language "php") (member ?\. chars))
           (cond
@@ -6891,50 +6886,6 @@ the environment as needed for ac-sources, right before they're used.")
       ;;      (message "line=%s" line)
       (cons line (current-indentation))
       )))
-
-(defun web-mode-translate-backward (pos regexp language limit)
-  "translate left"
-  (setq pos (web-mode-translate-backward-pos pos regexp language limit))
-  (if pos (goto-char pos) nil)
-  ;;(message "pos=%S" pos)
-  )
-
-(defun web-mode-translate-backward-pos (pos regexp language limit)
-  "web-mode-search-backward-at-same-depth-pos"
-  (save-excursion
-    (goto-char pos)
-    (let ((continue t) searcher depth (i 0))
-      (setq depth (web-mode-bracket-depth (point) language limit))
-      ;;(message "depth=%S" depth)
-      (if (> (length regexp) 3)
-          (setq searcher 'web-mode-rsb)
-        (setq searcher 'web-mode-sb))
-      (while continue
-        (cond
-         ((> (setq i (1+ i)) 200)
-          (setq continue nil
-                pos nil)
-          (message "translate-backward-pos ** crazy loop **")
-          )
-         ((not (funcall searcher regexp limit))
-          (setq continue nil
-                pos nil)
-          )
-         ((= depth (web-mode-bracket-depth (point) language limit))
-          ;;(message "depth=%S regexp=%S ms=%S pos=%S point=%S" depth regexp (match-string-no-properties 0) pos (point))
-          (setq continue nil
-                pos (+ (point) (1- (length (match-string-no-properties 0)))))
-          ;;(message "pos=%S" pos)
-          )
-         ((and (member (match-string-no-properties 0) '("(" "[" "{"))
-               (= depth (1+ (web-mode-bracket-depth (point) language limit))))
-          (setq continue nil
-                pos (point))
-          )
-         ) ;cond
-        ) ;while
-      ;;(message "%S: %S" regexp pos)
-      pos)))
 
 (defun web-mode-bracket-depth (pos language &optional limit)
   "Count opened brackets at POS."
@@ -11081,3 +11032,47 @@ Pos should be in a tag."
 ;;       )
 ;;     ) ;save-excursion
 ;;   )
+
+;; (defun web-mode-translate-backward (pos regexp language limit)
+;;   "translate left"
+;;   (setq pos (web-mode-translate-backward-pos pos regexp language limit))
+;;   (if pos (goto-char pos) nil)
+;;   ;;(message "pos=%S" pos)
+;;   )
+
+;; (defun web-mode-translate-backward-pos (pos regexp language limit)
+;;   "web-mode-search-backward-at-same-depth-pos"
+;;   (save-excursion
+;;     (goto-char pos)
+;;     (let ((continue t) searcher depth (i 0))
+;;       (setq depth (web-mode-bracket-depth (point) language limit))
+;;       ;;(message "depth=%S" depth)
+;;       (if (> (length regexp) 3)
+;;           (setq searcher 'web-mode-rsb)
+;;         (setq searcher 'web-mode-sb))
+;;       (while continue
+;;         (cond
+;;          ((> (setq i (1+ i)) 200)
+;;           (setq continue nil
+;;                 pos nil)
+;;           (message "translate-backward-pos ** crazy loop **")
+;;           )
+;;          ((not (funcall searcher regexp limit))
+;;           (setq continue nil
+;;                 pos nil)
+;;           )
+;;          ((= depth (web-mode-bracket-depth (point) language limit))
+;;           ;;(message "depth=%S regexp=%S ms=%S pos=%S point=%S" depth regexp (match-string-no-properties 0) pos (point))
+;;           (setq continue nil
+;;                 pos (+ (point) (1- (length (match-string-no-properties 0)))))
+;;           ;;(message "pos=%S" pos)
+;;           )
+;;          ((and (member (match-string-no-properties 0) '("(" "[" "{"))
+;;                (= depth (1+ (web-mode-bracket-depth (point) language limit))))
+;;           (setq continue nil
+;;                 pos (point))
+;;           )
+;;          ) ;cond
+;;         ) ;while
+;;       ;;(message "%S: %S" regexp pos)
+;;       pos)))
