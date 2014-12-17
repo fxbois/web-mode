@@ -13,9 +13,9 @@
      data="cdcd" <?php // comment ?>
      titi=2>hello world</a>
   <a data="x"
-    <?php if ($x) ?>
+     <?php if ($x): ?>
      data="x"
-    <?php endif; ?>
+     <?php endif; ?>
      titi="2">hello world</a>
 </div>
 <span class="d">toto</span>

@@ -6,7 +6,8 @@ module.exports = React.createClass({
   render() {
     return (
       <div>
-        <Component />
+        <Component attr="cqs" xs="xs"
+                   xsxs="sxx" />
         <Component />
         <Component />
       </div>

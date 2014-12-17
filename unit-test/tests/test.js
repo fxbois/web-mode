@@ -78,9 +78,9 @@ var foo = (bar == 1) ?
 function fieldIsValid( field, fieldSpec) {
   // todo: add remote possibility
   var value = field.value;
-  if( value.length < fieldSpec.minNumberOfChar ||
-      value.length > fieldSpec.maxNumberOfChar ||
-      value.match( fieldSpec.pattern) )
+  if ( value.length < fieldSpec.minNumberOfChar ||
+       value.length > fieldSpec.maxNumberOfChar ||
+       value.match( fieldSpec.pattern) )
     return true;
   return false;
 }
