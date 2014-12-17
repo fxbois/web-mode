@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.1.16
+;; Version: 10.1.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,12 +21,11 @@
 
 ;;---- TODO --------------------------------------------------------------------
 
-;; ne plus regarder eol (arg-lineup) dans bracket indentation
-;; uniformiser lineup args
+
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.16"
+(defconst web-mode-version "10.1.18"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -634,8 +633,9 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Regexps to match imenu items (see http://web-mode.org/doc/imenu.txt)")
 
 (defvar web-mode-indentation-params
-  '(("lineup-args"  . t)
-    ("lineup-calls" . t)
+  '(("lineup-args"    . t)
+    ("lineup-calls"   . t)
+    ("lineup-concats" . t)
     ))
 
 (defvar web-mode-engines
@@ -6377,14 +6377,25 @@ the environment as needed for ac-sources, right before they're used.")
             ) ;when
           )
 
+           ((null (cdr (assoc "lineup-concats" web-mode-indentation-params)))
+            (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+
+
          ((and (member language '("javascript" "jsx")) (member ?\+ chars))
-          (when (web-mode-part-string-beginning pos reg-beg)
+          (cond
+           ((not (web-mode-part-string-beginning pos reg-beg))
+            )
+           ((null (cdr (assoc "lineup-concats" web-mode-indentation-params)))
+            (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+           ((not (eq first-char ?\+))
+            (setq offset (current-column)))
+           (t
             (setq offset (current-column))
-            (when (eq first-char ?\+)
-              (goto-char pos)
-              (looking-at "\\+[ \t\n]*")
-              (setq offset (- offset (length (match-string-no-properties 0)))))
-            ) ;when
+            (goto-char pos)
+            (looking-at "\\+[ \t\n]*")
+            (setq offset (- offset (length (match-string-no-properties 0))))
+            )
+           )
           )
 
          ((and (member language '("javascript" "jsx" "php"))
@@ -6406,14 +6417,19 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((and (member language '("javascript" "jsx")) (member ?\, chars))
           (cond
-           ((web-mode-part-args-beginning pos reg-beg)
-            (setq offset (current-column))
-            (when (eq first-char ?\,)
-              (goto-char pos)
-              (looking-at ",[ \t\n]*")
-              (setq offset (- offset (length (match-string-no-properties 0)))))
+           ((not (web-mode-part-args-beginning pos reg-beg))
             )
-           ))
+           ((not (cdr (assoc "lineup-calls" web-mode-indentation-params)))
+            (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+           ((not (eq first-char ?\,))
+            (setq offset (current-column)))
+           (t
+            (setq offset (current-column))
+            (goto-char pos)
+            (looking-at ",[ \t\n]*")
+            (setq offset (- offset (length (match-string-no-properties 0)))))
+           )
+          )
 
          ((and (string= language "php") (string-match-p "^->" line))
           (cond
@@ -6445,6 +6461,8 @@ the environment as needed for ac-sources, right before they're used.")
           (cond
            ((not (web-mode-block-string-beginning pos reg-beg))
             )
+           ((null (cdr (assoc "lineup-concats" web-mode-indentation-params)))
+            (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ((not (eq first-char ?\.))
             (setq offset (current-column)))
            (t
@@ -10956,6 +10974,7 @@ Pos should be in a tag."
   ))
 
 (provide 'web-mode)
+
 ;;; web-mode.el ends here
 
 ;; Local Variables:
