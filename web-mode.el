@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.1.19
+;; Version: 10.1.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -25,7 +25,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.19"
+(defconst web-mode-version "10.1.20"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -654,7 +654,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("go"          . ("gtl"))
     ("jsp"         . ("grails"))
     ("mason"       . ("poet"))
-    ("lsp"         . ())
+    ("lsp"         . ("lisp"))
     ("mojolicious" . ())
     ("python"      . ())
     ("razor"       . ("play" "play2"))
@@ -5829,7 +5829,7 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-point-context (pos)
   "POS should be at the beginning of the indentation.
    Return ctx = plist containing
-    :reg-beg, :reg-column,
+    :reg-beg, :reg-col,
     :first-char, :line (trimmed)
     :type (live, comment, string),
     :language (html, php, jsp, aspx, asp + javascript, css),
@@ -5837,14 +5837,14 @@ the environment as needed for ac-sources, right before they're used.")
     :prev-line :prev-char :prev-props :prev-indentation"
   (save-excursion
     (let (ctx pos-min
-              reg-beg reg-column first-char line token language indent-offset
+              reg-beg reg-col first-char line token language indent-offset
               prev prev-line prev-char
               ;;prev-props
               prev-indentation)
 
       (setq pos-min (point-min))
       (setq reg-beg pos-min
-            reg-column 0
+            reg-col 0
             token "live"
             language ""
             prev-line ""
@@ -5872,7 +5872,7 @@ the environment as needed for ac-sources, right before they're used.")
           (setq language "javascript")
           (setq reg-beg (1+ (previous-single-property-change pos 'part-expr)))
           (goto-char reg-beg)
-          (setq reg-column (current-column))
+          (setq reg-col (current-column))
           )
         )
 
@@ -5895,7 +5895,7 @@ the environment as needed for ac-sources, right before they're used.")
              (not (get-text-property pos 'block-beg)))
         (setq reg-beg (or (web-mode-block-beginning-position pos) pos-min))
         (goto-char reg-beg)
-        (setq reg-column (current-column))
+        (setq reg-col (current-column))
         (setq language web-mode-engine)
         (setq indent-offset web-mode-code-indent-offset)
         (cond
@@ -5905,19 +5905,19 @@ the environment as needed for ac-sources, right before they're used.")
             (goto-char reg-beg)
             (looking-at "<\\?\\(=\\|php\\)?[ ]*")
             (goto-char (match-end 0))
-            (setq reg-column (current-column))
+            (setq reg-col (current-column))
             )
           )
          ((string= web-mode-engine "blade")
           (setq reg-beg (+ reg-beg 2)
-                reg-column (+ reg-column 2))
+                reg-col (+ reg-col 2))
           )
          ((string= web-mode-engine "razor")
           (setq reg-beg (+ reg-beg 2))
           )
          ((string= web-mode-engine "template-toolkit")
           (setq reg-beg (+ reg-beg 3)
-                reg-column (+ reg-column 3))
+                reg-col (+ reg-col 3))
           )
          ((and (string= web-mode-engine "jsp")
                (web-mode-looking-at "<%@\\|<[[:alpha:]]" reg-beg))
@@ -5925,7 +5925,7 @@ the environment as needed for ac-sources, right before they're used.")
             (goto-char reg-beg)
             (looking-at "<%@[ ]*[[:alpha:]]+[ ]+\\|</?[[:alpha:]]+:[[:alpha:]]+[ ]+")
             (goto-char (match-end 0))
-            (setq reg-column (current-column))
+            (setq reg-col (current-column))
             )
           )
          ((and (string= web-mode-engine "django")
@@ -5934,7 +5934,7 @@ the environment as needed for ac-sources, right before they're used.")
             (goto-char reg-beg)
             (looking-at "{{[{]?[ ]*")
             (goto-char (match-end 0))
-            (setq reg-column (current-column))
+            (setq reg-col (current-column))
             )
           )
          ((and (string= web-mode-engine "freemarker")
@@ -5943,7 +5943,7 @@ the environment as needed for ac-sources, right before they're used.")
             (goto-char reg-beg)
             (looking-at "<@[[:alpha:].]+[ ]+\\|<%@[ ]*[[:alpha:]]+[ ]+\\|<[[:alpha:]]+:[[:alpha:]]+[ ]+")
             (goto-char (match-end 0))
-            (setq reg-column (current-column))
+            (setq reg-col (current-column))
             )
           )
          ) ;cond
@@ -5956,7 +5956,7 @@ the environment as needed for ac-sources, right before they're used.")
         (setq reg-beg (or reg-beg pos-min))
         (goto-char reg-beg)
         (search-backward "<" nil t)
-        (setq reg-column (current-column))
+        (setq reg-col (current-column))
         (setq language (symbol-name (get-text-property pos 'part-side)))
         (cond
          ((string= language "css")
@@ -6041,18 +6041,18 @@ the environment as needed for ac-sources, right before they're used.")
 
         (cond
          ((member language '("javascript" "jsx"))
-          (setq reg-column (+ reg-column web-mode-script-padding)))
+          (setq reg-col (+ reg-col web-mode-script-padding)))
          ((string= language "css")
-          (setq reg-column (+ reg-column web-mode-style-padding)))
+          (setq reg-col (+ reg-col web-mode-style-padding)))
          ((not (member language '("html" "razor")))
-          (setq reg-column (+ reg-column web-mode-block-padding))
-          ;;(message "bc=%S" reg-column)
+          (setq reg-col (+ reg-col web-mode-block-padding))
+          ;;(message "bc=%S" reg-col)
           )
          )
         )
 
       (setq ctx (list :reg-beg reg-beg
-                      :reg-column reg-column
+                      :reg-col reg-col
                       :first-char first-char
                       :line line
                       :token token
@@ -6081,7 +6081,7 @@ the environment as needed for ac-sources, right before they're used.")
       (let* ((pos (point))
              (ctx (web-mode-point-context pos))
              (reg-beg (plist-get ctx :reg-beg))
-             (reg-column (plist-get ctx :reg-column))
+             (reg-col (plist-get ctx :reg-col))
              (first-char (plist-get ctx :first-char))
              (line (plist-get ctx :line))
              (token (plist-get ctx :token))
@@ -6207,33 +6207,6 @@ the environment as needed for ac-sources, right before they're used.")
            )
           )
 
-         ;; ((member language '("css"))
-         ;;  (cond
-         ;;   ((member first-char '(?\} ?\) ?\]))
-         ;;    (let ((ori (web-mode-opening-paren-position pos)))
-         ;;      (cond
-         ;;       ((null ori)
-         ;;        (message "indent-line  ** invalid closing bracket (%S) **" pos)
-         ;;        (setq offset reg-column)
-         ;;        )
-         ;;       (t
-         ;;        (goto-char ori)
-         ;;        (back-to-indentation)
-         ;;        (setq offset (current-indentation))
-         ;;        )
-         ;;       )
-         ;;      ) ;let
-         ;;    )
-         ;;   (t
-         ;;    (setq offset (car (web-mode-part-indentation pos
-         ;;                                                 reg-column
-         ;;                                                 indent-offset
-         ;;                                                 language
-         ;;                                                 reg-beg)))
-         ;;    )
-         ;;   ) ;cond
-         ;;  )
-
          ((string= language "ctemplate")
           (when (and (web-mode-block-beginning)
                      (web-mode-rsf "{{#?"))
@@ -6242,50 +6215,33 @@ the environment as needed for ac-sources, right before they're used.")
          ((string= language "erb")
           (setq offset (web-mode-ruby-indentation pos
                                                   line
-                                                  reg-column
+                                                  reg-col
                                                   indent-offset
                                                   reg-beg)))
 
          ((member language '("mako" "web2py"))
           (setq offset (web-mode-python-indentation pos
                                                     line
-                                                    reg-column
+                                                    reg-col
                                                     indent-offset
                                                     reg-beg)))
 
          ((string= language "asp")
           (setq offset (web-mode-asp-indentation pos
                                                  line
-                                                 reg-column
+                                                 reg-col
                                                  indent-offset
                                                  reg-beg)))
 
          ((string= language "lsp")
-          (let (ctx)
-            (setq ctx (web-mode-bracket-up pos language reg-beg))
-            (cond
-             ((null (plist-get ctx :pos))
-              )
-             ((member first-char '(?\( ?\)))
-              (if (web-mode-looking-at-p "((" (plist-get ctx :pos))
-                  (setq offset (+ (plist-get ctx :column) 1))
-                (setq offset (+ (plist-get ctx :column) web-mode-code-indent-offset)))
-              )
-             (t
-              (goto-char (plist-get ctx :pos))
-              (forward-char)
-              (web-mode-rsf "[[:alnum:]-:]+ ")
-              (setq offset (current-column))
-              )
-             ) ;cond
-            ))
+          (setq offset (web-mode-lisp-indentation pos ctx)))
 
          ((member first-char '(?\} ?\) ?\]))
           (let ((ori (web-mode-opening-paren-position pos)))
             (cond
              ((null ori)
               (message "indent-line ** invalid closing bracket (%S) **" pos)
-              (setq offset reg-column))
+              (setq offset reg-col))
              ((and (looking-back ")[ ]*")
                    (re-search-backward ")[ ]*" nil t)
                    (web-mode-block-opening-paren reg-beg))
@@ -6304,36 +6260,21 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((string= language "css")
           (setq offset (car (web-mode-part-indentation pos
-                                                       reg-column
+                                                       reg-col
                                                        indent-offset
                                                        language
-                                                       reg-beg)))
-          )
-
-         ;; ((and (string= language "mason")
-         ;;       (string-match-p "</%" line))
-         ;;  (if (web-mode-block-beginning)
-         ;;      (setq offset (current-column)))
-         ;;  )
+                                                       reg-beg))))
 
          ((and (string= language "razor")
                (string-match-p "^\\." line)
                (string-match-p "^\\." prev-line))
-          (setq offset prev-indentation)
-          )
+          (setq offset prev-indentation))
 
          ((and (string= language "razor")
                (string-match-p "^case " line)
                (string-match-p "^case " prev-line))
           (search-backward "case ")
-          (setq offset (current-column))
-          )
-
-         ;; ((and (string-match-p "^[=]?%]" line)
-         ;;       (string= web-mode-engine "template-toolkit"))
-         ;;  (if (web-mode-block-beginning)
-         ;;      (setq offset (current-column)))
-         ;;  )
+          (setq offset (current-column)))
 
          ((and (member language '("php" "javascript" "jsx"))
                (or (eq prev-char ?\))
@@ -6343,7 +6284,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((member language '("javascript" "jsx"))
             (setq offset
                   (+ (car (web-mode-part-indentation pos
-                                                     reg-column
+                                                     reg-col
                                                      indent-offset
                                                      language
                                                      reg-beg))
@@ -6464,62 +6405,6 @@ the environment as needed for ac-sources, right before they're used.")
             (setq offset (- offset (length (match-string-no-properties 0)))))
            ))
 
-         ;; ;; TODO : web-mode-block-token-beg-pos
-         ;; ((and (member first-char '(?\? ?\. ?\:))
-         ;;       (not (member language '("erb"))))
-         ;;  (cond
-         ;;   ((string= web-mode-engine "php")
-         ;;    ;;(message "%s %S" prev-line (string-match-p "^[^(]*)$" prev-line))
-         ;;    (cond
-         ;;     ((and (string-match-p "^[ ]*\\." prev-line)
-         ;;           (null (string-match-p "([^)]*$" prev-line))
-         ;;           (null (string-match-p "^[^(]*)$" prev-line)))
-         ;;      (setq offset prev-indentation))
-         ;;     ((and (not (null (string-match-p ")$" prev-line)))
-         ;;           (web-mode-block-sb ")")
-         ;;           (web-mode-block-opening-paren reg-beg)
-         ;;           (progn (message "ici %S" (point)) t)
-         ;;           nil)
-         ;;      )
-         ;;     ((web-mode-rsb "[^!=][=(]" reg-beg)
-         ;;      (setq offset (1+ (current-column)))
-         ;;      (if (looking-at-p " =>") (setq offset (1+ offset))))
-         ;;     ) ;cond
-
-         ;;    )
-         ;;   (t
-         ;;    (web-mode-rsb "[^!=][=(]" reg-beg)
-         ;;    (setq offset (1+ (current-column)))
-         ;;    )
-         ;;   ) ;cond
-         ;;  )
-
-         ;; ((and (member prev-char '(?\? ?\:))
-         ;;       (not (get-text-property pos 'part-element))
-         ;;       (not (string-match-p "^\\(case\\|default\\)[ :]" prev-line)))
-         ;;  ;;            (message "ici")
-         ;;  (web-mode-sb "?" reg-beg)
-         ;;  (when (looking-back ")[ ]*")
-         ;;    (web-mode-sb ")" reg-beg)
-         ;;    (goto-char (web-mode-opening-paren-position (point)))
-         ;;    )
-         ;;  (web-mode-rsb "[=(]" reg-beg)
-         ;;  (if (eq (char-after) ?\=) (skip-chars-forward "= ") (skip-chars-forward "( "))
-         ;;  (setq offset (current-column))
-         ;;  )
-
-         ;; ((and (member prev-char '(?\. ?\+ ?\? ?\:))
-         ;;       (not (get-text-property pos 'part-element))
-         ;;       (not (string-match-p "^\\(case\\|default\\)[ :]" prev-line)))
-         ;;  ;;            (message "coucou")
-         ;;  (web-mode-rsb "=\\|(" reg-beg)
-         ;;  (if (eq (char-after) ?\=) (skip-chars-forward "= ") (skip-chars-forward "( "))
-         ;;  (setq offset (current-column)))
-
-         ;; ((and (string= language "jsx") (eq (get-text-property pos 'tag-type) 'end))
-         ;;  (when (web-mode-tag-match)
-         ;;    (setq offset (current-indentation))))
-
          ((and (string= language "jsx")
                (get-text-property pos 'part-element)
                (get-text-property (1- pos) 'part-element)
@@ -6529,21 +6414,21 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((member language '("javascript" "jsx"))
           (setq offset (car (web-mode-part-indentation pos
-                                                       reg-column
+                                                       reg-col
                                                        indent-offset
                                                        language
                                                        reg-beg))))
 
          (t
           (setq offset (car (web-mode-bracket-indentation pos
-                                                          reg-column
+                                                          reg-col
                                                           indent-offset
                                                           language
                                                           reg-beg))))
 
          ) ;cond
 
-        (when (and offset reg-column (< offset reg-column)) (setq offset reg-column))
+        (when (and offset reg-col (< offset reg-col)) (setq offset reg-col))
 
         ) ;let
       ) ;save-excursion
@@ -6828,6 +6713,28 @@ the environment as needed for ac-sources, right before they're used.")
     ;;out
     (if (< out initial-column) initial-column out)
     ))
+
+(defun web-mode-lisp-indentation (pos pos-ctx)
+  (let (offset ori-ctx)
+    (setq ori-ctx (web-mode-bracket-up pos "lsp" (plist-get pos-ctx :reg-beg)))
+    ;;(message "pos-ctx=%S" pos-ctx)
+    ;;(message "ori-ctx=%S" ori-ctx)
+    (cond
+     ((null (plist-get ori-ctx :pos))
+      (setq offset (plist-get pos-ctx :reg-col)))
+     ((member (plist-get pos-ctx :first-char) '(?\( ?\)))
+      (if (web-mode-looking-at-p "((" (plist-get ori-ctx :pos))
+          (setq offset (+ (plist-get ori-ctx :column) 1))
+        (setq offset (+ (plist-get ori-ctx :column) web-mode-code-indent-offset)))
+      )
+     (t
+      (goto-char (plist-get ori-ctx :pos))
+      (forward-char)
+      (web-mode-rsf "[[:alnum:]-:]+ ")
+      (setq offset (current-column))
+      )
+     ) ;cond
+    offset))
 
 (defun web-mode-asp-indentation (pos line initial-column language-offset limit)
   "Calc indent column."
@@ -11098,3 +11005,103 @@ Pos should be in a tag."
 ;;         (if continue (forward-line))
 ;;         ) ;while
 ;;       pos)))
+
+;;--- indent line
+
+         ;; ;; TODO : web-mode-block-token-beg-pos
+         ;; ((and (member first-char '(?\? ?\. ?\:))
+         ;;       (not (member language '("erb"))))
+         ;;  (cond
+         ;;   ((string= web-mode-engine "php")
+         ;;    ;;(message "%s %S" prev-line (string-match-p "^[^(]*)$" prev-line))
+         ;;    (cond
+         ;;     ((and (string-match-p "^[ ]*\\." prev-line)
+         ;;           (null (string-match-p "([^)]*$" prev-line))
+         ;;           (null (string-match-p "^[^(]*)$" prev-line)))
+         ;;      (setq offset prev-indentation))
+         ;;     ((and (not (null (string-match-p ")$" prev-line)))
+         ;;           (web-mode-block-sb ")")
+         ;;           (web-mode-block-opening-paren reg-beg)
+         ;;           (progn (message "ici %S" (point)) t)
+         ;;           nil)
+         ;;      )
+         ;;     ((web-mode-rsb "[^!=][=(]" reg-beg)
+         ;;      (setq offset (1+ (current-column)))
+         ;;      (if (looking-at-p " =>") (setq offset (1+ offset))))
+         ;;     ) ;cond
+
+         ;;    )
+         ;;   (t
+         ;;    (web-mode-rsb "[^!=][=(]" reg-beg)
+         ;;    (setq offset (1+ (current-column)))
+         ;;    )
+         ;;   ) ;cond
+         ;;  )
+
+         ;; ((and (member prev-char '(?\? ?\:))
+         ;;       (not (get-text-property pos 'part-element))
+         ;;       (not (string-match-p "^\\(case\\|default\\)[ :]" prev-line)))
+         ;;  ;;            (message "ici")
+         ;;  (web-mode-sb "?" reg-beg)
+         ;;  (when (looking-back ")[ ]*")
+         ;;    (web-mode-sb ")" reg-beg)
+         ;;    (goto-char (web-mode-opening-paren-position (point)))
+         ;;    )
+         ;;  (web-mode-rsb "[=(]" reg-beg)
+         ;;  (if (eq (char-after) ?\=) (skip-chars-forward "= ") (skip-chars-forward "( "))
+         ;;  (setq offset (current-column))
+         ;;  )
+
+         ;; ((and (member prev-char '(?\. ?\+ ?\? ?\:))
+         ;;       (not (get-text-property pos 'part-element))
+         ;;       (not (string-match-p "^\\(case\\|default\\)[ :]" prev-line)))
+         ;;  ;;            (message "coucou")
+         ;;  (web-mode-rsb "=\\|(" reg-beg)
+         ;;  (if (eq (char-after) ?\=) (skip-chars-forward "= ") (skip-chars-forward "( "))
+         ;;  (setq offset (current-column)))
+
+         ;; ((and (string= language "jsx") (eq (get-text-property pos 'tag-type) 'end))
+         ;;  (when (web-mode-tag-match)
+         ;;    (setq offset (current-indentation))))
+
+
+         ;; ((member language '("css"))
+         ;;  (cond
+         ;;   ((member first-char '(?\} ?\) ?\]))
+         ;;    (let ((ori (web-mode-opening-paren-position pos)))
+         ;;      (cond
+         ;;       ((null ori)
+         ;;        (message "indent-line  ** invalid closing bracket (%S) **" pos)
+         ;;        (setq offset reg-col)
+         ;;        )
+         ;;       (t
+         ;;        (goto-char ori)
+         ;;        (back-to-indentation)
+         ;;        (setq offset (current-indentation))
+         ;;        )
+         ;;       )
+         ;;      ) ;let
+         ;;    )
+         ;;   (t
+         ;;    (setq offset (car (web-mode-part-indentation pos
+         ;;                                                 reg-col
+         ;;                                                 indent-offset
+         ;;                                                 language
+         ;;                                                 reg-beg)))
+         ;;    )
+         ;;   ) ;cond
+         ;;  )
+
+
+         ;; ((and (string= language "mason")
+         ;;       (string-match-p "</%" line))
+         ;;  (if (web-mode-block-beginning)
+         ;;      (setq offset (current-column)))
+         ;;  )
+
+
+         ;; ((and (string-match-p "^[=]?%]" line)
+         ;;       (string= web-mode-engine "template-toolkit"))
+         ;;  (if (web-mode-block-beginning)
+         ;;      (setq offset (current-column)))
+         ;;  )
