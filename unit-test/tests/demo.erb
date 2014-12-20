@@ -1,0 +1,112 @@
+<% unless @starred_stories.empty? %>
+  <% if @starred_stories.total_pages > 1 %>
+    <%= render_js :stories, { stories: @starred_stories } %>
+  <% end %>
+<% end %>
+
+<div>
+  <%= mail_to("",
+              "Email to a friend",
+              :subject => @listing.display_title,
+              body: "I found this listing online, and thought you might be interested:\n#{@listing.url}",
+              :class => 'mail') %>
+</div>
+
+<div id='header'>
+  <% if signed_in? -%>
+    <%= link_to t('.sign_out'), sign_out_path, :method => :delete %>
+  <% else -%>
+    <%= link_to t('.sign_in'), sign_in_path %>
+  <% end -%>
+</div>
+
+<div id='flash'>
+  <% flash.each do |key, value| -%>
+    <div id='flash_<%= key %>'><%=h value %></div>
+  <% end %>
+</div>
+
+<div>
+  <% if request.xhr? %>
+    <span></span>
+  <% end %>
+</div>
+
+
+<%
+if foo
+  puts "foo"
+  puts "foo"
+
+
+  puts "foo"
+  puts "foo"
+end
+
+$age =  5
+case $age
+when 0 .. 2
+  puts "baby"
+when 3 .. 6
+  puts "little child"
+when 7 .. 12
+  puts "child"
+when 13 .. 18
+  puts "youth"
+else
+  puts "adult"
+end
+
+class Greeter
+
+  def initialize(name = "World")
+    @name = name
+  end
+
+  def say_hi
+    puts "Hi #{@name}!"
+  end
+
+  def say_bye
+    puts "Bye #{@name}, come back soon."
+  end
+
+end
+
+x=1
+if x > 2
+  puts "x is greater than 2"
+elsif x <= 2 and x!=0
+  puts "x is 1"
+else
+  puts "I can't guess the number"
+end
+
+%>
+
+<% if request.xhr? %>
+  <div class="reloadable"></div>
+<% end %>
+
+
+<div>
+  <% if request.xhr? %>
+    <span></span>
+  <% else %>
+    <p></p>
+  <% end %>
+</div>
+
+<% @hash.each do |t, a| %>
+  <h2><%= t %></h2>
+  <% a.each do |q| %>
+    <%= link_to(q.question_answers_url) %>  </br>
+  <% end %>
+<% end %>
+
+
+<ul>
+  <% for @item in @shopping_list %>
+    <li><%= @item %></li>
+  <% end %>
+</ul>

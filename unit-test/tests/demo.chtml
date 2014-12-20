@@ -1,0 +1,10 @@
+<div>
+  {{#foo
+     attribute=bar
+     otherAttribute=baz}}
+    But for inline tags, ctemplates indents it like so:
+
+    {{foo
+      attribute=bar
+      otherAttribute=baz}}
+</div>
