@@ -84,4 +84,26 @@ java.util.Date date = new java.util.Date();
   %>
 </span>
 
+<template:addResources>
+  <script>
+   angular.module('jahiaProperties', []).constant('JAHIA_PROPERTIES', {
+     urlWsRecherche: "${currentNode.properties['webserviceRechercheOffre'].string}",
+     urlWsDetail: "${currentNode.properties['webserviceDetailOffre'].string}",
+     urlWsPanier: "${currentNode.properties['webservicePanierOffre'].string}",
+     nbResultatsParPage: ${currentNode.properties['nbResultatsParPage'].string},
+     nbRecherchesSauvegardees: ${currentNode.properties['nbRecherchesSauvegardees'].string},
+     referencePageRechercheAvancee: "<c:url value='${url.base}${currentNode.properties.referencePageRechercheAvancee.node.path}.html'/>",
+     referencePageListeOffres: "<c:url value='${url.base}${currentNode.properties.referencePageListeOffres.node.path}.html'/>",
+     referencePageDetailOffre: "<c:url value='${url.base}${currentNode.properties.referencePageDetailOffre.node.path}.html'/>",
+     referencePageGeolocalisation: "<c:url value='${url.base}${currentNode.properties.referencePageGeolocalisation.node.path}.html'/>",
+     referencePageGeolocalisationDetail: "<c:url value='${url.base}${currentNode.properties.referencePageGeolocalisationDetail.node.path}.html'/>",
+     referencePagePanierOffres: "<c:url value='${url.base}${currentNode.properties.referencePagePanierOffres.node.path}.html'/>",
+     siteName: "${fn:toLowerCase(renderContext.site.name)}",
+     rechercheCodes: ${rechercheCodes},
+     rechercheAvanceeCodes: ${rechercheAvanceeCodes}
+   });
+  </script>
+</template:addResources>
+
+
 <%-- cdcd --%>
