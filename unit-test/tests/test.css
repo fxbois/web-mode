@@ -1,0 +1,9 @@
+body {
+  width: 100px;
+}
+.dialog INPUT[type=button]:hover,
+.btn { color:#0aa; width:100%; }
+@media (min-with:900px) {
+  div[name="btn"] {
+    height:10px; /* comment */ }
+}

@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2014 François-Xavier Bois
 
-;; Version: 10.1.24
+;; Version: 10.1.26
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.24"
+(defconst web-mode-version "10.1.26"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2074,7 +2074,7 @@ the environment as needed for ac-sources, right before they're used.")
   (when (> (point-max) 256000)
     (web-mode-buffer-highlight))
 
-;;  (web-mode-trace "buffer loaded")
+  ;;(web-mode-trace "buffer loaded")
 
   )
 
@@ -2235,7 +2235,7 @@ the environment as needed for ac-sources, right before they're used.")
                   delim-open "<%[=%]?"
                   delim-close "%>"))
            )
-          ) ;mojolicious
+          ) ;elixir
 
          ((string= web-mode-engine "mojolicious")
           (cond
@@ -3564,10 +3564,6 @@ the environment as needed for ac-sources, right before they're used.")
           ) ;script
          )
 
-        ;;(message "ect=%S" element-content-type)
-        ;;(message "%S %S %S %S" tname (point) part-close-tag reg-end)
-        ;;(message "tbeg=%S tend=%S props=%S" tbeg tend props)
-
         (add-text-properties tbeg tend props)
         (put-text-property tbeg (1+ tbeg) 'tag-beg flags)
         (put-text-property (1- tend) tend 'tag-end t)
@@ -3589,19 +3585,17 @@ the environment as needed for ac-sources, right before they're used.")
       )))
 
 ;; tag flags
-;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)brackend-end
+;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)bracket-end
 
-;; start-tag, end-tag, tag-name, element (<a>xsx</a>, an element is delimited by tags), void-element
-;; http://www.w3schools.com/jsref/prop_node_nodetype.asp
-;; http://dev.w3.org/html5/html-author/#tags
-;; http://www.w3.org/TR/html-markup/syntax.html#syntax-elements
-;; http://www.w3.org/TR/html-markup/syntax.html#syntax-attributes
+;; attr flags
+;; (1)custom-attr (2)engine-attr
 
-;; attr states:
-;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after (6)value-uq (7)value-sq (8)value-dq
-;; (9)value-bq : jsx {}
+;; attr states
+;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after
+;; (6)value-uq (7)value-sq (8)value-dq (9)value-bq : jsx attr={}
+
 (defun web-mode-attr-skip (limit)
-  "Scan attributes and fetch end of current tag."
+
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0) (brace-depth 0)
         (pos-ori (point)) (state 0) (equal-offset 0) (go-back nil)
         name-beg name-end val-beg char pos escaped spaced quoted)
@@ -3816,18 +3810,12 @@ the environment as needed for ac-sources, right before they're used.")
 
     tag-flags))
 
-;; attr flags
-;; (1)custom-attr (2)engine-attr
-
-;; states:
-;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after (6)value-uq (7)value-sq (8)value-dq
 (defun web-mode-attr-scan (state char name-beg name-end val-beg flags equal-offset)
-  "scan attr."
 ;;  (message "point(%S) state(%S) c(%c) name-beg(%S) name-end(%S) val-beg(%S) flags(%S) equal-offset(%S)"
 ;;           (point) state char name-beg name-end val-beg flags equal-offset)
   (if (null flags) (setq flags 0))
   (cond
-   ((or (null name-beg))
+   ((null name-beg)
 ;;    (message "name-beg is null (%S)" (point))
     0)
    ((or (and (= state 8) (not (eq ?\" char)))
@@ -3860,7 +3848,6 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-part-scan (reg-beg reg-end &optional content-type)
   (save-excursion
-
     (let (token-re ch-before ch-at ch-next token-type beg end continue)
       (cond
        (content-type
@@ -3871,27 +3858,16 @@ the environment as needed for ac-sources, right before they're used.")
         (setq content-type (symbol-name (get-text-property reg-beg 'part-side))))
        ) ;cond
       (goto-char reg-beg)
-
-      ;;(message "part-scan: reg-beg(%S) reg-end(%S) content-type(%S)" reg-beg reg-end content-type)
-
-      ;;      (when (string= content-type "jsx")
-      ;;        (message "scan-literals")
-      ;;        (web-mode-scan-literals reg-beg reg-end)
-      ;;        )
-
       (cond
        ((member content-type '("javascript" "json"))
         (setq token-re "//\\|/\\*\\|\"\\|'"))
        ((member content-type '("jsx"))
         (setq token-re "//\\|/\\*\\|\"\\|'\\|</?[[:alpha:]]"))
        ((string= content-type "css")
-        (setq token-re "/\\*")
-        ;;(setq token-re "/\\*\\|\"\\|'")
-        )
+        (setq token-re "/\\*"))
        (t
         (setq token-re "/\\*\\|\"\\|'"))
        )
-      ;;(message "%S" token-re)
       (while (and token-re (web-mode-dom-rsf token-re reg-end t))
         (setq beg (match-beginning 0)
               end nil
@@ -3900,13 +3876,7 @@ the environment as needed for ac-sources, right before they're used.")
               ch-at (char-after beg)
               ch-next (or (char-after (1+ beg)) ?\d)
               ch-before (or (char-before beg) ?\d))
-        ;;(message "beg=%S : before(%c) at(%c) next(%c)" beg ch-before ch-at ch-next)
         (cond
-         ;;((and (get-text-property beg 'part-expr) (string= content-type "jsx"))
-         ;; (setq beg nil))
-         ;;((and (eq (get-text-property beg 'part-token) 'html)
-         ;;      (string= content-type "jsx"))
-         ;; (setq beg nil))
          ((eq ?\' ch-at)
           (while (and continue (search-forward "'" reg-end t))
             (cond
@@ -3992,10 +3962,7 @@ the environment as needed for ac-sources, right before they're used.")
                (eq ?\/ ch-at)
                (progn (or (bobp) (backward-char)) t)
                (looking-back "[(=][ ]*/")
-               (looking-at-p ".+/")
-;;               (not (eq ?\s ch-next))
-               )
-;;          (message "regexp literal at (%S)" (1- (point)))
+               (looking-at-p ".+/"))
           (while (and continue (search-forward "/" reg-end t))
             (setq continue (or (get-text-property (1- (point)) 'block-side)
                                (eq ?\\ (char-before (1- (point))))))
@@ -4302,7 +4269,7 @@ the environment as needed for ac-sources, right before they're used.")
     (web-mode-invalidate-block-region beg end))
 
    ((and web-mode-enable-part-partial-invalidation
-         (or (member web-mode-content-type '("jsx" "javascript"))
+         (or (member web-mode-content-type '("css" "jsx" "javascript"))
              (and (get-text-property beg 'part-side)
                   (get-text-property end 'part-side)
                   (> beg (point-min))
@@ -4377,8 +4344,8 @@ the environment as needed for ac-sources, right before they're used.")
         (setq language (symbol-name (get-text-property pos-beg 'part-side))))
       (setq part-beg (web-mode-part-beginning-position pos-beg)
             part-end (web-mode-part-end-position pos-beg))
-      ;;      (message "language(%S) pos-beg(%S) pos-end(%S) part-beg(%S) part-end(%S)"
-      ;;               language pos-beg pos-end part-beg part-end)
+      ;;(message "language(%S) pos-beg(%S) pos-end(%S) part-beg(%S) part-end(%S)"
+      ;;       language pos-beg pos-end part-beg part-end)
       (if (and part-beg part-end
                (>= pos-beg part-beg)
                (<= pos-end part-end)
@@ -4404,7 +4371,7 @@ the environment as needed for ac-sources, right before they're used.")
                 (setq beg (car rule1)
                       end (cdr rule2))
                 )
-;;              (message "rule-beg(%S) rule-end(%S)" beg end)
+              ;;(message "rule-beg(%S) rule-end(%S)" beg end)
               )
              (t
               (setq beg part-beg
@@ -4579,12 +4546,9 @@ the environment as needed for ac-sources, right before they're used.")
       ) ;when
     ))
 
-;; flags
-;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)brackend-end
 (defun web-mode-tag-highlight (&optional beg end)
   (unless beg (setq beg (point)))
   (unless end (setq end (1+ (web-mode-tag-end-position beg))))
-;;  (message "tag-highlight: %S %S" beg end)
   (let (name type face flags slash-beg slash-end bracket-end)
     (setq flags (get-text-property beg 'tag-beg)
           type (get-text-property beg 'tag-type)
@@ -4981,6 +4945,7 @@ the environment as needed for ac-sources, right before they're used.")
     (let (rule (continue t) (i 0) (at-rule nil))
       (while continue
         (setq rule (web-mode-css-rule-next part-end))
+        ;;(message "rule=%S" rule)
         (cond
          ((> (setq i (1+ i)) 1000)
           (message "css-rules-highlight ** too much rules **")
@@ -5076,7 +5041,6 @@ the environment as needed for ac-sources, right before they're used.")
     ))
 
 (defun web-mode-interpolate-javascript-string (beg end)
-  "Scan a js string to fontify ${ } vars"
   (save-excursion
     (goto-char (1+ beg))
     (setq end (1- end))
@@ -5089,7 +5053,6 @@ the environment as needed for ac-sources, right before they're used.")
 
 ;; todo : parsing plus compliqué: {$obj->values[3]->name}
 (defun web-mode-interpolate-block-string (beg end)
-  "Interpolate php/erb strings."
   (save-excursion
     (goto-char (1+ beg))
     (setq end (1- end))
@@ -5111,7 +5074,6 @@ the environment as needed for ac-sources, right before they're used.")
     ))
 
 (defun web-mode-interpolate-comment (beg end block-side)
-  "Interpolate comment"
   (save-excursion
     (let ((regexp (concat "\\<\\(" web-mode-comment-keywords "\\)\\>")))
       (goto-char beg)
@@ -5123,7 +5085,6 @@ the environment as needed for ac-sources, right before they're used.")
       )))
 
 (defun web-mode-interpolate-sql-string (beg end)
-  "Interpolate comment"
   (save-excursion
     (let ((regexp (concat "\\<\\(" web-mode-sql-keywords "\\)\\>")))
       (goto-char beg)
@@ -5213,7 +5174,6 @@ the environment as needed for ac-sources, right before they're used.")
     ))
 
 (defun web-mode-fill-paragraph (&optional justify)
-  "fill paragraph"
   (save-excursion
     (let ((pos (point)) fill-coll
           prop pair beg end delim-beg delim-end chunk fill-col)
@@ -5546,7 +5506,7 @@ the environment as needed for ac-sources, right before they're used.")
       )))
 
 (defun web-mode-buffer-change-attr-case (&optional type)
-  "alter tag case"
+  "Change case of attribute names (inside html tags)."
   (interactive)
   (save-excursion
     (goto-char (point-min))
