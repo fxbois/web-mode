@@ -1843,11 +1843,12 @@ the environment as needed for ac-sources, right before they're used.")
     (define-key map [menu-bar wm blk blk-clo] '(menu-item "Close" web-mode-block-close))
     (define-key map [menu-bar wm blk blk-beg] '(menu-item "Beginning" web-mode-block-beginning))
 
+    (define-key map [menu-bar wm attr attr-ins] '(menu-item "Insert" web-mode-attribute-insert))
     (define-key map [menu-bar wm attr attr-end] '(menu-item "End" web-mode-attribute-end))
     (define-key map [menu-bar wm attr attr-beg] '(menu-item "Beginning" web-mode-attribute-beginning))
     (define-key map [menu-bar wm attr attr-sel] '(menu-item "Select" web-mode-attribute-select))
     (define-key map [menu-bar wm attr attr-nex] '(menu-item "Next" web-mode-attribute-next))
-    (define-key map [menu-bar wm attr attr-tra] '(menu-item "Next" web-mode-attribute-transpose))
+    (define-key map [menu-bar wm attr attr-tra] '(menu-item "Transpose" web-mode-attribute-transpose))
 
     (define-key map [menu-bar wm tag tag-beg] '(menu-item "Sort Attributes" web-mode-tag-attributes-sort))
     (define-key map [menu-bar wm tag tag-sel] '(menu-item "Select" web-mode-tag-select))
@@ -1870,6 +1871,7 @@ the environment as needed for ac-sources, right before they're used.")
     (define-key map [menu-bar wm elt elt-end] '(menu-item "End" web-mode-element-end))
     (define-key map [menu-bar wm elt elt-inn] '(menu-item "Content (select)" web-mode-element-content-select))
     (define-key map [menu-bar wm elt elt-clo] '(menu-item "Close" web-mode-element-close))
+    (define-key map [menu-bar wm elt elt-ins] '(menu-item "Insert" web-mode-element-insert))
     (define-key map [menu-bar wm elt elt-dup] '(menu-item "Clone" web-mode-element-clone))
     (define-key map [menu-bar wm elt elt-cfo] '(menu-item "Children fold" web-mode-element-children-fold-or-unfold))
     (define-key map [menu-bar wm elt elt-chi] '(menu-item "Child" web-mode-element-child))
@@ -1888,6 +1890,7 @@ the environment as needed for ac-sources, right before they're used.")
 
     (define-key map (kbd "C-c C-a b") 'web-mode-attribute-beginning)
     (define-key map (kbd "C-c C-a e") 'web-mode-attribute-end)
+    (define-key map (kbd "C-c C-a i") 'web-mode-attribute-insert)
     (define-key map (kbd "C-c C-a s") 'web-mode-attribute-select)
     (define-key map (kbd "C-c C-a t") 'web-mode-attribute-transpose)
     (define-key map (kbd "C-c C-a n") 'web-mode-attribute-next)
@@ -1908,12 +1911,13 @@ the environment as needed for ac-sources, right before they're used.")
     (define-key map (kbd "C-c C-d t") 'web-mode-dom-traverse)
     (define-key map (kbd "C-c C-d x") 'web-mode-dom-xpath)
 
+    (define-key map (kbd "C-c C-e a") 'web-mode-element-content-select)
     (define-key map (kbd "C-c C-e b") 'web-mode-element-beginning)
     (define-key map (kbd "C-c C-e c") 'web-mode-element-clone)
     (define-key map (kbd "C-c C-e d") 'web-mode-element-child)
     (define-key map (kbd "C-c C-e e") 'web-mode-element-end)
     (define-key map (kbd "C-c C-e f") 'web-mode-element-children-fold-or-unfold)
-    (define-key map (kbd "C-c C-e i") 'web-mode-element-content-select)
+    (define-key map (kbd "C-c C-e i") 'web-mode-element-insert)
     (define-key map (kbd "C-c C-e k") 'web-mode-element-kill)
     (define-key map (kbd "C-c C-e m") 'web-mode-element-mute-blanks)
     (define-key map (kbd "C-c C-e n") 'web-mode-element-next)
@@ -7263,6 +7267,26 @@ Pos should be in a tag."
       (indent-line-to offset)
       (yank))))
 
+(defun web-mode-element-insert ()
+  "Insert an html element."
+  (interactive)
+  (let (tag-name)
+    (cond
+     ((get-text-property (point) 'tag-type)
+      (message "element-insert ** invalid context **"))
+     ((not (and (setq tag-name (read-from-minibuffer "Tag name? "))
+                (> (length tag-name) 0)))
+      (message "element-insert ** failure **"))
+     ((web-mode-element-is-void tag-name)
+      (insert (concat "<" tag-name "/>"))
+      )
+     (t
+      (insert (concat "<" tag-name ">" "</" tag-name ">"))
+      (web-mode-sb "</")
+      )
+     ) ;cond
+    ))
+
 (defun web-mode-element-rename ()
   "Rename the current html element."
   (interactive)
@@ -8475,6 +8499,27 @@ Pos should be in a tag."
         )
       ;;(message "attrs=%S" attrs)
       )))
+
+(defun web-mode-attribute-insert ()
+  "Insert an attribute inside current tag."
+  (interactive)
+  (let (attr attr-name attr-value)
+    (cond
+     ((not (eq (get-text-property (point) 'tag-type) 'start))
+      (message "attribute-insert ** invalid context **"))
+     ((not (and (setq attr-name (read-from-minibuffer "Attribute name? "))
+                (> (length attr-name) 0)))
+      (message "attribute-insert ** failure **"))
+     (t
+      (setq attr (concat " " attr-name))
+      (when (setq attr-value (read-from-minibuffer "Attribute value? "))
+        (setq attr (concat attr "=\"" attr-value "\"")))
+      (web-mode-tag-end)
+      (re-search-backward "/?>")
+      (insert attr)
+      )
+     ) ;cond
+    ))
 
 (defun web-mode-attribute-transpose (&optional pos)
   "Transpose the current html attribute."
