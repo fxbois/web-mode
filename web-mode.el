@@ -6029,7 +6029,7 @@ the environment as needed for ac-sources, right before they're used.")
                                                  curr-indentation
                                                  reg-beg)))
 
-         ((string= language "lsp")
+         ((member language '("lsp" "cl-emb"))
           (setq offset (web-mode-lisp-indentation pos ctx)))
 
          ((member curr-char '(?\} ?\) ?\]))
