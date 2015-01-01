@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.1.27
+;; Version: 10.1.28
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.27"
+(defconst web-mode-version "10.1.28"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1712,18 +1712,6 @@ Must be used in conjunction with web-mode-enable-block-face."
          '(0 'web-mode-keyword-face))
    ))
 
-(defvar web-mode-cl-emb-font-lock-keywords
-  (list
-   (cons (concat "\\<\\(" web-mode-cl-emb-keywords "\\)\\>")
-         '(0 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-cl-emb-constants "\\)\\>")
-         '(0 'web-mode-constant-face))
-   '("\\(@\\)" 1 'web-mode-function-call-face)
-   (list (concat "\\(@" web-mode-cl-emb-keywords "\\)[ ]+\\([[:alnum:]_]+\\)")
-         '(1 'web-mode-keyword-face)
-         '(2 'web-mode-variable-name-face))
-   ))
-
 (defvar web-mode-erlang-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-erlang-keywords "\\)\\>")
@@ -1767,6 +1755,18 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("[ ]\\(:[[:alnum:]-_]+\\)" 1 'web-mode-symbol-face)
    '("(defun \\([[:alnum:]-:]+\\)" 1 'web-mode-function-name-face)
    '("(defvar \\([[:alnum:]-:]+\\)" 1 'web-mode-variable-name-face)
+   ))
+
+(defvar web-mode-cl-emb-font-lock-keywords
+  (list
+   (cons (concat "\\<\\(" web-mode-cl-emb-keywords "\\)\\>")
+         '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-cl-emb-constants "\\)\\>")
+         '(0 'web-mode-constant-face))
+   '("\\(@\\)" 1 'web-mode-function-call-face)
+   (list (concat "\\(@" web-mode-cl-emb-keywords "\\)[ ]+\\([[:alnum:]_]+\\)")
+         '(1 'web-mode-keyword-face)
+         '(2 'web-mode-variable-name-face))
    ))
 
 (defvar web-mode-php-font-lock-keywords
@@ -3436,12 +3436,12 @@ the environment as needed for ac-sources, right before they're used.")
 
        ((string= web-mode-engine "cl-emb")
         (cond
-         ((web-mode-block-starts-with "end" reg-beg)
-          (setq controls (append controls (list (cons 'close "ctrl")))))
-         ((web-mode-block-starts-with "else" reg-beg)
-          (setq controls (append controls (list (cons 'inside "ctrl")))))
-         ((web-mode-block-starts-with "if\\|unless\\|repeat\\|loop\\|with\\|genloop" reg-beg)
-          (setq controls (append controls (list (cons 'open "ctrl")))))
+         ((web-mode-block-starts-with "@else" reg-beg)
+          (setq controls (append controls (list (cons 'inside "if")))))
+         ((web-mode-block-starts-with "@\\(?:end\\)?\\(if\\|unless\\|repeat\\|loop\\|with\\|genloop\\)" reg-beg)
+          (setq control (match-string-no-properties 1)
+                type (if (eq (aref (match-string-no-properties 0) 1) ?e) 'close 'open))
+          (setq controls (append controls (list (cons type control)))))
          )
         ) ;cl-emb
 
