@@ -1,9 +1,9 @@
-;;; web-mode.el --- major mode for editing html templates
+;;; web-mode.el --- major mode for editing web templates
 ;;; -*- coding: utf-8 -*-
 
-;; Copyright 2011-2014 François-Xavier Bois
+;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.1.26
+;; Version: 10.1.27
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.26"
+(defconst web-mode-version "10.1.27"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
