@@ -680,7 +680,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
     ("blade"            . "\\.blade\\.php\\'")
-    ("cl-emb"           . "\\.tmpl\\'")
+    ("cl-emb"           . "\\.clemb\\'") ;; Typically will be tmpl, but this fixes Django conflict
     ("clip"             . "\\.ctml\\'")
     ("closure"          . "\\.soy\\'")
     ("ctemplate"        . "\\.\\(chtml\\|mustache\\)\\'")
@@ -1718,8 +1718,10 @@ Must be used in conjunction with web-mode-enable-block-face."
          '(0 'web-mode-keyword-face))
    (cons (concat "\\<\\(" web-mode-cl-emb-constants "\\)\\>")
          '(0 'web-mode-constant-face))
-   '("@\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
-   '("[ ]\\(:[[:alnum:]-_]+\\)" 1 'web-mode-symbol-face)
+   '("\\(@\\)" 1 'web-mode-function-call-face)
+   (list (concat "\\(@" web-mode-cl-emb-keywords "\\)[ ]+\\([[:alnum:]_]+\\)")
+         '(1 'web-mode-keyword-face)
+         '(2 'web-mode-variable-name-face))
    ))
 
 (defvar web-mode-erlang-font-lock-keywords
