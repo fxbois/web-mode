@@ -680,6 +680,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
     ("blade"            . "\\.blade\\.php\\'")
+    ("cl-emb"           . "\\.clemb\\'") ;; Typically will be tmpl, but this fixes Django conflict
     ("clip"             . "\\.ctml\\'")
     ("closure"          . "\\.soy\\'")
     ("ctemplate"        . "\\.\\(chtml\\|mustache\\)\\'")
@@ -824,6 +825,9 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("blade"       . (("{{{" . " | }}}")
                       ("{{ " . " }}")
                       ("{{-" . "- | --}}")))
+    ("cl-emb"      . (("<% " . " %>")
+                      ("<%=" . " | %>")
+                      ("<%#" . " | %>")))
     ("ctemplate"   . (("{{ " . "| }}")
                       ("{{{" . " | }}}")
                       ("{~{" . " | }}")
@@ -923,6 +927,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("asp"              . "<%\\|</?[[:alpha:]]+:[[:alpha:]]+\\|</?[[:alpha:]]+Template")
    '("aspx"             . "<%.")
    '("blade"            . "{{.\\|^[ \t]*@[[:alpha:]]")
+   '("cl-emb"           . "<%")
    '("closure"          . "{.\\|/\\*\\| //")
    '("clip"             . "</?c:[[:alpha:]-]+")
    '("ctemplate"        . "[$]?{[{~].")
@@ -1016,6 +1021,16 @@ Must be used in conjunction with web-mode-enable-block-face."
    (append
     (cdr (assoc "erlang" web-mode-extra-keywords))
     '("else" "if" "do" "end"))))
+
+(defvar web-mode-cl-emb-constants
+  (regexp-opt
+   '("nil" "t" "raw" "escape")))
+
+(defvar web-mode-cl-emb-keywords
+  (regexp-opt
+   '("if" "else" "endif" "unless" "endunless" "var" "repeat"
+     "endrepeat" "loop" "endloop" "include" "call" "with"
+     "endwith" "set" "genloop" "endgenloop" "insert")))
 
 (defvar web-mode-lsp-constants
   (regexp-opt
@@ -1697,6 +1712,18 @@ Must be used in conjunction with web-mode-enable-block-face."
          '(0 'web-mode-keyword-face))
    ))
 
+(defvar web-mode-cl-emb-font-lock-keywords
+  (list
+   (cons (concat "\\<\\(" web-mode-cl-emb-keywords "\\)\\>")
+         '(0 'web-mode-keyword-face))
+   (cons (concat "\\<\\(" web-mode-cl-emb-constants "\\)\\>")
+         '(0 'web-mode-constant-face))
+   '("\\(@\\)" 1 'web-mode-function-call-face)
+   (list (concat "\\(@" web-mode-cl-emb-keywords "\\)[ ]+\\([[:alnum:]_]+\\)")
+         '(1 'web-mode-keyword-face)
+         '(2 'web-mode-variable-name-face))
+   ))
+
 (defvar web-mode-erlang-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-erlang-keywords "\\)\\>")
@@ -1774,6 +1801,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(("angular"          . web-mode-angular-font-lock-keywords)
 ;;    ("asp"              . web-mode-asp-font-lock-keywords)
     ("blade"            . web-mode-blade-font-lock-keywords)
+    ("cl-emb"           . web-mode-cl-emb-font-lock-keywords)
     ("closure"          . web-mode-closure-font-lock-keywords)
     ("ctemplate"        . web-mode-ctemplate-font-lock-keywords)
     ("dust"             . web-mode-dust-font-lock-keywords)
@@ -2230,6 +2258,17 @@ the environment as needed for ac-sources, right before they're used.")
            )
           ) ;mako
 
+         ((string= web-mode-engine "cl-emb")
+          (cond
+           ((string= tagopen "<%#")
+            (setq closing-string "#%>"))
+           ((string= sub2 "<%")
+            (setq closing-string "%>"
+                  delim-open "<%[=%]?"
+                  delim-close "%>"))
+           )
+          ) ;cl-emb
+
          ((string= web-mode-engine "elixir")
           (cond
            ((string= tagopen "<%#")
@@ -2678,7 +2717,7 @@ the environment as needed for ac-sources, right before they're used.")
   "Set text-property 'block-token to 'delimiter-(beg|end) on block delimiters (e.g. <?php ?>)"
   ;;(message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine
-                '("asp" "aspx" "clip" "closure" "ctemplate" "django" "dust"
+                '("asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
                   "elixir" "erb" "freemarker" "jsp" "lsp" "mako" "mason" "mojolicious"
                   "smarty" "template-toolkit" "web2py"))
     (save-excursion
@@ -2834,6 +2873,15 @@ the environment as needed for ac-sources, right before they're used.")
         (setq regexp "\"\\|'"))
        )
       ) ;blade
+
+     ((string= web-mode-engine "cl-emb")
+      (cond
+       ((string= sub3 "<%#")
+        (setq token-type 'comment))
+       (t
+        (setq regexp "\"\\|'"))
+       )
+      ) ;cl-emb
 
      ((string= web-mode-engine "elixir")
       (cond
@@ -3385,6 +3433,17 @@ the environment as needed for ac-sources, right before they're used.")
           (setq controls (append controls (list (cons 'open "ctrl")))))
          )
         ) ;template-toolkit
+
+       ((string= web-mode-engine "cl-emb")
+        (cond
+         ((web-mode-block-starts-with "end" reg-beg)
+          (setq controls (append controls (list (cons 'close "ctrl")))))
+         ((web-mode-block-starts-with "else" reg-beg)
+          (setq controls (append controls (list (cons 'inside "ctrl")))))
+         ((web-mode-block-starts-with "if\\|unless\\|repeat\\|loop\\|with\\|genloop" reg-beg)
+          (setq controls (append controls (list (cons 'open "ctrl")))))
+         )
+        ) ;cl-emb
 
        ((string= web-mode-engine "elixir")
         (cond
@@ -5974,7 +6033,7 @@ the environment as needed for ac-sources, right before they're used.")
                                                  curr-indentation
                                                  reg-beg)))
 
-         ((string= language "lsp")
+         ((member language '("lsp" "cl-emb"))
           (setq offset (web-mode-lisp-indentation pos ctx)))
 
          ((member curr-char '(?\} ?\) ?\]))
