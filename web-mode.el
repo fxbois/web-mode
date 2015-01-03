@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.1.29
+;; Version: 10.1.30
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.29"
+(defconst web-mode-version "10.1.30"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -649,7 +649,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("django"      . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl" "liquid"
                       "clabango" "selmer"))
     ("dust"        . ("dustjs"))
-    ("erb"         . ("eruby" "erubis" "ejs"))
+    ("ejs"         . ())
+    ("erb"         . ("eruby" "erubis"))
     ("go"          . ("gtl"))
     ("jsp"         . ("grails"))
     ("mason"       . ("poet"))
@@ -686,7 +687,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("ctemplate"        . "\\.\\(chtml\\|mustache\\)\\'")
     ("django"           . "\\.\\(djhtml\\|tmpl\\|dtl\\|liquid\\|j2\\)\\'")
     ("elixir"           . "\\.eex\\'")
-    ("erb"              . "\\.\\(erb\\|rhtml\\|ejs\\|erb\\.html\\)\\'")
+    ("ejs"              . "\\.ejs\\'")
+    ("erb"              . "\\.\\(erb\\|rhtml\\|erb\\.html\\)\\'")
     ("freemarker"       . "\\.ftl\\'")
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
     ("handlebars"       . "\\.\\(hb\\.html\\|hbs\\)\\'")
@@ -843,6 +845,10 @@ Must be used in conjunction with web-mode-enable-block-face."
                       ("<%=" . " | %>")
                       ("<%%" . " | %>")
                       ("<%#" . " | %>")))
+    ("ejs"         . (("<% " . " %>")
+                      ("<%=" . "%>")
+                      ("<%#" . "%>")
+                      ("<%-" . "%>")))
     ("erb"         . (("<% " . " %>")
                       ("<%=" . "%>")
                       ("<%#" . "%>")
@@ -879,7 +885,9 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Engines auto-pairs")
 
 (defvar web-mode-engines-snippets
-  '(("erb" . (("each"    . "<% |.each do  %>\n\n<% end %>")
+  '(("ejs" . (("if"      . "<% if (|) { %>\n\n<% } %>")
+              ))
+    ("erb" . (("each"    . "<% |.each do  %>\n\n<% end %>")
               ("if"      . "<% if | %>\n\n<% end %>")
               ("when"    . "<% when | %>\n\n<% end %>")
               ("unless"  . "<% unless | %>\n\n<% end %>")
@@ -911,6 +919,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-token-regexps
   (list
    '("asp"         . "//\\|/\\*\\|\"\\|'")
+   '("ejs"         . "//\\|/\\*\\|\"\\|'")
    '("erb"         . "\"\\|'\\|#\\|<<[-]?['\"]?\\([[:alnum:]_]+\\)['\"]?")
    '("lsp"         . "\"\\|#|\\|;")
    '("mako"        . "\"\\|'\\|#")
@@ -934,6 +943,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("django"           . "{[#{%]")
    '("dust"             . "{.")
    '("elixir"           . "<%.")
+   '("ejs"              . "<%")
    '("erb"              . "<%\\|^%.")
    '("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#]\\|\\[/?[@#].")
    '("go"               . "{{.")
@@ -1706,6 +1716,9 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("/[^/]+/" 0 'web-mode-string-face)
    ))
 
+(defvar web-mode-ejs-font-lock-keywords
+  web-mode-javascript-font-lock-keywords)
+
 (defvar web-mode-python-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-python-keywords "\\)\\>")
@@ -1806,6 +1819,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("ctemplate"        . web-mode-ctemplate-font-lock-keywords)
     ("dust"             . web-mode-dust-font-lock-keywords)
     ("elixir"           . web-mode-erlang-font-lock-keywords)
+    ("ejs"              . web-mode-ejs-font-lock-keywords)
     ("erb"              . web-mode-erb-font-lock-keywords)
     ("go"               . web-mode-go-font-lock-keywords)
     ("lsp"              . web-mode-lsp-font-lock-keywords)
@@ -2217,6 +2231,12 @@ the environment as needed for ac-sources, right before they're used.")
             (setq closing-string "#}"))
            )
           ) ;django
+
+         ((string= web-mode-engine "ejs")
+          (setq closing-string "%>"
+                delim-open "<%[=-]?"
+                delim-close "[-]?%>")
+          ) ;ejs
 
          ((string= web-mode-engine "erb")
           (cond
@@ -2718,7 +2738,7 @@ the environment as needed for ac-sources, right before they're used.")
   ;;(message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine
                 '("asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
-                  "elixir" "erb" "freemarker" "jsp" "lsp" "mako" "mason" "mojolicious"
+                  "elixir" "ejs" "erb" "freemarker" "jsp" "lsp" "mako" "mason" "mojolicious"
                   "smarty" "template-toolkit" "web2py"))
     (save-excursion
       (when delim-open
@@ -2957,7 +2977,7 @@ the environment as needed for ac-sources, right before they're used.")
        )
       ) ;freemarker
 
-     ((string= web-mode-engine "erb")
+     ((member web-mode-engine '("ejs" "erb"))
       (cond
        ((string= sub3 "<%#")
         (setq token-type 'comment))
@@ -3209,7 +3229,7 @@ the environment as needed for ac-sources, right before they're used.")
           (setq controls (append controls (list (cons 'open "{")))))
         ) ; php
 
-       ((string= web-mode-engine "erb")
+       ((string= web-mode-engine "ejs")
         (cond
          ((web-mode-block-ends-with "}[ ]*else[ ]*{" reg-beg)
           (setq controls (append controls (list (cons 'inside "{")))))
@@ -3217,7 +3237,11 @@ the environment as needed for ac-sources, right before they're used.")
           (setq controls (append controls (list (cons 'close "{")))))
          ((web-mode-block-ends-with "{" reg-beg)
           (setq controls (append controls (list (cons 'open "{")))))
+         )
+        ) ; ejs
 
+       ((string= web-mode-engine "erb")
+        (cond
          ((web-mode-block-starts-with "else\\|elsif\\|when" reg-beg)
           (setq controls (append controls (list (cons 'inside "ctrl")))))
          ((web-mode-block-starts-with "end" reg-beg)
@@ -7625,7 +7649,7 @@ Pos should be in a tag."
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "django"))
             (web-mode-insert-and-indent (concat "{# " sel " #}"))
             )
-           ((and (= web-mode-comment-style 2) (string= web-mode-engine "erb"))
+           ((and (= web-mode-comment-style 2) (member web-mode-engine '("ejs" "erb")))
             (web-mode-insert-and-indent (concat "<%# " sel " %>"))
             )
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "aspx"))
@@ -7718,6 +7742,12 @@ Pos should be in a tag."
      ) ;cond
     (indent-according-to-mode)))
 
+(defun web-mode-comment-ejs-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos "//" (+ beg 2))))
+
 (defun web-mode-comment-erb-block (pos)
   (let (beg end)
     (setq beg (web-mode-block-beginning-position pos)
@@ -7763,6 +7793,12 @@ Pos should be in a tag."
           end (web-mode-block-end-position pos))
     (web-mode-insert-text-at-pos "*/" (- end 1))
     (web-mode-insert-text-at-pos "/*" (+ beg (if (web-mode-looking-at "<\\?php" beg) 5 3)))))
+
+(defun web-mode-uncomment-ejs-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-remove-text-at-pos 1 (+ beg 2))))
 
 (defun web-mode-uncomment-erb-block (pos)
   (let (beg end)
@@ -8655,6 +8691,7 @@ Pos should be in a tag."
    ((string= web-mode-engine "smarty")    (concat "{/" type "}"))
    ((string= web-mode-engine "underscore")        "<% } %>")
    ((string= web-mode-engine "lsp")               "<% ) %>")
+   ((string= web-mode-engine "erb")               "<% } %>")
    ((string= web-mode-engine "erb")               "<% end %>")
    ((string= web-mode-engine "go")                "{{end}}")
    ((string= web-mode-engine "velocity")          "#end")
