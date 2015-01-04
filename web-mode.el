@@ -188,7 +188,7 @@ See web-mode-part-face."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-comment-keywords nil
+(defcustom web-mode-enable-comment-keywords '()
   "Enable highlight of keywords like FIXME, TODO, etc. in comments."
   :type 'list
   :group 'web-mode)
