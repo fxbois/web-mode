@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.1.31
+;; Version: 10.1.32
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.1.31"
+(defconst web-mode-version "10.1.32"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -671,6 +671,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("javascript" . "\\.\\(js\\|js\\.erb\\)\\'")
     ("json"       . "\\.\\(json\\|jsonld\\)\\'")
     ("jsx"        . "\\.jsx\\'")
+    ("xml"        . "\\.xml\\'")
     ("html"       . "."))
   "content types")
 
@@ -5857,11 +5858,11 @@ the environment as needed for ac-sources, right before they're used.")
       (setq curr-char (if (string= curr-line "") 0 (aref curr-line 0)))
 
       (when (or (member language '("php" "javascript" "jsx" "razor"))
-                (and (string= language "html")
+                (and (member language '("html" "xml"))
                      (not (eq ?\< curr-char))))
         (let (prev)
           (cond
-           ((member language '("html" "javascript" "jsx"))
+           ((member language '("html" "xml" "javascript" "jsx"))
             (when (setq prev (web-mode-part-previous-live-line))
               (setq prev-line (car prev)
                     prev-indentation (cdr prev))
@@ -5880,13 +5881,13 @@ the environment as needed for ac-sources, right before they're used.")
         )
 
       (cond
-       ((not (string= web-mode-content-type "html"))
+       ((not (member web-mode-content-type '("html" "xml")))
         )
        ((member language '("javascript" "jsx"))
         (setq reg-col (+ reg-col web-mode-script-padding)))
        ((string= language "css")
         (setq reg-col (+ reg-col web-mode-style-padding)))
-       ((not (member language '("html" "razor")))
+       ((not (member language '("html" "xml" "razor")))
         (setq reg-col (+ reg-col web-mode-block-padding)))
        )
 
@@ -5999,7 +6000,7 @@ the environment as needed for ac-sources, right before they're used.")
           (when (web-mode-tag-match)
             (setq offset (current-indentation))))
 
-         ((and (member language '("html" "jsx"))
+         ((and (member language '("html" "xml" "jsx"))
                (get-text-property pos 'tag-type)
                (not (get-text-property pos 'tag-beg)))
           (cond
@@ -6016,7 +6017,7 @@ the environment as needed for ac-sources, right before they're used.")
             ) ;t
            ))
 
-         ((string= language "html")
+         ((member language '("html" "xml"))
           (cond
            ((and (get-text-property pos 'tag-beg)
                  ;;(not (get-text-property pos 'part-side))
@@ -7635,7 +7636,7 @@ Pos should be in a tag."
         (cond
          (mark-active
           )
-         ((and (string= language "html")
+         ((and (member language '("html" "xml"))
                (get-text-property (progn (back-to-indentation) (point)) 'tag-beg))
           (web-mode-element-select))
          (t
@@ -7657,7 +7658,7 @@ Pos should be in a tag."
 
         (cond
 
-         ((string= language "html")
+         ((member language '("html" "xml"))
 
           (cond
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "django"))
