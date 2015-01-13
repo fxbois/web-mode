@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.2.00
+;; Version: 10.2.01
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.2.00"
+(defconst web-mode-version "10.2.01"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8307,7 +8307,8 @@ Pos should be in a tag."
       )
 
      ((and (>= (point) 3)
-           (member this-command '(self-insert-command)))
+           (member this-command '(self-insert-command))
+           (not (member (get-text-property (point) 'part-token) '(comment string))))
       (setq ctx (web-mode-complete)))
 
      ((and web-mode-enable-auto-opening
