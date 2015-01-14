@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.2.02
+;; Version: 10.2.03
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.2.02"
+(defconst web-mode-version "10.2.03"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4053,10 +4053,20 @@ the environment as needed for ac-sources, right before they're used.")
           )
 
          ((eq ?\* ch-next)
-          (unless (eq ?\\ ch-before)
+          (cond
+           ((and (member content-type '("javascript" "jsx"))
+                 (looking-back "[(=][ ]*..")
+                 (looking-at-p "[^*]*/[gimy]*"))
+            (setq token-type 'string)
+            (re-search-forward "/[gimy]*" reg-end t)
+            ;;(skip-chars-forward "/gimy")
+            )
+           ((unless (eq ?\\ ch-before)
             (setq token-type 'comment)
             (search-forward "*/" reg-end t)
             )
+            )
+           )
           )
 
          ((and (member content-type '("javascript" "jsx"))
