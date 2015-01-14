@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.2.03
+;; Version: 10.2.04
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.2.03"
+(defconst web-mode-version "10.2.04"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3050,7 +3050,7 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-block-tokenize (reg-beg reg-end &optional regexp)
   (unless regexp (setq regexp web-mode-engine-token-regexp))
-  (message "tokenize: reg-beg(%S) reg-end(%S) regexp(%S)" reg-beg reg-end regexp)
+;;  (message "tokenize: reg-beg(%S) reg-end(%S) regexp(%S)" reg-beg reg-end regexp)
   (save-excursion
     (let ((pos reg-beg) beg end char match continue (flags 0) token-type token-end)
 
