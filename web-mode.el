@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.2.04
+;; Version: 10.2.05
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -19,12 +19,9 @@
 
 ;; Code goes here
 
-;;---- TODO --------------------------------------------------------------------
-
-
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.2.04"
+(defconst web-mode-version "10.2.05"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4042,6 +4039,21 @@ the environment as needed for ac-sources, right before they're used.")
             (put-text-property beg end 'part-element t)
             (web-mode-scan-elements beg end)
             (web-mode-scan-expr-literal beg end)
+
+            (goto-char beg)
+            (let (token-beg token-end)
+              (while (web-mode-part-sf "/*" end t)
+                (goto-char (match-beginning 0))
+                (setq token-beg (point))
+                (if (not (web-mode-part-sf "*/" end t))
+                    (goto-char end)
+                  (setq token-end (point))
+                  (put-text-property token-beg token-end 'part-token 'comment)
+                  ) ;if
+                ) ;while
+              ) ;let
+            (goto-char end)
+
             ) ;when
           )
 
