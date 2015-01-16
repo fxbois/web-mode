@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.2.06
+;; Version: 10.2.07
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.2.06"
+(defconst web-mode-version "10.2.07"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -238,7 +238,7 @@ See web-mode-part-face."
   :type 'list
   :group 'web-mode)
 
-(defcustom web-mode-tests-directory "~/GitHub/web-mode/unit-test/tests"
+(defcustom web-mode-tests-directory "~/Repos/web-mode/unit-test/tests"
   "Directory containing all the unit tests."
   :type 'list
   :group 'web-mode)
@@ -6055,6 +6055,12 @@ the environment as needed for ac-sources, right before they're used.")
                (get-text-property pos 'tag-type)
                (not (get-text-property pos 'tag-beg)))
           (cond
+           ((and (get-text-property pos 'tag-attr)
+                 (get-text-property (1- pos) 'tag-attr)
+                 (web-mode-attribute-beginning)
+                 (web-mode-dom-rsf "=[ ]*[\"']?" pos))
+            (setq offset (current-column))
+            )
            ((not (web-mode-tag-beginning))
             )
            (web-mode-attr-indent-offset
