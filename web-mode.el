@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.2.05
+;; Version: 10.2.06
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.2.05"
+(defconst web-mode-version "10.2.06"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -557,7 +557,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   :group 'web-mode-faces)
 
 (defface web-mode-current-column-highlight-face
-  '((t :background "#292929"))
+;;  '((t :background "#292929"))
+  '((t :background "#3e3c36"))
   "Overlay face for current column."
   :group 'web-mode-faces)
 
@@ -5260,7 +5261,7 @@ the environment as needed for ac-sources, right before they're used.")
                    'web-mode-current-column-highlight-face))
 
 (defun web-mode-column-show (column line-from line-to)
-  (let (current index overlay)
+  (let (current index overlay diff)
     (when (> line-from line-to)
       (let (tmp)
         (setq tmp line-from)
@@ -5269,23 +5270,46 @@ the environment as needed for ac-sources, right before they're used.")
         ))
     (setq current line-from
           index 0)
-;;    (message "column(%S) from(%S) to(%S)" column line-from line-to)
+    ;;(message "column(%S) from(%S) to(%S)" column line-from line-to)
     (web-mode-with-silent-modifications
-      (save-excursion
-        (goto-char (point-min))
-        (when (> line-from 1)
-          (forward-line (1- line-from)))
-        (while (<= current line-to)
-          (move-to-column (1+ column) t)
-          (backward-char)
-          (setq overlay (web-mode-column-overlay-factory index))
-          (move-overlay overlay (point) (1+ (point)))
-          (setq current (1+ current))
-          (forward-line)
-          (setq index (1+ index))
-          )
-        ) ;save-excursion
-      ) ;silent
+     (save-excursion
+       ;;       (setq current 100)
+       (goto-char (point-min))
+       (when (> line-from 1)
+         (forward-line (1- line-from)))
+       (while (<= current line-to)
+         (setq overlay (web-mode-column-overlay-factory index))
+         (setq diff (- (line-end-position) (point)))
+         (cond
+          ((or (and (= column 0) (= diff 0))
+               (> column diff))
+           (end-of-line)
+           (move-overlay overlay (point) (point))
+           (overlay-put overlay
+                        'after-string
+                        (concat
+                         (if (> column diff) (make-string (- column diff) ?\s) "")
+                         ;;" "
+                         (propertize " " ;;(number-to-string column)
+                                     'font-lock-face
+                                     'web-mode-current-column-highlight-face
+                                     )
+                         ) ;concat
+                        )
+           )
+          (t
+           (move-to-column column)
+           ;;(backward-char)
+           (overlay-put overlay 'after-string nil)
+           (move-overlay overlay (point) (1+ (point)))
+           )
+          ) ;cond
+         (setq current (1+ current))
+         (forward-line)
+         (setq index (1+ index))
+         )
+       ) ;save-excursion
+     ) ;silent
     ))
 
 (defun web-mode-highlight-current-element ()
