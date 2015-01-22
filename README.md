@@ -1,4 +1,4 @@
-web-mode.el  [![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/thing/1849746/web-mode-el) [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](http://web-mode.org)
+web-mode.el  [![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/thing/1849746/web-mode-el) [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](http://web-mode.org) [![MELPA](http://melpa.org/packages/web-mode-badge.svg)](http://melpa.org/#/web-mode)
 =========
 
 web-mode.el is an emacs major mode for editing **web templates** aka HTML files embedding parts (CSS/JavaScript) and blocks (pre rendered by client/server side engines).
