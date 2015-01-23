@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.01
+;; Version: 10.3.02
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.01"
+(defconst web-mode-version "10.3.02"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7602,10 +7602,14 @@ Pos should be in a tag."
        (when (looking-back "^[\t ]*")
          (back-to-indentation))
        (setq overlays (overlays-at (point)))
+       (dolist (elt overlays)
+         (when (and (not overlay)
+                    (eq (overlay-get elt 'font-lock-face) 'web-mode-folded-face))
+           (setq overlay elt)))
        (cond
         ;; *** unfolding
-        (overlays
-         (setq overlay (car overlays))
+        (overlay
+         ;;(setq overlay (car overlays))
          (setq beg-inside (overlay-start overlay)
                end-inside (overlay-end overlay))
          (remove-overlays beg-inside end-inside)
