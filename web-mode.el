@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.00
+;; Version: 10.3.01
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.00"
+(defconst web-mode-version "10.3.01"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3964,9 +3964,9 @@ the environment as needed for ac-sources, right before they're used.")
       (goto-char reg-beg)
       (cond
        ((member content-type '("javascript" "json"))
-        (setq token-re "//\\|/\\*\\|\"\\|'"))
+        (setq token-re "//\\|/\\*\\|\"\\|'\\|`"))
        ((member content-type '("jsx"))
-        (setq token-re "//\\|/\\*\\|\"\\|'\\|</?[[:alpha:]]"))
+        (setq token-re "//\\|/\\*\\|\"\\|'\\|`\\|</?[[:alpha:]]"))
        ((string= content-type "css")
         (setq token-re "/\\*"))
        (t
@@ -3981,6 +3981,7 @@ the environment as needed for ac-sources, right before they're used.")
               ch-next (or (char-after (1+ beg)) ?\d)
               ch-before (or (char-before beg) ?\d))
         (cond
+
          ((eq ?\' ch-at)
           (while (and continue (search-forward "'" reg-end t))
             (cond
@@ -3992,17 +3993,32 @@ the environment as needed for ac-sources, right before they're used.")
               (setq continue nil))
              )
             ) ;while
-          (cond
-           ((string= content-type "javascript")
-            (setq token-type 'string))
-           ((string= content-type "css")
-            (setq token-type 'string))
-           ((string= content-type "json")
-            (setq token-type 'string))
-           (t
-            (setq token-type 'string))
-           ) ;cond
+          (setq token-type 'string)
+          ;; (cond
+          ;;  ((string= content-type "javascript")
+          ;;   (setq token-type 'string))
+          ;;  ((string= content-type "css")
+          ;;   (setq token-type 'string))
+          ;;  ((string= content-type "json")
+          ;;   (setq token-type 'string))
+          ;;  (t
+          ;;   (setq token-type 'string))
+          ;;  ) ;cond
           ) ;eq '
+
+         ((eq ?\` ch-at)
+          (while (and continue (search-forward "`" reg-end t))
+            (cond
+             ((get-text-property (1- (point)) 'block-side)
+              (setq continue t))
+             ((looking-back "\\\\+`" reg-beg t)
+              (setq continue (= (mod (- (point) (match-beginning 0)) 2) 0)))
+             (t
+              (setq continue nil))
+             )
+            ) ;while
+          (setq token-type 'string)
+          ) ;eq `
 
          ((eq ?\" ch-at)
           (while (and continue (search-forward "\"" reg-end t))
@@ -4027,14 +4043,15 @@ the environment as needed for ac-sources, right before they're used.")
               (setq token-type 'string))
             )
            (t
-            (cond
-             ((string= content-type "javascript")
-              (setq token-type 'string))
-             ((string= content-type "css")
-              (setq token-type 'string))
-             (t
-              (setq token-type 'string))
-             ) ;cond
+            (setq token-type 'string)
+            ;; (cond
+            ;;  ((string= content-type "javascript")
+            ;;   (setq token-type 'string))
+            ;;  ((string= content-type "css")
+            ;;   (setq token-type 'string))
+            ;;  (t
+            ;;   (setq token-type 'string))
+            ;;  ) ;cond
             ) ;t
            ) ;cond
           )
