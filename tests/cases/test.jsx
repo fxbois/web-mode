@@ -15,7 +15,7 @@ var App = React.createClass({
     params: PropTypes.object.isRequired,
     query: PropTypes.object.isRequired
   },
-  
+
   render() {
     return (
       <DocumentTitle title='Sample App'>

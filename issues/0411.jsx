@@ -3,7 +3,7 @@ function hello() {
   return (
     <div>
       {somevar}
-      <div className="row">
+      <div className="row1">
         <div className="col-md-4">
           Column1
         </div>
@@ -15,3 +15,15 @@ function hello() {
   );
 
 }
+
+Landing = React.createClass({
+  render: function() {
+    return (
+      <ul>
+        {for(e in list){
+          console.log("not aligned");
+         }}
+      </ul>
+    );
+  }
+});
