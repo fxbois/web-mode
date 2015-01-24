@@ -243,7 +243,7 @@ See web-mode-part-face."
   :type 'list
   :group 'web-mode)
 
-(defcustom web-mode-tests-directory "~/Repos/web-mode/unit-test/tests"
+(defcustom web-mode-tests-directory "~/Repos/web-mode/tests/cases"
   "Directory containing all the unit tests."
   :type 'list
   :group 'web-mode)
