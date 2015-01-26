@@ -7668,9 +7668,9 @@ Pos should be in a tag."
   (save-excursion
     (unless mark-active
       (skip-chars-forward "[:space:]" (line-end-position)))
-    (if (or (eq (get-text-property (region-beginning) 'tag-type) 'comment)
-            (eq (get-text-property (region-beginning) 'block-token) 'comment)
-            (eq (get-text-property (region-beginning) 'part-token) 'comment))
+    (if (or (eq (get-text-property (point) 'tag-type) 'comment)
+            (eq (get-text-property (point) 'block-token) 'comment)
+            (eq (get-text-property (point) 'part-token) 'comment))
 	(web-mode-uncomment (point))
       (web-mode-comment (point)))))
 
