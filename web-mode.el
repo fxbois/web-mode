@@ -7666,8 +7666,9 @@ Pos should be in a tag."
   (interactive)
 ;;  (message "%S" (point))
   (save-excursion
-    (unless mark-active
-      (skip-chars-forward "[:space:]" (line-end-position)))
+    (if (and mark-active (eq (point) (region-end)))
+        (exchange-point-and-mark))
+    (skip-chars-forward "[:space:]" (line-end-position))
     (if (or (eq (get-text-property (point) 'tag-type) 'comment)
             (eq (get-text-property (point) 'block-token) 'comment)
             (eq (get-text-property (point) 'part-token) 'comment))
