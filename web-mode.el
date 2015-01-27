@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.03
+;; Version: 10.3.04
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -27,7 +27,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.03"
+(defconst web-mode-version "10.3.04"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5982,6 +5982,8 @@ the environment as needed for ac-sources, right before they're used.")
              (token (plist-get ctx :token))
              (chars (list curr-char prev-char)))
 
+        ;;(message "%S" ctx)
+
         (cond
 
          ((or (bobp) (= (line-number-at-pos pos) 1))
@@ -6348,8 +6350,8 @@ the environment as needed for ac-sources, right before they're used.")
   (save-excursion
     (goto-char pos)
     (let ((offset 0) beg ret)
-      (setq beg (web-mode-markup-indentation-origin))
-      (when beg
+      (when (setq beg (web-mode-markup-indentation-origin))
+        ;;(message "beg %S" beg)
         (goto-char beg)
         (setq ret (web-mode-element-is-opened beg pos))
         (cond
@@ -6736,6 +6738,7 @@ the environment as needed for ac-sources, right before they're used.")
                                    (get-text-property pos 'tag-beg)
                                    (member (get-text-property pos 'tag-type) types))
                               (and (get-text-property pos 'block-beg)
+                                   (not (get-text-property pos 'tag-attr))
                                    (web-mode-block-is-control pos)
                                    (not (looking-at-p "{% comment"))))))
       ) ;while
