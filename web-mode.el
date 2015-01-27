@@ -19,6 +19,12 @@
 
 ;; Code goes here
 
+;;---- TODO --------------------------------------------------------------------
+
+;; web-mode-enable, web-mode-disable :
+;; for the defcustom elt-highlight, whitespace
+;; more debug in web-mode-debug : element-highlight, column-highlight
+
 ;;---- CONSTS ------------------------------------------------------------------
 
 (defconst web-mode-version "10.3.03"
