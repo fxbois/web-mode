@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.04
+;; Version: 10.3.05
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,13 +21,11 @@
 
 ;;---- TODO --------------------------------------------------------------------
 
-;; web-mode-enable, web-mode-disable :
-;; for the defcustom elt-highlight, whitespace
-;; more debug in web-mode-debug : element-highlight, column-highlight
+;; web-mode-enable|disable: elt-highlight, col-highlight, whitespace
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.04"
+(defconst web-mode-version "10.3.05"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -10586,7 +10584,9 @@ Pos should be in a tag."
 (defun web-mode-debug ()
   "Display informations useful for debugging."
   (interactive)
-  (let (modes)
+  (let ((modes nil)
+        (customs '(web-mode-enable-current-column-highlight web-mode-enable-current-element-highlight))
+        (ignore '(abbrev-mode auto-composition-mode auto-compression-mode auto-encryption-mode auto-insert-mode column-number-mode delete-selection-mode electric-indent-mode file-name-shadow-mode font-lock-mode global-font-lock-mode global-hl-line-mode line-number-mode menu-bar-mode mouse-wheel-mode recentf-mode transient-mark-mode)))
     (message "\n")
     (message "--- WEB-MODE DEBUG BEG ---")
     (message "versions: emacs(%S.%S) web-mode(%S)"
@@ -10601,12 +10601,16 @@ Pos should be in a tag."
              (cdr (assoc 'background-color default-frame-alist)))
     (mapc (lambda (mode)
             (condition-case nil
-                (if (and (symbolp mode) (symbol-value mode))
+                (if (and (symbolp mode) (symbol-value mode) (not (member mode ignore)))
                     (add-to-list 'modes mode))
               (error nil))
             ) ;lambda
           minor-mode-list)
     (message "minor modes: %S" modes)
+    (message "minor modes: %S" modes)
+    (message "customs:")
+    (dolist (custom customs)
+      (message (format "%s(%S) " (symbol-name custom) (symbol-value custom))))
     (message "--- WEB-MODE DEBUG END ---")
     (switch-to-buffer "*Messages*")
     (goto-char (point-max))
