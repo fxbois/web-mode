@@ -40,3 +40,15 @@ Indented
        {% if hidden %}style="display: none;"{% endif %}>
     <div>test</div></div>
 </div>
+
+
+related issues: #417
+
+{% for_custom_tag %}
+<span>Element should not be indented</span>
+
+{% block_custom_tag %}
+<span>Element should not be indented</span>
+
+{% non_keyword_start %}
+<span>Element should not be indented</span>
