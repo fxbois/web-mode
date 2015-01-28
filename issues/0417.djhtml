@@ -1,0 +1,7 @@
+{% for i in items %}
+  {{ i }}
+{% endfor %}
+works fine, but
+
+{% for_my_formtag %}
+<span>but then we indent here</span>

@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.07
+;; Version: 10.3.08
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -25,7 +25,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.07"
+(defconst web-mode-version "10.3.08"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3289,7 +3289,8 @@ the environment as needed for ac-sources, right before they're used.")
             (setq controls (append controls (list (cons 'inside "for")))))
            ((web-mode-block-starts-with "end\\([[:alpha:]]+\\)" reg-beg)
             (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
-           ((web-mode-block-starts-with web-mode-django-control-blocks reg-beg)
+           ((web-mode-block-starts-with (concat web-mode-django-control-blocks "\\>") reg-beg)
+            ;;(message "%S" (concat web-mode-django-control-blocks "\\>"))
             (setq controls (append controls (list (cons 'open (match-string-no-properties 1))))))
            )
           )
