@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.06
+;; Version: 10.3.07
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -25,7 +25,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.06"
+(defconst web-mode-version "10.3.07"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6246,7 +6246,7 @@ the environment as needed for ac-sources, right before they're used.")
           (cond
            ((not (web-mode-javascript-args-beginning pos reg-beg))
             )
-           ((not (cdr (assoc "lineup-calls" web-mode-indentation-params)))
+           ((not (cdr (assoc "lineup-args" web-mode-indentation-params)))
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ((not (eq curr-char ?\,))
             (setq offset (current-column)))
