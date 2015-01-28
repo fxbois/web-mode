@@ -31,3 +31,12 @@ related issues: #293
 {% block title %}{% endblock %}
 
 Indented
+
+<div>
+  <p class="someclass
+            {% if foo %}fooclass{% endif %}">
+    the open control block above is inside an html attr</p>
+  <div id="foo"
+       {% if hidden %}style="display: none;"{% endif %}>
+    <div>test</div></div>
+</div>

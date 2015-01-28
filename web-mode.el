@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.05
+;; Version: 10.3.06
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -25,7 +25,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.05"
+(defconst web-mode-version "10.3.06"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2021,7 +2021,7 @@ the environment as needed for ac-sources, right before they're used.")
   (if (fboundp 'with-silent-modifications)
       (defalias 'web-mode-with-silent-modifications 'with-silent-modifications)
     (defmacro web-mode-with-silent-modifications (&rest body)
-      "For compatibility with Emacs pre 23.3"
+      "For compatibility with Emacs pre 23.3."
       `(let ((old-modified-p (buffer-modified-p))
              (inhibit-modification-hooks t)
              (buffer-undo-list t))
@@ -6736,7 +6736,7 @@ the environment as needed for ac-sources, right before they're used.")
                                    (get-text-property pos 'tag-beg)
                                    (member (get-text-property pos 'tag-type) types))
                               (and (get-text-property pos 'block-beg)
-                                   (not (get-text-property pos 'tag-attr))
+                                   (not (get-text-property pos 'tag-type))
                                    (web-mode-block-is-control pos)
                                    (not (looking-at-p "{% comment"))))))
       ) ;while
