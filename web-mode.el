@@ -10625,3 +10625,158 @@ Pos should be in a tag."
 ;; coding: utf-8
 ;; indent-tabs-mode: nil
 ;; End:
+
+
+
+;; (defun my-web-forward-sexp (n)
+;;   (interactive "p")
+;;   (if (< n 0)
+;;       (my-web-backward-sexp (- n))
+;;     (let ((origpos (point)))
+;;       (dotimes (_ n)
+;;         (skip-chars-forward "\s\t\n")
+;;         (unless (eobp)
+;;           (let ((pos (point)))
+;;             (cond ((eq (get-text-property pos 'face)
+;;                        'web-mode-html-tag-bracket-face)
+;;                    ;; we're looking at a tag delimiter
+;;                    (cond ((= (char-after pos) ?<)
+;;                           ;; we're looking at the tag: |<foo>
+;;                           (web-mode-navigate)
+;;                           (if (< (point) pos)
+;;                               ;; we've moved BACKWARD with "web-mode-navigate"
+;;                               ;; (the tag we're looking at was the ender of the element)
+;;                               ;; <foo>brabrabra|</foo> -> |<foo>brabrabra</foo>
+;;                               (signal 'scan-error
+;;                                       (list "Containing expression ends prematurely"
+;;                                             pos
+;;                                             (prog1 (1+ (web-mode-tag-end-position pos))
+;;                                               (goto-char origpos))))
+;;                             ;; we've successfully moved FORWARD, or haven't moved
+;;                             ;; |<foo>brabrabra</foo> -> <foo>brabrabra|</foo>
+;;                             ;;                 |<br> -> |<br>
+;;                             (web-mode-tag-end)))
+;;                          (t
+;;                           ;; we're looking up the end of the tag: <foo|>
+;;                           (signal 'scan-error
+;;                                   (list "Containing expression ends prematurely"
+;;                                         pos (1+ pos))))))
+;;                   ((get-text-property pos 'block-beg)
+;;                    ;; we're looking at a block
+;;                    (web-mode-block-end))
+;;                   ((and (not (string= (web-mode-language-at-pos) "html"))
+;;                         (eq (get-text-property pos 'face)
+;;                             'web-mode-block-delimiter-face))
+;;                    ;; we're looking at the end of the block
+;;                    ;; <?php foo |?>
+;;                    (signal 'scan-error
+;;                            (list "Containing expression ends prematurely"
+;;                                  pos
+;;                                  (prog1 (1+ (web-mode-block-end-position))
+;;                                    (goto-char origpos)))))
+;;                   (t
+;;                    ;; otherwise, do the normal "forward-sexp"
+;;                    (let ((forward-sexp-function nil))
+;;                      (forward-sexp))
+;;                    (unless (looking-back "\\s)")
+;;                      (let ((delim
+;;                             (or (text-property-any
+;;                                  pos (point) 'face 'web-mode-block-delimiter-face)
+;;                                 (text-property-any
+;;                                  pos (point) 'face 'web-mode-html-tag-bracket-face))))
+;;                        (when delim
+;;                          ;; we've skipped over a block/tag delimiter
+;;                          ;; brabrabra|:<br> -> brabrabra:<br|>
+;;                          (goto-char delim)
+;;                          (skip-chars-backward "\s\t\n"))))))))))))
+
+;; (defun my-web-backward-sexp (n)
+;;   (interactive "p")
+;;   (if (< n 0) (my-web-forward-sexp (- n))
+;;     (let ((origpos (point)))
+;;       (dotimes (_ n)
+;;         (skip-chars-backward "\s\t\n")
+;;         (unless (bobp)
+;;           (let ((pos (point)))
+;;             (cond ((eq (get-text-property (1- pos) 'face)
+;;                        'web-mode-html-tag-bracket-face)
+;;                    ;; we're looking back a tag delimiter
+;;                    (cond ((= (char-before pos) ?>)
+;;                           ;; we're looking back the tag ender: <foo>|
+;;                           (backward-char 1)
+;;                           (web-mode-navigate)
+;;                           (if (< pos (point))
+;;                               ;; we've moved FORWARD
+;;                               ;; <foo|>brabrabra</foo> -> <foo>brabrabra|</foo>
+;;                               (signal 'scan-error
+;;                                       (list "Containing expression ends prematurely"
+;;                                             (prog1 (web-mode-tag-beginning-position (1- pos))
+;;                                               (goto-char origpos))
+;;                                             pos))
+;;                             (web-mode-tag-beginning)))
+;;                          (t
+;;                           ;; we're looking back the beginning of the tag: <|foo>
+;;                           (signal 'scan-error
+;;                                   (list "Containing expression ends prematurely"
+;;                                         (1- pos) pos)))))
+;;                   ((get-text-property (1- pos) 'block-end)
+;;                    ;; we're looking back the block-end
+;;                    (backward-char 1)
+;;                    (web-mode-block-beginning))
+;;                   ((and (not (string= (web-mode-language-at-pos pos) "html"))
+;;                         (eq (get-text-property (1- pos) 'face)
+;;                             'web-mode-block-delimiter-face))
+;;                    ;; we're looking back the beginning of the block
+;;                    ;; <?php| foo ?>
+;;                    (signal 'scan-error
+;;                            (list "Containing expression ends prematurely"
+;;                                  (prog1 (web-mode-block-beginning-position)
+;;                                    (goto-char origpos))
+;;                                  pos)))
+;;                   (t
+;;                    (let ((forward-sexp-function nil))
+;;                      (backward-sexp))
+;;                    (unless (looking-at "\\s(")
+;;                      (let ((delim
+;;                             (or (text-property-any
+;;                                  (point) pos 'face 'web-mode-block-delimiter-face)
+;;                                 (text-property-any
+;;                                  (point) pos 'face 'web-mode-html-tag-bracket-face))))
+;;                        (when delim
+;;                          (goto-char
+;;                           (next-single-property-change delim 'face)))))))))))))
+
+;; (add-hook 'web-mode-hook
+;;           (lambda ()
+;;             (setq-local forward-sexp-function 'my-web-forward-sexp)))
+
+
+;; zk-phi commented on 8 Aug 2014
+;; "my-web-forward-sexp" command basically moves the cursor forward like "forward-sexp":
+
+;; |(foo bar) baz -> (foo bar)| baz -> (foo bar) baz| ... (| are cursors)
+;; but when we're just before a html tag, element, or block, jumps over it.
+
+;; |<div>brabra</div> -> <div>brabra</div>|
+;; |<br> -> <br>|
+;; |<?php brabrabra ?> -> <?php brabrabra ?>|
+;; When we reached the end of an element or a block, raise a "scan-error" like "forward-sexp" does.
+
+;; (|foo bar) -> (foo| bar) -> (foo bar|) -> error
+;; <div>|foo bar</div> -> <div>foo| bar</div> -> <div>foo bar|</div> -> error
+;; <?php |brabrabra ?> -> <?php brabrabra| ?> -> error
+;; "my-web-forward-sexp" does nothing at the end of buffer.
+
+;; "my-web-backward-sexp" is the inverse of "my-web-forward-sexp".
+
+;; We can use sexp-wise commands to operate on html tags, elements and blocks by overriding "forward-sexp" with "my-web-forward-sexp".
+;; fxbois
+;;  Owner
+;; fxbois commented on 8 Aug 2014
+;; @zk-phi somes advices
+
+;; prefer (get-text-property (point) 'tag-beg) to (= (char-after pos) ?<)
+;; and test the property 'block-token and the value 'delimiter instead the 'face (using the 'face property is realy not a good idea)
+;; You can use the method web-mode-reveal to see the properties used (look at the *Messages* buffer)
+
+;; If you have any question, do not hesitate to ask here
