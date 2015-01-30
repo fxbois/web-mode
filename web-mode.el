@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.08
+;; Version: 10.3.09
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,11 +21,10 @@
 
 ;;---- TODO --------------------------------------------------------------------
 
-;; web-mode-enable|disable: elt-highlight, col-highlight, whitespace
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.08"
+(defconst web-mode-version "10.3.09"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -686,6 +685,17 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(("angular"   . "ng-")
     ("thymeleaf" . "th:"))
   "Engine custom attributes")
+
+(defvar web-mode-last-enabled-feature nil)
+
+(defvar web-mode-features
+  '(("css-colorization"          . web-mode-enable-css-colorization)
+    ("element-highlight"         . web-mode-enable-current-element-highlight)
+    ("column-highlight"          . web-mode-enable-current-column-highlight)
+    ("whitespace-fontification"  . web-mode-enable-whitespace-fontification)
+    ("element-tag-fontification" . web-mode-enable-element-tag-fontification)
+    ("block-face"                . web-mode-enable-block-face)
+    ("part-face"                 . web-mode-enable-part-face)))
 
 (defvar web-mode-engine-file-regexps
   '(("asp"              . "\\.asp\\'")
@@ -2070,6 +2080,7 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-indent-style)
   (make-local-variable 'web-mode-is-scratch)
   (make-local-variable 'web-mode-jshint-errors)
+  (make-local-variable 'web-mode-last-enabled-feature)
   (make-local-variable 'web-mode-markup-indent-offset)
   (make-local-variable 'web-mode-sql-indent-offset)
   (make-local-variable 'web-mode-start-tag-overlay)
@@ -5234,96 +5245,6 @@ the environment as needed for ac-sources, right before they're used.")
         ) ;while
       )))
 
-(defun web-mode-make-tag-overlays ()
-  (unless web-mode-start-tag-overlay
-    (setq web-mode-start-tag-overlay (make-overlay 1 1)
-          web-mode-end-tag-overlay (make-overlay 1 1))
-    (overlay-put web-mode-start-tag-overlay
-                 'font-lock-face
-                 'web-mode-current-element-highlight-face)
-    (overlay-put web-mode-end-tag-overlay
-                 'font-lock-face
-                 'web-mode-current-element-highlight-face)))
-
-(defun web-mode-delete-tag-overlays ()
-  (when web-mode-start-tag-overlay
-    (delete-overlay web-mode-start-tag-overlay)
-    (delete-overlay web-mode-end-tag-overlay)))
-
-(defun web-mode-column-overlay-factory (index)
-  (let (overlay)
-    (when (null web-mode-column-overlays)
-      (dotimes (i 100)
-        (setq overlay (make-overlay 1 1))
-        (overlay-put overlay 'font-lock-face 'web-mode-current-column-highlight-face)
-        (setq web-mode-column-overlays (append web-mode-column-overlays (list overlay)))
-        )
-      )
-    (setq overlay (nth index web-mode-column-overlays))
-    (when (null overlay)
-;;      (message "new overlay(%S)" index)
-      (setq overlay (make-overlay 1 1))
-      (overlay-put overlay 'font-lock-face 'web-mode-current-column-highlight-face)
-      (setq web-mode-column-overlays (append web-mode-column-overlays (list overlay)))
-      ) ;when
-    overlay))
-
-(defun web-mode-column-hide ()
-  (remove-overlays (point-min) (point-max)
-                   'font-lock-face
-                   'web-mode-current-column-highlight-face))
-
-(defun web-mode-column-show (column line-from line-to)
-  (let ((index 0) overlay diff)
-    (when (> line-from line-to)
-      (let (tmp)
-        (setq tmp line-from)
-        (setq line-from line-to)
-        (setq line-to tmp)))
-    (save-excursion
-      (goto-char (point-min))
-      (when (> line-from 1)
-        (forward-line (1- line-from)))
-      (while (<= line-from line-to)
-        (setq overlay (web-mode-column-overlay-factory index))
-        (setq diff (- (line-end-position) (point)))
-        (cond
-         ((or (and (= column 0) (= diff 0))
-              (> column diff))
-          (end-of-line)
-          (move-overlay overlay (point) (point))
-          (overlay-put overlay
-                       'after-string
-                       (concat
-                        (if (> column diff) (make-string (- column diff) ?\s) "")
-                        (propertize 'font-lock-face
-                                    'web-mode-current-column-highlight-face)
-                        ) ;concat
-                       )
-          )
-         (t
-          (move-to-column column)
-          (overlay-put overlay 'after-string nil)
-          (move-overlay overlay (point) (1+ (point)))
-          )
-         ) ;cond
-        (setq line-from (1+ line-from))
-        (forward-line)
-        (setq index (1+ index))
-        )
-      ) ;save-excursion
-    ))
-
-(defun web-mode-highlight-current-element ()
-  (let ((ctx (web-mode-element-boundaries)))
-;;    (message "%S" ctx)
-    (if (null ctx)
-        (web-mode-delete-tag-overlays)
-      (web-mode-make-tag-overlays)
-      (move-overlay web-mode-start-tag-overlay (caar ctx) (1+ (cdar ctx)))
-      (move-overlay web-mode-end-tag-overlay (cadr ctx) (1+ (cddr ctx))))
-    ))
-
 (defun web-mode-fill-paragraph (&optional justify)
   (save-excursion
     (let ((pos (point)) fill-coll
@@ -5596,6 +5517,170 @@ the environment as needed for ac-sources, right before they're used.")
           (setq continue nil))
         ) ;while
       )))
+
+(defun web-mode-enable (feature)
+  "Enable one feature."
+  (interactive
+   (list (completing-read
+          "Feature: "
+          (let (features elt)
+            (dolist (elt web-mode-features)
+              (setq features (append features (list (car elt)))))
+            features))))
+  (when (and (or (not feature) (< (length feature) 1)) web-mode-last-enabled-feature)
+    (setq feature web-mode-last-enabled-feature))
+  (when feature
+    (setq web-mode-last-enabled-feature feature)
+    (setq feature (cdr (assoc feature web-mode-features)))
+    (cond
+     ((eq feature 'web-mode-enable-current-column-highlight)
+      (web-mode-column-show))
+     ((eq feature 'web-mode-enable-current-element-highlight)
+      (when (not web-mode-enable-current-element-highlight)
+        (web-mode-toggle-current-element-highlight))
+      )
+     ((eq feature 'web-mode-enable-whitespace-fontification)
+      (web-mode-whitespaces-on))
+     (t
+      (set feature t)
+      (web-mode-buffer-highlight))
+     )
+    ) ;when
+  )
+
+(defun web-mode-disable (feature)
+  "Disable one feature."
+  (interactive
+   (list (completing-read
+          "Feature: "
+          (let (features elt)
+            (dolist (elt web-mode-features)
+              (setq features (append features (list (car elt)))))
+            features))))
+  (when (and (or (not feature) (< (length feature) 1)) web-mode-last-enabled-feature)
+    (setq feature web-mode-last-enabled-feature))
+  (when feature
+    (setq feature (cdr (assoc feature web-mode-features)))
+    (cond
+     ((eq feature 'web-mode-enable-current-column-highlight)
+      (web-mode-column-hide))
+     ((eq feature 'web-mode-enable-current-element-highlight)
+      (when web-mode-enable-current-element-highlight
+        (web-mode-toggle-current-element-highlight))
+      )
+     ((eq feature 'web-mode-enable-whitespace-fontification)
+      (web-mode-whitespaces-off))
+     (t
+      (set feature nil)
+      (web-mode-buffer-highlight))
+     )
+    ) ;when
+  )
+
+(defun web-mode-make-tag-overlays ()
+  (unless web-mode-start-tag-overlay
+    (setq web-mode-start-tag-overlay (make-overlay 1 1)
+          web-mode-end-tag-overlay (make-overlay 1 1))
+    (overlay-put web-mode-start-tag-overlay
+                 'font-lock-face
+                 'web-mode-current-element-highlight-face)
+    (overlay-put web-mode-end-tag-overlay
+                 'font-lock-face
+                 'web-mode-current-element-highlight-face)))
+
+(defun web-mode-delete-tag-overlays ()
+  (when web-mode-start-tag-overlay
+    (delete-overlay web-mode-start-tag-overlay)
+    (delete-overlay web-mode-end-tag-overlay)))
+
+(defun web-mode-column-overlay-factory (index)
+  (let (overlay)
+    (when (null web-mode-column-overlays)
+      (dotimes (i 100)
+        (setq overlay (make-overlay 1 1))
+        (overlay-put overlay 'font-lock-face 'web-mode-current-column-highlight-face)
+        (setq web-mode-column-overlays (append web-mode-column-overlays (list overlay)))
+        )
+      )
+    (setq overlay (nth index web-mode-column-overlays))
+    (when (null overlay)
+;;      (message "new overlay(%S)" index)
+      (setq overlay (make-overlay 1 1))
+      (overlay-put overlay 'font-lock-face 'web-mode-current-column-highlight-face)
+      (setq web-mode-column-overlays (append web-mode-column-overlays (list overlay)))
+      ) ;when
+    overlay))
+
+(defun web-mode-column-hide ()
+  (setq web-mode-enable-current-column-highlight nil)
+  (remove-overlays (point-min) (point-max)
+                   'font-lock-face
+                   'web-mode-current-column-highlight-face))
+
+(defun web-mode-column-show ()
+  (let ((index 0) overlay diff column line-to line-from)
+    (web-mode-column-hide)
+    (setq web-mode-enable-current-column-highlight t)
+    (save-excursion
+      (back-to-indentation)
+      (setq column (current-column)
+            line-to (web-mode-line-number))
+      (when (and (get-text-property (point) 'tag-beg)
+                 (member (get-text-property (point) 'tag-type) '(start end))
+                 (web-mode-tag-match)
+                 (setq line-from (web-mode-line-number))
+                 (not (= line-from line-to)))
+        (when (> line-from line-to)
+          (let (tmp)
+            (setq tmp line-from)
+            (setq line-from line-to)
+            (setq line-to tmp))
+          ) ;when
+        ;;(message "column(%S) line-from(%S) line-to(%S)" column line-from line-to)
+        (goto-char (point-min))
+        (when (> line-from 1)
+          (forward-line (1- line-from)))
+        (while (<= line-from line-to)
+          (setq overlay (web-mode-column-overlay-factory index))
+          (setq diff (- (line-end-position) (point)))
+          (cond
+           ((or (and (= column 0) (= diff 0))
+                (> column diff))
+            (end-of-line)
+            (move-overlay overlay (point) (point))
+            (overlay-put overlay
+                         'after-string
+                         (concat
+                          (if (> column diff) (make-string (- column diff) ?\s) "")
+                          (propertize 'font-lock-face
+                                      'web-mode-current-column-highlight-face)
+                          ) ;concat
+                         )
+            )
+           (t
+            (move-to-column column)
+            (overlay-put overlay 'after-string nil)
+            (move-overlay overlay (point) (1+ (point)))
+            )
+           ) ;cond
+          (setq line-from (1+ line-from))
+          (forward-line)
+          (setq index (1+ index))
+          ) ;while
+        ) ;when
+      ) ;save-excursion
+    ) ;let
+  )
+
+(defun web-mode-highlight-current-element ()
+  (let ((ctx (web-mode-element-boundaries)))
+    ;;    (message "%S" ctx)
+    (if (null ctx)
+        (web-mode-delete-tag-overlays)
+      (web-mode-make-tag-overlays)
+      (move-overlay web-mode-start-tag-overlay (caar ctx) (1+ (cdar ctx)))
+      (move-overlay web-mode-end-tag-overlay (cadr ctx) (1+ (cddr ctx))))
+    ))
 
 (defun web-mode-highlight-whitespaces (beg end)
   (save-excursion
@@ -8414,7 +8499,6 @@ Pos should be in a tag."
 
     (when (and web-mode-enable-auto-indentation
                (member this-command '(self-insert-command))
-               ;;(not auto-opened)
                (or (and ctx
                         (or (plist-get ctx :auto-closed)
                             (plist-get ctx :auto-expanded)))
@@ -8422,7 +8506,6 @@ Pos should be in a tag."
                         (get-text-property (1- (point)) 'tag-end)
                         (get-text-property (line-beginning-position) 'tag-beg))))
       (indent-according-to-mode)
-;;      (indent-for-tab-command)
       (when (and web-mode-change-end (> web-mode-change-end (point-max)))
         (message "post-command: enlarge web-mode-change-end")
         (setq web-mode-change-end (point-max))
@@ -8434,25 +8517,10 @@ Pos should be in a tag."
 
     (when (and web-mode-enable-current-column-highlight
                (not (web-mode-buffer-narrowed-p)))
-      (web-mode-column-hide)
-      (save-excursion
-        (let (pos column line-to line-from)
-          (back-to-indentation)
-          (setq pos (point)
-                column (current-column)
-                line-to (web-mode-line-number))
-          (when (and (get-text-property (point) 'tag-beg)
-                     (member (get-text-property (point) 'tag-type) '(start end))
-                     (web-mode-tag-match)
-                     (setq line-from (web-mode-line-number))
-;;                     (progn (message "cool %S %S" line-from line-to) t)
-                     (not (= line-from line-to)))
-            (web-mode-column-show column line-from line-to)
-            ) ;if
-          ) ;let
-        ) ;save-excursion
-      )
-    ;;    (message "post-command (%S) (%S)" web-mode-change-end web-mode-change-end)
+      (web-mode-column-show))
+
+    ;;(message "post-command (%S) (%S)" web-mode-change-end web-mode-change-end)
+
     ))
 
 (defun web-mode-dom-apostrophes-replace ()
@@ -9613,6 +9681,19 @@ Pos should be in a tag."
    )
   pos)
 
+(defun web-mode-part-token-end-position (&optional pos)
+  (unless pos (setq pos (point)))
+  (cond
+   ((not (get-text-property pos 'part-token))
+    nil)
+   ((or (= pos (point-max))
+        (not (get-text-property (1+ pos) 'part-token)))
+    pos)
+   (t
+    (1- (next-single-property-change pos 'part-token))
+    )
+   ))
+
 (defun web-mode-block-token-beginning-position (&optional pos)
   (unless pos (setq pos (point)))
   (cond
@@ -9624,11 +9705,25 @@ Pos should be in a tag."
     )
    (t
     (setq pos (previous-single-property-change pos 'block-token))
-    (setq pos (if (and pos (> pos (point-min))) pos (point-min))))
-   (t
-    (setq pos nil))
+    (setq pos (if (and pos (> pos (point-min))) pos (point-min)))
+    )
+;;   (t
+;;    (setq pos nil))
    )
   pos)
+
+(defun web-mode-block-token-end-position (&optional pos)
+  (unless pos (setq pos (point)))
+  (cond
+   ((not (get-text-property pos 'block-token))
+    nil)
+   ((or (= pos (point-max))
+        (not (get-text-property (1+ pos) 'block-token)))
+    pos)
+   (t
+    (1- (next-single-property-change pos 'block-token))
+    )
+   ))
 
 (defun web-mode-block-code-end-position (&optional pos)
   (unless pos (setq pos (point)))
@@ -9718,6 +9813,71 @@ Pos should be in a tag."
 
 ;;---- EXCURSION ---------------------------------------------------------------
 
+;; (add-hook 'web-mode-hook (lambda () (setq-local forward-sexp-function 'web-mode-forward-sexp)))
+(defun web-mode-backward-sexp (n)
+  (interactive "p")
+  (if (< n 0) (web-mode-forward-sexp (- n))
+    (let (pos)
+      (dotimes (_ n)
+        (skip-chars-backward "[:space:]")
+        (setq pos (point))
+        (cond
+         ((bobp) nil)
+         ((get-text-property (1- pos) 'block-end)
+          (backward-char 1)
+          (web-mode-block-beginning))
+         ((get-text-property (1- pos) 'block-token)
+          (backward-char 1)
+          (web-mode-block-token-beginning))
+         ((get-text-property (1- pos) 'part-token)
+          (backward-char 1)
+          (web-mode-part-token-beginning))
+         ((get-text-property (1- pos) 'tag-end)
+          (backward-char 1)
+          (web-mode-element-beginning))
+         ((get-text-property (1- pos) 'tag-attr)
+          (backward-char 1)
+          (web-mode-attribute-beginning))
+         ((get-text-property (1- pos) 'tag-type)
+          (backward-char 1)
+          (web-mode-tag-beginning))
+         (t
+          (let ((backward-sexp-function nil))
+            (backward-sexp))
+          ) ;case t
+         ) ;cond
+        ) ;dotimes
+      ))) ;let if defun
+
+(defun web-mode-forward-sexp (n)
+  (interactive "p")
+  (if (< n 0) (web-mode-backward-sexp (- n))
+    (let (pos)
+      (dotimes (_ n)
+        (skip-chars-forward "[:space:]")
+        (setq pos (point))
+        (cond
+         ((eobp) nil)
+         ((get-text-property pos 'block-beg)
+          (web-mode-block-end))
+         ((get-text-property pos 'block-token)
+          (web-mode-block-token-end))
+         ((get-text-property pos 'part-token)
+          (web-mode-part-token-end))
+         ((get-text-property pos 'tag-beg)
+          (web-mode-element-end))
+         ((get-text-property pos 'tag-attr)
+          (web-mode-attribute-end))
+         ((get-text-property pos 'tag-type)
+          (web-mode-tag-end))
+         (t
+          (let ((forward-sexp-function nil))
+            (forward-sexp))
+          ) ;case t
+         ) ;cond
+        ) ;dotimes
+      ))) ;let if defun
+
 (defun web-mode-tag-beginning ()
   "Fetch current html tag beg."
   (interactive)
@@ -9726,11 +9886,7 @@ Pos should be in a tag."
 (defun web-mode-tag-end ()
   "Fetch current html tag end."
   (interactive)
-  (let ((pos (web-mode-tag-end-position (point))))
-    (when pos
-      (setq pos (1+ pos))
-      (goto-char pos))
-    pos))
+  (web-mode-go (web-mode-tag-end-position (point)) 1))
 
 (defun web-mode-tag-previous ()
   "Fetch previous tag."
@@ -9809,19 +9965,12 @@ Pos should be in a tag."
 (defun web-mode-element-beginning ()
   "Move to beginning of element."
   (interactive)
-  (let ((pos (point)))
-    (when (setq pos (web-mode-element-beginning-position pos))
-      (goto-char pos))
-    pos))
+  (web-mode-go (web-mode-element-beginning-position (point))))
 
 (defun web-mode-element-end ()
   "Move to end of element."
   (interactive)
-  (let ((pos (point)))
-    (when (setq pos (web-mode-element-end-position pos))
-      (setq pos (1+ pos))
-      (goto-char pos))
-    pos))
+  (web-mode-go (web-mode-element-end-position (point)) 1))
 
 (defun web-mode-element-parent ()
   "Fetch parent element."
@@ -9868,12 +10017,7 @@ Pos should be in a tag."
 (defun web-mode-part-end ()
   "Move point to the end of the current part."
   (interactive)
-  (let ((pos (point)))
-    (when (setq pos (web-mode-part-end-position pos))
-      (when (< pos (point-max))
-        (setq pos (1+ pos)))
-      (goto-char pos))
-    pos))
+  (web-mode-go (web-mode-part-end-position (point)) 1))
 
 (defun web-mode-block-previous ()
   "Move point to the beginning of the previous block."
@@ -9893,14 +10037,19 @@ Pos should be in a tag."
 (defun web-mode-block-end ()
   "Move point to the end of the current block."
   (interactive)
-  (let ((pos (point)))
-    (when (setq pos (web-mode-block-end-position pos))
-      (setq pos (1+ pos))
-      (goto-char pos))
-    pos))
+  (web-mode-go (web-mode-block-end-position (point)) 1))
 
 (defun web-mode-block-token-beginning ()
   (web-mode-go (web-mode-block-token-beginning-position (point))))
+
+(defun web-mode-block-token-end ()
+  (web-mode-go (web-mode-block-token-end-position (point)) 1))
+
+(defun web-mode-part-token-beginning ()
+  (web-mode-go (web-mode-part-token-beginning-position (point))))
+
+(defun web-mode-part-token-end ()
+  (web-mode-go (web-mode-part-token-end-position (point)) 1))
 
 (defun web-mode-block-opening-paren (limit)
   (web-mode-go (web-mode-block-opening-paren-position (point) limit)))
@@ -9957,8 +10106,18 @@ Pos should be in a tag."
       (setq reg-beg (web-mode-part-beginning-position pos))))
   (web-mode-go (web-mode-javascript-calls-beginning-position pos reg-beg)))
 
-(defun web-mode-go (pos)
-  (when pos (goto-char pos))
+(defun web-mode-go (pos &optional offset)
+  (unless offset (setq offset 0))
+  (when pos
+    (cond
+     ((and (> offset 0)
+           (<= (+ pos offset) (point-max)))
+      (setq pos (+ pos offset)))
+     ((and (< offset 0)
+           (>= (+ pos offset) (point-min)))
+      (setq pos (+ pos offset)))
+     ) ;cond
+    (goto-char pos))
   pos)
 
 ;;---- SEARCH ------------------------------------------------------------------
@@ -10626,158 +10785,3 @@ Pos should be in a tag."
 ;; coding: utf-8
 ;; indent-tabs-mode: nil
 ;; End:
-
-
-
-;; (defun my-web-forward-sexp (n)
-;;   (interactive "p")
-;;   (if (< n 0)
-;;       (my-web-backward-sexp (- n))
-;;     (let ((origpos (point)))
-;;       (dotimes (_ n)
-;;         (skip-chars-forward "\s\t\n")
-;;         (unless (eobp)
-;;           (let ((pos (point)))
-;;             (cond ((eq (get-text-property pos 'face)
-;;                        'web-mode-html-tag-bracket-face)
-;;                    ;; we're looking at a tag delimiter
-;;                    (cond ((= (char-after pos) ?<)
-;;                           ;; we're looking at the tag: |<foo>
-;;                           (web-mode-navigate)
-;;                           (if (< (point) pos)
-;;                               ;; we've moved BACKWARD with "web-mode-navigate"
-;;                               ;; (the tag we're looking at was the ender of the element)
-;;                               ;; <foo>brabrabra|</foo> -> |<foo>brabrabra</foo>
-;;                               (signal 'scan-error
-;;                                       (list "Containing expression ends prematurely"
-;;                                             pos
-;;                                             (prog1 (1+ (web-mode-tag-end-position pos))
-;;                                               (goto-char origpos))))
-;;                             ;; we've successfully moved FORWARD, or haven't moved
-;;                             ;; |<foo>brabrabra</foo> -> <foo>brabrabra|</foo>
-;;                             ;;                 |<br> -> |<br>
-;;                             (web-mode-tag-end)))
-;;                          (t
-;;                           ;; we're looking up the end of the tag: <foo|>
-;;                           (signal 'scan-error
-;;                                   (list "Containing expression ends prematurely"
-;;                                         pos (1+ pos))))))
-;;                   ((get-text-property pos 'block-beg)
-;;                    ;; we're looking at a block
-;;                    (web-mode-block-end))
-;;                   ((and (not (string= (web-mode-language-at-pos) "html"))
-;;                         (eq (get-text-property pos 'face)
-;;                             'web-mode-block-delimiter-face))
-;;                    ;; we're looking at the end of the block
-;;                    ;; <?php foo |?>
-;;                    (signal 'scan-error
-;;                            (list "Containing expression ends prematurely"
-;;                                  pos
-;;                                  (prog1 (1+ (web-mode-block-end-position))
-;;                                    (goto-char origpos)))))
-;;                   (t
-;;                    ;; otherwise, do the normal "forward-sexp"
-;;                    (let ((forward-sexp-function nil))
-;;                      (forward-sexp))
-;;                    (unless (looking-back "\\s)")
-;;                      (let ((delim
-;;                             (or (text-property-any
-;;                                  pos (point) 'face 'web-mode-block-delimiter-face)
-;;                                 (text-property-any
-;;                                  pos (point) 'face 'web-mode-html-tag-bracket-face))))
-;;                        (when delim
-;;                          ;; we've skipped over a block/tag delimiter
-;;                          ;; brabrabra|:<br> -> brabrabra:<br|>
-;;                          (goto-char delim)
-;;                          (skip-chars-backward "\s\t\n"))))))))))))
-
-;; (defun my-web-backward-sexp (n)
-;;   (interactive "p")
-;;   (if (< n 0) (my-web-forward-sexp (- n))
-;;     (let ((origpos (point)))
-;;       (dotimes (_ n)
-;;         (skip-chars-backward "\s\t\n")
-;;         (unless (bobp)
-;;           (let ((pos (point)))
-;;             (cond ((eq (get-text-property (1- pos) 'face)
-;;                        'web-mode-html-tag-bracket-face)
-;;                    ;; we're looking back a tag delimiter
-;;                    (cond ((= (char-before pos) ?>)
-;;                           ;; we're looking back the tag ender: <foo>|
-;;                           (backward-char 1)
-;;                           (web-mode-navigate)
-;;                           (if (< pos (point))
-;;                               ;; we've moved FORWARD
-;;                               ;; <foo|>brabrabra</foo> -> <foo>brabrabra|</foo>
-;;                               (signal 'scan-error
-;;                                       (list "Containing expression ends prematurely"
-;;                                             (prog1 (web-mode-tag-beginning-position (1- pos))
-;;                                               (goto-char origpos))
-;;                                             pos))
-;;                             (web-mode-tag-beginning)))
-;;                          (t
-;;                           ;; we're looking back the beginning of the tag: <|foo>
-;;                           (signal 'scan-error
-;;                                   (list "Containing expression ends prematurely"
-;;                                         (1- pos) pos)))))
-;;                   ((get-text-property (1- pos) 'block-end)
-;;                    ;; we're looking back the block-end
-;;                    (backward-char 1)
-;;                    (web-mode-block-beginning))
-;;                   ((and (not (string= (web-mode-language-at-pos pos) "html"))
-;;                         (eq (get-text-property (1- pos) 'face)
-;;                             'web-mode-block-delimiter-face))
-;;                    ;; we're looking back the beginning of the block
-;;                    ;; <?php| foo ?>
-;;                    (signal 'scan-error
-;;                            (list "Containing expression ends prematurely"
-;;                                  (prog1 (web-mode-block-beginning-position)
-;;                                    (goto-char origpos))
-;;                                  pos)))
-;;                   (t
-;;                    (let ((forward-sexp-function nil))
-;;                      (backward-sexp))
-;;                    (unless (looking-at "\\s(")
-;;                      (let ((delim
-;;                             (or (text-property-any
-;;                                  (point) pos 'face 'web-mode-block-delimiter-face)
-;;                                 (text-property-any
-;;                                  (point) pos 'face 'web-mode-html-tag-bracket-face))))
-;;                        (when delim
-;;                          (goto-char
-;;                           (next-single-property-change delim 'face)))))))))))))
-
-;; (add-hook 'web-mode-hook
-;;           (lambda ()
-;;             (setq-local forward-sexp-function 'my-web-forward-sexp)))
-
-
-;; zk-phi commented on 8 Aug 2014
-;; "my-web-forward-sexp" command basically moves the cursor forward like "forward-sexp":
-
-;; |(foo bar) baz -> (foo bar)| baz -> (foo bar) baz| ... (| are cursors)
-;; but when we're just before a html tag, element, or block, jumps over it.
-
-;; |<div>brabra</div> -> <div>brabra</div>|
-;; |<br> -> <br>|
-;; |<?php brabrabra ?> -> <?php brabrabra ?>|
-;; When we reached the end of an element or a block, raise a "scan-error" like "forward-sexp" does.
-
-;; (|foo bar) -> (foo| bar) -> (foo bar|) -> error
-;; <div>|foo bar</div> -> <div>foo| bar</div> -> <div>foo bar|</div> -> error
-;; <?php |brabrabra ?> -> <?php brabrabra| ?> -> error
-;; "my-web-forward-sexp" does nothing at the end of buffer.
-
-;; "my-web-backward-sexp" is the inverse of "my-web-forward-sexp".
-
-;; We can use sexp-wise commands to operate on html tags, elements and blocks by overriding "forward-sexp" with "my-web-forward-sexp".
-;; fxbois
-;;  Owner
-;; fxbois commented on 8 Aug 2014
-;; @zk-phi somes advices
-
-;; prefer (get-text-property (point) 'tag-beg) to (= (char-after pos) ?<)
-;; and test the property 'block-token and the value 'delimiter instead the 'face (using the 'face property is realy not a good idea)
-;; You can use the method web-mode-reveal to see the properties used (look at the *Messages* buffer)
-
-;; If you have any question, do not hesitate to ask here
