@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.09
+;; Version: 10.3.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.09"
+(defconst web-mode-version "10.3.10"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8417,15 +8417,23 @@ Pos should be in a tag."
         (backward-char)
         (setq auto-quoted t))
        ((and (eq char ?\")
-             (eq (char-after) ?\")
-             (looking-at-p "[\"]"))
-        (delete-char 1)
-        (backward-char))
+             (eq (char-after) ?\"))
+        (if (looking-back "=\"\"")
+            (progn
+              (delete-char 1)
+              (backward-char))
+          (delete-char 1)
+          ;;(message "%c" (char-after))
+          (if (eq (char-after) ?\s)
+              (forward-char)
+            (insert " "))
+          )
+        )
        )
       )
 
     ;;--
-    (cond
+      (cond
      ((or auto-closed auto-paired auto-expanded auto-quoted)
       (when (and web-mode-change-end
                  (>= (line-end-position) web-mode-change-end))
