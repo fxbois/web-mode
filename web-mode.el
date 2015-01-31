@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.10
+;; Version: 10.3.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.10"
+(defconst web-mode-version "10.3.11"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -317,7 +317,7 @@ See web-mode-part-face."
     (((class color) (min-colors 8))                     :foreground "Snow3")
     (((type tty) (class mono))                          :inverse-video t)
     (t                                                  :foreground "Snow3"))
-  "Face for html tags angle brackets (< and >)."
+  "Face for html tags angle brackets (<, > and />)."
   :group 'web-mode-faces)
 
 (defface web-mode-html-attr-name-face
@@ -696,6 +696,11 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("element-tag-fontification" . web-mode-enable-element-tag-fontification)
     ("block-face"                . web-mode-enable-block-face)
     ("part-face"                 . web-mode-enable-part-face)))
+
+(defvar web-mode-comment-formats
+  '(("java"       . "/*")
+    ("javascript" . "/*")
+    ("php"        . "/*")))
 
 (defvar web-mode-engine-file-regexps
   '(("asp"              . "\\.asp\\'")
@@ -7812,7 +7817,6 @@ Pos should be in a tag."
         (cond
 
          ((member language '("html" "xml"))
-
           (cond
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "django"))
             (web-mode-insert-and-indent (concat "{# " sel " #}"))
@@ -7841,17 +7845,19 @@ Pos should be in a tag."
             (web-mode-insert-and-indent (concat "<!-- " sel " -->"))
             )
            )
-
           ) ;case html
 
-         ((member language '("php" "javascript" "css"))
-          (web-mode-insert-and-indent (concat "/* " sel " */")))
+         ((member language '("php" "javascript" "java"))
+          (if (string= (cdr (assoc language web-mode-comment-formats)) "//")
+              (web-mode-insert-and-indent (replace-regexp-in-string "^[ ]*" "//" sel))
+            (web-mode-insert-and-indent (concat "/* " sel " */")))
+          )
 
          ((member language '("erb"))
-          (web-mode-insert-and-indent (replace-regexp-in-string "^" "#" sel)))
+          (web-mode-insert-and-indent (replace-regexp-in-string "^[ ]*" "#" sel)))
 
          ((member language '("asp"))
-          (web-mode-insert-and-indent (replace-regexp-in-string "^" "''" sel)))
+          (web-mode-insert-and-indent (replace-regexp-in-string "^[ ]*" "''" sel)))
 
          (t
           (web-mode-insert-and-indent (concat "/* " sel " */")))
