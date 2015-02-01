@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.12
+;; Version: 10.3.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.12"
+(defconst web-mode-version "10.3.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7775,9 +7775,12 @@ Pos should be in a tag."
           ) ;case html
 
          ((member language '("php" "javascript" "java"))
-          (if (string= (cdr (assoc language web-mode-comment-formats)) "//")
-              (web-mode-insert-and-indent (replace-regexp-in-string "^[ ]*" "//" sel))
-            (web-mode-insert-and-indent (concat "/* " sel " */")))
+          (let (alt)
+            (setq alt (cdr (assoc language web-mode-comment-formats)))
+            (if (not (string= alt "/*"))
+                (web-mode-insert-and-indent (replace-regexp-in-string "^[ ]*" alt sel))
+              (web-mode-insert-and-indent (concat "/* " sel " */")))
+            )
           )
 
          ((member language '("erb"))
