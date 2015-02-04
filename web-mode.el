@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.4.00
+;; Version: 10.4.01
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.4.00"
+(defconst web-mode-version "10.4.01"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8335,6 +8335,7 @@ Pos should be in a tag."
     ;;-- auto-quoting
     (when (and web-mode-enable-auto-quoting
                (>= pos 4)
+               (not (get-text-property pos 'block-side))
                (not auto-closed)
                (not auto-paired)
                (not auto-expanded)
