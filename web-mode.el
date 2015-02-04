@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.3.13
+;; Version: 10.4.00
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.3.13"
+(defconst web-mode-version "10.4.00"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
