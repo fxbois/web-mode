@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.4.02
+;; Version: 10.4.03
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.4.02"
+(defconst web-mode-version "10.4.03"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -168,6 +168,16 @@ See web-mode-part-face."
   :type 'boolean
   :group 'web-mode)
 
+(defcustom web-mode-enable-tab-indentation nil
+  "Enable tab indentation."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-sexp-functions t
+  "Enable specific sexp functions."
+  :type 'boolean
+  :group 'web-mode)
+
 (defcustom web-mode-enable-string-interpolation t
   "Enable string interpolation fontification (php and erb)."
   :type 'boolean
@@ -246,7 +256,7 @@ See web-mode-part-face."
   :type 'list
   :group 'web-mode)
 
-(defcustom web-mode-tests-directory "~/Repos/web-mode/tests/cases"
+(defcustom web-mode-tests-directory "~/Repos/web-mode/tests"
   "Directory containing all the unit tests."
   :type 'list
   :group 'web-mode)
@@ -706,7 +716,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
     ("blade"            . "\\.blade\\.php\\'")
-    ("cl-emb"           . "\\.clemb\\'") ;; Typically will be tmpl, but this fixes Django conflict
+    ("cl-emb"           . "\\.clemb\\'")
     ("clip"             . "\\.ctml\\'")
     ("closure"          . "\\.soy\\'")
     ("ctemplate"        . "\\.\\(chtml\\|mustache\\)\\'")
@@ -747,47 +757,88 @@ Must be used in conjunction with web-mode-enable-block-face."
   "XML chars")
 
 (defvar web-mode-html-entities
-  '(("egrave" . 232)
-    ("eacute" . 233)
-    ("ecirc"  . 234)
-    ("euml"   . 235)
-    ("agrave" . 224)
-    ("aacute" . 225)
-    ("aelig"  . 230)
-    ("ccedil" . 231)
-    ("times"  . 215)
-    ("quot"   . 34)
-    ("amp"    . 38)
-    ("lt"     . 60)
-    ("gt"     . 62)
-    ("laquo"  . 171)
-    ("raquo"  . 187)
-    ("lsquo"  . 8249)
-    ("rsquo"  . 8250)
-    ("ldquo"  . 8220)
-    ("rdquo"  . 8221)
-    ("lsaquo" . 8249)
-    ("rsaquo" . 8250)
-    ("apos"   . 39)
-    ("frac14" . 188)
-    ("frac12" . 189)
-    ("frac34" . 190)
-    ("para"   . 182)
-    ("middot" . 183)
-    ("ndash"  . 8211)
-    ("mdash"  . 8212)
-    ("bull"   . 8226)
-    ("hellip" . 8230)
-    ("trade"  . 8482)
-    ("larr"   . 8592)
-    ("uarr"   . 8593)
-    ("rarr"   . 8594)
-    ("darr"   . 8595)
-    ("harr"   . 8596)
-    ("crarr"  . 8629)
-    ("and"    . 8743)
-    ("or"     . 8744)
-    ("sdot"   . 8901)))
+  '(("AElig" . 198) ("Aacute" . 193) ("Acirc" . 194) ("Agrave" . 192)
+    ("Alpha" . 913) ("Aring" . 197) ("Atilde" . 195) ("Auml" . 196)
+    ("Beta" . 914)
+    ("Ccedil" . 199) ("Chi" . 935)
+    ("Dagger" . 8225) ("Delta" . 916)
+    ("ETH" . 208) ("Eacute" . 201) ("Ecirc" . 202) ("Egrave" . 200)
+    ("Epsilon" . 917) ("Eta" . 919) ("Euml" . 203)
+    ("Gamma" . 915)
+    ("Iacute" . 205) ("Icirc" . 206) ("Igrave" . 204) ("Iota" . 921)
+    ("Iuml" . 207)
+    ("Kappa" . 922)
+    ("Lambda" . 923)
+    ("Mu" . 924)
+    ("Ntilde" . 209) ("Nu" . 925)
+    ("OElig" . 338) ("Oacute" . 211) ("Ocirc" . 212) ("Ograve" . 210)
+    ("Omega" . 937) ("Omicron" . 927) ("Oslash" . 216) ("Otilde" . 213)
+    ("Ouml" . 214)
+    ("Phi" . 934) ("Pi" . 928) ("Prime" . 8243) ("Psi" . 936)
+    ("Rho" . 929)
+    ("Scaron" . 352) ("Sigma" . 931)
+    ("THORN" . 222) ("Tau" . 932) ("Theta" . 920)
+    ("UArr" . 8657) ("Uacute" . 218) ("Uacute" . 250) ("Ucirc" . 219)
+    ("Ucirc" . 251) ("Ugrave" . 217) ("Ugrave" . 249) ("Upsih" . 978)
+    ("Upsilon" . 933) ("Uuml" . 220) ("Uuml" . 252)
+    ("Xi" . 926)
+    ("Yacute" . 221) ("Yuml" . 376)
+    ("Zeta" . 918)
+    ("aacute" . 225) ("acirc" . 226) ("acute" . 180) ("aelig" . 230)
+    ("agrave" . 224) ("alefsym" . 8501) ("alpha" . 945) ("amp" . 38)
+    ("ang" . 8736) ("apos" . 39) ("aring" . 229) ("asymp" . 8776)
+    ("atilde" . 227) ("auml" . 228)
+    ("bdquo" . 8222) ("beta" . 946) ("brvbar" . 166) ("bull" . 8226)
+    ("cap" . 8745) ("ccedil" . 231) ("cedil" . 184) ("cent" . 162)
+    ("chi" . 967) ("circ" . 710) ("clubs" . 9827) ("cong" . 8773)
+    ("copy" . 169) ("crarr"  . 8629) ("cup" . 8746) ("curren" . 164)
+    ("dArr" . 8659) ("dagger" . 8224) ("darr" . 8595) ("deg" . 176)
+    ("delta" . 948) ("diams" . 9830) ("divide" . 247)
+    ("eacute" . 233) ("ecirc"  . 234) ("egrave" . 232) ("empty" . 8709)
+    ("emsp" . 8195) ("ensp" . 8194) ("epsilon" . 949) ("equiv" . 8801)
+    ("eta" . 951) ("eth" . 240) ("euml" . 235) ("euro" . 8364) ("exist" . 8707)
+    ("fnof" . 402) ("forall" . 8704) ("frac12" . 189) ("frac14" . 188)
+    ("frac34" . 190) ("frasl" . 8260)
+    ("gamma" . 947) ("ge" . 8805) ("gt" . 62)
+    ("hArr" . 8660) ("harr" . 8596) ("hearts" . 9829) ("hellip" . 8230)
+    ("iacute" . 237) ("icirc" . 238) ("iexcl" . 161) ("igrave" . 236)
+    ("image" . 8465) ("infin" . 8734) ("int" . 8747) ("iota" . 953)
+    ("iquest" . 191) ("isin" . 8712) ("iuml" . 239)
+    ("kappa" . 954)
+    ("lArr" . 8656) ("lambda" . 955) ("lang" . 9001) ("laquo" . 171)
+    ("larr" . 8592) ("lceil" . 8968) ("ldquo" . 8220) ("le" . 8804)
+    ("lfloor" . 8970) ("lowast" . 8727) ("loz" . 9674) ("lrm" . 8206)
+    ("lsaquo" . 8249) ("lsquo" . 8249) ("lt" . 60)
+    ("macr" . 175) ("mdash" . 8212) ("micro" . 181) ("middot" . 183)
+    ("minus" . 8722) ("mu" . 956)
+    ("nabla" . 8711) ("nbsp" . 160) ("ndash" . 8211) ("ne" . 8800)
+    ("ni" . 8715) ("not" . 172) ("notin" . 8713) ("nsub" . 8836)
+    ("ntilde" . 241) ("nu" . 957) ("oacute" . 243) ("ocirc" . 244)
+    ("oelig" . 339) ("ograve" . 242) ("oline" . 8254) ("omega" . 969)
+    ("omicron" . 959) ("oplus" . 8853) ("or" . 8744) ("ordf" . 170)
+    ("ordm" . 186) ("oslash" . 248) ("otilde" . 245) ("otimes" . 8855)
+    ("ouml" . 246)
+    ("para" . 182) ("part" . 8706) ("permil" . 8240) ("perp" . 8869)
+    ("phi" . 966) ("pi" . 960) ("piv" . 982) ("plusmn" . 177) ("pound" . 163)
+    ("prime" . 8242) ("prod" . 8719) ("prop" . 8733) ("psi" . 968)
+    ("quot" . 34)
+    ("rArr" . 8658) ("radic" . 8730) ("rang" . 9002) ("raquo" . 187)
+    ("rarr" . 8594) ("rceil" . 8969) ("rdquo" . 8221) ("real" . 8476)
+    ("reg" . 174) ("rfloor" . 8971) ("rho" . 961) ("rlm" . 8207)
+    ("rsaquo" . 8250) ("rsquo" . 8250) ("sbquo" . 8218)
+    ("scaron" . 353) ("sdot" . 8901) ("sect" . 167) ("shy" . 173)
+    ("sigma" . 963) ("sigmaf" . 962) ("sim" . 8764) ("spades" . 9824)
+    ("sub" . 8834) ("sube" . 8838) ("sum" . 8721) ("sup" . 8835)
+    ("sup1" . 185) ("sup2" . 178) ("sup3" . 179) ("supe" . 8839)
+    ("szlig" . 223)
+    ("tau" . 964) ("there4" . 8756) ("theta" . 952) ("thetasym" . 977)
+    ("thinsp" . 8201) ("thorn" . 254) ("tilde" . 732) ("times" . 215)
+    ("trade" . 8482)
+    ("uarr" . 8593) ("uml" . 168) ("upsilon" . 965)
+    ("weierp" . 8472)
+    ("xi" . 958)
+    ("yacute" . 253) ("yen" . 165) ("yuml" . 255) ("zeta" . 950)
+    ("zwj" . 8205) ("zwnj" . 8204)))
 
 (defvar web-mode-engines-alternate-delimiters
   (if (boundp 'web-mode-engines-alternate-delimiters)
@@ -2075,6 +2126,8 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-enable-block-face)
   (make-local-variable 'web-mode-enable-inlays)
   (make-local-variable 'web-mode-enable-part-face)
+  (make-local-variable 'web-mode-enable-sexp-functions)
+  (make-local-variable 'web-mode-enable-tab-indentation)
   (make-local-variable 'web-mode-end-tag-overlay)
   (make-local-variable 'web-mode-engine)
   (make-local-variable 'web-mode-engine-attr-regexp)
@@ -2107,7 +2160,7 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'text-property-default-nonsticky)
   (make-local-variable 'yank-excluded-properties)
 
-  ;; required for block-code-beg|end
+  ;; NOTE: required for block-code-beg|end
   (add-to-list 'text-property-default-nonsticky '(block-token . t))
 
   (setq fill-paragraph-function 'web-mode-fill-paragraph
@@ -2142,6 +2195,12 @@ the environment as needed for ac-sources, right before they're used.")
 
   (when web-mode-enable-whitespace-fontification
     (web-mode-whitespaces-on))
+
+  (when web-mode-enable-tab-indentation
+    (web-mode-use-tabs))
+
+  (when web-mode-enable-sexp-functions
+    (setq-local forward-sexp-function 'web-mode-forward-sexp))
 
   (web-mode-guess-engine-and-content-type)
   (setq web-mode-change-beg (point-min)
@@ -4258,7 +4317,7 @@ the environment as needed for ac-sources, right before they're used.")
         (if (not end)
             (setq continue nil)
           (setq end (1+ end))
-          ;; NOTE: garder { et } en part-token est util pour l'indentation
+          ;; NOTE: keeping { and } as part-token is useful for indentation
           (put-text-property (1+ beg) (1- end) 'part-token nil)
           (put-text-property beg end 'part-expr t)
           (web-mode-part-scan (1+ beg) (1- end) "javascript")
@@ -4789,7 +4848,7 @@ the environment as needed for ac-sources, right before they're used.")
   (let (sub1 sub2 sub3 continue char keywords token-type face beg end (buffer (current-buffer)))
     ;;(message "reg-beg=%S reg-end=%S" reg-beg reg-end)
 
-    ;;NOTE: required for block inside tag attr
+    ;; NOTE: required for block inside tag attr
     (remove-list-of-text-properties reg-beg reg-end '(font-lock-face))
 
     (goto-char reg-beg)
@@ -5700,6 +5759,27 @@ the environment as needed for ac-sources, right before they're used.")
   (setq buffer-display-table nil)
   (setq web-mode-enable-whitespace-fontification nil))
 
+(defun web-mode-use-tabs ()
+  "Tweaks vars to be compatible with TAB indentation."
+  (let (offset)
+    (setq web-mode-block-padding 0)
+    (setq web-mode-script-padding 0)
+    (setq web-mode-style-padding 0)
+    (setq offset
+          (cond
+           ((and (boundp 'tab-width) tab-width) tab-width)
+           ((and (boundp 'standard-indent) standard-indent) standard-indent)
+           (t 4)))
+    (setq web-mode-attr-indent-offset offset)
+    (setq web-mode-code-indent-offset offset)
+    (setq web-mode-css-indent-offset offset)
+    (setq web-mode-markup-indent-offset offset)
+    (setq web-mode-sql-indent-offset offset)
+    (add-to-list 'web-mode-indentation-params '("lineup-args" . nil))
+    (add-to-list 'web-mode-indentation-params '("lineup-calls" . nil))
+    (add-to-list 'web-mode-indentation-params '("lineup-concats" . nil))
+    ))
+
 (defun web-mode-buffer-indent ()
   "Indent all buffer."
   (interactive)
@@ -5951,16 +6031,20 @@ the environment as needed for ac-sources, right before they're used.")
                    t)))
         (setq token "comment"))
        ((or (and (> pos (point-min))
-                 (member (get-text-property pos 'part-token) '(string context key))
-                 (member (get-text-property (1- pos) 'part-token) '(string context key)))
+                 (member (get-text-property pos 'part-token)
+                         '(string context key))
+                 (member (get-text-property (1- pos) 'part-token)
+                         '(string context key)))
             (and (eq (get-text-property pos 'block-token) 'string)
                  (eq (get-text-property (1- pos) 'block-token) 'string)))
         (setq token "string"))
        )
 
       (goto-char pos)
-      (setq curr-line (web-mode-trim (buffer-substring-no-properties (line-beginning-position)
-                                                                (line-end-position))))
+      (setq curr-line (web-mode-trim
+                       (buffer-substring-no-properties
+                        (line-beginning-position)
+                        (line-end-position))))
       (setq curr-char (if (string= curr-line "") 0 (aref curr-line 0)))
 
       (when (or (member language '("php" "javascript" "jsx" "razor"))
@@ -9748,7 +9832,6 @@ Pos should be in a tag."
 
 ;;---- EXCURSION ---------------------------------------------------------------
 
-;; (add-hook 'web-mode-hook (lambda () (setq-local forward-sexp-function 'web-mode-forward-sexp)))
 (defun web-mode-backward-sexp (n)
   (interactive "p")
   (if (< n 0) (web-mode-forward-sexp (- n))
@@ -9841,11 +9924,7 @@ Pos should be in a tag."
 (defun web-mode-attribute-end ()
   "Fetch html attribute end."
   (interactive)
-  (let ((pos (web-mode-attribute-end-position (point))))
-    (when pos
-      (setq pos (1+ pos))
-      (goto-char pos))
-    pos))
+  (web-mode-go (web-mode-attribute-end-position (point)) 1))
 
 (defun web-mode-attribute-next ()
   "Fetch next attribute."
@@ -10660,11 +10739,12 @@ Pos should be in a tag."
   "Display text properties at point."
   (interactive)
   (let (symbol symbols out)
-    (setq out (format "[point=%S engine=%S content-type=%S language-at-pos=%S]\n"
-                      (point)
-                      web-mode-engine
-                      web-mode-content-type
-                      (web-mode-language-at-pos (point))))
+    (setq out (format
+               "[point=%S engine=%S content-type=%S language-at-pos=%S]\n"
+               (point)
+               web-mode-engine
+               web-mode-content-type
+               (web-mode-language-at-pos (point))))
     (setq symbols (append web-mode-scan-properties '(font-lock-face face)))
     (dolist (symbol symbols)
       (when symbol
@@ -10678,7 +10758,7 @@ Pos should be in a tag."
   "Display informations useful for debugging."
   (interactive)
   (let ((modes nil)
-        (customs '(web-mode-enable-current-column-highlight web-mode-enable-current-element-highlight))
+        (customs '(web-mode-enable-current-column-highlight web-mode-enable-current-element-highlight web-mode-enable-tab-indentation))
         (ignore '(abbrev-mode auto-composition-mode auto-compression-mode auto-encryption-mode auto-insert-mode column-number-mode delete-selection-mode electric-indent-mode file-name-shadow-mode font-lock-mode global-font-lock-mode global-hl-line-mode line-number-mode menu-bar-mode mouse-wheel-mode recentf-mode transient-mark-mode)))
     (message "\n")
     (message "--- WEB-MODE DEBUG BEG ---")
@@ -10699,7 +10779,6 @@ Pos should be in a tag."
               (error nil))
             ) ;lambda
           minor-mode-list)
-    (message "minor modes: %S" modes)
     (message "minor modes: %S" modes)
     (message "customs:")
     (dolist (custom customs)

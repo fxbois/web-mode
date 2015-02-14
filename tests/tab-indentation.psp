@@ -1,0 +1,17 @@
+<div>
+	<span toto="cdc"
+		titi="cd">
+		<script>
+		var = "x";
+		function toto () {
+			console.log("xsxs",
+				"xsxs");
+		}
+		var string = "aaa" .
+			"bbb";
+		func1().
+			func2().
+			func3();
+		</script>
+	</span>
+</div>
