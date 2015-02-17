@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.4.03
+;; Version: 10.4.04
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.4.03"
+(defconst web-mode-version "10.4.04"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -53,7 +53,7 @@
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-block-padding 0
+(defcustom web-mode-block-padding 2
   "Multi-line block (php, ruby, java, python, asp, etc.) left padding."
   :type 'integer
   :group 'web-mode)
@@ -5770,6 +5770,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((and (boundp 'tab-width) tab-width) tab-width)
            ((and (boundp 'standard-indent) standard-indent) standard-indent)
            (t 4)))
+    ;;(message "offset(%S)" offset)
     (setq web-mode-attr-indent-offset offset)
     (setq web-mode-code-indent-offset offset)
     (setq web-mode-css-indent-offset offset)
@@ -6185,6 +6186,7 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((eq (get-text-property pos 'block-token) 'delimiter-end)
           (when (web-mode-block-beginning)
+            (setq reg-col (current-indentation)) ;; TODO: bad hack
             (setq offset (current-column))))
 
          ((and (get-text-property pos 'tag-beg)
@@ -6460,6 +6462,7 @@ the environment as needed for ac-sources, right before they're used.")
 
          ) ;cond
 
+        ;;(message "offset=%S" offset)
         (when (and offset reg-col (< offset reg-col)) (setq offset reg-col))
 
         ) ;let

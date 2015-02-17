@@ -1,0 +1,13 @@
+<html>
+  <script>
+   function pricing() {
+     <?php
+       if ($x) {
+         echo 'one';
+       } else {
+         echo "two";
+       }
+     ?>
+   }
+  </script>
+</html>
