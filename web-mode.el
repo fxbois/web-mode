@@ -53,7 +53,7 @@
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-block-padding 2
+(defcustom web-mode-block-padding 0
   "Multi-line block (php, ruby, java, python, asp, etc.) left padding."
   :type 'integer
   :group 'web-mode)
