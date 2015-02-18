@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.4.04
+;; Version: 10.4.05
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.4.04"
+(defconst web-mode-version "10.4.05"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2196,7 +2196,10 @@ the environment as needed for ac-sources, right before they're used.")
   (when web-mode-enable-whitespace-fontification
     (web-mode-whitespaces-on))
 
-  (when web-mode-enable-tab-indentation
+  ;;(message "%S" indent-tabs-mode)
+  (when (and (boundp 'indent-tabs-mode) indent-tabs-mode)
+    ;;web-mode-enable-tab-indentation
+    ;;(message "use tabs")
     (web-mode-use-tabs))
 
   (when web-mode-enable-sexp-functions
@@ -5770,7 +5773,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((and (boundp 'tab-width) tab-width) tab-width)
            ((and (boundp 'standard-indent) standard-indent) standard-indent)
            (t 4)))
-    ;;(message "offset(%S)" offset)
+;;    (message "offset(%S)" offset)
     (setq web-mode-attr-indent-offset offset)
     (setq web-mode-code-indent-offset offset)
     (setq web-mode-css-indent-offset offset)
