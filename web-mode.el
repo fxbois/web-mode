@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.4.06
+;; Version: 10.4.07
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.4.06"
+(defconst web-mode-version "10.4.07"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -165,11 +165,6 @@ See web-mode-part-face."
 
 (defcustom web-mode-enable-inlays nil
   "Enable inlays (e.g. LaTeX) highlighting."
-  :type 'boolean
-  :group 'web-mode)
-
-(defcustom web-mode-enable-tab-indentation nil
-  "Enable tab indentation."
   :type 'boolean
   :group 'web-mode)
 
@@ -2128,7 +2123,6 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-enable-inlays)
   (make-local-variable 'web-mode-enable-part-face)
   (make-local-variable 'web-mode-enable-sexp-functions)
-  (make-local-variable 'web-mode-enable-tab-indentation)
   (make-local-variable 'web-mode-end-tag-overlay)
   (make-local-variable 'web-mode-engine)
   (make-local-variable 'web-mode-engine-attr-regexp)
@@ -2197,10 +2191,7 @@ the environment as needed for ac-sources, right before they're used.")
   (when web-mode-enable-whitespace-fontification
     (web-mode-whitespaces-on))
 
-  ;;(message "%S" indent-tabs-mode)
   (when (and (boundp 'indent-tabs-mode) indent-tabs-mode)
-    ;;web-mode-enable-tab-indentation
-    ;;(message "use tabs")
     (web-mode-use-tabs))
 
   (when web-mode-enable-sexp-functions
@@ -10765,7 +10756,7 @@ Pos should be in a tag."
   "Display informations useful for debugging."
   (interactive)
   (let ((modes nil)
-        (customs '(web-mode-enable-current-column-highlight web-mode-enable-current-element-highlight web-mode-enable-tab-indentation))
+        (customs '(web-mode-enable-current-column-highlight web-mode-enable-current-element-highlight))
         (ignore '(abbrev-mode auto-composition-mode auto-compression-mode auto-encryption-mode auto-insert-mode column-number-mode delete-selection-mode electric-indent-mode file-name-shadow-mode font-lock-mode global-font-lock-mode global-hl-line-mode line-number-mode menu-bar-mode mouse-wheel-mode recentf-mode transient-mark-mode)))
     (message "\n")
     (message "--- WEB-MODE DEBUG BEG ---")
