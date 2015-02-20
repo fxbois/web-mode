@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.4.07
+;; Version: 10.4.08
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.4.07"
+(defconst web-mode-version "10.4.08"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5420,6 +5420,7 @@ the environment as needed for ac-sources, right before they're used.")
      ) ;cond
     errors))
 
+;; TODO: executable-find program
 (defun web-mode-jshint ()
   "Run JSHint on all the JavaScript parts."
   (interactive)
@@ -6377,11 +6378,17 @@ the environment as needed for ac-sources, right before they're used.")
             ) ;when
           )
 
-         ((and (member language '("javascript" "jsx" "ejs")) (member ?\, chars))
+         ((and (member language '("javascript" "jsx" "ejs"))
+               (or (member ?\, chars)
+                   (member prev-char '(?\( ?\[ ?\{))))
           (cond
            ((not (web-mode-javascript-args-beginning pos reg-beg))
+            (message "no js args beg")
             )
-           ((not (cdr (assoc "lineup-args" web-mode-indentation-params)))
+           ((or (not (cdr (assoc "lineup-args" web-mode-indentation-params)))
+                (looking-at-p "\n"))
+            ;;(message "pos=%S" (point))
+            ;;(message "ici")
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ((not (eq curr-char ?\,))
             (setq offset (current-column)))
@@ -9626,17 +9633,22 @@ Pos should be in a tag."
         (when (setq pos (web-mode-opening-paren-position pos reg-beg))
           (setq pos (1- pos))))
        ((member char '(?\( ?\[ ?\{))
-        (setq continue nil)
-        (web-mode-looking-at ".[ \t\n]*" pos)
-        (setq pos (+ pos (length (match-string-no-properties 0)))))
+;;        (web-mode-looking-at ".[ \t\n]*" pos)
+        (web-mode-looking-at ".[ ]*" pos)
+        (setq pos (+ pos (length (match-string-no-properties 0)))
+              continue nil)
+;;        (message "=>%S" pos)
+        )
        ((web-mode-looking-back "\\(var\\|let\\|return\\|const\\)[ \n\t]*" pos)
-        (web-mode-looking-at "[ \t\n]*" pos)
+;;        (web-mode-looking-at "[ \t\n]*" pos)
+        (web-mode-looking-at "[ \t]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))
               continue nil))
        (t
         (setq pos (1- pos)))
        ) ;cond
       ) ;while
+    ;;(message "=%S" pos)
     pos))
 
 (defun web-mode-javascript-calls-beginning-position (pos &optional reg-beg)
@@ -10479,11 +10491,16 @@ Pos should be in a tag."
   "Executes web-mode unit tests. See `web-mode-tests-directory'."
   (interactive)
   (let (files ret regexp)
-    (setq regexp "^[[:alnum:]][[:alnum:].]+\\'")
-;;    (setq regexp "a\\.jsx\\'")
+    (setq regexp "^[[:alnum:]][[:alnum:]._]+\\'")
     (setq files (directory-files web-mode-tests-directory t regexp))
     (dolist (file files)
-      (setq ret (web-mode-test-process file)))
+      (cond
+       ((eq (string-to-char (file-name-nondirectory file)) ?\_)
+        (delete-file file))
+       (t
+        (setq ret (web-mode-test-process file)))
+       ) ;cond
+      ) ;dolist
     ))
 
 (defun web-mode-test-process (file)
@@ -10757,7 +10774,7 @@ Pos should be in a tag."
   (interactive)
   (let ((modes nil)
         (customs '(web-mode-enable-current-column-highlight web-mode-enable-current-element-highlight))
-        (ignore '(abbrev-mode auto-composition-mode auto-compression-mode auto-encryption-mode auto-insert-mode column-number-mode delete-selection-mode electric-indent-mode file-name-shadow-mode font-lock-mode global-font-lock-mode global-hl-line-mode line-number-mode menu-bar-mode mouse-wheel-mode recentf-mode transient-mark-mode)))
+        (ignore '(abbrev-mode auto-composition-mode auto-compression-mode auto-encryption-mode auto-insert-mode blink-cursor-mode column-number-mode delete-selection-mode electric-indent-mode file-name-shadow-mode font-lock-mode global-font-lock-mode global-hl-line-mode line-number-mode menu-bar-mode mouse-wheel-mode recentf-mode tool-bar-mode tooltip-mode transient-mark-mode)))
     (message "\n")
     (message "--- WEB-MODE DEBUG BEG ---")
     (message "versions: emacs(%S.%S) web-mode(%S)"

@@ -7,5 +7,5 @@ else
     EMACS=emacs
 fi
 
-$EMACS -batch -no-site-file -Q --eval '(setq standard-indent 2)' --eval '(load-file "web-mode.el")' --eval '(web-mode)' -f web-mode-test
+$EMACS -batch -no-site-file -Q --eval '(setq standard-indent 2)' --eval '(setq-default indent-tabs-mode nil)' --eval '(load-file "web-mode.el")' --eval '(web-mode)' -f web-mode-test
 
