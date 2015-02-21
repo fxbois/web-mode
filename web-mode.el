@@ -3,12 +3,12 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.4.10
+;; Version: 10.4.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
 ;; Keywords: languages
-;; URL: http://web-mode.org
+;; Homepage: http://web-mode.org
 ;; Repository: http://github.com/fxbois/web-mode
 ;; License: GNU General Public License >= 2
 ;; Distribution: This file is not part of Emacs
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.4.10"
+(defconst web-mode-version "10.4.11"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -603,7 +603,6 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-font-lock-keywords '(web-mode-font-lock-highlight))
 (defvar web-mode-change-beg nil)
 (defvar web-mode-change-end nil)
-(defvar web-mode-hl-line-mode-flag nil)
 (defvar web-mode-hook nil)
 (defvar web-mode-inlay-regexp nil)
 (defvar web-mode-is-scratch nil)
@@ -2068,6 +2067,7 @@ the environment as needed for ac-sources, right before they're used.")
     (define-key map (kbd "C-c C-j")   'web-mode-jshint)
     (define-key map (kbd "C-c C-m")   'web-mode-mark-and-expand)
     (define-key map (kbd "C-c C-n")   'web-mode-navigate)
+    (define-key map (kbd "C-c C-r")   'web-mode-reload)
     (define-key map (kbd "C-c C-s")   'web-mode-snippet-insert)
     ;;C-c C-t : tag
     (define-key map (kbd "C-c C-w")   'web-mode-whitespaces-show)
@@ -2131,7 +2131,6 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-engine-token-regexp)
   (make-local-variable 'web-mode-expand-initial-pos)
   (make-local-variable 'web-mode-expand-previous-state)
-  (make-local-variable 'web-mode-hl-line-mode-flag)
   (make-local-variable 'web-mode-indent-style)
   (make-local-variable 'web-mode-is-scratch)
   (make-local-variable 'web-mode-jshint-errors)
@@ -2167,10 +2166,6 @@ the environment as needed for ac-sources, right before they're used.")
         indent-line-function 'web-mode-indent-line
         parse-sexp-lookup-properties t
         yank-excluded-properties t)
-
-  (if (and (fboundp 'global-hl-line-mode)
-           global-hl-line-mode)
-      (setq web-mode-hl-line-mode-flag t))
 
   (add-hook 'after-change-functions 'web-mode-on-after-change nil t)
   (add-hook 'after-save-hook        'web-mode-on-after-save t t)
@@ -5743,15 +5738,11 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-whitespaces-on ()
   "Show whitespaces."
   (interactive)
-  (when web-mode-hl-line-mode-flag
-    (global-hl-line-mode -1))
   (when web-mode-display-table
     (setq buffer-display-table web-mode-display-table))
   (setq web-mode-enable-whitespace-fontification t))
 
 (defun web-mode-whitespaces-off ()
-  (when web-mode-hl-line-mode-flag
-    (global-hl-line-mode 1))
   (setq buffer-display-table nil)
   (setq web-mode-enable-whitespace-fontification nil))
 
