@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.4.08
+;; Version: 10.4.09
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.4.08"
+(defconst web-mode-version "10.4.09"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3980,7 +3980,7 @@ the environment as needed for ac-sources, right before they're used.")
       (when (null go-back)
         (forward-char))
 
-      (when (> (setq counter (1+ counter)) 2000)
+      (when (> (setq counter (1+ counter)) 3200)
         (message "attr-skip ** too much attr ** pos-ori(%S) limit(%S)" pos-ori limit)
         (setq continue nil))
 
@@ -7054,33 +7054,6 @@ the environment as needed for ac-sources, right before they're used.")
       ) ;let
     ))
 
-(defun web-mode-is-void-after (&optional pos)
-  "Only spaces or comment after (1+ pos)"
-  (unless pos (setq pos (point)))
-  (save-excursion
-    (setq pos (1+ pos))
-    (goto-char pos)
-;;    (message "after pos=%S" pos)
-    (let ((eol (line-end-position)) (continue t) c (ret t) part-side)
-      (setq part-side (or (member web-mode-content-type '("javascript" "css"))
-                          (not (null (get-text-property pos 'part-side)))))
-      (while continue
-        (setq c (char-after pos))
-;;        (message "%S c='%c'" pos c)
-        (cond
-         ((member c '(?\s ?\n)) )
-         ((and part-side (eq (get-text-property pos 'part-token) 'comment)) )
-         ((and part-side (get-text-property pos 'block-side)) )
-         ((and (not part-side) (eq (get-text-property pos 'block-token) 'comment)) )
-         (t (setq ret nil
-                  continue nil))
-         )
-        (when continue
-          (setq pos (1+ pos))
-          (when (>= pos eol) (setq continue nil)))
-        ) ;while
-      ret)))
-
 (defun web-mode-count-char-in-string (char string)
   (let ((n 0))
     (dotimes (i (length string))
@@ -8321,18 +8294,12 @@ Pos should be in a tag."
 (defun web-mode-detect-engine ()
   (save-excursion
     (let (engine)
-;;      (message "detect-engine: %S" (point))
       (goto-char (point-min))
-      (when (and (re-search-forward "-\\*- engine:[ ]*\\([[:alnum:]-]+\\)[ ]*-\\*-" web-mode-chunk-length t)
-                 (or t
-                     (eq (get-text-property (point) 'part-token) 'comment)
-                     (eq (get-text-property (point) 'block-token) 'comment)
-                     (eq (get-text-property (point) 'tag-type) 'comment)))
+      (when (re-search-forward "-\\*- engine:[ ]*\\([[:alnum:]-]+\\)[ ]*-\\*-" web-mode-chunk-length t)
         (setq engine (web-mode-engine-canonical-name (match-string-no-properties 1))
               web-mode-engine engine)
         )
-      engine)
-    ))
+      engine)))
 
 (defun web-mode-on-after-change (beg end len)
 ;;  (message "after-change: pos=%d, beg=%d, end=%d, len=%d, ocmd=%S, cmd=%S" (point) beg end len this-original-command this-command)
@@ -8513,9 +8480,6 @@ Pos should be in a tag."
                     (eq (get-text-property (point) 'tag-type) 'end)
                     (looking-back ">\n[ \t]*")
                     (setq n (length (match-string-no-properties 0)))
-                    ;;(progn (message "n=%S" n))
-                    ;;(eq (char-before) ?\n)
-                    ;;(eq (char-before (1- (point))) ?\>)
                     (eq (get-text-property (- (point) n) 'tag-type) 'start)
                     (string= (get-text-property (- (point) n) 'tag-name)
                              (get-text-property (point) 'tag-name))
@@ -8527,10 +8491,7 @@ Pos should be in a tag."
       (newline-and-indent)
       (forward-line -1)
       (indent-according-to-mode)
-;;      (indent-according-to-mode)
-;;      (indent-for-tab-command)
       )
-     ;;-- auto-indentation
      ) ;cond
 
     (when (and web-mode-enable-auto-indentation
@@ -9160,26 +9121,21 @@ Pos should be in a tag."
                  (< (point) close))
         (setq child (point))
         )
-      child
-      )))
+      child)))
 
 (defun web-mode-element-parent-position (&optional pos)
-  (let (n
-        tag-type
-        tag-name
-        (continue t)
-        (h (make-hash-table :test 'equal)))
+  (let (n tag-type tag-name (continue t) (tags (make-hash-table :test 'equal)))
     (save-excursion
       (if pos (goto-char pos))
       (while (and continue (web-mode-tag-previous))
-        (setq pos (point))
-        (setq tag-type (get-text-property pos 'tag-type)
-              tag-name (get-text-property pos 'tag-name))
-        (setq n (gethash tag-name h 0))
+        (setq pos (point)
+              tag-type (get-text-property pos 'tag-type)
+              tag-name (get-text-property pos 'tag-name)
+              n (gethash tag-name tags 0))
         (when (member tag-type '(end start))
           (if (eq tag-type 'end)
-              (puthash tag-name (1- n) h)
-            (puthash tag-name (1+ n) h)
+              (puthash tag-name (1- n) tags)
+            (puthash tag-name (1+ n) tags)
             (when (= n 0) (setq continue nil))
             ) ;if
           ) ;when
@@ -9225,7 +9181,6 @@ Pos should be in a tag."
   pos)
 
 (defun web-mode-part-beginning-position (&optional pos)
-  "Beginning of part"
   (unless pos (setq pos (point)))
   (cond
    ((member web-mode-content-type web-mode-part-content-types)
@@ -9243,29 +9198,14 @@ Pos should be in a tag."
 
 (defun web-mode-part-next-position (&optional pos)
   (unless pos (setq pos (point)))
-  ;; (if (get-text-property pos 'part-side)
-  ;;     (if (= pos (point-min))
-  ;;         (set pos (point-min))
-  ;;       (setq pos (web-mode-part-end-position pos))
-  ;;       (when (and pos (> (point-max) pos))
-  ;;         (setq pos (1+ pos))
-  ;;         (if (not (get-text-property pos 'part-side))
-  ;;             (setq pos (next-single-property-change pos 'part-side)))
-  ;;         ) ;when
-  ;;       )
-  ;;   (setq pos (next-single-property-change pos 'part-side))
-  ;;   )
   (cond
-   ((and (= pos (point-min))
-         (get-text-property pos 'part-side))
+   ((and (= pos (point-min)) (get-text-property pos 'part-side))
     )
    ((not (get-text-property pos 'part-side))
     (setq pos (next-single-property-change pos 'part-side)))
-   ((and (setq pos (web-mode-part-end-position pos))
-         (>= pos (point-max)))
+   ((and (setq pos (web-mode-part-end-position pos)) (>= pos (point-max)))
     (setq pos nil))
-   ((and (setq pos (1+ pos))
-         (not (get-text-property pos 'part-side)))
+   ((and (setq pos (1+ pos)) (not (get-text-property pos 'part-side)))
     (setq pos (next-single-property-change pos 'part-side)))
    ) ;cond
   pos)
@@ -10812,3 +10752,30 @@ Pos should be in a tag."
 ;; coding: utf-8
 ;; indent-tabs-mode: nil
 ;; End:
+
+;; (defun web-mode-is-void-after (&optional pos)
+;;   "Only spaces or comment after (1+ pos)"
+;;   (unless pos (setq pos (point)))
+;;   (save-excursion
+;;     (setq pos (1+ pos))
+;;     (goto-char pos)
+;; ;;    (message "after pos=%S" pos)
+;;     (let ((eol (line-end-position)) (continue t) c (ret t) part-side)
+;;       (setq part-side (or (member web-mode-content-type '("javascript" "css"))
+;;                           (not (null (get-text-property pos 'part-side)))))
+;;       (while continue
+;;         (setq c (char-after pos))
+;; ;;        (message "%S c='%c'" pos c)
+;;         (cond
+;;          ((member c '(?\s ?\n)) )
+;;          ((and part-side (eq (get-text-property pos 'part-token) 'comment)) )
+;;          ((and part-side (get-text-property pos 'block-side)) )
+;;          ((and (not part-side) (eq (get-text-property pos 'block-token) 'comment)) )
+;;          (t (setq ret nil
+;;                   continue nil))
+;;          )
+;;         (when continue
+;;           (setq pos (1+ pos))
+;;           (when (>= pos eol) (setq continue nil)))
+;;         ) ;while
+;;       ret)))
