@@ -7,6 +7,6 @@ web-mode.el is compatible with many template engines: PHP, JSP, ASP, Django, Twi
 
 More infos on http://web-mode.org/
 
-![ScreenShot](http://web-mode.org/web-mode.png?v=4)
+![ScreenShot](http://web-mode.org/web-mode.png?v=5)
 
 [![MELPA](http://melpa.org/packages/web-mode-badge.svg)](http://melpa.org/#/web-mode)
