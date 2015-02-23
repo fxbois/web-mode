@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 10.4.11
+;; Version: 10.4.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,10 +21,13 @@
 
 ;;---- TODO --------------------------------------------------------------------
 
+;; web-mode-attribute-next(-position)
+;; v12 : invert path and XX (web-mode-engines-alist,
+;;       web-mode-content-types-alist)
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "10.4.11"
+(defconst web-mode-version "10.4.12"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2010,8 +2013,8 @@ the environment as needed for ac-sources, right before they're used.")
     (define-key map (kbd "C-c C-a t") 'web-mode-attribute-transpose)
     (define-key map (kbd "C-c C-a n") 'web-mode-attribute-next)
 
-    (define-key map (kbd "C-c C-b c") 'web-mode-block-close)
     (define-key map (kbd "C-c C-b b") 'web-mode-block-beginning)
+    (define-key map (kbd "C-c C-b c") 'web-mode-block-close)
     (define-key map (kbd "C-c C-b e") 'web-mode-block-end)
     (define-key map (kbd "C-c C-b k") 'web-mode-block-kill)
     (define-key map (kbd "C-c C-b n") 'web-mode-block-next)
@@ -2019,9 +2022,9 @@ the environment as needed for ac-sources, right before they're used.")
     (define-key map (kbd "C-c C-b s") 'web-mode-block-select)
 
     (define-key map (kbd "C-c C-d a") 'web-mode-dom-apostrophes-replace)
-    (define-key map (kbd "C-c C-d n") 'web-mode-dom-normalize)
     (define-key map (kbd "C-c C-d d") 'web-mode-dom-errors-show)
     (define-key map (kbd "C-c C-d e") 'web-mode-dom-entities-replace)
+    (define-key map (kbd "C-c C-d n") 'web-mode-dom-normalize)
     (define-key map (kbd "C-c C-d q") 'web-mode-dom-quotes-replace)
     (define-key map (kbd "C-c C-d t") 'web-mode-dom-traverse)
     (define-key map (kbd "C-c C-d x") 'web-mode-dom-xpath)
