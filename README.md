@@ -10,3 +10,5 @@ More infos on http://web-mode.org/
 ![ScreenShot](http://web-mode.org/web-mode.png?v=5)
 
 [![MELPA](http://melpa.org/packages/web-mode-badge.svg)](http://melpa.org/#/web-mode)
+
+[![MELPA Stable](http://stable.melpa.org/packages/web-mode-badge.svg)](http://stable.melpa.org/#/web-mode)
