@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.0
+;; Version: 11.0.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -27,7 +27,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.0"
+(defconst web-mode-version "11.0.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7746,18 +7746,20 @@ Pos should be in a tag."
 (defun web-mode-comment-or-uncomment ()
   "Comment or uncomment line(s), block or region at POS."
   (interactive)
-  (save-excursion
-    (if (and mark-active (eq (point) (region-end)))
-        (exchange-point-and-mark))
-    (skip-chars-forward "[:space:]" (line-end-position))
-    (if (or (eq (get-text-property (point) 'tag-type) 'comment)
-            (eq (get-text-property (point) 'block-token) 'comment)
-            (eq (get-text-property (point) 'part-token) 'comment))
-	(web-mode-uncomment (point))
-      (web-mode-comment (point)))))
+  ;;  (save-excursion
+  (if (and mark-active (eq (point) (region-end)))
+      (exchange-point-and-mark))
+  (skip-chars-forward "[:space:]" (line-end-position))
+  (if (or (eq (get-text-property (point) 'tag-type) 'comment)
+          (eq (get-text-property (point) 'block-token) 'comment)
+          (eq (get-text-property (point) 'part-token) 'comment))
+      (web-mode-uncomment (point))
+    (web-mode-comment (point)))
+  ;;)
+  )
 
 (defun web-mode-comment (pos)
-  (save-excursion
+;;  (save-excursion
     (let (ctx language sel beg end tmp block-side single-line-block)
 
       (setq block-side (get-text-property pos 'block-side))
@@ -7790,7 +7792,8 @@ Pos should be in a tag."
         (when (> (point) (mark))
           (exchange-point-and-mark))
 
-        (if (eq (char-before end) ?\n)
+        (if (and (eq (char-before end) ?\n)
+                 (not (eq (char-after end) ?\n)))
             (setq end (1- end)))
 
         (setq sel (web-mode-trim (buffer-substring-no-properties beg end)))
@@ -7826,6 +7829,8 @@ Pos should be in a tag."
             )
            (t
             (web-mode-insert-and-indent (concat "<!-- " sel " -->"))
+            (when (< (length sel) 1)
+              (search-backward " -->"))
             )
            )
           ) ;case html
@@ -7854,53 +7859,54 @@ Pos should be in a tag."
        ) ;cond
 
       )
-    ) ;save-excursion
+;;    ) ;save-excursion
 ;;  (message "%S" (point))
 ;;  (goto-char pos)
   )
 
 (defun web-mode-uncomment (pos)
   (let ((beg pos) (end pos) (sub2 "") comment prop)
-    (cond
-     ((and (get-text-property pos 'block-side)
-           (intern-soft (concat "web-mode-uncomment-" web-mode-engine "-block")))
-      (funcall (intern (concat "web-mode-uncomment-" web-mode-engine "-block")) pos)
-      )
-     (t
-      (setq prop
-            (cond
-             ((eq (get-text-property pos 'block-token) 'comment) 'block-token)
-             ((eq (get-text-property pos 'tag-type) 'comment) 'tag-type)
-             ((eq (get-text-property pos 'part-token) 'comment) 'part-token)
-             ))
-      (if (and (not (bobp))
-               (eq (get-text-property pos prop) (get-text-property (1- pos) prop)))
-          (setq beg (or (previous-single-property-change pos prop)
-                        (point-min))))
-      (if (and (not (eobp))
-               (eq (get-text-property pos prop) (get-text-property (1+ pos) prop)))
-          (setq end (or (next-single-property-change pos prop)
-                        (point-max))))
-      (when (> (- end beg) 4)
-        (setq comment (buffer-substring-no-properties beg end))
-        (setq sub2 (substring comment 0 2))
-        (cond
-         ((member sub2 '("<!" "<%"))
-          (setq comment (replace-regexp-in-string "\\(^<[!%]--[ ]?\\|[ ]?--[%]?>$\\)" "" comment)))
-         ((string= sub2 "{#")
-          (setq comment (replace-regexp-in-string "\\(^{#[ ]?\\|[ ]?#}$\\)" "" comment)))
-         ((string= sub2 "/*")
-          (setq comment (replace-regexp-in-string "\\(^/\\*[ ]?\\|[ ]?\\*/$\\)" "" comment)))
-         ((string= sub2 "//")
-          (setq comment (replace-regexp-in-string "\\(^//\\)" "" comment)))
-         )
-        (delete-region beg end)
-        (web-mode-insert-and-indent comment)
-        (goto-char beg)
-        ) ;when
-      ) ;t
-     ) ;cond
-    (indent-according-to-mode)))
+    (save-excursion
+      (cond
+       ((and (get-text-property pos 'block-side)
+             (intern-soft (concat "web-mode-uncomment-" web-mode-engine "-block")))
+        (funcall (intern (concat "web-mode-uncomment-" web-mode-engine "-block")) pos)
+        )
+       (t
+        (setq prop
+              (cond
+               ((eq (get-text-property pos 'block-token) 'comment) 'block-token)
+               ((eq (get-text-property pos 'tag-type) 'comment) 'tag-type)
+               ((eq (get-text-property pos 'part-token) 'comment) 'part-token)
+               ))
+        (if (and (not (bobp))
+                 (eq (get-text-property pos prop) (get-text-property (1- pos) prop)))
+            (setq beg (or (previous-single-property-change pos prop)
+                          (point-min))))
+        (if (and (not (eobp))
+                 (eq (get-text-property pos prop) (get-text-property (1+ pos) prop)))
+            (setq end (or (next-single-property-change pos prop)
+                          (point-max))))
+        (when (> (- end beg) 4)
+          (setq comment (buffer-substring-no-properties beg end))
+          (setq sub2 (substring comment 0 2))
+          (cond
+           ((member sub2 '("<!" "<%"))
+            (setq comment (replace-regexp-in-string "\\(^<[!%]--[ ]?\\|[ ]?--[%]?>$\\)" "" comment)))
+           ((string= sub2 "{#")
+            (setq comment (replace-regexp-in-string "\\(^{#[ ]?\\|[ ]?#}$\\)" "" comment)))
+           ((string= sub2 "/*")
+            (setq comment (replace-regexp-in-string "\\(^/\\*[ ]?\\|[ ]?\\*/$\\)" "" comment)))
+           ((string= sub2 "//")
+            (setq comment (replace-regexp-in-string "\\(^//\\)" "" comment)))
+           )
+          (delete-region beg end)
+          (web-mode-insert-and-indent comment)
+          (goto-char beg)
+          ) ;when
+        ) ;t
+       ) ;cond
+      (indent-according-to-mode))))
 
 (defun web-mode-comment-ejs-block (pos)
   (let (beg end)
