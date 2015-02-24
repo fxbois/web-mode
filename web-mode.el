@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.2
+;; Version: 11.0.3
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -27,7 +27,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.2"
+(defconst web-mode-version "11.0.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5937,6 +5937,7 @@ the environment as needed for ac-sources, right before they're used.")
              (not (get-text-property pos 'block-beg)))
 
         (setq reg-beg (or (web-mode-block-beginning-position pos) (point-min)))
+        ;;(message "reg-beg=%S" reg-beg)
         (goto-char reg-beg)
         (setq reg-col (current-column))
         (setq language web-mode-engine)
@@ -5950,11 +5951,11 @@ the environment as needed for ac-sources, right before they're used.")
          ((string= web-mode-engine "razor")
           (setq reg-beg (+ reg-beg 2))
           )
-         ((string= web-mode-engine "ctemplate")
-          (save-excursion
-            (when (web-mode-rsf "{{#?")
-              (setq reg-col (current-column))))
-          )
+         ;;((string= web-mode-engine "ctemplate")
+         ;; (save-excursion
+         ;;   (when (web-mode-rsf "{{#?")
+         ;;     (setq reg-col (current-column))))
+         ;; )
          ((string= web-mode-engine "template-toolkit")
           (setq reg-beg (+ reg-beg 3)
                 reg-col (+ reg-col 3))
@@ -6156,14 +6157,10 @@ the environment as needed for ac-sources, right before they're used.")
               (setq offset (+ offset 3)))
              ) ;cond
             )
-           ((and (string= web-mode-engine "django")
-                 (looking-back "{% comment %}"))
-            (setq offset (- offset 12))
-            )
-           ((and (string= web-mode-engine "mako")
-                 (looking-back "<%doc%>"))
-            (setq offset (- offset 6))
-            )
+           ((and (string= web-mode-engine "django") (looking-back "{% comment %}"))
+            (setq offset (- offset 12)))
+           ((and (string= web-mode-engine "mako") (looking-back "<%doc%>"))
+            (setq offset (- offset 6)))
            ) ;cond
           ) ;case comment
 
@@ -6461,6 +6458,7 @@ the environment as needed for ac-sources, right before they're used.")
 
         ;;(message "offset=%S" offset)
         (when (and offset reg-col (< offset reg-col)) (setq offset reg-col))
+        ;;(message "offset=%S" offset)
 
         ) ;let
       ) ;save-excursion
