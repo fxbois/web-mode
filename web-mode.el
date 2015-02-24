@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.1
+;; Version: 11.0.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -27,7 +27,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.1"
+(defconst web-mode-version "11.0.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5692,7 +5692,8 @@ the environment as needed for ac-sources, right before they're used.")
                          'after-string
                          (concat
                           (if (> column diff) (make-string (- column diff) ?\s) "")
-                          (propertize 'font-lock-face
+                          (propertize " "
+                                      'font-lock-face
                                       'web-mode-current-column-highlight-face)
                           ) ;concat
                          )
