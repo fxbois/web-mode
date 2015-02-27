@@ -1,0 +1,6 @@
+<div>
+  % my $block = begin
+    % my $name = shift;
+    Hello <%= $name %>.
+  % end
+</div>

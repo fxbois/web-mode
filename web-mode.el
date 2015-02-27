@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.5
+;; Version: 11.0.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -30,7 +30,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.5"
+(defconst web-mode-version "11.0.6"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1833,6 +1833,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    (cons (concat "\\<\\(" web-mode-perl-keywords "\\)\\>")
          '(0 'web-mode-keyword-face))
+   '("\\<\\(begin\\|end\\)\\>" 1 'web-mode-constant-face)
    '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
@@ -2088,10 +2089,10 @@ the environment as needed for ac-sources, right before they're used.")
   (defalias 'web-mode-prog-mode
     (if (fboundp 'prog-mode) 'prog-mode 'fundamental-mode))
 
+  ;; compatibility with emacs < 23.3
   (if (fboundp 'with-silent-modifications)
       (defalias 'web-mode-with-silent-modifications 'with-silent-modifications)
     (defmacro web-mode-with-silent-modifications (&rest body)
-      "For compatibility with Emacs pre 23.3."
       `(let ((old-modified-p (buffer-modified-p))
              (inhibit-modification-hooks t)
              (buffer-undo-list t))
@@ -2099,11 +2100,16 @@ the environment as needed for ac-sources, right before they're used.")
              ,@body
            (set-buffer-modified-p old-modified-p)))))
 
+  ;; compatibility with emacs < 24.3
   (defun web-mode-buffer-narrowed-p ()
-    "For compatibility with Emacs pre 24.3."
     (if (fboundp 'buffer-narrowed-p)
         (buffer-narrowed-p)
       (/= (- (point-max) (point-min)) (buffer-size))))
+
+  ;; compatibility with emacs < 24.3
+  (unless (fboundp 'setq-local)
+    (defmacro setq-local (var val)
+    `(set (make-local-variable ',var) ,val)))
 
   ) ;eval-and-compile
 
@@ -3419,7 +3425,20 @@ the environment as needed for ac-sources, right before they're used.")
          )
         ) ;dust
 
-       ((member web-mode-engine '("aspx" "underscore" "mojolicious"))
+       ((member web-mode-engine '("mojolicious"))
+        (cond
+         ((web-mode-block-ends-with "begin" reg-beg)
+          (setq controls (append controls (list (cons 'open "begin")))))
+         ((web-mode-block-starts-with "end" reg-beg)
+          (setq controls (append controls (list (cons 'close "begin")))))
+         ((web-mode-block-starts-with "}" reg-beg)
+          (setq controls (append controls (list (cons 'close "{")))))
+         ((web-mode-block-ends-with "{" reg-beg)
+          (setq controls (append controls (list (cons 'open "{")))))
+         )
+        ) ;mojolicious
+
+       ((member web-mode-engine '("aspx" "underscore"))
         (cond
          ((web-mode-block-starts-with "}" reg-beg)
           (setq controls (append controls (list (cons 'close "{")))))
@@ -5954,11 +5973,12 @@ the environment as needed for ac-sources, right before they're used.")
          ((string= web-mode-engine "razor")
           (setq reg-beg (+ reg-beg 2))
           )
-         ;;((string= web-mode-engine "ctemplate")
-         ;; (save-excursion
-         ;;   (when (web-mode-rsf "{{#?")
-         ;;     (setq reg-col (current-column))))
-         ;; )
+         ;; tests/demo.chtml
+         ((string= web-mode-engine "ctemplate")
+          (save-excursion
+            (when (web-mode-rsf "{{#?")
+              (setq reg-col (current-column))))
+          )
          ((string= web-mode-engine "template-toolkit")
           (setq reg-beg (+ reg-beg 3)
                 reg-col (+ reg-col 3))
@@ -6029,6 +6049,7 @@ the environment as needed for ac-sources, right before they're used.")
                    t))
             (and (> pos (point-min))
                  (eq (get-text-property pos 'tag-type) 'comment)
+                 (not (get-text-property pos 'tag-beg))
                  (progn
                    (setq reg-beg (web-mode-tag-beginning-position pos))
                    t))
