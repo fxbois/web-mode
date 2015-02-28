@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.6
+;; Version: 11.0.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -30,7 +30,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.6"
+(defconst web-mode-version "11.0.8"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6413,10 +6413,13 @@ the environment as needed for ac-sources, right before they're used.")
             )
            ((or (not (cdr (assoc "lineup-args" web-mode-indentation-params)))
                 (looking-at-p "\n"))
+            ;;(message "pos1=%S" pos)
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ((not (eq curr-char ?\,))
+            ;;(message "pos2=%S" pos)
             (setq offset (current-column)))
            (t
+            ;;(message "pos3=%S" pos)
             (setq offset (current-column))
             (goto-char pos)
             (looking-at ",[ \t\n]*")
@@ -9602,7 +9605,7 @@ Pos should be in a tag."
               continue nil)
 ;;        (message "=>%S" pos)
         )
-       ((web-mode-looking-back "\\(var\\|let\\|return\\|const\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\<\\(var\\|let\\|return\\|const\\)[ \n\t]*" pos)
 ;;        (web-mode-looking-at "[ \t\n]*" pos)
         (web-mode-looking-at "[ \t]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))
