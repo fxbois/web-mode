@@ -9302,22 +9302,17 @@ Pos should be in a tag."
 (defun web-mode-block-beginning-position (&optional pos)
   (unless pos (setq pos (point)))
   (cond
-   ((or (and (get-text-property pos 'block-side)
-             (= pos (point-min)))
+   ((or (and (get-text-property pos 'block-side) (= pos (point-min)))
         (get-text-property pos 'block-beg))
     )
-   ((and (> pos (point-min))
-         (get-text-property (1- pos) 'block-beg))
-    (setq pos (1- pos))
-    )
+   ((and (> pos (point-min)) (get-text-property (1- pos) 'block-beg))
+    (setq pos (1- pos)))
    ((get-text-property pos 'block-side)
     (setq pos (previous-single-property-change pos 'block-beg))
-    (setq pos (if (and pos (> pos (point-min))) (1- pos) (point-min)))
-    )
+    (setq pos (if (and pos (> pos (point-min))) (1- pos) (point-min))))
    (t
     (setq pos nil))
    ) ;cond
-;;  (message "web-mode-block-beginning-position=%S" pos)
   pos)
 
 (defun web-mode-block-string-beginning-position (pos &optional block-beg)
@@ -9344,7 +9339,7 @@ Pos should be in a tag."
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0))))
         )
-       ((web-mode-looking-back "\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\<\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
         (setq ;;pos (point)
               continue nil))
        (t
@@ -9410,7 +9405,7 @@ Pos should be in a tag."
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
        ((and (string= web-mode-engine "php")
-             (web-mode-looking-back "\\(extends\\|implements\\)[ \n\t]*" pos))
+             (web-mode-looking-back "\\<\\(extends\\|implements\\)[ \n\t]*" pos))
         (setq ;;pos (point)
               continue nil))
        (t
@@ -9546,7 +9541,7 @@ Pos should be in a tag."
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ((web-mode-looking-back "\\(return\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\<\\(return\\)[ \n\t]*" pos)
         (setq continue nil)
         (web-mode-looking-at "[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
@@ -9661,7 +9656,7 @@ Pos should be in a tag."
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ((web-mode-looking-back "\\(return\\|else\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\<\\(return\\|else\\)[ \n\t]*" pos)
         (setq continue nil))
        (t
         (setq pos (1- pos)))
