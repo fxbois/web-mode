@@ -227,6 +227,11 @@ See web-mode-part-face."
   :type '(choice (const :tag "Auto-close on </" 1)
                  (const :tag "Auto-close on > and </" 2)))
 
+(defcustom web-mode-extra-expanders '()
+  "A list of additional expanders."
+  :type 'list
+  :group 'web-mode)
+
 (defcustom web-mode-extra-auto-pairs '()
   "A list of additional snippets."
   :type 'list
@@ -8399,11 +8404,12 @@ Pos should be in a tag."
                (not (get-text-property (1- pos) 'part-side))
                (not (get-text-property (1- pos) 'block-side))
                (looking-back "\\(^\\|[[:punct:][:space:]>]\\)./"))
-      (let ((i 0) pair (l (length web-mode-expanders)))
+      (setq expanders (append web-mode-expanders web-mode-extra-expanders))
+      (let ((i 0) pair (l (length expanders)))
         (setq chunk (buffer-substring-no-properties (- pos 2) pos))
         ;;(message "%S" chunk)
         (while (and (< i l) (not auto-expanded))
-          (setq pair (elt web-mode-expanders i)
+          (setq pair (elt expanders i)
                 i (1+ i))
           (when (string= (car pair) chunk)
             (setq auto-expanded t)
