@@ -28,6 +28,8 @@
 
 ;; web-mode-comment-beginning|end(-position) : to use with indent-line
 
+;; mark-and-expand: commencer par sélectionner innercontent
+
 ;;---- CONSTS ------------------------------------------------------------------
 
 (defconst web-mode-version "11.0.8"
