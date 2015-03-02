@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.8
+;; Version: 11.0.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -28,11 +28,9 @@
 
 ;; web-mode-comment-beginning|end(-position) : to use with indent-line
 
-;; mark-and-expand: commencer par sélectionner innercontent
-
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.8"
+(defconst web-mode-version "11.0.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7099,8 +7097,6 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-mark-and-expand ()
   "Mark and expand."
   (interactive)
-  (when (not (eq last-command this-command))
-    (setq web-mode-expand-previous-state nil))
   (web-mode-mark (point)))
 
 (defun web-mode-mark (pos)
@@ -7110,8 +7106,8 @@ the environment as needed for ac-sources, right before they're used.")
         (setq reg-beg (region-beginning))
       (setq web-mode-expand-initial-pos (point)))
 
-    ;;    (message "regs=%S %S %S %S" (region-beginning) (region-end) (point-min) (point-max))
-    ;;    (message "before=%S" web-mode-expand-previous-state)
+    ;; (message "regs=%S %S %S %S" (region-beginning) (region-end) (point-min) (point-max))
+    ;; (message "before=%S" web-mode-expand-previous-state)
 
     (cond
 
@@ -7122,7 +7118,17 @@ the environment as needed for ac-sources, right before they're used.")
       (deactivate-mark)
       (goto-char (or web-mode-expand-initial-pos (point-min)))
       (setq web-mode-expand-previous-state nil)
-      (recenter))
+      (when (and web-mode-expand-initial-pos
+                 (or (< web-mode-expand-initial-pos (window-start))
+                     (> web-mode-expand-initial-pos (window-end))))
+        (recenter))
+      )
+
+     ((string= web-mode-expand-previous-state "elt-content")
+      (web-mode-element-parent)
+      ;;(message "pos=%S" (point))
+      (web-mode-element-select)
+      (setq web-mode-expand-previous-state "html-parent"))
 
      ((and (member (get-text-property pos 'block-token) '(comment string))
            (not (member web-mode-expand-previous-state '("block-token" "block-body" "block-side"))))
@@ -7206,20 +7212,35 @@ the environment as needed for ac-sources, right before they're used.")
       (setq web-mode-expand-previous-state "html-elt"))
 
      (t
-      (web-mode-element-parent)
-      (if (and reg-beg (= reg-beg (region-beginning)))
-          (progn
-            (push-mark (point))
-            (push-mark (point-max) nil t)
-            (goto-char (point-min))
-            (setq web-mode-expand-previous-state "mark-whole"))
+      ;; (web-mode-element-parent)
+      ;; (if (and reg-beg (= reg-beg (region-beginning)))
+      ;;     (progn
+      ;;       (push-mark (point))
+      ;;       (push-mark (point-max) nil t)
+      ;;       (goto-char (point-min))
+      ;;       (setq web-mode-expand-previous-state "mark-whole"))
+      ;;   (web-mode-element-select)
+      ;;   (setq web-mode-expand-previous-state "html-parent")
+      ;;   )
+      (cond
+       ((not (web-mode-element-parent))
+        (push-mark (point))
+        (push-mark (point-max) nil t)
+        (goto-char (point-min))
+        (setq web-mode-expand-previous-state "mark-whole"))
+       ((not (= (web-mode-tag-end-position (point)) (1- beg)))
+        (web-mode-element-content-select)
+        (setq web-mode-expand-previous-state "elt-content"))
+       (t
         (web-mode-element-select)
         (setq web-mode-expand-previous-state "html-parent"))
+       )
       ) ;t
 
      ) ;cond
 
-;;    (message "after=%S\n-----------------------" web-mode-expand-previous-state)
+    ;;(message "w=%S" (window-end))
+    ;;(message "after=%S" web-mode-expand-previous-state)
 
     ))
 
@@ -8480,6 +8501,15 @@ Pos should be in a tag."
 
 (defun web-mode-on-post-command ()
   (let (ctx n char)
+
+    ;;(message "this-command=%S (%S)" this-command web-mode-expand-previous-state)
+
+    (when (and web-mode-expand-previous-state
+               (not (eq this-command 'web-mode-mark-and-expand)))
+      ;;(message "deactivate-mark")
+      (deactivate-mark)
+      (setq web-mode-expand-previous-state nil
+            web-mode-expand-initial-pos nil))
 
     (when (member this-command '(yank))
       (setq web-mode-inhibit-fontification nil)
