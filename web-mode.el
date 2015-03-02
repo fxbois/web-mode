@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.6
+;; Version: 11.0.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -30,7 +30,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.6"
+(defconst web-mode-version "11.0.8"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -226,6 +226,11 @@ See web-mode-part-face."
   :group 'web-mode
   :type '(choice (const :tag "Auto-close on </" 1)
                  (const :tag "Auto-close on > and </" 2)))
+
+(defcustom web-mode-extra-expanders '()
+  "A list of additional expanders."
+  :type 'list
+  :group 'web-mode)
 
 (defcustom web-mode-extra-auto-pairs '()
   "A list of additional snippets."
@@ -6413,10 +6418,13 @@ the environment as needed for ac-sources, right before they're used.")
             )
            ((or (not (cdr (assoc "lineup-args" web-mode-indentation-params)))
                 (looking-at-p "\n"))
+            ;;(message "pos1=%S" pos)
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ((not (eq curr-char ?\,))
+            ;;(message "pos2=%S" pos)
             (setq offset (current-column)))
            (t
+            ;;(message "pos3=%S" pos)
             (setq offset (current-column))
             (goto-char pos)
             (looking-at ",[ \t\n]*")
@@ -8396,11 +8404,12 @@ Pos should be in a tag."
                (not (get-text-property (1- pos) 'part-side))
                (not (get-text-property (1- pos) 'block-side))
                (looking-back "\\(^\\|[[:punct:][:space:]>]\\)./"))
-      (let ((i 0) pair (l (length web-mode-expanders)))
+      (setq expanders (append web-mode-expanders web-mode-extra-expanders))
+      (let ((i 0) pair (l (length expanders)))
         (setq chunk (buffer-substring-no-properties (- pos 2) pos))
         ;;(message "%S" chunk)
         (while (and (< i l) (not auto-expanded))
-          (setq pair (elt web-mode-expanders i)
+          (setq pair (elt expanders i)
                 i (1+ i))
           (when (string= (car pair) chunk)
             (setq auto-expanded t)
@@ -9299,22 +9308,17 @@ Pos should be in a tag."
 (defun web-mode-block-beginning-position (&optional pos)
   (unless pos (setq pos (point)))
   (cond
-   ((or (and (get-text-property pos 'block-side)
-             (= pos (point-min)))
+   ((or (and (get-text-property pos 'block-side) (= pos (point-min)))
         (get-text-property pos 'block-beg))
     )
-   ((and (> pos (point-min))
-         (get-text-property (1- pos) 'block-beg))
-    (setq pos (1- pos))
-    )
+   ((and (> pos (point-min)) (get-text-property (1- pos) 'block-beg))
+    (setq pos (1- pos)))
    ((get-text-property pos 'block-side)
     (setq pos (previous-single-property-change pos 'block-beg))
-    (setq pos (if (and pos (> pos (point-min))) (1- pos) (point-min)))
-    )
+    (setq pos (if (and pos (> pos (point-min))) (1- pos) (point-min))))
    (t
     (setq pos nil))
    ) ;cond
-;;  (message "web-mode-block-beginning-position=%S" pos)
   pos)
 
 (defun web-mode-block-string-beginning-position (pos &optional block-beg)
@@ -9341,7 +9345,7 @@ Pos should be in a tag."
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0))))
         )
-       ((web-mode-looking-back "\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\<\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
         (setq ;;pos (point)
               continue nil))
        (t
@@ -9407,7 +9411,7 @@ Pos should be in a tag."
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
        ((and (string= web-mode-engine "php")
-             (web-mode-looking-back "\\(extends\\|implements\\)[ \n\t]*" pos))
+             (web-mode-looking-back "\\<\\(extends\\|implements\\)[ \n\t]*" pos))
         (setq ;;pos (point)
               continue nil))
        (t
@@ -9543,7 +9547,7 @@ Pos should be in a tag."
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ((web-mode-looking-back "\\(return\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\<\\(return\\)[ \n\t]*" pos)
         (setq continue nil)
         (web-mode-looking-at "[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
@@ -9602,7 +9606,7 @@ Pos should be in a tag."
               continue nil)
 ;;        (message "=>%S" pos)
         )
-       ((web-mode-looking-back "\\(var\\|let\\|return\\|const\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\<\\(var\\|let\\|return\\|const\\)[ \n\t]*" pos)
 ;;        (web-mode-looking-at "[ \t\n]*" pos)
         (web-mode-looking-at "[ \t]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))
@@ -9658,7 +9662,7 @@ Pos should be in a tag."
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ((web-mode-looking-back "\\(return\\|else\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\<\\(return\\|else\\)[ \n\t]*" pos)
         (setq continue nil))
        (t
         (setq pos (1- pos)))
