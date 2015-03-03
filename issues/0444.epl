@@ -1,0 +1,5 @@
+% if ($a) {
+  <p>If</p>
+% } else {
+  <p>Else</p>
+% }
