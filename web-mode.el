@@ -882,6 +882,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("em" . "<em>|</em>")
     ("form" . "<form>|</form>")
     ("b" . "<strong>|</strong>")
+    ("script" . "<script type=\"text/javascript\" src=\"|\"></script>")
     ("html" . "<html><head></head><body>|</body></html>")
     ("img" . "<img src=\"|\" />")
     ("li" . "<li>|</li>")
@@ -8435,8 +8436,8 @@ Pos should be in a tag."
                (looking-back "\\(^\\|[[:punct:][:space:]>]\\).*/"))
       (setq expanders (append web-mode-expanders web-mode-extra-expanders))
       (let ((i 0) pair (l (length expanders)))
-        (setq words (delete "" (split-string (buffer-substring-no-properties (line-beginning-position) pos) "[ |/]")))
-        (setq chunk (nth (- (length words) 1) words))
+        (setq words (split-string (buffer-substring-no-properties (line-beginning-position) pos) "[ |/]"))
+        (setq chunk (nth (- (length words) 2) words))
 
         ;;(message "Chunk: %S" chunk)
         (while (and (< i l) (not auto-expanded))
