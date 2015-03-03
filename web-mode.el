@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.12
+;; Version: 11.0.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -30,7 +30,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.12"
+(defconst web-mode-version "11.0.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2749,7 +2749,6 @@ the environment as needed for ac-sources, right before they're used.")
                   pos (point)))
 
            ((and (member web-mode-engine '("ctemplate"))
-;;                 (progn (message "ici%S %S" (point) closing-string) t)
                  (re-search-forward closing-string reg-end t))
             (setq close (match-end 0)
                   pos (point)))
@@ -2778,7 +2777,6 @@ the environment as needed for ac-sources, right before they're used.")
             (when (and (string= web-mode-engine "erb")
                        (looking-at-p "<%= javascript_tag do %>"))
               (setq tagopen "<%= javascript_tag do %>")
-              ;;(message "ici")
               )
             (when (and (member tagopen '("<r:script" "<r:style"
                                          "<c:js" "<c:css"
@@ -4212,7 +4210,11 @@ the environment as needed for ac-sources, right before they're used.")
           (when (eq token-type 'comment)
             (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
             (when (< (point) (point-max))
-              (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax ">")))
+              (if (= (point) (line-end-position))
+                  (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">"))
+                (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax ">")) ;#445
+                )
+              )
             )
           )
 
@@ -5043,7 +5045,6 @@ the environment as needed for ac-sources, right before they're used.")
     (when (and (member web-mode-engine '("jsp" "mako"))
                (> (- reg-end reg-beg) 12)
                (eq ?\< (char-after reg-beg)))
-;;      (message "ici %S %S" reg-beg reg-end)
       (web-mode-interpolate-block-tag reg-beg reg-end))
 
     (when web-mode-enable-block-face
@@ -8191,7 +8192,6 @@ Pos should be in a tag."
           (setq continue nil))
          ((or (and (eq type 'open) (not (web-mode-block-next)))
               (and (eq type 'close) (not (web-mode-block-previous))))
-;;          (message "ici%S" (point))
           (setq continue nil)
           )
          ((null (setq controls (web-mode-block-controls-get (point))))
