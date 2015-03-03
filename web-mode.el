@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.11
+;; Version: 11.0.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -30,7 +30,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.11"
+(defconst web-mode-version "11.0.12"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6394,9 +6394,11 @@ the environment as needed for ac-sources, right before they're used.")
            )
           )
 
+         ;; #446
          ((and (member language '("javascript" "jsx" "ejs" "php"))
                (or (string-match-p "[+-&|?:]$" prev-line)
                    (string-match-p "^[+-&|?:]" curr-line))
+               (not (get-text-property pos 'part-element))
                (not (and (eq prev-char ?\:)
                          (string-match-p "^\\(case\\|default\\)" prev-line))))
           (when (funcall (if (member language '("javascript" "jsx" "ejs"))
