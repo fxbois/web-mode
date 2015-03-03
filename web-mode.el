@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.9
+;; Version: 11.0.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -30,7 +30,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.9"
+(defconst web-mode-version "11.0.10"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -9638,7 +9638,7 @@ Pos should be in a tag."
               continue nil)
 ;;        (message "=>%S" pos)
         )
-       ((web-mode-looking-back "\\<\\(var\\|let\\|return\\|const\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\<\\(var\\|let\\|return\\|const\\)[ \n\t]+" pos)
 ;;        (web-mode-looking-at "[ \t\n]*" pos)
         (web-mode-looking-at "[ \t]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))
