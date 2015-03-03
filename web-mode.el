@@ -8438,7 +8438,6 @@ Pos should be in a tag."
       (let ((i 0) pair (l (length expanders)))
         (setq words (split-string (buffer-substring-no-properties (line-beginning-position) pos) "[ |/]"))
         (setq chunk (nth (- (length words) 2) words))
-
         ;;(message "Chunk: %S" chunk)
         (while (and (< i l) (not auto-expanded))
           (setq pair (elt expanders i)
