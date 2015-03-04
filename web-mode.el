@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.15
+;; Version: 11.0.16
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -28,7 +28,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.15"
+(defconst web-mode-version "11.0.16"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -351,7 +351,7 @@ See web-mode-part-face."
   :group 'web-mode-faces)
 
 (defface web-mode-html-attr-engine-face
-  '((t :inherit web-mode-block-delimiter-face));;web-mode-html-attr-custom-face))
+  '((t :inherit web-mode-block-delimiter-face))
   "Face for custom engine attribute names (e.g. ng-*)."
   :group 'web-mode-faces)
 
@@ -1470,13 +1470,9 @@ Must be used in conjunction with web-mode-enable-block-face."
          '(0 'web-mode-css-at-rule-face))
    '("\\<\\(all\|braille\\|embossed\\|handheld\\|print\\|projection\\|screen\\|speech\\|tty\\|tv\\|and\\|or\\)\\>"
      1 'web-mode-keyword-face)
-   ;;'("[[:alnum:]-]+" 0 'web-mode-css-selector-face)
-   ;;'("\\[.*?\\]\\|(.*?)" 0 nil t t)
-   ;;'("url(\\(.+?\\))" 1 'web-mode-string-face)
    '("[^,]+" 0 'web-mode-css-selector-face)
    (cons (concat ":\\(" web-mode-css-pseudo-classes "\\)\\(([^)]*)\\)?")
          '(0 'web-mode-css-pseudo-class-face t t))
-   ;;'("[,]" 0 nil t t)
    ))
 
 (defvar web-mode-declaration-font-lock-keywords
@@ -1485,13 +1481,11 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("$[[:alnum:]-]+" 0 'web-mode-css-variable-face)
    (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>")
          '(1 'web-mode-css-at-rule-face))
-;;   '("url(\\([^)]+\\)" 1 'web-mode-string-face)
    '("\\([[:alpha:]-]+\\)[ ]?:" 0 'web-mode-css-property-name-face)
    '("\\([[:alpha:]-]+\\)[ ]?(" 1 'web-mode-css-function-face)
    '("#[[:alnum:]]\\{1,6\\}" 0 'web-mode-css-color-face t t)
    '("![ ]?important" 0 'web-mode-css-priority-face t t)
    '("\\([^,]+\\)[ ]+{" 1 'web-mode-css-selector-face)
-;;   '("\\([[:alnum:]-.]+\\)[ ]+{" 1 'web-mode-css-selector-face)
    '("'[^']*'\\|\"[^\"]*\"" 0 'web-mode-string-face t t)
    ))
 
@@ -1638,12 +1632,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("@\\([[:alnum:]_.]+\\)[ ]*[({]" 1 'web-mode-block-control-face)
    (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>")
          '(1 'web-mode-keyword-face))
-;;   '("\\([[:alnum:]]+\\):" 1 'web-mode-symbol-face)
-;;   '("@\\([[:alnum:]_.]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("@\\([[:alnum:]_.]+\\)" 1 'web-mode-variable-name-face)
-;;   '("<\\([[:alnum:]_]+\\)>" 1 'web-mode-type-face)
-;;   '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
-;;   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-closure-font-lock-keywords
@@ -2286,7 +2275,6 @@ the environment as needed for ac-sources, right before they're used.")
         (let ((l (length tagopen)))
           (when (member (string-to-char tagopen) '(?\s ?\t))
             (setq tagopen (replace-regexp-in-string "\\`[ \t]*" "" tagopen))
-            ;;          (message "tagopen=%s (%S)" tagopen (point))
             (setq open (+ open (- l (length tagopen))))
             (setq l (length tagopen))
             )
@@ -2511,7 +2499,6 @@ the environment as needed for ac-sources, right before they're used.")
                                        (web-mode-engine-delimiter-close web-mode-engine "}"))
                   delim-open (concat (web-mode-engine-delimiter-open web-mode-engine "{") "/?")
                   delim-close (web-mode-engine-delimiter-close web-mode-engine "}"))
-;;            (message "delim-open=%s delim-close=%s" delim-open delim-close)
             ) ;t
            ) ;cond
           ) ;smarty
@@ -2570,7 +2557,6 @@ the environment as needed for ac-sources, right before they're used.")
                 (setq closing-string ">"
                       delim-open "<[/]?%"
                       delim-close ">")
-              ;;delim-open "<[^>]+>")
               (setq closing-string (concat "</%" (match-string-no-properties 0) ">")
                     delim-open "<[^>]+>"
                     delim-close "<[^>]+>")
@@ -2643,7 +2629,6 @@ the environment as needed for ac-sources, right before they're used.")
           ) ;velocity
 
          ((string= web-mode-engine "razor")
-;;          (message "sub2=%S" sub2)
           (cond
            ((string= sub2 "@@")
             (forward-char 2)
@@ -2682,7 +2667,6 @@ the environment as needed for ac-sources, right before they're used.")
              ((and (string= web-mode-engine "php")
                    (string= "<?" sub2))
 
-              ;;(message "open=%S %S" open (point))
               (if (or (text-property-not-all (1+ open) (point-max) 'tag-beg nil)
                       (text-property-not-all (1+ open) (point-max) 'block-beg nil)
                       (looking-at-p "[ \t\n]*<"))
@@ -5017,7 +5001,6 @@ the environment as needed for ac-sources, right before they're used.")
               (setq keywords (if (eq ?H (char-after (+ beg 3)))
                                  web-mode-html-font-lock-keywords
                                web-mode-javascript-font-lock-keywords))
-;;              (remove-text-properties beg end '(font-lock-face nil))
               (web-mode-fontify-region beg end keywords)
             ))
 ;;          (message "%S %c %S beg=%S end=%S" web-mode-enable-string-interpolation char web-mode-engine beg end)
@@ -5447,7 +5430,6 @@ the environment as needed for ac-sources, right before they're used.")
      ) ;cond
     errors))
 
-;; TODO: executable-find program
 (defun web-mode-jshint ()
   "Run JSHint on all the JavaScript parts."
   (interactive)
@@ -9365,9 +9347,7 @@ Pos should be in a tag."
            ) ;cond
           ) ;unless
         ) ;while
-      ;;      (message "h=%S pt=%S" h pt)
-      pt
-      )))
+      pt)))
 
 (defun web-mode-block-code-beginning-position (&optional pos)
   (unless pos (setq pos (point)))
@@ -9450,7 +9430,7 @@ Pos should be in a tag."
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0))))
         )
-       ((web-mode-looking-back "\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\<\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
         (setq ;;pos (point)
               continue nil))
        (t
@@ -9458,7 +9438,6 @@ Pos should be in a tag."
        ) ;cond
       ) ;while
     pos))
-
 
 (defun web-mode-block-args-beginning-position (pos &optional block-beg)
   (unless pos (setq pos (point)))
@@ -10214,7 +10193,6 @@ Pos should be in a tag."
         (setq continue nil)
         )
        (t
-;;        (message "%S" (match-string-no-properties 0))
         (if (string-match-p regexp-open (match-string-no-properties 0))
             (setq level (1+ level))
           (setq level (1- level)))
@@ -10225,7 +10203,6 @@ Pos should be in a tag."
        ) ;cond
       ) ;while
     (when (not (= level 0)) (goto-char pos))
-;;    (message "ret=%S level=%S" ret level)
     ret))
 
 (defun web-mode-block-sb (expr &optional limit noerror)
@@ -10772,19 +10749,12 @@ Pos should be in a tag."
   (web-mode-with-silent-modifications
     (put-text-property (point-min) (point-max) 'invisible nil)
     (remove-overlays)
-    ;;   (message "1- %S" font-lock-unfontify-region-function)
     (setq font-lock-unfontify-region-function 'font-lock-default-unfontify-region)
     ;;(unload-feature 'web-mode t)
     (load "web-mode.el")
     (setq web-mode-change-beg nil
           web-mode-change-end nil)
     (web-mode)
-    ;;(run-mode-hooks)
-    ;;(message "ixi")
-    ;;(run-hooks 'web-mode-hook)
-    ;;(when (fboundp 'web-mode-hook)
-    ;;  (message "run hook")
-    ;;  (web-mode-hook))
     ) ;silent
   )
 
@@ -10866,30 +10836,3 @@ Pos should be in a tag."
 ;; coding: utf-8
 ;; indent-tabs-mode: nil
 ;; End:
-
-;; (defun web-mode-is-void-after (&optional pos)
-;;   "Only spaces or comment after (1+ pos)"
-;;   (unless pos (setq pos (point)))
-;;   (save-excursion
-;;     (setq pos (1+ pos))
-;;     (goto-char pos)
-;; ;;    (message "after pos=%S" pos)
-;;     (let ((eol (line-end-position)) (continue t) c (ret t) part-side)
-;;       (setq part-side (or (member web-mode-content-type '("javascript" "css"))
-;;                           (not (null (get-text-property pos 'part-side)))))
-;;       (while continue
-;;         (setq c (char-after pos))
-;; ;;        (message "%S c='%c'" pos c)
-;;         (cond
-;;          ((member c '(?\s ?\n)) )
-;;          ((and part-side (eq (get-text-property pos 'part-token) 'comment)) )
-;;          ((and part-side (get-text-property pos 'block-side)) )
-;;          ((and (not part-side) (eq (get-text-property pos 'block-token) 'comment)) )
-;;          (t (setq ret nil
-;;                   continue nil))
-;;          )
-;;         (when continue
-;;           (setq pos (1+ pos))
-;;           (when (>= pos eol) (setq continue nil)))
-;;         ) ;while
-;;       ret)))
