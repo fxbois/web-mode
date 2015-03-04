@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.14
+;; Version: 11.0.15
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,11 +26,9 @@
 ;; v12 : invert path and XX (web-mode-engines-alist,
 ;;       web-mode-content-types-alist)
 
-;; web-mode-comment-beginning|end(-position) : to use with indent-line
-
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.14"
+(defconst web-mode-version "11.0.15"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5458,7 +5456,9 @@ the environment as needed for ac-sources, right before they're used.")
       (setq proc (start-process
                   "jshint-proc"
                   nil
-                  "jshint" "--extract=auto" (buffer-file-name)))
+                  (or (executable-find "jshint") "/usr/local/bin/jshint")
+                  "--extract=auto"
+                  (buffer-file-name)))
       (setq web-mode-jshint-errors 0)
       (set-process-filter proc
                           (lambda (proc output)
@@ -5480,9 +5480,9 @@ the environment as needed for ac-sources, right before they're used.")
                                   (overlay-put overlay 'font-lock-face 'web-mode-error-face)
                                   )
                                 (setq msg (or (overlay-get overlay 'help-echo)
-                                               (concat "l="
+                                               (concat "line="
                                                        (match-string-no-properties 1 output)
-                                                       " c="
+                                                       " column="
                                                        (match-string-no-properties 2 output)
                                                        )))
                                 (overlay-put overlay 'help-echo
@@ -7935,15 +7935,17 @@ Pos should be in a tag."
              ((eq (get-text-property pos 'block-token) 'comment) 'block-token)
              ((eq (get-text-property pos 'tag-type) 'comment) 'tag-type)
              ((eq (get-text-property pos 'part-token) 'comment) 'part-token)
+             (t nil)
              ))
-      (if (and (not (bobp))
-               (eq (get-text-property pos prop) (get-text-property (1- pos) prop)))
-          (setq beg (or (previous-single-property-change pos prop)
-                        (point-min))))
-      (if (and (not (eobp))
-               (eq (get-text-property pos prop) (get-text-property (1+ pos) prop)))
-          (setq end (or (next-single-property-change pos prop)
-                        (point-max))))
+      (if (null prop)
+          (setq beg nil
+                end nil)
+        (when (and (not (bobp))
+                   (eq (get-text-property pos prop) (get-text-property (1- pos) prop)))
+          (setq beg (or (previous-single-property-change pos prop) (point-min))))
+        (when (and (not (eobp))
+                   (eq (get-text-property pos prop) (get-text-property (1+ pos) prop)))
+          (setq end (or (next-single-property-change pos prop) (point-max)))))
       (when (and beg (string= (buffer-substring-no-properties beg (+ beg 2)) "//"))
         (goto-char end)
         (when (looking-at "\n[ ]*//")
@@ -7954,9 +7956,12 @@ Pos should be in a tag."
           (goto-char end)
           ) ;while
         ) ;when
-      )
+      (when end (setq end (1- end)))
+      ) ; save-excursion
     ;;(message "beg=%S end=%S" beg end)
-    (cons beg end)))
+    (if (and beg end) (cons beg end) nil)
+    ))
+
 
 (defun web-mode-uncomment (pos)
   (let ((beg pos) (end pos) (sub2 "") comment boundaries)
@@ -7967,9 +7972,9 @@ Pos should be in a tag."
         (funcall (intern (concat "web-mode-uncomment-" web-mode-engine "-block")) pos)
         )
        (t
-        (setq boundaries (web-mode-comment-boundaries pos)
-              beg (car boundaries)
-              end (cdr boundaries))
+        (when (setq boundaries (web-mode-comment-boundaries pos))
+          (setq beg (car boundaries)
+                end (1+ (cdr boundaries))))
         (when (and beg end (> (- end beg) 4))
           (setq comment (buffer-substring-no-properties beg end))
           (setq sub2 (substring comment 0 2))
@@ -8956,6 +8961,14 @@ Pos should be in a tag."
 
 ;;---- POSITION ----------------------------------------------------------------
 
+(defun web-mode-comment-beginning-position (&optional pos)
+  (unless pos (setq pos (point)))
+  (car (web-mode-comment-boundaries pos)))
+
+(defun web-mode-comment-end-position (&optional pos)
+  (unless pos (setq pos (point)))
+  (cdr (web-mode-comment-boundaries pos)))
+
 (defun web-mode-opening-paren-position (&optional pos limit)
   (save-restriction
     (unless pos (setq pos (point)))
@@ -9930,6 +9943,16 @@ Pos should be in a tag."
          ) ;cond
         ) ;dotimes
       ))) ;let if defun
+
+(defun web-mode-comment-beginning ()
+  "Fetch current comment beg."
+  (interactive)
+  (web-mode-go (web-mode-comment-beginning-position (point))))
+
+(defun web-mode-comment-end ()
+  "Fetch current comment end."
+  (interactive)
+  (web-mode-go (web-mode-comment-end-position (point)) 1))
 
 (defun web-mode-tag-beginning ()
   "Fetch current html tag beg."
