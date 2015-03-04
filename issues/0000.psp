@@ -1,0 +1,7 @@
+<div><?=$x?></div>
+
+<script>
+ var x;
+</script>
+
+<span></span>

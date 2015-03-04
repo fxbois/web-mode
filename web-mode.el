@@ -4610,7 +4610,7 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-invalidate-region (reg-beg reg-end)
   (setq reg-beg (web-mode-invalidate-region-beginning-position reg-beg)
         reg-end (web-mode-invalidate-region-end-position reg-end))
-;;  (message "invalidate-region: reg-beg(%S) reg-end(%S)" reg-beg reg-end)
+  ;;(message "invalidate-region: reg-beg(%S) reg-end(%S)" reg-beg reg-end)
   (web-mode-scan-region reg-beg reg-end))
 
 (defun web-mode-invalidate-region-beginning-position (pos)
@@ -4619,26 +4619,31 @@ the environment as needed for ac-sources, right before they're used.")
     (when (and (bolp) (not (bobp)))
       (backward-char))
     (beginning-of-line)
-;;    (message "pos=%S %S" (point) (text-properties-at (point)))
+    ;;(message "pos=%S %S" (point) (text-properties-at (point)))
     (setq pos (point-min))
-
     (let ((continue (not (bobp))))
       (while continue
         (cond
          ((bobp)
           (setq continue nil))
-         ((and ;;(progn (message "%S %S" (point) (text-properties-at (point))) t)
-               (or (get-text-property (point) 'tag-beg)
-                   (not (get-text-property (point) 'tag-type)))
-               (not (get-text-property (point) 'part-side))
-               (not (get-text-property (point) 'block-side)))
+         ;; Note: Going back to the first start tag is necessary
+         ;;       when inserting, for example, a </script>.
+         ;;       Indeed, parts should be identified asap.
+         ((and (progn (back-to-indentation) t)
+               (get-text-property (point) 'tag-beg)
+               (eq (get-text-property (point) 'tag-type) 'start)
+               ;;(or (get-text-property (point) 'tag-beg)
+               ;;    (not (get-text-property (point) 'tag-type)))
+               ;;(not (get-text-property (point) 'part-side))
+               ;;(not (get-text-property (point) 'block-side))
+               )
           (setq pos (point)
                 continue nil))
          (t
           (forward-line -1))
          ) ;cond
         ) ;while
-      ;;      (message "pos=%S" pos)
+      ;;(message "pos=%S" pos)
       pos)))
 
 (defun web-mode-invalidate-region-end-position (pos)
@@ -8345,18 +8350,15 @@ Pos should be in a tag."
          (string-match-p "php" (buffer-substring-no-properties
                                 (line-beginning-position)
                                 (line-end-position))))
-    (web-mode-set-engine "php")
-    )
+    (web-mode-set-engine "php"))
    ((and (string= web-mode-content-type "javascript")
          (< (point) web-mode-chunk-length)
          (eq (char-after (point-min)) ?\/)
          (string-match-p "@jsx" (buffer-substring-no-properties
                                  (line-beginning-position)
                                  (line-end-position))))
-    (web-mode-set-content-type "jsx")
-    )
-   ) ;cond
-  )
+    (web-mode-set-content-type "jsx"))
+   ))
 
 (defun web-mode-detect-engine ()
   (save-excursion
@@ -8519,7 +8521,6 @@ Pos should be in a tag."
 
     (when (and web-mode-expand-previous-state
                (not (eq this-command 'web-mode-mark-and-expand)))
-      ;;(message "deactivate-mark")
       (deactivate-mark)
       (setq web-mode-expand-previous-state nil
             web-mode-expand-initial-pos nil))
