@@ -4211,7 +4211,7 @@ the environment as needed for ac-sources, right before they're used.")
             (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
             (when (< (point) (point-max))
               (if (= (point) (line-end-position))
-                  (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">"))
+                  (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">")) ;#377
                 (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax ">")) ;#445
                 )
               )
@@ -7813,7 +7813,6 @@ Pos should be in a tag."
 (defun web-mode-comment-or-uncomment ()
   "Comment or uncomment line(s), block or region at POS."
   (interactive)
-  ;;  (save-excursion
   (if (and mark-active (eq (point) (region-end)))
       (exchange-point-and-mark))
   (skip-chars-forward "[:space:]" (line-end-position))
@@ -7822,11 +7821,9 @@ Pos should be in a tag."
           (eq (get-text-property (point) 'part-token) 'comment))
       (web-mode-uncomment (point))
     (web-mode-comment (point)))
-  ;;)
   )
 
 (defun web-mode-comment (pos)
-;;  (save-excursion
     (let (ctx language sel beg end tmp block-side single-line-block pos-after)
 
       (setq pos-after pos)
@@ -7899,7 +7896,7 @@ Pos should be in a tag."
             ))
           ) ;case html
 
-         ((member language '("php" "javascript" "java"))
+         ((member language '("php" "javascript" "java" "jsx"))
           (let (alt)
             (setq alt (cdr (assoc language web-mode-comment-formats)))
             (if (not (string= alt "/*"))
@@ -7926,8 +7923,42 @@ Pos should be in a tag."
 
       ))
 
+(defun web-mode-comment-boundaries (&optional pos)
+  (interactive)
+  (unless pos (setq pos (point)))
+  (let ((beg pos) (end pos) prop)
+    (save-excursion
+      (goto-char pos)
+      (setq prop
+            (cond
+             ((eq (get-text-property pos 'block-token) 'comment) 'block-token)
+             ((eq (get-text-property pos 'tag-type) 'comment) 'tag-type)
+             ((eq (get-text-property pos 'part-token) 'comment) 'part-token)
+             ))
+      (if (and (not (bobp))
+               (eq (get-text-property pos prop) (get-text-property (1- pos) prop)))
+          (setq beg (or (previous-single-property-change pos prop)
+                        (point-min))))
+      (if (and (not (eobp))
+               (eq (get-text-property pos prop) (get-text-property (1+ pos) prop)))
+          (setq end (or (next-single-property-change pos prop)
+                        (point-max))))
+      (when (and beg (string= (buffer-substring-no-properties beg (+ beg 2)) "//"))
+        (goto-char end)
+        (when (looking-at "\n[ ]*//")
+          (search-forward "//")
+          (backward-char 2)
+          ;;(message "%S" (point))
+          (setq end (next-single-property-change (point) prop))
+          (goto-char end)
+          ) ;while
+        ) ;when
+      )
+    ;;(message "beg=%S end=%S" beg end)
+    (cons beg end)))
+
 (defun web-mode-uncomment (pos)
-  (let ((beg pos) (end pos) (sub2 "") comment prop)
+  (let ((beg pos) (end pos) (sub2 "") comment boundaries)
     (save-excursion
       (cond
        ((and (get-text-property pos 'block-side)
@@ -7935,21 +7966,10 @@ Pos should be in a tag."
         (funcall (intern (concat "web-mode-uncomment-" web-mode-engine "-block")) pos)
         )
        (t
-        (setq prop
-              (cond
-               ((eq (get-text-property pos 'block-token) 'comment) 'block-token)
-               ((eq (get-text-property pos 'tag-type) 'comment) 'tag-type)
-               ((eq (get-text-property pos 'part-token) 'comment) 'part-token)
-               ))
-        (if (and (not (bobp))
-                 (eq (get-text-property pos prop) (get-text-property (1- pos) prop)))
-            (setq beg (or (previous-single-property-change pos prop)
-                          (point-min))))
-        (if (and (not (eobp))
-                 (eq (get-text-property pos prop) (get-text-property (1+ pos) prop)))
-            (setq end (or (next-single-property-change pos prop)
-                          (point-max))))
-        (when (> (- end beg) 4)
+        (setq boundaries (web-mode-comment-boundaries pos)
+              beg (car boundaries)
+              end (cdr boundaries))
+        (when (and beg end (> (- end beg) 4))
           (setq comment (buffer-substring-no-properties beg end))
           (setq sub2 (substring comment 0 2))
           (cond
@@ -8381,7 +8401,8 @@ Pos should be in a tag."
         (auto-closed   nil)
         (auto-expanded nil)
         (auto-paired   nil)
-        (auto-quoted   nil))
+        (auto-quoted   nil)
+        expanders)
 
     ;;-- auto-closing
     (when (and web-mode-enable-auto-closing
