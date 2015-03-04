@@ -1033,7 +1033,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("lsp"              . "<%")
    '("mako"             . "</?%\\|${\\|^[ \t]*%.\\|^[ \t]*##")
    '("mason"            . "</?[&%]\\|^%.")
-   '("mojolicious"      . "<%.\\|^[ \t]*%.")
+   '("mojolicious"      . "<%\\|^[ \t]*%.")
    '("php"              . "<\\?")
    '("python"           . "<\\?")
    '("razor"            . "@.\\|^[ \t]*}")
