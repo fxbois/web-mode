@@ -1033,7 +1033,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("lsp"              . "<%")
    '("mako"             . "</?%\\|${\\|^[ \t]*%.\\|^[ \t]*##")
    '("mason"            . "</?[&%]\\|^%.")
-   '("mojolicious"      . "<%.\\|^[ \t]*%.")
+   '("mojolicious"      . "<%\\|^[ \t]*%.")
    '("php"              . "<\\?")
    '("python"           . "<\\?")
    '("razor"            . "@.\\|^[ \t]*}")
@@ -1439,7 +1439,7 @@ Must be used in conjunction with web-mode-enable-block-face."
      "for" "foreach" "ge" "gt" "if" "le" "lock" "lt" "m" "ne" "no"
      "or" "package" "q" "qq" "qr" "qw" "qx" "s" "sub"
      "tr" "unless" "until" "while" "xor" "y"
-     "my")))
+     "my" "use" "print" "say")))
 
 (defvar web-mode-javascript-keywords
   (regexp-opt
