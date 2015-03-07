@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.16
+;; Version: 11.0.17
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -28,7 +28,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.16"
+(defconst web-mode-version "11.0.17"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -712,7 +712,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-comment-formats
   '(("java"       . "/*")
     ("javascript" . "/*")
-    ("php"        . "/*")))
+    ("php"        . "//")
+    ;;("php"        . "/*")
+    ))
 
 (defvar web-mode-engine-file-regexps
   '(("asp"              . "\\.asp\\'")
@@ -2155,11 +2157,12 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'imenu-generic-expression)
   (make-local-variable 'indent-line-function)
   (make-local-variable 'parse-sexp-lookup-properties)
-  (make-local-variable 'text-property-default-nonsticky)
   (make-local-variable 'yank-excluded-properties)
 
   ;; NOTE: required for block-code-beg|end
-  (add-to-list 'text-property-default-nonsticky '(block-token . t))
+  ;;(make-local-variable 'text-property-default-nonsticky)
+  ;;(add-to-list 'text-property-default-nonsticky '(block-token . t))
+  ;;(message "%S" text-property-default-nonsticky)
 
   (setq fill-paragraph-function 'web-mode-fill-paragraph
         font-lock-defaults '(web-mode-font-lock-keywords t)
@@ -3121,7 +3124,9 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-block-tokenize (reg-beg reg-end &optional regexp)
   (unless regexp (setq regexp web-mode-engine-token-regexp))
-;;  (message "tokenize: reg-beg(%S) reg-end(%S) regexp(%S)" reg-beg reg-end regexp)
+  ;;(message "tokenize: reg-beg(%S) reg-end(%S) regexp(%S)" reg-beg reg-end regexp)
+  ;;(message "tokenize: reg-beg(%S) reg-end(%S) command(%S)" reg-beg reg-end this-command)
+  ;;(message "%S>%S : %S" reg-beg reg-end (buffer-substring-no-properties reg-beg reg-end))
   (save-excursion
     (let ((pos reg-beg) beg end char match continue (flags 0) token-type token-end)
 
@@ -3177,17 +3182,18 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((string= match "/*")
           (unless (search-forward "*/" reg-end t)
-            (goto-char token-end)))
+            ;;(message "*/ found: %S [%c] [%c] %S" (point) (char-before) (char-after) reg-end)
+            (goto-char token-end))
+          ;;(unless (search-forward "*/" reg-end t)
+          ;;  (goto-char token-end))
+          ;;(message "*/ %S" (point))
+          )
 
          ((string= match "@*")
           (unless (search-forward "*@" reg-end t)
             (goto-char token-end)))
 
          ((eq char ?\<)
-          ;;(when (and web-mode-enable-heredoc-fontification
-          ;;           (string-match-p "JS\\|JAVASCRIPT\\|HTM\\|CSS" (match-string 1)))
-          ;;  (setq flags (logior flags 2))
-          ;;  )
           (setq token-type 'string)
           (re-search-forward (concat "^[ ]*" (match-string 1)) reg-end t))
 
@@ -3196,6 +3202,8 @@ the environment as needed for ac-sources, right before they're used.")
           (setq token-type nil))
 
          ) ;cond
+
+        ;;(when (eq token-type 'comment) (message "comment: %S %S" beg (point)))
 
         (put-text-property beg (point) 'block-token token-type)
 
@@ -7801,8 +7809,12 @@ Pos should be in a tag."
 (defun web-mode-comment-or-uncomment ()
   "Comment or uncomment line(s), block or region at POS."
   (interactive)
-  (if (and mark-active (eq (point) (region-end)))
-      (exchange-point-and-mark))
+
+  ;;(if (and mark-active (eq (point) (region-end)))
+  ;; TODO : if mark is at eol, mark--
+  (when (and (use-region-p) (eq (point) (region-end)))
+    (if (bolp) (backward-char))
+    (exchange-point-and-mark))
   (skip-chars-forward "[:space:]" (line-end-position))
   (if (or (eq (get-text-property (point) 'tag-type) 'comment)
           (eq (get-text-property (point) 'block-token) 'comment)
@@ -7812,7 +7824,7 @@ Pos should be in a tag."
   )
 
 (defun web-mode-comment (pos)
-    (let (ctx language sel beg end tmp block-side single-line-block pos-after)
+    (let (ctx language sel beg end tmp block-side single-line-block pos-after content)
 
       (setq pos-after pos)
 
@@ -7840,6 +7852,7 @@ Pos should be in a tag."
           (end-of-line)
           (set-mark (line-beginning-position)))
          ) ;cond
+
         (setq beg (region-beginning)
               end (region-end))
 
@@ -7852,32 +7865,34 @@ Pos should be in a tag."
 
 ;;        (setq sel (web-mode-trim (buffer-substring-no-properties beg end)))
         (setq sel (buffer-substring-no-properties beg end))
-        (delete-region beg end)
-        (deactivate-mark)
+
+        ;;(web-mode-with-silent-modifications
+        ;; (delete-region beg end))
+        ;;(deactivate-mark)
 
         (cond
 
          ((member language '("html" "xml"))
           (cond
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "django"))
-            (web-mode-insert-and-indent (concat "{# " sel " #}")))
+            (setq content (concat "{# " sel " #}")))
            ((and (= web-mode-comment-style 2) (member web-mode-engine '("ejs" "erb")))
-            (web-mode-insert-and-indent (concat "<%# " sel " %>")))
+            (setq content (concat "<%# " sel " %>")))
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "aspx"))
-            (web-mode-insert-and-indent (concat "<%-- " sel " --%>")))
+            (setq content (concat "<%-- " sel " --%>")))
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "smarty"))
-            (web-mode-insert-and-indent (concat
-                                         (web-mode-engine-delimiter-open web-mode-engine "{")
-                                         "* "
-                                         sel
-                                         " *"
-                                         (web-mode-engine-delimiter-close web-mode-engine "}"))))
+            (setq content (concat
+                           (web-mode-engine-delimiter-open web-mode-engine "{")
+                           "* "
+                           sel
+                           " *"
+                           (web-mode-engine-delimiter-close web-mode-engine "}"))))
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "blade"))
-            (web-mode-insert-and-indent (concat "{{-- " sel " --}}")))
+            (setq content (concat "{{-- " sel " --}}")))
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "razor"))
-            (web-mode-insert-and-indent (concat "@* " sel " *@")))
+            (setq content (concat "@* " sel " *@")))
            (t
-            (web-mode-insert-and-indent (concat "<!-- " sel " -->"))
+            (setq content (concat "<!-- " sel " -->"))
             (when (< (length sel) 1)
               (search-backward " -->")
               (setq pos-after nil))
@@ -7888,26 +7903,45 @@ Pos should be in a tag."
           (let (alt)
             (setq alt (cdr (assoc language web-mode-comment-formats)))
             (if (not (string= alt "/*"))
-                (web-mode-insert-and-indent (replace-regexp-in-string "^[ ]*" alt sel))
-              (web-mode-insert-and-indent (concat "/* " sel " */")))
+                (setq content (replace-regexp-in-string "^[ ]*" alt sel))
+              ;;(message "before")
+              (setq content (concat "/* " sel " */"))
+              ;;(message "after")
+              ) ;if
             )
           )
 
          ((member language '("erb"))
-          (web-mode-insert-and-indent (replace-regexp-in-string "^[ ]*" "#" sel)))
+          (setq content (replace-regexp-in-string "^[ ]*" "#" sel)))
 
          ((member language '("asp"))
-          (web-mode-insert-and-indent (replace-regexp-in-string "^[ ]*" "''" sel)))
+          (setq content (replace-regexp-in-string "^[ ]*" "''" sel)))
 
          (t
-          (web-mode-insert-and-indent (concat "/* " sel " */")))
+          (setq content (concat "/* " sel " */")))
 
          ) ;cond
 
         ) ;t
        ) ;cond
 
+      ;;(web-mode-with-silent-modifications
+      (delete-region beg end)
+      (deactivate-mark)
+      ;;)
+      ;;(web-mode-insert-and-indent content)
+      (let (beg end)
+        (setq beg (point-at-bol))
+        (insert content)
+        (setq end (point-at-eol))
+        (indent-region beg end)
+        )
+
+      ;;(when content (web-mode-insert-and-indent content))
+
       (when pos-after (goto-char pos-after))
+
+      ;;      (message "END")
 
       ))
 
@@ -7962,6 +7996,7 @@ Pos should be in a tag."
         (when (setq boundaries (web-mode-comment-boundaries pos))
           (setq beg (car boundaries)
                 end (1+ (cdr boundaries))))
+        ;;(message "beg(%S) end(%S)" beg end)
         (when (and beg end (> (- end beg) 4))
           (setq comment (buffer-substring-no-properties beg end))
           (setq sub2 (substring comment 0 2))
@@ -7973,7 +8008,9 @@ Pos should be in a tag."
            ((string= sub2 "/*")
             (setq comment (replace-regexp-in-string "\\(^/\\*[ ]?\\|[ ]?\\*/$\\)" "" comment)))
            ((string= sub2 "//")
-            (setq comment (replace-regexp-in-string "\\(^//\\)" "" comment)))
+            ;;(setq comment (replace-regexp-in-string "\\(^//\\)" "" comment))
+            (setq comment (replace-regexp-in-string "\\(//\\)" "" comment))
+            )
            )
           (delete-region beg end)
           (web-mode-insert-and-indent comment)
@@ -8161,7 +8198,8 @@ Pos should be in a tag."
     (setq beg (point-at-bol))
     (insert text)
     (setq end (point-at-eol))
-    (indent-region beg end)))
+    (indent-region beg end)
+    ))
 
 (defun web-mode-navigate (&optional pos)
   "Move point to the matching opening/closing tag/block."

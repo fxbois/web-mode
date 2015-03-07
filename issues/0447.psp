@@ -1,0 +1,10 @@
+<div>
+  <?php
+  function hello() {
+
+    /* echo "hello";
+       echo "world"; */
+
+  }
+  ?>
+</div>

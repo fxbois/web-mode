@@ -4,4 +4,19 @@
  var x;
 </script>
 
+<div>
+
+  <?php
+
+  $x = 1;
+  $y = "aaaxs";
+
+
+
+  echo 1;
+
+  ?>
+
+</div>
+
 <span></span>
