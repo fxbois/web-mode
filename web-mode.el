@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.17
+;; Version: 11.0.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,14 +21,12 @@
 
 ;;---- TODO --------------------------------------------------------------------
 
-;; web-mode-attribute-next(-position)
-
 ;; v12 : invert path and XX (web-mode-engines-alist,
 ;;       web-mode-content-types-alist)
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.17"
+(defconst web-mode-version "11.0.18"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1963,6 +1961,7 @@ the environment as needed for ac-sources, right before they're used.")
     (define-key map [menu-bar wm attr attr-sel] '(menu-item "Select" web-mode-attribute-select))
     (define-key map [menu-bar wm attr attr-kil] '(menu-item "Kill" web-mode-attribute-kill))
     (define-key map [menu-bar wm attr attr-nex] '(menu-item "Next" web-mode-attribute-next))
+    (define-key map [menu-bar wm attr attr-pre] '(menu-item "Previous" web-mode-attribute-previous))
     (define-key map [menu-bar wm attr attr-tra] '(menu-item "Transpose" web-mode-attribute-transpose))
 
     (define-key map [menu-bar wm tag tag-beg] '(menu-item "Sort Attributes" web-mode-tag-attributes-sort))
@@ -2001,15 +2000,16 @@ the environment as needed for ac-sources, right before they're used.")
     (define-key map [menu-bar wm sni]         '(menu-item "Insert snippet" web-mode-snippet-insert))
 
     ;;--------------------------------------------------------------------------
-    ;; "C-c letter"  are reserved for users
+    ;; "C-c <LETTER>" are reserved for users
 
     (define-key map (kbd "C-c C-a b") 'web-mode-attribute-beginning)
     (define-key map (kbd "C-c C-a e") 'web-mode-attribute-end)
     (define-key map (kbd "C-c C-a i") 'web-mode-attribute-insert)
+    (define-key map (kbd "C-c C-a n") 'web-mode-attribute-next)
     (define-key map (kbd "C-c C-a s") 'web-mode-attribute-select)
     (define-key map (kbd "C-c C-a k") 'web-mode-attribute-kill)
+    (define-key map (kbd "C-c C-a p") 'web-mode-attribute-previous)
     (define-key map (kbd "C-c C-a t") 'web-mode-attribute-transpose)
-    (define-key map (kbd "C-c C-a n") 'web-mode-attribute-next)
 
     (define-key map (kbd "C-c C-b b") 'web-mode-block-beginning)
     (define-key map (kbd "C-c C-b c") 'web-mode-block-close)
@@ -7983,40 +7983,35 @@ Pos should be in a tag."
     (if (and beg end) (cons beg end) nil)
     ))
 
-
 (defun web-mode-uncomment (pos)
   (let ((beg pos) (end pos) (sub2 "") comment boundaries)
     (save-excursion
       (cond
        ((and (get-text-property pos 'block-side)
              (intern-soft (concat "web-mode-uncomment-" web-mode-engine "-block")))
-        (funcall (intern (concat "web-mode-uncomment-" web-mode-engine "-block")) pos)
-        )
-       (t
-        (when (setq boundaries (web-mode-comment-boundaries pos))
-          (setq beg (car boundaries)
-                end (1+ (cdr boundaries))))
+        (funcall (intern (concat "web-mode-uncomment-" web-mode-engine "-block")) pos))
+       ((and (setq boundaries (web-mode-comment-boundaries pos))
+             (setq beg (car boundaries))
+             (setq end (1+ (cdr boundaries)))
+             (> (- end beg) 4))
         ;;(message "beg(%S) end(%S)" beg end)
-        (when (and beg end (> (- end beg) 4))
-          (setq comment (buffer-substring-no-properties beg end))
-          (setq sub2 (substring comment 0 2))
-          (cond
-           ((member sub2 '("<!" "<%"))
-            (setq comment (replace-regexp-in-string "\\(^<[!%]--[ ]?\\|[ ]?--[%]?>$\\)" "" comment)))
-           ((string= sub2 "{#")
-            (setq comment (replace-regexp-in-string "\\(^{#[ ]?\\|[ ]?#}$\\)" "" comment)))
-           ((string= sub2 "/*")
-            (setq comment (replace-regexp-in-string "\\(^/\\*[ ]?\\|[ ]?\\*/$\\)" "" comment)))
-           ((string= sub2 "//")
-            ;;(setq comment (replace-regexp-in-string "\\(^//\\)" "" comment))
-            (setq comment (replace-regexp-in-string "\\(//\\)" "" comment))
-            )
-           )
-          (delete-region beg end)
-          (web-mode-insert-and-indent comment)
-          (goto-char beg)
-          ) ;when
-        ) ;t
+        (setq comment (buffer-substring-no-properties beg end))
+        (setq sub2 (substring comment 0 2))
+        (cond
+         ((member sub2 '("<!" "<%"))
+          (setq comment (replace-regexp-in-string "\\(^<[!%]--[ ]?\\|[ ]?--[%]?>$\\)" "" comment)))
+         ((string= sub2 "{#")
+          (setq comment (replace-regexp-in-string "\\(^{#[ ]?\\|[ ]?#}$\\)" "" comment)))
+         ((string= sub2 "/*")
+          (setq comment (replace-regexp-in-string "\\(^/\\*[ ]?\\|[ ]?\\*/$\\)" "" comment)))
+         ((string= sub2 "//")
+          ;;(setq comment (replace-regexp-in-string "\\(^//\\)" "" comment))
+          (setq comment (replace-regexp-in-string "\\(//\\)" "" comment)))
+         ) ;cond
+        (delete-region beg end)
+        (web-mode-insert-and-indent comment)
+        (goto-char beg)
+        )
        ) ;cond
       (indent-according-to-mode))))
 
@@ -9179,6 +9174,22 @@ Pos should be in a tag."
       ) ;while
     pos))
 
+(defun web-mode-attribute-previous-position (&optional pos)
+  (unless pos (setq pos (point)))
+  (let ((continue t))
+    (while continue
+      (setq pos (previous-single-property-change pos 'tag-attr))
+      (cond
+       ((null pos)
+        (setq continue nil
+              pos nil))
+       ((get-text-property pos 'tag-attr)
+        (setq continue nil))
+       )
+      ) ;while
+    (when pos (setq pos (web-mode-attribute-beginning-position pos)))
+    pos))
+
 (defun web-mode-element-beginning-position (&optional pos)
   (unless pos (setq pos (point)))
   (cond
@@ -10006,6 +10017,11 @@ Pos should be in a tag."
   "Fetch next attribute."
   (interactive)
   (web-mode-go (web-mode-attribute-next-position (point))))
+
+(defun web-mode-attribute-previous ()
+  "Fetch previous attribute."
+  (interactive)
+  (web-mode-go (web-mode-attribute-previous-position (point))))
 
 (defun web-mode-element-previous ()
   "Fetch previous element."

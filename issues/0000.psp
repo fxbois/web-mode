@@ -1,4 +1,4 @@
-<div><?=$x?></div>
+<div class="toto"><?=$x?></div>
 
 <script>
  var x;
