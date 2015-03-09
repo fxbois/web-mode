@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.18
+;; Version: 11.0.19
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.18"
+(defconst web-mode-version "11.0.19"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -710,8 +710,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-comment-formats
   '(("java"       . "/*")
     ("javascript" . "/*")
-    ("php"        . "//")
-    ;;("php"        . "/*")
+    ("php"        . "/*")
     ))
 
 (defvar web-mode-engine-file-regexps
@@ -7969,12 +7968,14 @@ Pos should be in a tag."
           (setq end (or (next-single-property-change pos prop) (point-max)))))
       (when (and beg (string= (buffer-substring-no-properties beg (+ beg 2)) "//"))
         (goto-char end)
-        (when (looking-at "\n[ ]*//")
+        (while (and (looking-at-p "\n[ ]*//")
+                    (not (eobp)))
           (search-forward "//")
           (backward-char 2)
           ;;(message "%S" (point))
           (setq end (next-single-property-change (point) prop))
           (goto-char end)
+          ;;(message "%S" (point))
           ) ;while
         ) ;when
       (when end (setq end (1- end)))
