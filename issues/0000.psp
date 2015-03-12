@@ -1,27 +1,9 @@
-<div class="toto"><?=$x?></div>
-
-<script>
- var x;
-
- var x = 1;
- var y = 2;
- var y = 3;
-
-</script>
-
-<div>
-
+<span>
   <?php
-
-  $x = 1;
-  $y = "aaaxs";
-
-
-
-  echo 1;
-
+  $xsx = "cxsxd";
   ?>
-
-</div>
-
-<span></span>
+</span>
+<span>xx</span>
+<script class="de" >
+ var x;
+</script>

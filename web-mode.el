@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.19
+;; Version: 11.0.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.19"
+(defconst web-mode-version "11.0.20"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -592,6 +592,9 @@ Must be used in conjunction with web-mode-enable-block-face."
   :group 'web-mode-faces)
 
 ;;---- VARS --------------------------------------------------------------------
+
+(defvar font-lock-beg)
+(defvar font-lock-end)
 
 (defvar web-mode-auto-pairs nil)
 (defvar web-mode-block-regexp nil)
@@ -2148,6 +2151,7 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'fill-paragraph-function)
   (make-local-variable 'font-lock-beg)
   (make-local-variable 'font-lock-defaults)
+  (make-local-variable 'font-lock-extend-region-functions)
   (make-local-variable 'font-lock-end)
   (make-local-variable 'font-lock-support-mode)
   (make-local-variable 'font-lock-unfontify-region-function)
@@ -2165,6 +2169,7 @@ the environment as needed for ac-sources, right before they're used.")
 
   (setq fill-paragraph-function 'web-mode-fill-paragraph
         font-lock-defaults '(web-mode-font-lock-keywords t)
+        font-lock-extend-region-functions '(web-mode-extend-region)
         font-lock-support-mode nil
         font-lock-unfontify-region-function 'web-mode-unfontify-region
         imenu-case-fold-search t
@@ -4514,6 +4519,7 @@ the environment as needed for ac-sources, right before they're used.")
     (web-mode-invalidate-part-region beg end))
 
    (t
+    ;;(message "%S %S" beg end)
     (web-mode-invalidate-region beg end))
 
    ) ;cond
@@ -4589,7 +4595,11 @@ the environment as needed for ac-sources, right before they're used.")
                 (setq beg part-beg))
               (goto-char pos-end)
               (if (web-mode-javascript-rsf "[;{})][ ]*\n" part-end)
-                  (setq end (1- (match-end 0)))
+                  (progn
+                    ;;(setq end (1- (match-end 0)))
+                    (setq end (match-end 0))
+                    ;;(message "END=%S" end)
+                    )
                 (setq end part-end))
               )
              ((string= language "css")
@@ -4607,9 +4617,11 @@ the environment as needed for ac-sources, right before they're used.")
               (setq beg part-beg
                     end part-end))
              ) ;cond
+            ;;(message "beg(%S) end(%S)" beg end)
             (web-mode-scan-region beg end language)
             ;; (message "[%S] scan-region beg=%S end=%S" language beg end)
             ) ;progn
+        ;;(message "pos-beg(%S) pos-end(%S)" pos-beg pos-end)
         (web-mode-invalidate-region pos-beg pos-end)
         ) ;if
       )))
@@ -4633,9 +4645,9 @@ the environment as needed for ac-sources, right before they're used.")
         (cond
          ((bobp)
           (setq continue nil))
-         ;; Note: Going back to the first start tag is necessary
-         ;;       when inserting, for example, a </script>.
-         ;;       Indeed, parts should be identified asap.
+         ;; Note: Going back to the previous start tag is necessary
+         ;;       when inserting a part end tag (e.g. </script>).
+         ;;       Indeed, parts must be identified asap.
          ((and (progn (back-to-indentation) t)
                (get-text-property (point) 'tag-beg)
                (eq (get-text-property (point) 'tag-type) 'start)
@@ -4683,40 +4695,83 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-font-lock-highlight (limit)
   ;;(message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
-  (let ((inhibit-modification-hooks t)
-        (buffer-undo-list t)
-        (region nil))
+  (let (
+        ;;(inhibit-modification-hooks t)
+        ;;(buffer-undo-list t)
+        ;;(region nil)
+        )
+    ;; (cond
+    ;;  (web-mode-inhibit-fontification
+    ;;   )
+    ;;  ((and web-mode-change-beg web-mode-change-end)
+    ;;   (setq region (web-mode-propertize))
+    ;;   )
+    ;;  (t
+    ;;   (setq region (web-mode-propertize (point) limit)))
+    ;;  ) ;cond
+    ;; (when (and region (car region))
+    ;;   (web-mode-highlight-region (car region) (cdr region)))
     (cond
      (web-mode-inhibit-fontification
       )
-     ((and web-mode-change-beg web-mode-change-end)
-      (setq region (web-mode-propertize))
-      )
-     (t
-      (setq region (web-mode-propertize (point) limit)))
-     ) ;cond
-    ;;(message "region=%S" region)
-    (when (and region (car region))
-      (web-mode-highlight-region (car region) (cdr region)))
+     (t ;;(and web-mode-change-beg web-mode-change-end)
+      ;;(web-mode-highlight-region web-mode-change-beg web-mode-change-end)
+      (web-mode-highlight-region (point) limit))
+     )
     nil))
 
 (defun web-mode-buffer-highlight ()
   (interactive)
-  (setq web-mode-change-beg (point-min)
-        web-mode-change-end (point-max))
-  (web-mode-font-lock-highlight (point-max)))
+  ;;(setq web-mode-change-beg (point-min)
+  ;;      web-mode-change-end (point-max))
+  ;;  (web-mode-font-lock-highlight (point-max))
+  (if (fboundp 'font-lock-flush)
+      (font-lock-flush)
+    (font-lock-fontify-buffer)))
+
+(defun web-mode-extend-region ()
+  ;;(message "extend-region: flb(%S) fle(%S) wmcb(%S) wmce(%S)" font-lock-beg font-lock-end web-mode-change-beg web-mode-change-end)
+  ;;  (setq font-lock-beg web-mode-change-beg
+  ;;        font-lock-end web-mode-change-end)
+  (cond
+   (web-mode-inhibit-fontification
+    )
+   (t ;;(and web-mode-change-beg web-mode-change-end)
+    (when (or (null web-mode-change-beg) (< font-lock-beg web-mode-change-beg))
+      ;;(message "font-lock-beg(%S) < web-mode-change-beg(%S)" font-lock-beg web-mode-change-beg)
+      (setq web-mode-change-beg font-lock-beg))
+    (when (or (null web-mode-change-end) (> font-lock-end web-mode-change-end))
+      ;;(message "font-lock-end(%S) > web-mode-change-end(%S)" font-lock-end web-mode-change-end)
+      (setq web-mode-change-end font-lock-end))
+    (let ((region (web-mode-propertize web-mode-change-beg web-mode-change-end)))
+      (when region
+        ;;(message "%S" region)
+        (setq font-lock-beg (car region)
+              font-lock-end (cdr region)
+              ;;web-mode-change-beg (car region)
+              ;;web-mode-change-end (cdr region)
+              )
+        ) ;when
+      ) ;let
+    ) ;t
+   ;;(t
+   ;; (setq region (web-mode-propertize font-lock-beg font-lock-end)))
+   ) ;cond
+  nil)
 
 (defun web-mode-unfontify-region (beg end)
-;;  (message "unfontify: %S %S" beg end)
+  ;;(message "unfontify: %S %S" beg end)
   )
 
-(defun web-mode-highlight-region (&optional beg end content-type)
-  ;;  (message "highlight-region: beg(%S) end(%S) ct(%S)" beg end content-type)
+(defun web-mode-highlight-region (&optional beg end) ;; content-type)
+;;  (message "highlight-region: beg(%S) end(%S) ct(%S)" beg end content-type)
   (web-mode-with-silent-modifications
    (save-excursion
      (save-restriction
        (save-match-data
-         (let ((inhibit-modification-hooks t)
+         (let (
+               (buffer-undo-list t)
+               ;;(inhibit-modification-hooks t)
                (inhibit-point-motion-hooks t)
                (inhibit-quit t))
            (remove-list-of-text-properties beg end '(font-lock-face face))
@@ -4725,7 +4780,7 @@ the environment as needed for ac-sources, right before they're used.")
                   (not (get-text-property beg 'block-beg)))
              (web-mode-block-highlight beg end))
             ((or (member web-mode-content-type web-mode-part-content-types)
-                 (member content-type web-mode-part-content-types)
+                 ;;(member content-type web-mode-part-content-types)
                  (get-text-property beg 'part-side))
              (web-mode-part-highlight beg end)
              (web-mode-process-blocks beg end 'web-mode-block-highlight))
