@@ -1,0 +1,9 @@
+<span>
+  <?php
+  function xyz() {
+    if (1) {
+      $this->state(true /* test */)
+    }
+  }
+  ?>
+</span>
