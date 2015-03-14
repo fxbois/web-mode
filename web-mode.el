@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.22
+;; Version: 11.0.23
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.22"
+(defconst web-mode-version "11.0.23"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -908,6 +908,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("blade"       . (("{{{" . " | }}}")
                       ("{{ " . " }}")
                       ("{!!" . " | !!}")
+                      ("@{{" . " | }}")
                       ("{{-" . "- | --}}")))
     ("cl-emb"      . (("<% " . " %>")
                       ("<%=" . " | %>")
@@ -1018,7 +1019,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("angular"          . "{{")
    '("asp"              . "<%\\|</?[[:alpha:]]+:[[:alpha:]]+\\|</?[[:alpha:]]+Template")
    '("aspx"             . "<%.")
-   '("blade"            . "{{.\\|{!!\\|^[ \t]*@[[:alpha:]]")
+   '("blade"            . "{{.\\|{!!\\|@{{\\|^[ \t]*@[[:alpha:]]")
    '("cl-emb"           . "<%")
    '("closure"          . "{.\\|/\\*\\| //")
    '("clip"             . "</?c:[[:alpha:]-]+")
@@ -2483,6 +2484,8 @@ the environment as needed for ac-sources, right before they're used.")
             (setq closing-string "!!}"
                   delim-open "{!!"
                   delim-close "!!}"))
+           ((string= tagopen "@{{")
+            (setq closing-string nil))
            ((string= tagopen "{{{")
             (setq closing-string "}}}"
                   delim-open "{{{"
