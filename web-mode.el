@@ -10142,6 +10142,38 @@ Pos should be in a tag."
     (if pos (goto-char pos))
     pos))
 
+(defun web-mode-element-sibling-previous ()
+  "Fetch previous sibling element."
+  (interactive)
+  (let ((pos (point)))
+    (save-excursion
+      (cond
+       ((not (get-text-property pos 'tag-type))
+        (if (and (web-mode-element-parent)
+                 (web-mode-tag-previous)
+                 (web-mode-element-beginning))
+            (setq pos (point))
+          (setq pos nil))
+        )
+       ((eq (get-text-property pos 'tag-type) 'start)
+        (if (and (web-mode-tag-beginning)
+                 (web-mode-tag-previous)
+                 (web-mode-element-beginning))
+            (setq pos (point))
+          (setq pos nil))
+        )
+        (if (and (web-mode-element-beginning)
+                 (web-mode-tag-previous)
+                 (web-mode-element-beginning))
+            (setq pos (point))
+          (setq pos nil))
+       (t
+        (setq pos nil))
+       ) ;cond
+      ) ;save-excursion
+    (if pos (goto-char pos))
+    pos))
+
 (defun web-mode-element-beginning ()
   "Move to beginning of element."
   (interactive)
