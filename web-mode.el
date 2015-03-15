@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.23
+;; Version: 11.0.24
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.23"
+(defconst web-mode-version "11.0.24"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -786,7 +786,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("Ugrave" . 217)  ("Upsih" . 978)
     ("Upsilon" . 933) ("Uuml" . 220) ("Uuml" . 252)
     ("Xi" . 926)
-    ("Yacute" . 221) ("Yuml" . 376) ("yacute" . 253) ("yuml" . 255)
+    ("Yacute" . 221) ("Yuml" . 376)
     ("Zeta" . 918)
     ("aacute" . 225) ("acirc" . 226) ("acute" . 180) ("aelig" . 230)
     ("agrave" . 224) ("alefsym" . 8501) ("alpha" . 945) ("amp" . 38)
@@ -842,28 +842,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("upsilon" . 965)
     ("weierp" . 8472)
     ("xi" . 958)
-    ("yacute" . 253) ("yen" . 165) ("yuml" . 255) ("zeta" . 950)
-    ("zwj" . 8205) ("zwnj" . 8204)))
-
-;; (defvar web-mode-engines-alternate-delimiters
-;;   (if (boundp 'web-mode-engines-alternate-delimiters)
-;;       web-mode-engines-alternate-delimiters
-;;     '())
-;;   "Engine delimiters. Useful for engines that provide alternate delimiters.")
-
-;; (defun web-mode-engine-delimiter-open (engine default)
-;;   "alternative open delimiter"
-;;   (let (delim)
-;;     (setq delim (car (cdr (assoc engine web-mode-engines-alternate-delimiters))))
-;;     (or delim default)
-;;   ))
-
-;; (defun web-mode-engine-delimiter-close (engine default)
-;;   "alternative close delimiter"
-;;   (let (delim)
-;;     (setq delim (cdr (cdr (assoc engine web-mode-engines-alternate-delimiters))))
-;;     (or delim default)
-;;     ))
+    ("yacute" . 253) ("yen" . 165) ("yuml" . 255)
+    ("zeta" . 950) ("zwj" . 8205) ("zwnj" . 8204)))
 
 ;; http://webdesign.about.com/od/localization/l/blhtmlcodes-ascii.htm
 (defvar web-mode-display-table
@@ -1384,34 +1364,49 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-django-control-blocks
   (regexp-opt
-   '("assets" "autoescape" "block" "blocktrans" "cache" "call" "comment"
-     "elif" "else" "elseif" "elsif" "embed" "empty" "filter" "foreach" "for"
-     "ifchanged" "ifequal" "ifnotequal" "if" "with"
-     "macro" "draw" "random" "safe" "sandbox" "spaceless" "verbatim"
-     "form" "unless" "capture"
+   '("assets" "autoescape"
+     "block" "blocktrans"
+     "cache" "call" "capture" "comment" "draw"
+     "elif" "else" "elseif" "elsif" "embed" "empty"
+     "filter" "for" "foreach" "form"
+     "if" "ifchanged" "ifequal" "ifnotequal"
+     "macro"
+     "random"
+     "safe" "sandbox" "spaceless"
+     "unless"
+     "verbatim"
+     "with"
      )
    t))
 
 (defvar web-mode-django-keywords
   (eval-when-compile
     (regexp-opt
-     '("and" "as" "autoescape" "block" "blocktrans" "break"
-       "cache" "call" "comment" "context" "continue" "csrf_token" "cycle"
-       "debug" "do" "embed" "empty" "else" "elseif" "elsif" "elif"
-       "endautoescape" "endblock" "endblocktrans" "endcomment"
-       "endcache" "endcall" "endembed" "endfilter" "endfor" "endif"
-       "endifchanged" "endifequal" "endifnotequal" "endmacro" "endrandom" "endraw"
-       "endsandbox" "endset" "endspaceless" "endtrans" "endverbatim" "endwith"
-       "extends" "filter" "firstof" "flush" "for" "from"
-       "if" "ifchanged" "ifequal" "ifnotequal" "ignore" "import"
-       "in" "include" "is" "load" "macro" "missing" "none" "not" "now" "or"
-       "pluralize" "random" "raw" "regroup" "trans"
-       "sandbox" "set" "spaceless" "ssi" "static" "templatetag" "trans"
-       "use" "url" "var" "verbatim" "widthratio" "with"
-
-       "assign" "capture" "endcapture" "case" "layout" "tablerow" "endtablerow"
-       "unless" "endunless" "form" "endform"
-
+     '("and" "as" "assign" "autoescape"
+       "block" "blocktrans" "break"
+       "cache" "call" "capture" "case" "comment" "context" "continue"
+       "csrf_token" "cycle"
+       "debug" "do"
+       "elif" "else" "elseif" "elsif" "embed" "empty"
+       "endautoescape" "endblock" "endblocktrans" "endcache" "endcall"
+       "endcapture" "endcomment" "endembed" "endfilter" "endfor" "endform"
+       "endif" "endifchanged" "endifequal" "endifnotequal" "endmacro"
+       "endrandom" "endraw" "endsandbox" "endset" "endspaceless" "endtablerow"
+       "endtrans" "endunless" "endverbatim" "endwith" "extends"
+       "filter" "firstof" "flush" "for" "form" "from"
+       "if" "ifchanged" "ifequal" "ifnotequal" "ignore" "import" "in" "include"
+       "is"
+       "layout" "load"
+       "macro" "missing"
+       "none" "not" "now"
+       "or"
+       "pluralize"
+       "random" "raw" "regroup"
+       "sandbox" "set" "spaceless" "ssi" "static"
+       "tablerow" "templatetag" "trans" "trans"
+       "unless" "url" "use"
+       "var" "verbatim"
+       "widthratio" "with"
        ))))
 
 (defvar web-mode-django-types
@@ -4186,15 +4181,17 @@ the environment as needed for ac-sources, right before they're used.")
                  (looking-back "[(=][ ]*..")
                  (looking-at-p "[^*]*/[gimy]*"))
             (setq token-type 'string)
-            (re-search-forward "/[gimy]*" reg-end t)
-            ;;(skip-chars-forward "/gimy")
-            )
-           ((unless (eq ?\\ ch-before)
-            (setq token-type 'comment)
-            (search-forward "*/" reg-end t)
-            )
-            )
-           )
+            (re-search-forward "/[gimy]*" reg-end t))
+           ;; ((unless (eq ?\\ ch-before))
+           ;;  (message "la%S" (point))
+           ;;  (setq token-type 'comment)
+           ;;  (search-forward "*/" reg-end t)
+           ;;  ) ;unless
+           ((search-forward "*/" reg-end t)
+            (setq token-type 'comment))
+           (t
+            (forward-char))
+           ) ;cond
           )
 
          ((and (member content-type '("javascript" "jsx"))
@@ -4213,12 +4210,10 @@ the environment as needed for ac-sources, right before they're used.")
          ) ;cond
 
         (when (and beg (>= reg-end (point)) token-type)
-          ;;(message "%S %S %S" beg (point) token-type)
           (put-text-property beg (point) 'part-token token-type)
           (when (eq token-type 'comment)
             (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
             (when (< (point) (point-max))
-              ;;(message "%S" (line-end-position))
               (if (< (point) (line-end-position))
                   (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">")) ;#445
                 (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax ">")) ;#377
@@ -4228,7 +4223,8 @@ the environment as needed for ac-sources, right before they're used.")
           )
 
         (when (> (point) reg-end)
-          (message "reg-beg(%S) reg-end(%S) token-type(%S) point(%S)" reg-beg reg-end token-type (point)))
+          (message "reg-beg(%S) reg-end(%S) token-type(%S) point(%S)"
+                   reg-beg reg-end token-type (point)))
 
         ) ;while
 
@@ -6583,7 +6579,9 @@ the environment as needed for ac-sources, right before they're used.")
         (when (and (string= web-mode-engine "mason")
                    (= offset 0)
                    (eq char ?\%))
-          (web-mode-highlight-region (line-beginning-position) (line-end-position)))
+          ;;(web-mode-highlight-region (line-beginning-position) (line-end-position))
+          (font-lock-fontify-region (line-beginning-position) (line-end-position))
+          ) ;when
         ) ;let
       ) ;when
 
@@ -10139,8 +10137,7 @@ Pos should be in a tag."
         (setq pos nil))
        ) ;cond
       ) ;save-excursion
-    (if pos (goto-char pos))
-    pos))
+    (web-mode-go pos)))
 
 (defun web-mode-element-sibling-previous ()
   "Fetch previous sibling element."
@@ -10162,17 +10159,15 @@ Pos should be in a tag."
             (setq pos (point))
           (setq pos nil))
         )
-        (if (and (web-mode-element-beginning)
-                 (web-mode-tag-previous)
-                 (web-mode-element-beginning))
-            (setq pos (point))
-          (setq pos nil))
+       ((and (web-mode-element-beginning)
+             (web-mode-tag-previous)
+             (web-mode-element-beginning))
+        (setq pos (point)))
        (t
         (setq pos nil))
        ) ;cond
       ) ;save-excursion
-    (if pos (goto-char pos))
-    pos))
+    (web-mode-go pos)))
 
 (defun web-mode-element-beginning ()
   "Move to beginning of element."
@@ -10994,3 +10989,25 @@ Pos should be in a tag."
 ;; coding: utf-8
 ;; indent-tabs-mode: nil
 ;; End:
+
+
+
+;; (defvar web-mode-engines-alternate-delimiters
+;;   (if (boundp 'web-mode-engines-alternate-delimiters)
+;;       web-mode-engines-alternate-delimiters
+;;     '())
+;;   "Engine delimiters. Useful for engines that provide alternate delimiters.")
+
+;; (defun web-mode-engine-delimiter-open (engine default)
+;;   "alternative open delimiter"
+;;   (let (delim)
+;;     (setq delim (car (cdr (assoc engine web-mode-engines-alternate-delimiters))))
+;;     (or delim default)
+;;   ))
+
+;; (defun web-mode-engine-delimiter-close (engine default)
+;;   "alternative close delimiter"
+;;   (let (delim)
+;;     (setq delim (cdr (cdr (assoc engine web-mode-engines-alternate-delimiters))))
+;;     (or delim default)
+;;     ))
