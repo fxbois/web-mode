@@ -1966,7 +1966,6 @@ the environment as needed for ac-sources, right before they're used.")
     (define-key map [menu-bar wm tag tag-sel] '(menu-item "Select" web-mode-tag-select))
     (define-key map [menu-bar wm tag tag-pre] '(menu-item "Previous" web-mode-tag-previous))
     (define-key map [menu-bar wm tag tag-nex] '(menu-item "Next" web-mode-tag-next))
-    (define-key map [menu-bar wm tag tag-mat] '(menu-item "Match" web-mode-tag-match))
     (define-key map [menu-bar wm tag tag-end] '(menu-item "End" web-mode-tag-end))
     (define-key map [menu-bar wm tag tag-beg] '(menu-item "Beginning" web-mode-tag-beginning))
 
