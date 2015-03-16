@@ -6582,7 +6582,8 @@ the environment as needed for ac-sources, right before they're used.")
                    (= offset 0)
                    (eq char ?\%))
           ;;(web-mode-highlight-region (line-beginning-position) (line-end-position))
-          (font-lock-fontify-region (line-beginning-position) (line-end-position))
+          (save-excursion
+            (font-lock-fontify-region (line-beginning-position) (line-end-position)))
           ) ;when
         ) ;let
       ) ;when
