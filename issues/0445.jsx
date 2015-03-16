@@ -1,3 +1,7 @@
+function hello() {
+  var x = 1;
+}
+
 function foo() {
   return (
     <div>
