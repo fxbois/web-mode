@@ -3,6 +3,13 @@
   $xsx = "cxsxd";
   ?>
 </span>
+
+<div class="toto"
+     id="titi"
+     style="coucou">
+  test
+</div>
+
 <span>xx</span>
 <script class="de" >
  var x;

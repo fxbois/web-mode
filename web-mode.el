@@ -4725,7 +4725,10 @@ the environment as needed for ac-sources, right before they're used.")
       )
      (t ;;(and web-mode-change-beg web-mode-change-end)
       ;;(web-mode-highlight-region web-mode-change-beg web-mode-change-end)
-      (web-mode-highlight-region (point) limit))
+      ;;(message "point-before=%S" (point))
+      (web-mode-highlight-region (point) limit)
+      ;;(message "point-after=%S" (point))
+      )
      )
     nil))
 
@@ -8623,7 +8626,8 @@ Pos should be in a tag."
     (when (member this-command '(yank))
       (setq web-mode-inhibit-fontification nil)
       ;;(web-mode-font-lock-highlight web-mode-change-end)
-      (font-lock-fontify-region web-mode-change-beg web-mode-change-end)
+      (save-excursion
+        (font-lock-fontify-region web-mode-change-beg web-mode-change-end))
       )
 
     (when (< (point) 16)
