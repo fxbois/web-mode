@@ -725,6 +725,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("closure"          . "\\.soy\\'")
     ("ctemplate"        . "\\.\\(chtml\\|mustache\\)\\'")
     ("django"           . "\\.\\(djhtml\\|tmpl\\|dtl\\|liquid\\|j2\\)\\'")
+    ("dust"             . "\\.dust\\'")
     ("elixir"           . "\\.eex\\'")
     ("ejs"              . "\\.ejs\\'")
     ("erb"              . "\\.\\(erb\\|rhtml\\|erb\\.html\\)\\'")
@@ -1524,12 +1525,12 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-dust-font-lock-keywords
   (list
-   '("{[#:/?@><+^]\\([[:alpha:]_]+\\)" 1 'web-mode-block-control-face)
+   '("{[#:/?@><+^]\\([[:alpha:]_.]+\\)" 1 'web-mode-block-control-face)
    '(":\\([[:alpha:]]+\\)" 1 'web-mode-keyword-face)
-   '("\\<\\([[:alpha:]_]+=\\)\\(\"[^\"]*\"\\|[[:alnum:]_]*\\)"
+   '("\\<\\([[:alnum:]_]+=\\)\\(\"[^\"]*\"\\|[[:alnum:]_]*\\)"
      (1 'web-mode-block-attr-name-face)
      (2 'web-mode-block-attr-value-face))
-   '("\\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
+   '("\\\([[:alnum:]_.]+\\)" 0 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-template-toolkit-font-lock-keywords
@@ -2523,7 +2524,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((string= sub2 "{!")
             (setq closing-string "!}"))
            (t
-            (setq closing-string "}"
+            (setq closing-string '("{". "}") ;;closing-string "}"
                   delim-open "{[#/:?@><+^]?"
                   delim-close "/?}")
             )
@@ -2711,7 +2712,7 @@ the environment as needed for ac-sources, right before they're used.")
                   pos (point))
             )
 
-           ((and (member web-mode-engine '("closure" "dust"))
+           ((and (member web-mode-engine '("closure"))
                  (string= closing-string "}"))
             (goto-char open)
             (setq tmp (web-mode-closing-paren-position (point) (line-end-position)))
@@ -6047,6 +6048,11 @@ the environment as needed for ac-sources, right before they're used.")
          ((string= web-mode-engine "ctemplate")
           (save-excursion
             (when (web-mode-rsf "{{#?")
+              (setq reg-col (current-column))))
+          )
+         ((string= web-mode-engine "dust")
+          (save-excursion
+            (when (web-mode-rsf "{@")
               (setq reg-col (current-column))))
           )
          ((string= web-mode-engine "template-toolkit")

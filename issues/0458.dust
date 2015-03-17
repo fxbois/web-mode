@@ -1,0 +1,22 @@
+{@helper param="hello"
+  param1="dcd"
+/} <!-- close tag is indented -->
+<!--next tag starts here-->
+<!-- end tag should start here>
+
+{@if cond="({x} < {y}) || ({x} < 3)"} hello {/if}
+
+{#A.B} name in B={name}
+  {#A}
+    name in A: {name}
+  {/A}
+{/A.B}
+
+
+{#A name="Not Albert"}
+  name is {name}.
+{/A}
+
+{#A paramName="Not Albert"}
+  name is {paramName} and {B.name} is still Bob.
+{/A}
