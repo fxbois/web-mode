@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.26
+;; Version: 11.0.27
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.26"
+(defconst web-mode-version "11.0.27"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3422,9 +3422,9 @@ the environment as needed for ac-sources, right before they're used.")
                                     (cons 'inside
                                           (cdr (car (web-mode-block-controls-get pos))))))))
           )
-         ((looking-at "{/\\([[:alpha:]]+\\)")
+         ((looking-at "{/\\([[:alpha:].]+\\)")
           (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
-         ((looking-at "{[#?@><+^]\\([[:alpha:]]+\\)")
+         ((looking-at "{[#?@><+^]\\([[:alpha:].]+\\)")
           (setq controls (append controls (list (cons 'open (match-string-no-properties 1))))))
          )
         ) ;dust

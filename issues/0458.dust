@@ -12,6 +12,11 @@
   {/A}
 {/A.B}
 
+<div>
+  {?.isInput}
+    hello
+  {/.isInput}
+</div>
 
 {#A name="Not Albert"}
   name is {name}.
