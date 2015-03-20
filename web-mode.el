@@ -8623,6 +8623,7 @@ Pos should be in a tag."
   (let (ctx n char)
 
     ;;(message "this-command=%S (%S)" this-command web-mode-expand-previous-state)
+    ;;(message "%S: %S %S" this-command web-mode-change-beg web-mode-change-end)
 
     (when (and web-mode-expand-previous-state
                (not (eq this-command 'web-mode-mark-and-expand)))
@@ -8633,8 +8634,10 @@ Pos should be in a tag."
     (when (member this-command '(yank))
       (setq web-mode-inhibit-fontification nil)
       ;;(web-mode-font-lock-highlight web-mode-change-end)
-      (save-excursion
-        (font-lock-fontify-region web-mode-change-beg web-mode-change-end))
+      (when (and web-mode-change-beg web-mode-change-end)
+        (save-excursion
+          (font-lock-fontify-region web-mode-change-beg web-mode-change-end)
+          ))
       )
 
     (when (< (point) 16)
