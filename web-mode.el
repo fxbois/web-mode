@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.29
+;; Version: 11.0.30
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.29"
+(defconst web-mode-version "11.0.30"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1412,7 +1412,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-django-types
   (eval-when-compile
-    (regexp-opt '("null" "empty" "false" "true"))))
+    (regexp-opt '("null" "false" "true"))))
 
 (defvar web-mode-directives
   (eval-when-compile
@@ -2098,6 +2098,15 @@ the environment as needed for ac-sources, right before they're used.")
     (if (fboundp 'buffer-narrowed-p)
         (buffer-narrowed-p)
       (/= (- (point-max) (point-min)) (buffer-size))))
+
+  ;; compatibility with emacs 22
+  (defun web-mode-string-match-p (regexp string &optional start)
+    "Same as `string-match' except it does not change the match data."
+    (let ((inhibit-changing-match-data t))
+      (string-match regexp string start)))
+
+  (unless (fboundp 'string-match-p)
+    (fset 'string-match-p (symbol-function 'web-mode-string-match-p)))
 
   ;; compatibility with emacs < 24.3
   (unless (fboundp 'setq-local)
