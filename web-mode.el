@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.30
+;; Version: 11.0.31
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.30"
+(defconst web-mode-version "11.0.31"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3227,13 +3227,10 @@ the environment as needed for ac-sources, right before they're used.")
 
         (when (eq token-type 'comment)
           (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
-          ;;(put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">"))
-          (if (< (point) (line-end-position))
-              (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">")) ;#445
+          (if (or (< (point) (line-end-position)) (= (point) (point-max)))
+              (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">")) ;#445 #480
             (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax ">")) ;#377
             )
-          ;;(when (< (point) (point-max))
-          ;;  (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax ">")))
           )
 
         ) ;while
