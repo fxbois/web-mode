@@ -668,7 +668,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("ctemplate"   . ("mustache" "handlebars" "hapax" "ngtemplate" "ember"
                       "kite" "meteor" "blaze"))
     ("django"      . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl" "liquid"
-                      "clabango" "selmer"))
+                      "clabango" "selmer" "nunjucks"))
     ("dust"        . ("dustjs"))
     ("ejs"         . ())
     ("erb"         . ("eruby" "erubis"))
