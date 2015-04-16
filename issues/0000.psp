@@ -1,24 +1,27 @@
 <span>
-  <?php
-  $xsx = "cxsxd";
-
-  $xsx = "cxsxd";
-  $xsx = "cxsxd";
-
-
-  $xsx = "cxsxd";
-  $xsx = "cxsxd";
-  $xsx = "cxsxd";
-  ?>
+	<?php
+	$xsx = "cxsxd";
+	
+	$xsx = "cxsxd";
+	$xsx = "cxsxd";
+	
+	
+	$xsx = "cxsxd";
+	$xsx = "cxsxd";
+	$xsx = "cxsxd";
+	?>
 </span>
 
 <div class="toto"
-     id="titi"
-     style="coucou">
-  test
-
-
-<span>xx</span>
-<script class="de" >
- var x;
-</script>
+	id="titi"
+	style="coucou">
+	test
+	
+	
+	<span>xx</span>
+	<script class="de" >
+	var x;
+	</script>
+	<div>
+	</div>
+</div>

@@ -934,7 +934,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("mako"        . (("<% " . " %>")
                       ("<%!" . " | %>")
                       ("${ " . " }")))
-    ("mason"       . (("<% " . " %>")))
+    ("mason"       . (("<% " . " %>")
+                      ("<& " . " &>")))
     ("mojolicious" . (("<% " . " %>")
                       ("<%=" . " | %>")
                       ("<%%" . " | %>")
@@ -1805,7 +1806,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("[ ]\\(:[[:alnum:]-_]+\\)" 1 'web-mode-symbol-face)
    ))
 
-(defvar web-mode-mason-font-lock-keywords
+(defvar web-mode-mason-code-font-lock-keywords
   (list
    (cons (concat "\\<\\(" web-mode-mason-keywords "\\)\\>")
          '(0 'web-mode-keyword-face))
@@ -1820,6 +1821,12 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("->[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    '("\\(method\\|def\\)" 1 'web-mode-block-control-face)
    '("\\(?:method\\|def\\) \\([[:alnum:]._]+\\)" 1 'web-mode-function-name-face)
+   ))
+
+(defvar web-mode-mason-block-font-lock-keywords
+  (list
+   '("<[/]?%\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
+   '("[[:alpha:]]" 0 'web-mode-block-attr-value-face)
    ))
 
 (defvar web-mode-mojolicious-font-lock-keywords
@@ -2574,7 +2581,7 @@ the environment as needed for ac-sources, right before they're used.")
           (cond
            ((and (member sub2 '("<%" "</"))
                  (looking-at "[[:alpha:]]+"))
-            (if (member (match-string-no-properties 0) '("def" "method"))
+            (if (member (match-string-no-properties 0) '("after" "around" "augment" "before" "def" "filter" "method" "override"))
                 (setq closing-string ">"
                       delim-open "<[/]?%"
                       delim-close ">")
@@ -2823,6 +2830,9 @@ the environment as needed for ac-sources, right before they're used.")
         (web-mode-scan-engine-comments reg-beg reg-end
                                        "{% comment %}" "{% endcomment %}"))
        ((string= web-mode-engine "mako")
+        (web-mode-scan-engine-comments reg-beg reg-end
+                                       "<%doc>" "</%doc>"))
+       ((string= web-mode-engine "mason")
         (web-mode-scan-engine-comments reg-beg reg-end
                                        "<%doc>" "</%doc>"))
        ) ;cond
@@ -4989,13 +4999,16 @@ the environment as needed for ac-sources, right before they're used.")
        )) ;mako
 
      ((string= web-mode-engine "mason")
+      ;;(message "%S %S" sub2 sub3)
       (cond
        ((member sub3 '("<% " "<%\n" "<&|"))
-        (setq keywords web-mode-mason-font-lock-keywords))
+        (setq keywords web-mode-mason-code-font-lock-keywords))
        ((eq (aref sub2 0) ?\%)
-        (setq keywords web-mode-mason-font-lock-keywords))
+        (setq keywords web-mode-mason-code-font-lock-keywords))
+       ((or (string= sub2 "<%") (string= sub3 "</%"))
+        (setq keywords web-mode-mason-block-font-lock-keywords))
        (t
-        (setq keywords web-mode-mason-font-lock-keywords))
+        (setq keywords web-mode-mason-code-font-lock-keywords))
        )) ;mason
 
      ((string= web-mode-engine "jsp")
@@ -6276,6 +6289,8 @@ the environment as needed for ac-sources, right before they're used.")
            ((and (string= web-mode-engine "django") (looking-back "{% comment %}"))
             (setq offset (- offset 12)))
            ((and (string= web-mode-engine "mako") (looking-back "<%doc%>"))
+            (setq offset (- offset 6)))
+           ((and (string= web-mode-engine "mason") (looking-back "<%doc%>"))
             (setq offset (- offset 6)))
            ) ;cond
           ) ;case comment
