@@ -3,17 +3,22 @@
 <& /shared/google_analytics_line.mi &>
 </%after>
 
+<%init>
+my $article = MyApp::Article->find($.article_id);
+my $title = $article->title;
+</%init>
+
 <%augment wrap>
 <html>
-<body>
-<% inner() %>
-</body>
+  <body>
+    <% inner() %>
+  </body>
 </html>
 </%augment>
 
 <%around navbar>
 <div class="navbar_special">
-<% $self->$orig() %>
+  <% $self->$orig() %>
 </div>
 </%around>
 
@@ -21,3 +26,23 @@
 <% super() %>
 <a href="extra">extra</a>
 </%override>
+
+<%flags>
+extends => '/foo/bar'
+</%flags>
+
+<%perl>
+my $article = MyApp::Article->find($.article_id);
+my $title = $article->title;
+</%perl>
+
+<%class>
+$a
+</%class>
+
+<% $content | NoBlankLines,Trim %>
+
+<%doc>
+Name: foo.mc
+Purpose: ...
+</%doc>
