@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.31
+;; Version: 11.0.32
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.31"
+(defconst web-mode-version "11.0.32"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -9844,7 +9844,8 @@ Pos should be in a tag."
         (message "javascript-calls-beginning-position ** invalid pos **")
         (setq continue nil))
        ((< pos reg-beg)
-        (message "javascript-calls-beginning-position ** failure **")
+        ;;(message "pos(%S) reg-beg(%S)" pos reg-beg)
+        ;;(message "javascript-calls-beginning-position ** failure **")
         (setq continue nil
               pos reg-beg))
        ((and blockside
