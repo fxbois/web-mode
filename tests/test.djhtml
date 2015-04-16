@@ -44,6 +44,8 @@ Indented
 
 related issues: #417
 
+{{ athlete_list|length }}
+
 {% for_custom_tag %}
 <span>Element should not be indented</span>
 

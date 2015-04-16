@@ -1,6 +1,6 @@
 <%after render>
-<% # Add analytics line after everything has rendered %>
-<& /shared/google_analytics_line.mi &>
+  <% # Add analytics line after everything has rendered %>
+  <& /shared/google_analytics_line.mi &>
 </%after>
 
 <%init>
@@ -9,22 +9,22 @@ my $title = $article->title;
 </%init>
 
 <%augment wrap>
-<html>
-  <body>
-    <% inner() %>
-  </body>
-</html>
+  <html>
+    <body>
+      <% inner() %>
+    </body>
+  </html>
 </%augment>
 
 <%around navbar>
-<div class="navbar_special">
-  <% $self->$orig() %>
-</div>
+  <div class="navbar_special">
+    <% $self->$orig() %>
+  </div>
 </%around>
 
 <%override navbar>
-<% super() %>
-<a href="extra">extra</a>
+  <% super() %>
+  <a href="extra">extra</a>
 </%override>
 
 <%flags>
@@ -39,6 +39,30 @@ my $title = $article->title;
 <%class>
 $a
 </%class>
+
+<%after render>
+  <% # Add analytics line after everything has rendered %>
+  <& /shared/google_analytics_line.mi &>
+</%after>
+
+<%augment wrap>
+  <html>
+    <body>
+      <% inner() %>
+    </body>
+  </html>
+</%augment>
+
+<%around navbar>
+  <div class="navbar_special">
+    <% $self->$orig() %>
+  </div>
+</%around>
+
+<%override navbar>
+  <% super() %>
+  <a href="extra">extra</a>
+</%override>
 
 <% $content | NoBlankLines,Trim %>
 
