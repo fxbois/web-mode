@@ -1,0 +1,23 @@
+<%after render>
+<% # Add analytics line after everything has rendered %>
+<& /shared/google_analytics_line.mi &>
+</%after>
+
+<%augment wrap>
+<html>
+<body>
+<% inner() %>
+</body>
+</html>
+</%augment>
+
+<%around navbar>
+<div class="navbar_special">
+<% $self->$orig() %>
+</div>
+</%around>
+
+<%override navbar>
+<% super() %>
+<a href="extra">extra</a>
+</%override>
