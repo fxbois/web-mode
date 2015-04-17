@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.31
+;; Version: 11.0.32
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.31"
+(defconst web-mode-version "11.0.32"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -419,6 +419,11 @@ See web-mode-part-face."
   :group 'web-mode-faces)
 
 (defface web-mode-function-name-face
+  '((t :inherit font-lock-function-name-face))
+  "Face for function names."
+  :group 'web-mode-faces)
+
+(defface web-mode-filter-face
   '((t :inherit font-lock-function-name-face))
   "Face for function names."
   :group 'web-mode-faces)
@@ -1601,7 +1606,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-django-expr-font-lock-keywords
   (list
-   '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-function-call-face)
+   '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-filter-face)
    (cons (concat "\\<\\(" web-mode-django-types "\\)\\>")
          '(1 'web-mode-type-face))
    '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
@@ -1811,7 +1816,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    (cons (concat "\\<\\(" web-mode-mason-keywords "\\)\\>")
          '(0 'web-mode-keyword-face))
    '("sub[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
-   '(" | \\([hun]+\\) " 1 'web-mode-function-name-face)
+;;   '(" | \\([hun]+\\) " 1 'web-mode-function-name-face)
    '("\\<\\([[:alnum:]_]+\\)[ ]?::" 1 'web-mode-type-face)
    '("\\([@]\\)\\([[:alnum:]#_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    '("\\<\\([$%]\\)\\([[:alnum:]@#_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
@@ -1819,8 +1824,8 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_][ ]?::[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    '("->[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
-   '("\\(method\\|def\\)" 1 'web-mode-block-control-face)
    '("\\(?:method\\|def\\) \\([[:alnum:]._]+\\)" 1 'web-mode-function-name-face)
+   '("|[ ]*\\([[:alnum:],]+\\)[ ]*%>" 1 'web-mode-filter-face)
    ))
 
 (defvar web-mode-mason-block-font-lock-keywords
@@ -3515,7 +3520,7 @@ the environment as needed for ac-sources, right before they're used.")
 
        ((string= web-mode-engine "mason")
         (cond
-         ((looking-at "</?%\\(def\\|method\\)")
+         ((looking-at "</?%\\(after\\|around\\|augment\\|before\\|def\\|filter\\|method\\|override\\)")
           (setq control (match-string-no-properties 1)
                 type (if (eq (aref (match-string-no-properties 0) 1) ?\/) 'close 'open))
           (setq controls (append controls (list (cons type control))))
@@ -5005,7 +5010,8 @@ the environment as needed for ac-sources, right before they're used.")
         (setq keywords web-mode-mason-code-font-lock-keywords))
        ((eq (aref sub2 0) ?\%)
         (setq keywords web-mode-mason-code-font-lock-keywords))
-       ((or (string= sub2 "<%") (string= sub3 "</%"))
+       ((and (or (string= sub2 "<%") (string= sub3 "</%"))
+             (not (member sub3 '("<%c" "<%i" "<%p"))))
         (setq keywords web-mode-mason-block-font-lock-keywords))
        (t
         (setq keywords web-mode-mason-code-font-lock-keywords))
@@ -9844,7 +9850,8 @@ Pos should be in a tag."
         (message "javascript-calls-beginning-position ** invalid pos **")
         (setq continue nil))
        ((< pos reg-beg)
-        (message "javascript-calls-beginning-position ** failure **")
+        ;;(message "pos(%S) reg-beg(%S)" pos reg-beg)
+        ;;(message "javascript-calls-beginning-position ** failure **")
         (setq continue nil
               pos reg-beg))
        ((and blockside
