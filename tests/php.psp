@@ -14,7 +14,7 @@
   $meth = $wgRequest->getMethod();
   switch ($meth) {
     case "GET":
-      $this->methodGET();
+      $this->methodGETs();
       break;
     case "POST":
       $this->methodPOST();

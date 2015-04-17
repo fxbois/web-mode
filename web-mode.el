@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.32
+;; Version: 11.0.33
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -22,11 +22,11 @@
 ;;---- TODO --------------------------------------------------------------------
 
 ;; v12 : invert path and XX (web-mode-engines-alist,
-;;       web-mode-content-types-alist)
+;;       web-mode-content-types-alist) for more consistency
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.32"
+(defconst web-mode-version "11.0.33"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -128,15 +128,15 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-block-partial-invalidation t
-  "Partial invalidation in blocks (php and asp at the moment)."
-  :type 'boolean
-  :group 'web-mode)
+;; (defcustom web-mode-enable-block-partial-invalidation t
+;;   "Partial invalidation in blocks (php and asp at the moment)."
+;;   :type 'boolean
+;;   :group 'web-mode)
 
-(defcustom web-mode-enable-part-partial-invalidation t
-  "Partial invalidation in js/css parts."
-  :type 'boolean
-  :group 'web-mode)
+;; (defcustom web-mode-enable-part-partial-invalidation t
+;;   "Partial invalidation in js/css parts."
+;;   :type 'boolean
+;;   :group 'web-mode)
 
 (defcustom web-mode-enable-current-element-highlight nil
   "Disable element highlight."
@@ -4517,24 +4517,17 @@ the environment as needed for ac-sources, right before they're used.")
     ;;      (message "nothing todo")
     nil)
 
-   ((and web-mode-enable-block-partial-invalidation
-         web-mode-engine-token-regexp
+   ((and (member web-mode-engine '("php"))
+         ;;web-mode-engine-token-regexp
          (get-text-property beg 'block-side)
          (get-text-property end 'block-side)
          (> beg (point-min))
          (not (eq (get-text-property (1- beg) 'block-token) 'delimiter-beg))
-         (not (eq (get-text-property end 'block-token) 'delimiter-end))
-
-         ;; (not (looking-back "\\*/\\|\\?>"))
-         ;; (progn
-         ;;   (setq chunk (buffer-substring-no-properties beg end))
-         ;;   (not (string-match-p "\\*/\\|\\?>" chunk))
-         ;;   )
-           )
+         (not (eq (get-text-property end 'block-token) 'delimiter-end)))
     ;;(message "invalidate block")
     (web-mode-invalidate-block-region beg end))
 
-   ((and web-mode-enable-part-partial-invalidation
+   ((and ;;web-mode-enable-part-partial-invalidation
          (or (member web-mode-content-type '("css" "jsx" "javascript"))
              (and (get-text-property beg 'part-side)
                   (get-text-property end 'part-side)

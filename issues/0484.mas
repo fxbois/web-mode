@@ -1,0 +1,7 @@
+<%augment wrap>
+  <html>
+    <body>
+      <% inner() %>
+    </body>
+  </html>
+</%augment>

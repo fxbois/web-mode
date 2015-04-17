@@ -3,10 +3,6 @@
   <& /shared/google_analytics_line.mi &>
 </%after>
 
-<%init>
-my $article = MyApp::Article->find($.article_id);
-my $title = $article->title;
-</%init>
 
 <%augment wrap>
   <html>
@@ -35,6 +31,11 @@ extends => '/foo/bar'
 my $article = MyApp::Article->find($.article_id);
 my $title = $article->title;
 </%perl>
+
+<%init>
+my $article = MyApp::Article->find($.article_id);
+my $title = $article->title;
+</%init>
 
 <%class>
 $a
