@@ -1370,50 +1370,61 @@ Must be used in conjunction with web-mode-enable-block-face."
     (regexp-opt '("in" "and" "not" "or"))))
 
 (defvar web-mode-django-control-blocks
-  (regexp-opt
-   '("assets" "autoescape"
-     "block" "blocktrans"
-     "cache" "call" "capture" "comment" "draw"
-     "elif" "else" "elseif" "elsif" "embed" "empty"
-     "filter" "for" "foreach" "form"
-     "if" "ifchanged" "ifequal" "ifnotequal"
-     "macro"
-     "random"
-     "safe" "sandbox" "spaceless"
-     "unless"
-     "verbatim"
-     "with"
-     )
-   t))
+  '("assets" "autoescape"
+    "block" "blocktrans"
+    "cache" "call" "capture" "comment"
+    "draw"
+    "embed"
+    "filter" "for" "foreach" "form"
+    "if" "ifchanged" "ifequal" "ifnotequal"
+    "macro"
+    "random" "raw"
+    "safe" "sandbox" "set" "spaceless"
+    "tablerow" "trans"
+    "unless"
+    "verbatim"
+    "with"
+
+    "endassets" "endautoescape"
+    "endblock" "endblocktrans"
+    "endcache" "endcall" "endcapture" "endcomment"
+    "draw"
+    "endembed"
+    "endfilter" "endfor" "endforeach" "endform"
+    "endif" "endifchanged" "endifequal" "endifnotequal"
+    "endmacro"
+    "endrandom" "endraw"
+    "endsafe" "endsandbox" "endset" "endspaceless"
+    "endtablerow" "endtrans"
+    "endunless"
+    "endverbatim"
+    "endwith"
+
+    "csrf_token" "cycle" "debug"
+    "elif" "else" "elseif" "elsif" "empty" "extends"
+    "firstof" "include" "load" "lorem" "now" "regroup" "ssi"
+    "templatetag" "url" "widthratio"))
+
+(defvar web-mode-django-control-blocks-regexp
+  (regexp-opt web-mode-django-control-blocks t))
 
 (defvar web-mode-django-keywords
   (eval-when-compile
     (regexp-opt
-     '("and" "as" "assign" "autoescape"
-       "block" "blocktrans" "break"
-       "cache" "call" "capture" "case" "comment" "context" "continue"
-       "csrf_token" "cycle"
-       "debug" "do"
-       "elif" "else" "elseif" "elsif" "embed" "empty"
-       "endautoescape" "endblock" "endblocktrans" "endcache" "endcall"
-       "endcapture" "endcomment" "endembed" "endfilter" "endfor" "endform"
-       "endif" "endifchanged" "endifequal" "endifnotequal" "endmacro"
-       "endrandom" "endraw" "endsandbox" "endset" "endspaceless" "endtablerow"
-       "endtrans" "endunless" "endverbatim" "endwith" "extends"
-       "filter" "firstof" "flush" "for" "form" "from"
-       "if" "ifchanged" "ifequal" "ifnotequal" "ignore" "import" "in" "include"
-       "is"
+     '("and" "as" "assign"
+       "break"
+       "cache" "call" "case" "context" "continue"
+       "do"
+       "flush" "from"
+       "ignore" "import" "in" "is"
        "layout" "load"
-       "macro" "missing"
-       "none" "not" "now"
+       "missing"
+       "none" "not"
        "or"
        "pluralize"
-       "random" "raw" "regroup"
-       "sandbox" "set" "spaceless" "ssi" "static"
-       "tablerow" "templatetag" "trans" "trans"
-       "unless" "url" "use"
-       "var" "verbatim"
-       "widthratio" "with"
+       "random"
+       "unless" "use"
+       "var"
        ))))
 
 (defvar web-mode-django-types
@@ -1615,6 +1626,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-django-code-font-lock-keywords
   (list
+   (cons (concat "{%[ ]*\\(" web-mode-django-control-blocks-regexp "\\)\\>")
+         '(1 'web-mode-block-control-face))
    (cons (concat "\\<\\(" web-mode-django-keywords "\\)\\>")
          '(1 'web-mode-keyword-face))
    (cons (concat "\\<\\(" web-mode-django-types "\\)\\>")
@@ -3395,11 +3408,16 @@ the environment as needed for ac-sources, right before they're used.")
             (setq controls (append controls (list (cons 'inside "for")))))
            ((web-mode-block-starts-with "end\\([[:alpha:]]+\\)" reg-beg)
             (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
-           ((web-mode-block-starts-with (concat web-mode-django-control-blocks "\\>") reg-beg)
-            ;;(message "%S" (concat web-mode-django-control-blocks "\\>"))
-            (setq controls (append controls (list (cons 'open (match-string-no-properties 1))))))
-           )
-          )
+           ((web-mode-block-starts-with (concat web-mode-django-control-blocks-regexp "\\>") reg-beg)
+            (let (control)
+              (setq control (match-string-no-properties 1))
+              ;;(message "%S %S %S" control (concat "end" control) web-mode-django-control-blocks)
+              (when (member (concat "end" control) web-mode-django-control-blocks)
+                (setq controls (append controls (list (cons 'open control)))))
+              ) ;let
+            ) ;case
+           ) ;cond
+          ) ;when
         ) ;django
 
        ((string= web-mode-engine "smarty")

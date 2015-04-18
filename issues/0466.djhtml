@@ -1,3 +1,7 @@
 {% if foo.block.bar %}
   Content
 {% endif %}
+
+{% if block %}
+  Content
+{% endif %}

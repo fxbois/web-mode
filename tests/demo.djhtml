@@ -18,11 +18,13 @@ related issues: #293
 {% if something %} {{ }}
 {% endif %}
 
-{% if something %}{{ }}
-{% endif %}
+{% for book in books|dictsort:"author.age" %}
+  * {{ book.title }} ({{ book.author.name }})
+{% endfor %}
 
-{% if something %} {{ }}
-{% endif %}
+{% widthratio this_value max_value max_width as width %}
+{% blocktrans %}The width is: {{ width }}{% endblocktrans %}
+
 
 {% if something %}
   {% if something2 %}{% endif %}{{  }}
@@ -54,3 +56,10 @@ related issues: #417
 
 {% non_keyword_start %}
 <span>Element should not be indented</span>
+
+<div>
+  #466
+  {% if block %}
+    Content
+  {% endif %}
+</div>
