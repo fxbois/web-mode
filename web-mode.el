@@ -2966,9 +2966,7 @@ the environment as needed for ac-sources, right before they're used.")
     (cond
 
      ((member web-mode-engine '("php" "lsp" "python" "web2py" "mason"))
-      (setq regexp web-mode-engine-token-regexp)
-;;      (message "%S %S" (point) web-mode-engine-token-regexp)
-      )
+      (setq regexp web-mode-engine-token-regexp))
 
      ((string= web-mode-engine "mako")
       (cond
@@ -4544,7 +4542,7 @@ the environment as needed for ac-sources, right before they're used.")
     ;;      (message "nothing todo")
     nil)
 
-   ((and (member web-mode-engine '("php"))
+   ((and (member web-mode-engine '("php" "asp"))
          ;;web-mode-engine-token-regexp
          (get-text-property beg 'block-side)
          (get-text-property end 'block-side)
