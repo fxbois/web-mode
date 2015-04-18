@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.33
+;; Version: 11.0.34
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.33"
+(defconst web-mode-version "11.0.34"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2180,6 +2180,8 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-start-tag-overlay)
   (make-local-variable 'web-mode-time)
 
+  (make-local-variable 'comment-end)
+  (make-local-variable 'comment-start)
   (make-local-variable 'fill-paragraph-function)
   (make-local-variable 'font-lock-beg)
   (make-local-variable 'font-lock-defaults)
@@ -2200,7 +2202,9 @@ the environment as needed for ac-sources, right before they're used.")
   ;;(add-to-list 'text-property-default-nonsticky '(block-token . t))
   ;;(message "%S" text-property-default-nonsticky)
 
-  (setq fill-paragraph-function 'web-mode-fill-paragraph
+  (setq comment-end "-->"
+        comment-start "<!--"
+        fill-paragraph-function 'web-mode-fill-paragraph
         font-lock-defaults '(web-mode-font-lock-keywords t)
         font-lock-extend-region-functions '(web-mode-extend-region)
         font-lock-support-mode nil
@@ -2242,6 +2246,11 @@ the environment as needed for ac-sources, right before they're used.")
         web-mode-change-end (point-max))
   (when (> (point-max) 256000)
     (web-mode-buffer-highlight))
+
+  (when (and (boundp 'hs-special-modes-alist)
+             (not (assoc major-mode hs-special-modes-alist)))
+    (add-to-list 'hs-special-modes-alist '(web-mode "{" "}" "/[*/]" web-mode-forward-sexp nil))
+    ) ;when
 
   ;;(web-mode-trace "buffer loaded")
 
