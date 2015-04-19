@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.34
+;; Version: 11.0.35
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.34"
+(defconst web-mode-version "11.0.35"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7931,18 +7931,36 @@ Pos should be in a tag."
 (defun web-mode-comment-or-uncomment ()
   "Comment or uncomment line(s), block or region at POS."
   (interactive)
-
-  ;;(if (and mark-active (eq (point) (region-end)))
   ;; TODO : if mark is at eol, mark--
-  (when (and (use-region-p) (eq (point) (region-end)))
-    (if (bolp) (backward-char))
-    (exchange-point-and-mark))
-  (skip-chars-forward "[:space:]" (line-end-position))
-  (if (or (eq (get-text-property (point) 'tag-type) 'comment)
+  (if (looking-at-p "[[:space:]]*$")
+      (web-mode-comment-insert)
+    (when (and (use-region-p) (eq (point) (region-end)))
+      (if (bolp) (backward-char))
+      (exchange-point-and-mark))
+    (skip-chars-forward "[:space:]" (line-end-position))
+    (cond
+     ((or (eq (get-text-property (point) 'tag-type) 'comment)
           (eq (get-text-property (point) 'block-token) 'comment)
           (eq (get-text-property (point) 'part-token) 'comment))
-      (web-mode-uncomment (point))
-    (web-mode-comment (point)))
+      (web-mode-uncomment (point)))
+     (t
+      (web-mode-comment (point)))
+     )
+    ) ;if
+  )
+
+(defun web-mode-comment-insert ()
+  (cond
+   ((get-text-property (point) 'block-side)
+    (insert "/*  */")
+    (search-backward " */"))
+   ((get-text-property (point) 'part-side)
+    (insert "/*  */")
+    (search-backward " */"))
+   (t
+    (insert "<!--  -->")
+    (search-backward " -->"))
+   )
   )
 
 (defun web-mode-comment (pos)
