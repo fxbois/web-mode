@@ -128,16 +128,6 @@
   :type 'boolean
   :group 'web-mode)
 
-;; (defcustom web-mode-enable-block-partial-invalidation t
-;;   "Partial invalidation in blocks (php and asp at the moment)."
-;;   :type 'boolean
-;;   :group 'web-mode)
-
-;; (defcustom web-mode-enable-part-partial-invalidation t
-;;   "Partial invalidation in js/css parts."
-;;   :type 'boolean
-;;   :group 'web-mode)
-
 (defcustom web-mode-enable-current-element-highlight nil
   "Disable element highlight."
   :type 'boolean
@@ -870,9 +860,12 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("g/" . "<strong>|</strong>")
     ("h/" . "<h1>|</h1>")
     ("i/" . "<img src=\"|\" />")
+    ("j/" . "<script>|</script>")
     ("l/" . "<li>|</li>")
+    ("m/" . "<main>|</main>")
     ("n/" . "<input type=\"|\" />")
     ("p/" . "<p>|</p>")
+    ("q/" . "<quote>|</quote>")
     ("s/" . "<span>|</span>")
     ("t/" . "<td>|</td>")
     ("u/" . "<ul><li>|</li><li></li></ul>")
@@ -2795,7 +2788,6 @@ the environment as needed for ac-sources, right before they're used.")
                   pos (point)))
            ) ;cond
 
-;;          (message "close=%S reg-end=%S pos=%S" close reg-end pos)
           (when (and close (>= reg-end pos))
             ;;(message "pos(%S) : open(%S) close(%S)" pos open close)
             (put-text-property open (1+ open) 'block-beg 0)
@@ -4701,12 +4693,7 @@ the environment as needed for ac-sources, right before they're used.")
          ;;       Indeed, parts must be identified asap.
          ((and (progn (back-to-indentation) t)
                (get-text-property (point) 'tag-beg)
-               (eq (get-text-property (point) 'tag-type) 'start)
-               ;;(or (get-text-property (point) 'tag-beg)
-               ;;    (not (get-text-property (point) 'tag-type)))
-               ;;(not (get-text-property (point) 'part-side))
-               ;;(not (get-text-property (point) 'block-side))
-               )
+               (eq (get-text-property (point) 'tag-type) 'start))
           (setq pos (point)
                 continue nil))
          (t
@@ -4746,33 +4733,13 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-font-lock-highlight (limit)
   ;;(message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
-  (let (
-        ;;(inhibit-modification-hooks t)
-        ;;(buffer-undo-list t)
-        ;;(region nil)
-        )
-    ;; (cond
-    ;;  (web-mode-inhibit-fontification
-    ;;   )
-    ;;  ((and web-mode-change-beg web-mode-change-end)
-    ;;   (setq region (web-mode-propertize))
-    ;;   )
-    ;;  (t
-    ;;   (setq region (web-mode-propertize (point) limit)))
-    ;;  ) ;cond
-    ;; (when (and region (car region))
-    ;;   (web-mode-highlight-region (car region) (cdr region)))
-    (cond
-     (web-mode-inhibit-fontification
-      )
-     (t ;;(and web-mode-change-beg web-mode-change-end)
-      ;;(web-mode-highlight-region web-mode-change-beg web-mode-change-end)
-      ;;(message "point-before=%S" (point))
-      (web-mode-highlight-region (point) limit)
-      ;;(message "point-after=%S" (point))
-      )
-     )
-    nil))
+  (cond
+   (web-mode-inhibit-fontification
+    )
+   (t
+    (web-mode-highlight-region (point) limit))
+   )
+  nil)
 
 (defun web-mode-buffer-highlight ()
   (interactive)
@@ -11068,25 +11035,3 @@ Pos should be in a tag."
 ;; coding: utf-8
 ;; indent-tabs-mode: nil
 ;; End:
-
-
-
-;; (defvar web-mode-engines-alternate-delimiters
-;;   (if (boundp 'web-mode-engines-alternate-delimiters)
-;;       web-mode-engines-alternate-delimiters
-;;     '())
-;;   "Engine delimiters. Useful for engines that provide alternate delimiters.")
-
-;; (defun web-mode-engine-delimiter-open (engine default)
-;;   "alternative open delimiter"
-;;   (let (delim)
-;;     (setq delim (car (cdr (assoc engine web-mode-engines-alternate-delimiters))))
-;;     (or delim default)
-;;   ))
-
-;; (defun web-mode-engine-delimiter-close (engine default)
-;;   "alternative close delimiter"
-;;   (let (delim)
-;;     (setq delim (cdr (cdr (assoc engine web-mode-engines-alternate-delimiters))))
-;;     (or delim default)
-;;     ))
