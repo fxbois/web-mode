@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.35
+;; Version: 11.0.36
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.35"
+(defconst web-mode-version "11.0.36"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6619,6 +6619,7 @@ the environment as needed for ac-sources, right before they're used.")
         (setq ret (web-mode-element-is-opened beg pos))
         (cond
          ((null ret)
+          ;;(message "ind=%S col=%S" (current-indentation) (current-column))
           (setq offset (current-indentation)))
          ((eq ret t)
           (setq offset (+ (current-indentation) web-mode-markup-indent-offset)))
@@ -6974,7 +6975,7 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-markup-indentation-origin ()
   (let* ((continue (not (bobp)))
          (pos (point))
-         (part-side (not (null (get-text-property pos 'part-side))))
+         (part-side (not (null (get-text-property pos 'part-side)))) ;part-side at the origin
          (types '(start end void)))
     (while continue
       (forward-line -1)
@@ -6984,11 +6985,13 @@ the environment as needed for ac-sources, right before they're used.")
                               (and (null part-side)
                                    (null (get-text-property pos 'part-side))
                                    (get-text-property pos 'tag-beg)
-                                   (member (get-text-property pos 'tag-type) types))
+                                   (member (get-text-property pos 'tag-type) types)
+                                   (null (get-text-property (1- pos) 'invisible)))
                               (and part-side
                                    (get-text-property pos 'part-side)
                                    (get-text-property pos 'tag-beg)
-                                   (member (get-text-property pos 'tag-type) types))
+                                   (member (get-text-property pos 'tag-type) types)
+                                   (null (get-text-property (1- pos) 'invisible)))
                               (and (get-text-property pos 'block-beg)
                                    (not (get-text-property pos 'tag-type))
                                    (web-mode-block-is-control pos)
