@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.36
+;; Version: 11.0.38
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.36"
+(defconst web-mode-version "11.0.38"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -546,6 +546,16 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Face for parts."
   :group 'web-mode-faces)
 
+(defface web-mode-script-face
+  '((t :inherit web-mode-part-face))
+  "Face for javascript inside a script element."
+  :group 'web-mode-faces)
+
+(defface web-mode-style-face
+  '((t :inherit web-mode-part-face))
+  "Face for css inside a style element."
+  :group 'web-mode-faces)
+
 (defface web-mode-folded-face
   '((t :underline t))
   "Overlay face for folded."
@@ -944,8 +954,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("underscore"  . (("<% " . " %>")))
     ("web2py"      . (("{{ " . " }}")
                       ("{{=" . "}}")))
-    (nil           . (("<!-" . "- | -->"))))
-  "Engines auto-pairs")
+    (nil           . (("<!-" . "- | -->")))
+    ))
 
 (defvar web-mode-engines-snippets
   '(("ejs" . (("for"     . "<% for (|) { %>\n\n<% } %>")
@@ -977,8 +987,7 @@ Must be used in conjunction with web-mode-enable-block-face."
             ("table" . "<table><tbody>\n<tr>\n<td>|</td>\n<td></td>\n</tr>\n</tbody></table>")
             ("ul"    . "<ul>\n<li>|</li>\n<li></li>\n</ul>")
             ))
-    )
-  "Engines snippets")
+    ))
 
 (defvar web-mode-engine-token-regexps
   (list
@@ -3300,8 +3309,7 @@ the environment as needed for ac-sources, right before they're used.")
       (setq controls (web-mode-block-controls-reduce controls)))
     controls))
 
-;;todo
-;; nettoyer
+;; todo : clean
 ;; <?php if (): echo $x; endif; ?>
 ;; ((open . "if") (close . "if"))
 ;; -> nil
@@ -4735,11 +4743,11 @@ the environment as needed for ac-sources, right before they're used.")
   ;;(message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
   (cond
    (web-mode-inhibit-fontification
-    )
+    nil)
    (t
-    (web-mode-highlight-region (point) limit))
-   )
-  nil)
+    (web-mode-highlight-region (point) limit)
+    nil)
+   ))
 
 (defun web-mode-buffer-highlight ()
   (interactive)
@@ -4756,7 +4764,7 @@ the environment as needed for ac-sources, right before they're used.")
   ;;        font-lock-end web-mode-change-end)
   (cond
    (web-mode-inhibit-fontification
-    )
+    nil)
    (t ;;(and web-mode-change-beg web-mode-change-end)
     (when (or (null web-mode-change-beg) (< font-lock-beg web-mode-change-beg))
       ;;(message "font-lock-beg(%S) < web-mode-change-beg(%S)" font-lock-beg web-mode-change-beg)
@@ -4774,11 +4782,8 @@ the environment as needed for ac-sources, right before they're used.")
               )
         ) ;when
       ) ;let
-    ) ;t
-   ;;(t
-   ;; (setq region (web-mode-propertize font-lock-beg font-lock-end)))
-   ) ;cond
-  nil)
+    nil) ;t
+   ))
 
 (defun web-mode-unfontify-region (beg end)
   ;;(message "unfontify: %S %S" beg end)
@@ -5198,8 +5203,12 @@ the environment as needed for ac-sources, right before they're used.")
                    (> (- end beg) 3))
           (web-mode-interpolate-comment beg end t))
         ) ;while
-      (when web-mode-enable-part-face
-        (font-lock-append-text-property reg-beg reg-end 'face 'web-mode-part-face))
+      (when (and (string= web-mode-content-type "html") web-mode-enable-part-face)
+        (font-lock-append-text-property reg-beg reg-end 'face
+                                        (if (string= content-type "javascript")
+                                            'web-mode-script-face
+                                          'web-mode-style-face))
+        )
       (when (string= content-type "jsx")
         (goto-char reg-beg)
         ;;(web-mode-highlight-tags reg-beg reg-end)
