@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.0.38
+;; Version: 11.0.39
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.0.38"
+(defconst web-mode-version "11.0.39"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8671,6 +8671,8 @@ Pos should be in a tag."
 
     (when (and web-mode-expand-previous-state
                (not (eq this-command 'web-mode-mark-and-expand)))
+      (when (eq this-command 'keyboard-quit)
+        (goto-char web-mode-expand-initial-pos))
       (deactivate-mark)
       (setq web-mode-expand-previous-state nil
             web-mode-expand-initial-pos nil))
