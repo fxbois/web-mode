@@ -8672,7 +8672,8 @@ Pos should be in a tag."
     ;;(message "%S: %S %S" this-command web-mode-change-beg web-mode-change-end)
 
     (when (and web-mode-expand-previous-state
-               (not (eq this-command 'web-mode-mark-and-expand)))
+               (not (member this-command '(web-mode-mark-and-expand
+                                           er/expand-region))))
       (when (eq this-command 'keyboard-quit)
         (goto-char web-mode-expand-initial-pos))
       (deactivate-mark)
