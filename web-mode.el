@@ -1382,7 +1382,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     "macro"
     "random" "raw"
     "safe" "sandbox" "set" "spaceless"
-    "tablerow" "trans"
+    "tablerow"
     "unless"
     "verbatim"
     "with"
@@ -1397,7 +1397,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     "endmacro"
     "endrandom" "endraw"
     "endsafe" "endsandbox" "endset" "endspaceless"
-    "endtablerow" "endtrans"
+    "endtablerow"
     "endunless"
     "endverbatim"
     "endwith"
@@ -1405,7 +1405,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     "csrf_token" "cycle" "debug"
     "elif" "else" "elseif" "elsif" "empty" "extends"
     "firstof" "include" "load" "lorem" "now" "regroup" "ssi"
-    "templatetag" "url" "widthratio"))
+    "trans" "templatetag" "url" "widthratio"))
 
 (defvar web-mode-django-control-blocks-regexp
   (regexp-opt web-mode-django-control-blocks t))

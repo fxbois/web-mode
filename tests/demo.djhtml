@@ -63,3 +63,6 @@ related issues: #417
     Content
   {% endif %}
 </div>
+
+{% trans "" %}
+<span>Element should not be indented</span>
