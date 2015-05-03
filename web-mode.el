@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.1.00
+;; Version: 11.1.01
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.1.00"
+(defconst web-mode-version "11.1.01"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7908,6 +7908,15 @@ Pos should be in a tag."
         )
       ) ;let
     ))
+
+(defun web-mode-comment-or-uncomment-region (beg end)
+  (interactive)
+  (save-excursion
+    (push-mark end)
+    (goto-char beg)
+    (setq mark-active t)
+    (web-mode-comment-or-uncomment)
+    (pop-mark)))
 
 (defun web-mode-comment-or-uncomment ()
   "Comment or uncomment line(s), block or region at POS."
