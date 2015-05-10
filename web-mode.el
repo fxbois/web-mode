@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.1.02
+;; Version: 11.1.03
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.1.02"
+(defconst web-mode-version "11.1.03"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -625,6 +625,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-obarray nil)
 (defvar web-mode-snippets nil)
 (defvar web-mode-start-tag-overlay nil)
+(defvar web-mode-minor-engine nil)
 (defvar web-mode-time (current-time))
 
 (defvar web-mode-pre-elements '("code" "pre" "textarea"))
@@ -664,30 +665,37 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defvar web-mode-engines
-  '(("angular"     . ("angularjs" "angular.js"))
-    ("asp"         . ())
-    ("aspx"        . ())
-    ("blade"       . ("laravel"))
-    ("clip"        . ())
-    ("closure"     . ("soy"))
-    ("ctemplate"   . ("mustache" "handlebars" "hapax" "ngtemplate" "ember"
-                      "kite" "meteor" "blaze" "ractive"))
-    ("django"      . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl" "liquid"
-                      "clabango" "selmer" "nunjucks"))
-    ("dust"        . ("dustjs"))
-    ("ejs"         . ())
-    ("erb"         . ("eruby" "erubis"))
-    ("go"          . ("gtl"))
-    ("jsp"         . ("grails"))
-    ("mason"       . ("poet"))
-    ("lsp"         . ("lisp"))
-    ("mojolicious" . ())
-    ("python"      . ())
-    ("razor"       . ("play" "play2"))
-    ("thymeleaf"   . ())
-    ("underscore"  . ("underscore.js"))
-    ("velocity"    . ("vtl" "cheetah" "ssp"))
-    ("web2py"      . ()))
+  '(("angular"          . ("angularjs" "angular.js"))
+    ("asp"              . ())
+    ("aspx"             . ())
+    ("blade"            . ("laravel"))
+    ("cl-emb"           . ())
+    ("clip"             . ())
+    ("closure"          . ("soy"))
+    ("ctemplate"        . ("mustache" "handlebars" "hapax" "ngtemplate" "ember"
+                           "kite" "meteor" "blaze" "ractive"))
+    ("django"           . ("dtl" "twig" "swig" "jinja" "erlydtl" "liquid"
+                           "clabango" "selmer" "nunjucks"))
+    ("dust"             . ("dustjs"))
+    ("ejs"              . ())
+    ("elixir"           . ())
+    ("erb"              . ("eruby" "erubis"))
+    ("freemarker"       . ())
+    ("go"               . ("gtl"))
+    ("jsp"              . ("grails"))
+    ("mako"             . ())
+    ("mason"            . ("poet"))
+    ("lsp"              . ("lisp"))
+    ("mojolicious"      . ())
+    ("php"              . ())
+    ("python"           . ())
+    ("razor"            . ("play" "play2"))
+    ("template-toolkit" . ())
+    ("smarty"           . ())
+    ("thymeleaf"        . ())
+    ("underscore"       . ("underscore.js"))
+    ("velocity"         . ("vtl" "cheetah" "ssp"))
+    ("web2py"           . ()))
   "Engine name aliases")
 
 (defvar web-mode-content-types
@@ -737,6 +745,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("freemarker"       . "\\.ftl\\'")
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
     ("handlebars"       . "\\.\\(hb\\.html\\|hbs\\)\\'")
+    ("jinja"            . "\\.jinja\\'")
     ("jsp"              . "\\.[gj]sp\\'")
     ("lsp"              . "\\.lsp\\'")
     ("mako"             . "\\.mako?\\'")
@@ -1381,7 +1390,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     "if" "ifchanged" "ifequal" "ifnotequal"
     "macro"
     "random" "raw"
-    "safe" "sandbox" "set" "spaceless"
+    "safe" "sandbox" "spaceless"
     "tablerow"
     "unless"
     "verbatim"
@@ -1396,16 +1405,20 @@ Must be used in conjunction with web-mode-enable-block-face."
     "endif" "endifchanged" "endifequal" "endifnotequal"
     "endmacro"
     "endrandom" "endraw"
-    "endsafe" "endsandbox" "endset" "endspaceless"
+    "endsafe" "endsandbox"  "endspaceless"
     "endtablerow"
     "endunless"
     "endverbatim"
     "endwith"
 
+    ;; "set" "endset" ;#504
+
     "csrf_token" "cycle" "debug"
     "elif" "else" "elseif" "elsif" "empty" "extends"
     "firstof" "include" "load" "lorem" "now" "regroup" "ssi"
-    "trans" "templatetag" "url" "widthratio"))
+    "trans" "templatetag" "url" "widthratio"
+
+    ))
 
 (defvar web-mode-django-control-blocks-regexp
   (regexp-opt web-mode-django-control-blocks t))
@@ -1425,6 +1438,7 @@ Must be used in conjunction with web-mode-enable-block-face."
        "or"
        "pluralize"
        "random"
+       "set" ;#504
        "unless" "use"
        "var"
        ))))
@@ -1630,6 +1644,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    (cons (concat "{%[ ]*\\(" web-mode-django-control-blocks-regexp "\\)\\>")
          '(1 'web-mode-block-control-face))
+   '("{%[ ]*\\(end[[:alpha:]]+\\)\\>" 1 'web-mode-block-control-face) ;#504
    (cons (concat "\\<\\(" web-mode-django-keywords "\\)\\>")
          '(1 'web-mode-keyword-face))
    (cons (concat "\\<\\(" web-mode-django-types "\\)\\>")
@@ -2180,7 +2195,11 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-markup-indent-offset)
   (make-local-variable 'web-mode-sql-indent-offset)
   (make-local-variable 'web-mode-start-tag-overlay)
+  (make-local-variable 'web-mode-minor-engine)
   (make-local-variable 'web-mode-time)
+
+  (make-local-variable 'web-mode-django-control-blocks)
+  (make-local-variable 'web-mode-django-control-blocks-regexp)
 
   (make-local-variable 'comment-end)
   (make-local-variable 'comment-start)
@@ -3395,6 +3414,23 @@ the environment as needed for ac-sources, right before they're used.")
        ((string= web-mode-engine "django")
         (when (eq (char-after (1+ reg-beg)) ?\%)
           (cond
+           ((and (string= web-mode-minor-engine "jinja") ;#504
+                 (web-mode-block-starts-with "else\\>" reg-beg))
+            (let ((continue t)
+                  (pos reg-beg)
+                  (ctrl nil))
+              (while continue
+                (cond
+                 ((null (setq pos (web-mode-block-control-previous-position 'open pos)))
+                  (setq continue nil))
+                 ((member (setq ctrl (cdr (car (get-text-property pos 'block-controls)))) '("if" "ifequal" "ifnotequal" "for"))
+                  (setq continue nil)
+                  )
+                 ) ;cond
+                )
+              (setq controls (append controls (list (cons 'inside (or ctrl "if")))))
+              )
+            )
            ((web-mode-block-starts-with "\\(else\\|els?if\\)" reg-beg)
             (let ((continue t)
                   (pos reg-beg)
@@ -8520,16 +8556,6 @@ Pos should be in a tag."
     (web-mode-set-content-type "jsx"))
    ))
 
-(defun web-mode-detect-engine ()
-  (save-excursion
-    (let (engine)
-      (goto-char (point-min))
-      (when (re-search-forward "-\\*- engine:[ ]*\\([[:alnum:]-]+\\)[ ]*-\\*-" web-mode-chunk-length t)
-        (setq engine (web-mode-engine-canonical-name (match-string-no-properties 1))
-              web-mode-engine engine)
-        )
-      engine)))
-
 (defun web-mode-on-after-change (beg end len)
 ;;  (message "after-change: pos=%d, beg=%d, end=%d, len=%d, ocmd=%S, cmd=%S" (point) beg end len this-original-command this-command)
   ;;  (backtrace)
@@ -10814,6 +10840,9 @@ Pos should be in a tag."
 
     ;;(message "%S %S" web-mode-engine-attr-regexp web-mode-engine)
 
+    (when (null web-mode-minor-engine)
+      (setq web-mode-minor-engine "none"))
+
     (setq elt (assoc web-mode-engine web-mode-engine-open-delimiter-regexps))
     (if elt
         (setq web-mode-block-regexp (cdr elt))
@@ -10847,16 +10876,33 @@ Pos should be in a tag."
     (setq web-mode-engine-font-lock-keywords
           (symbol-value (cdr (assoc web-mode-engine web-mode-engines-font-lock-keywords))))
 
+    (when (and (string= web-mode-minor-engine "jinja")
+               (not (member "endtrans" web-mode-django-control-blocks)))
+      (add-to-list 'web-mode-django-control-blocks "endtrans")
+      (setq web-mode-django-control-blocks-regexp
+            (regexp-opt web-mode-django-control-blocks t))
+      )
+
 ;;    (message "%S" (symbol-value (cdr (assoc web-mode-engine web-mode-engines-font-lock-keywords))))
 
     ))
 
+(defun web-mode-detect-engine ()
+  (save-excursion
+    (goto-char (point-min))
+    (when (re-search-forward "-\\*- engine:[ ]*\\([[:alnum:]-]+\\)[ ]*-\\*-" web-mode-chunk-length t)
+      (setq web-mode-minor-engine (match-string-no-properties 1))
+      (setq web-mode-engine (web-mode-engine-canonical-name web-mode-minor-engine)))
+    web-mode-minor-engine))
+
 (defun web-mode-guess-engine-and-content-type ()
   (let (buff-name elt found)
+
     (setq buff-name (buffer-file-name))
     (unless buff-name (setq buff-name (buffer-name)))
     (setq web-mode-is-scratch (string= buff-name "*scratch*"))
     (setq web-mode-content-type nil)
+
     (when (boundp 'web-mode-content-types-alist)
       (setq found nil)
       (dolist (elt web-mode-content-types-alist)
@@ -10865,6 +10911,7 @@ Pos should be in a tag."
                 found t))
         ) ;dolist
       ) ;when
+
     (unless web-mode-content-type
       (setq found nil)
       (dolist (elt web-mode-content-types)
@@ -10873,6 +10920,7 @@ Pos should be in a tag."
                 found t))
         ) ;dolist
       ) ;unless
+
     (when (boundp 'web-mode-engines-alist)
       (setq found nil)
       (dolist (elt web-mode-engines-alist)
@@ -10886,57 +10934,55 @@ Pos should be in a tag."
          ) ;cond
         ) ;dolist
       ) ;when
+
     (unless web-mode-engine
       (setq found nil)
       (dolist (elt web-mode-engine-file-regexps)
-;;          (message "%S %S" (cdr elt) buff-name)
+        ;;(message "%S %S" (cdr elt) buff-name)
         (when (and (not found) (string-match-p (cdr elt) buff-name))
           (setq web-mode-engine (car elt)
                 found t))
         )
       )
+
     (unless web-mode-engine
       (setq found nil)
       (dolist (elt web-mode-engines)
-;;        (message "%S %S" (car elt) buff-name)
+        ;;(message "%S %S" (car elt) buff-name)
         (when (and (not found) (string-match-p (car elt) buff-name))
           (setq web-mode-engine (car elt)
                 found t))
         )
       )
-    ;; TODO : remplacer par web-mode-engine-canonical-name
-    (when web-mode-engine
-      (setq found nil)
-      (dolist (elt web-mode-engines)
-;;        (message "%S" elt)
-        (when (and (not found) (member web-mode-engine (cdr elt)))
-          (setq web-mode-engine (car elt)
-                found t))
-        )
-      )
-    (when (and (null found)
+
+    (when (and (or (null web-mode-engine) (string= web-mode-engine "none"))
                (string-match-p "php" (buffer-substring-no-properties
                                       (line-beginning-position)
                                       (line-end-position))))
-      (setq web-mode-engine "php"
-            found t)
-      )
+      (setq web-mode-engine "php"))
+
     (when (and (string= web-mode-content-type "javascript")
                (string-match-p "@jsx"
-                                (buffer-substring-no-properties
-                                 (point-min)
-                                 (if (< (point-max) web-mode-chunk-length)
-                                     (point-max)
-                                   web-mode-chunk-length)
-                                 )))
-      (setq web-mode-content-type "jsx")
-      ) ;when
-    (when (and web-mode-enable-engine-detection
-               (or (null web-mode-engine)
-                   (string= web-mode-engine "none")))
-      ;;(message "%S %S" web-mode-enable-engine-detection web-mode-engine)
+                               (buffer-substring-no-properties
+                                (point-min)
+                                (if (< (point-max) web-mode-chunk-length)
+                                    (point-max)
+                                  web-mode-chunk-length)
+                                )))
+      (setq web-mode-content-type "jsx"))
+
+    (when web-mode-engine
+      (setq web-mode-minor-engine web-mode-engine
+            web-mode-engine (web-mode-engine-canonical-name web-mode-engine))
+      )
+
+    (when (and (or (null web-mode-engine)
+                   (string= web-mode-engine "none"))
+               web-mode-enable-engine-detection)
       (web-mode-detect-engine))
+
     (web-mode-on-engine-setted)
+
     ))
 
 (defun web-mode-engine-canonical-name (name)
@@ -11028,8 +11074,9 @@ Pos should be in a tag."
     (message "--- WEB-MODE DEBUG BEG ---")
     (message "versions: emacs(%S.%S) web-mode(%S)"
              emacs-major-version emacs-minor-version web-mode-version)
-    (message "vars: engine(%S) content-type(%S) file(%S)"
+    (message "vars: engine(%S) minor(%S) content-type(%S) file(%S)"
              web-mode-engine
+             web-mode-minor-engine
              web-mode-content-type
              (or (buffer-file-name) (buffer-name)))
     (message "system: window(%S) config(%S)" window-system system-configuration)
