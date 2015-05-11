@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.1.03
+;; Version: 11.1.04
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.1.03"
+(defconst web-mode-version "11.1.04"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7726,13 +7726,23 @@ Pos should be in a tag."
   (interactive)
   (let (tag-name)
     (cond
-     ((get-text-property (point) 'tag-type)
+     ((or (get-text-property (point) 'tag-type)
+          (get-text-property (point) 'block-side))
       (message "element-insert ** invalid context **"))
      ((not (and (setq tag-name (read-from-minibuffer "Tag name? "))
                 (> (length tag-name) 0)))
       (message "element-insert ** failure **"))
      ((web-mode-element-is-void tag-name)
       (insert (concat "<" tag-name "/>"))
+      )
+     (mark-active
+      (let ((beg (region-beginning)) (end (region-end)))
+        (deactivate-mark)
+        (goto-char end)
+        (insert "</" tag-name ">")
+        (goto-char beg)
+        (insert "<" tag-name ">")
+        )
       )
      (t
       (insert (concat "<" tag-name ">" "</" tag-name ">"))
