@@ -7726,8 +7726,8 @@ Pos should be in a tag."
   (interactive)
   (let (tag-name)
     (cond
-     ((or (get-text-property (point) 'tag-type)
-          (get-text-property (point) 'block-side))
+     ((and (get-text-property (point) 'tag-type)
+           (not (get-text-property (point) 'tag-beg)))
       (message "element-insert ** invalid context **"))
      ((not (and (setq tag-name (read-from-minibuffer "Tag name? "))
                 (> (length tag-name) 0)))
