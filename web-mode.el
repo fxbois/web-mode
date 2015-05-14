@@ -10836,7 +10836,8 @@ Pos should be in a tag."
               (setq engines (append engines (list (car elt)))))
             engines))))
   (setq web-mode-content-type "html"
-        web-mode-engine engine)
+        web-mode-engine (web-mode-engine-canonical-name engine)
+        web-mode-minor-engine engine)
   (web-mode-on-engine-setted)
   (web-mode-buffer-highlight))
 
