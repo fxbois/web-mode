@@ -6,6 +6,16 @@ return {
   editing: null
 };
 
+class Person {
+  @memoize
+  get name() { return `${this.first} ici ${this.last}` }
+  set name(val) {
+    let [first, last] = val.split(' ');
+    this.first = first;
+    this.last = last;
+  }
+}
+
 
 if (true) {
   var x;
