@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.1.08
+;; Version: 11.1.09
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.1.08"
+(defconst web-mode-version "11.1.09"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6462,6 +6462,11 @@ the environment as needed for ac-sources, right before they're used.")
           (search-backward "case ")
           (setq offset (current-column)))
 
+         ((and (member language '("javascript" "jsx" "ejs"))
+               (string-match-p "^@[[:alpha:]]+" prev-line))
+          (setq offset prev-indentation)
+          )
+
          ((and (member language '("javascript" "jsx" "ejs" "php"))
                (or (eq prev-char ?\))
                    (string-match-p "^else$" prev-line))
@@ -6558,10 +6563,6 @@ the environment as needed for ac-sources, right before they're used.")
             (setq offset (- offset (length (match-string-no-properties 0)))))
            ))
 
-         ((and (member language '("javascript" "jsx" "ejs"))
-               (string-match-p "^@[[:alpha:]]+" prev-line))
-          (setq offset prev-indentation)
-          )
 
          ((and (string= language "php") (string-match-p "^->" curr-line))
           (cond
