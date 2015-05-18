@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.1.09
+;; Version: 11.1.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.1.09"
+(defconst web-mode-version "11.1.10"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6088,8 +6088,12 @@ the environment as needed for ac-sources, right before they're used.")
 
         (cond
          ((string= web-mode-engine "blade")
-          (setq reg-beg (+ reg-beg 2)
-                reg-col (+ reg-col 2))
+          (save-excursion
+            (when (web-mode-rsf "{{[ ]*")
+              (setq reg-col (current-column))))
+          (setq reg-beg (+ reg-beg 2))
+          ;;(message "beg=%S" reg-beg)
+          ;;reg-col (+ reg-col 2)
           )
          ((string= web-mode-engine "razor")
           (setq reg-beg (+ reg-beg 2))
@@ -6198,7 +6202,7 @@ the environment as needed for ac-sources, right before they're used.")
                         (line-end-position))))
       (setq curr-char (if (string= curr-line "") 0 (aref curr-line 0)))
 
-      (when (or (member language '("php" "javascript" "jsx" "razor"))
+      (when (or (member language '("php" "blade" "javascript" "jsx" "razor"))
                 (and (member language '("html" "xml"))
                      (not (eq ?\< curr-char))))
         (let (prev)
@@ -6214,6 +6218,7 @@ the environment as needed for ac-sources, right before they're used.")
                   prev-indentation (cdr prev))
             (setq prev-line (web-mode-clean-block-line prev-line)))
            ) ;cond
+
           ) ;let
         (when (>= (length prev-line) 1)
           (setq prev-char (aref prev-line (1- (length prev-line))))
@@ -6270,6 +6275,7 @@ the environment as needed for ac-sources, right before they're used.")
              (chars (list curr-char prev-char)))
 
         ;;(message "%S" ctx)
+        ;;(message "%c %S %c" curr-char prev-line prev-char)
 
         (cond
 
@@ -9662,11 +9668,14 @@ Pos should be in a tag."
     pos))
 
 (defun web-mode-block-args-beginning-position (pos &optional block-beg)
+  ;;(unless pos (setq pos (point)))
   (unless pos (setq pos (point)))
+  (setq pos (1- pos)) ; #0512
   (unless block-beg (setq block-beg (web-mode-block-beginning-position pos)))
   (let (char (continue (not (null pos))))
     (while continue
       (setq char (char-after pos))
+      ;;(message "%S : %c" pos char)
       (cond
        ((< pos block-beg)
         (message "block-args-beginning-position ** failure **")
@@ -10041,19 +10050,9 @@ Pos should be in a tag."
     ) ;block-side
    ((get-text-property (1- pos) 'block-side)
     (setq pos (web-mode-block-beginning-position (1- pos)))
-    ;; (cond
-    ;;  ((or (null pos) (= pos (point-min)))
-    ;;   (setq pos nil)
-    ;;   )
-    ;;  ((and (setq pos (previous-single-property-change pos 'block-beg))
-    ;;        (> pos (point-min)))
-    ;;   (setq pos (1- pos))
-    ;;   )
-    ;;  )
-    ) ;block-side
+    )
    (t
     (setq pos (previous-single-property-change pos 'block-side))
-;;    (message "pos(%S)" pos)
     (cond
      ((and (null pos) (get-text-property (point-min) 'block-beg))
       (setq pos (point-min)))
