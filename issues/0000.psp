@@ -1,23 +1,25 @@
 <span>
 	<?php
 	$xsx = "cxsxd";
-	
+
 	$xsx = "cxsxd";
 	$xsx = "cxsxd";
-	
-	
+
+
 	$xsx = "cxsxd";
 	$xsx = "cxsxd";
 	$xsx = "cxsxd";
 	?>
 </span>
 
-<div class="toto"
+<div class="toto" id="foo" action="bar"></div>
+
+<div class="toto" id="foo" action="bar"
 	id="titi"
 	style="coucou">
 	test
-	
-	
+
+
 	<span>xx</span>
 	<script class="de" >
 	var x;
