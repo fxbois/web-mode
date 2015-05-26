@@ -7663,7 +7663,7 @@ Pos should be in a tag."
       ) ;save-excursion
     (web-mode-go beg)))
 
-(defun web-mode-element-vanish (arg)
+(defun web-mode-element-vanish (&optional arg)
   "Vanish the current html element. The content of the element is kept."
   (interactive "p")
   (let (type (pos (point)) start-b start-e end-b end-e)
@@ -7709,7 +7709,7 @@ Pos should be in a tag."
     ) ;let
   )
 
-(defun web-mode-element-kill (arg)
+(defun web-mode-element-kill (&optional arg)
   "Kill the current html element."
   (interactive "p")
   (while (>= arg 1)
@@ -7720,7 +7720,7 @@ Pos should be in a tag."
     ) ;while
   )
 
-(defun web-mode-element-clone (arg)
+(defun web-mode-element-clone (&optional arg)
   "Clone the current html element."
   (interactive "p")
   (let (col pos)
@@ -10226,12 +10226,13 @@ Pos should be in a tag."
 
 (defun web-mode-attribute-previous ()
   "Fetch previous attribute."
-  (interactive "p")
+  (interactive)
   (web-mode-go (web-mode-attribute-previous-position (point))))
 
-(defun web-mode-element-previous (arg)
+(defun web-mode-element-previous (&optional arg)
   "Fetch previous element."
   (interactive "p")
+  (unless arg (setq arg 1))
   (cond
    ((= arg 1) (web-mode-go (web-mode-element-previous-position (point))))
    ((< arg 1) (web-mode-element-next (* arg -1)))
@@ -10257,9 +10258,10 @@ Pos should be in a tag."
 ;;   (unless ret (goto-char pos))
 ;;   ret))
 
-(defun web-mode-element-next (arg)
+(defun web-mode-element-next (&optional arg)
   "Fetch next element."
   (interactive "p")
+  (unless arg (setq arg 1))
   (cond
    ((= arg 1) (web-mode-go (web-mode-element-next-position (point))))
    ((< arg 1) (web-mode-element-previous (* arg -1)))
