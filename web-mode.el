@@ -9108,12 +9108,25 @@ Pos should be in a tag."
     (point)
     ))
 
-(defun web-mode-attribute-kill ()
+(defun web-mode-attribute-kill (&optional arg)
   "Kill the current html attribute."
-  (interactive)
-  (web-mode-attribute-select)
-  (when mark-active
-    (kill-region (region-beginning) (region-end))))
+  (interactive "p")
+  (unless arg (setq arg 1))
+  (while (>= arg 1)
+    (setq arg (1- arg))
+    (web-mode-attribute-select)
+    (when mark-active
+      (let ((beg (region-beginning)) (end (region-end)))
+        (save-excursion
+          (goto-char end)
+          (when (looking-at "[ \n\t]*")
+            (setq end (+ end (length (match-string-no-properties 0)))))
+          ) ;save-excursion
+        (kill-region beg end)
+        ) ;let
+      ) ;when
+    ) ;while
+  )
 
 (defun web-mode-block-close (&optional pos)
   "Close the first unclosed control block."
