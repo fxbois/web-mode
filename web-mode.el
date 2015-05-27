@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.0
+;; Version: 11.2.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.2.0"
+(defconst web-mode-version "11.2.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -11048,15 +11048,14 @@ Pos should be in a tag."
         )
       )
 
-    (unless web-mode-engine
-      (setq found nil)
-      (dolist (elt web-mode-engines)
-        ;;(message "%S %S" (car elt) buff-name)
-        (when (and (not found) (string-match-p (car elt) buff-name))
-          (setq web-mode-engine (car elt)
-                found t))
-        )
-      )
+    ;; (unless web-mode-engine
+    ;;   (setq found nil)
+    ;;   (dolist (elt web-mode-engines)
+    ;;     (when (and (not found) (string-match-p (car elt) buff-name))
+    ;;       (setq web-mode-engine (car elt)
+    ;;             found t))
+    ;;     )
+    ;;   )
 
     (when (and (or (null web-mode-engine) (string= web-mode-engine "none"))
                (string-match-p "php" (buffer-substring-no-properties
