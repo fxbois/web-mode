@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.1.12
+;; Version: 11.2.0
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.1.12"
+(defconst web-mode-version "11.2.0"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -10232,15 +10232,38 @@ Pos should be in a tag."
   (interactive)
   (web-mode-go (web-mode-attribute-end-position (point)) 1))
 
-(defun web-mode-attribute-next ()
+(defun web-mode-attribute-next (&optional arg)
   "Fetch next attribute."
-  (interactive)
-  (web-mode-go (web-mode-attribute-next-position (point))))
+  (interactive "p")
+  (unless arg (setq arg 1))
+  (cond
+   ((= arg 1) (web-mode-go (web-mode-attribute-next-position (point))))
+   ((< arg 1) (web-mode-element-previous (* arg -1)))
+   (t
+    (while (>= arg 1)
+      (setq arg (1- arg))
+      (web-mode-go (web-mode-attribute-next-position (point)))
+      )
+    )
+   )
+  )
 
-(defun web-mode-attribute-previous ()
+(defun web-mode-attribute-previous (&optional arg)
   "Fetch previous attribute."
-  (interactive)
-  (web-mode-go (web-mode-attribute-previous-position (point))))
+  (interactive "p")
+  (unless arg (setq arg 1))
+  (unless arg (setq arg 1))
+  (cond
+   ((= arg 1) (web-mode-go (web-mode-attribute-previous-position (point))))
+   ((< arg 1) (web-mode-element-next (* arg -1)))
+   (t
+    (while (>= arg 1)
+      (setq arg (1- arg))
+      (web-mode-go (web-mode-attribute-previous-position (point)))
+      )
+    )
+   )
+  )
 
 (defun web-mode-element-previous (&optional arg)
   "Fetch previous element."
