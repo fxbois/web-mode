@@ -160,6 +160,11 @@ See web-mode-part-face."
   :type 'boolean
   :group 'web-mode)
 
+(defcustom web-mode-force-tab-indentation nil
+  "Force tab indentation."
+  :type 'boolean
+  :group 'web-mode)
+
 (defcustom web-mode-enable-sexp-functions t
   "Enable specific sexp functions."
   :type 'boolean
@@ -2264,7 +2269,7 @@ the environment as needed for ac-sources, right before they're used.")
   (when web-mode-enable-whitespace-fontification
     (web-mode-whitespaces-on))
 
-  (when (and (boundp 'indent-tabs-mode) indent-tabs-mode)
+  (when web-mode-force-tab-indentation
     (web-mode-use-tabs))
 
   (when web-mode-enable-sexp-functions
@@ -5898,6 +5903,7 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-use-tabs ()
   "Tweaks vars to be compatible with TAB indentation."
   (let (offset)
+    (setq indent-tabs-mode t)
     (setq web-mode-block-padding 0)
     (setq web-mode-script-padding 0)
     (setq web-mode-style-padding 0)
@@ -5905,7 +5911,7 @@ the environment as needed for ac-sources, right before they're used.")
           (cond
            ((and (boundp 'tab-width) tab-width) tab-width)
            ((and (boundp 'standard-indent) standard-indent) standard-indent)
-           (t 4)))
+           (t 8)))
 ;;    (message "offset(%S)" offset)
     (setq web-mode-attr-indent-offset offset)
     (setq web-mode-code-indent-offset offset)
