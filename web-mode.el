@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.2
+;; Version: 11.2.3
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.2.2"
+(defconst web-mode-version "11.2.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1543,7 +1543,7 @@ Must be used in conjunction with web-mode-enable-block-face."
          '(0 'web-mode-keyword-face))
    (cons (concat "\\<\\(" web-mode-javascript-constants "\\)\\>")
          '(0 'web-mode-constant-face))
-   '("\\<\\(new\\|instanceof\\|class\\) \\([[:alnum:]_.]+\\)\\>" 2 'web-mode-type-face)
+   '("\\<\\(new\\|instanceof\\|class\\|extends\\) \\([[:alnum:]_.]+\\)\\>" 2 'web-mode-type-face)
    '("\\<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
    '("\\<function[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
    '("\\<\\([[:alnum:]_]+\\)([^)]*)[ ]*{" 1 'web-mode-function-name-face)
@@ -3889,7 +3889,7 @@ the environment as needed for ac-sources, right before they're used.")
 ;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)bracket-end
 
 ;; attr flags
-;; (1)custom-attr (2)engine-attr
+;; (1)custom-attr (2)engine-attr (3)spread-attr[jsx]
 
 ;; attr states
 ;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after
@@ -3899,6 +3899,7 @@ the environment as needed for ac-sources, right before they're used.")
 
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0) (brace-depth 0)
         (pos-ori (point)) (state 0) (equal-offset 0) (go-back nil)
+        (is-jsx (= web-mode-content-type "jsx"))
         name-beg name-end val-beg char pos escaped spaced quoted)
 
     (while continue
@@ -4106,8 +4107,7 @@ the environment as needed for ac-sources, right before they're used.")
 
       ) ;while
 
-    (when (> attrs 0)
-      (setq tag-flags (logior tag-flags 1)))
+    (when (> attrs 0) (setq tag-flags (logior tag-flags 1)))
 
     tag-flags))
 
@@ -4255,7 +4255,6 @@ the environment as needed for ac-sources, right before they're used.")
                 ) ;while
               ) ;let
             (goto-char end)
-
             ) ;when
           )
 
@@ -4431,7 +4430,7 @@ the environment as needed for ac-sources, right before they're used.")
   (let ((continue t) beg end)
     (save-excursion
       (goto-char reg-beg)
-;;      (message "reg-beg=%S reg-end=%S" reg-beg reg-end)
+      ;;(message "reg-beg=%S reg-end=%S" reg-beg reg-end)
       (while (and continue (search-forward "{" reg-end t))
         (backward-char)
         (setq beg (point)
@@ -5906,7 +5905,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((and (boundp 'tab-width) tab-width) tab-width)
            ((and (boundp 'standard-indent) standard-indent) standard-indent)
            (t 4)))
-;;    (message "offset(%S)" offset)
+    ;;    (message "offset(%S)" offset)
     (setq web-mode-attr-indent-offset offset)
     (setq web-mode-code-indent-offset offset)
     (setq web-mode-css-indent-offset offset)
@@ -7990,7 +7989,7 @@ Pos should be in a tag."
   "Comment or uncomment line(s), block or region at POS."
   (interactive)
   ;; TODO : if mark is at eol, mark--
-  (if (looking-at-p "[[:space:]]*$")
+  (if (and (not mark-active) (looking-at-p "[[:space:]]*$"))
       (web-mode-comment-insert)
     (when (and (use-region-p) (eq (point) (region-end)))
       (if (bolp) (backward-char))
@@ -8031,10 +8030,11 @@ Pos should be in a tag."
 
       (cond
 
-       ((and block-side
-             (intern-soft (concat "web-mode-comment-" web-mode-engine "-block"))
-             single-line-block)
-        (funcall (intern (concat "web-mode-comment-" web-mode-engine "-block")) pos))
+       ((and single-line-block
+             block-side
+             (intern-soft (concat "web-mode-comment-" web-mode-engine "-block")))
+        (funcall (intern (concat "web-mode-comment-" web-mode-engine "-block")) pos)
+        )
 
        (t
         (setq ctx (web-mode-point-context
@@ -8053,6 +8053,8 @@ Pos should be in a tag."
 
         (setq beg (region-beginning)
               end (region-end))
+
+        ;;(message "%S %S" beg end)
 
         (when (> (point) (mark))
           (exchange-point-and-mark))
