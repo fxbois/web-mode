@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.4
+;; Version: 11.2.5
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.2.4"
+(defconst web-mode-version "11.2.5"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4101,9 +4101,9 @@ the environment as needed for ac-sources, right before they're used.")
       (when (null go-back)
         (forward-char))
 
-      (when (> (setq counter (1+ counter)) 3200)
-        (message "attr-skip ** too much attr ** pos-ori(%S) limit(%S)" pos-ori limit)
-        (setq continue nil))
+      ;;(when (> (setq counter (1+ counter)) 10000000000) ;;3200)
+      ;;  (message "attr-skip ** too much attr ** pos-ori(%S) limit(%S)" pos-ori limit)
+      ;;  (setq continue nil))
 
       ) ;while
 
