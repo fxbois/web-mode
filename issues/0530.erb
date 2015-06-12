@@ -1,0 +1,14 @@
+<%= simple_form_for @post,
+  url: post_url(@post),
+  html: { data: { title: 'post' } } do |f| %>
+  <div class="title">
+  </div>
+<% end %>
+
+
+<%= simple_form_for @user do |f| %>
+  <%= f.input :username, label_html: { class: 'my_class' } %>
+  <%= f.input :password, hint: false, error_html: { id: 'password_error'} %>
+  <%= f.input :password_confirmation, label: false %>
+  <%= f.button :submit %>
+<% end %>
