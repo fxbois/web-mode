@@ -12,3 +12,12 @@
   <%= f.input :password_confirmation, label: false %>
   <%= f.button :submit %>
 <% end %>
+
+
+<%= simple_form_for @post,
+  url: post_url(@post),
+  html: { data: { title: 'post' } } do |f| %>
+  <% label_tag do %>
+    <span></span>
+  <% end %>
+<% end %>
