@@ -3,11 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-<<<<<<< HEAD
-;; Version: 11.2.3
-=======
-;; Version: 11.2.5
->>>>>>> origin/master
+;; Version: 11.2.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -30,11 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-<<<<<<< HEAD
-(defconst web-mode-version "11.2.3"
-=======
-(defconst web-mode-version "11.2.5"
->>>>>>> origin/master
+(defconst web-mode-version "11.2.6"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
