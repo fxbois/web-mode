@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.8
+;; Version: 11.2.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.2.8"
+(defconst web-mode-version "11.2.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3856,7 +3856,7 @@ the environment as needed for ac-sources, right before they're used.")
             (cond
              ((string-match-p " type[ ]*=[ ]*[\"']text/jsx" script)
               (setq element-content-type "jsx"))
-             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|html\\|ng-template\\|template\\)" script)
+             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|html\\|ng-template\\|template\\|mustache\\)" script)
               (setq element-content-type "html"
                     part-close-tag nil))
              ((string-match-p " type[ ]*=[ ]*[\"']application/\\(ld\\+json\\|json\\)" script)
