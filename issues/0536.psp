@@ -1,0 +1,6 @@
+<?php
+
+$someVar = myfunction("this is my really long string"
+                      . "here it continues on the next line");
+
+?>

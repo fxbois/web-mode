@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.10
+;; Version: 11.2.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -663,6 +663,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(("lineup-args"    . t)
     ("lineup-calls"   . t)
     ("lineup-concats" . t)
+    ("lineup-quotes"  . t)
     ))
 
 (defvar web-mode-engines
@@ -6612,9 +6613,10 @@ the environment as needed for ac-sources, right before they're used.")
            (t
             (setq offset (current-column))
             (goto-char pos)
-            (looking-at "\\.[ \t\n]*")
-            (setq offset (- offset (length (match-string-no-properties 0)))))
-           ))
+            (when (cdr (assoc "lineup-quotes" web-mode-indentation-params))
+              (looking-at "\\.[ \t\n]*")
+              (setq offset (- offset (length (match-string-no-properties 0)))))
+            )))
 
          ((and (string= language "jsx")
                (get-text-property pos 'part-element)
