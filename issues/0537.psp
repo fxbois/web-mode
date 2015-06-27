@@ -1,0 +1,17 @@
+<?php
+
+$var = <<<EOTHTML
+
+<script type="text/javascript">
+
+var test;
+
+function initialize()
+{
+  alert(3);
+}
+
+
+</script>
+
+EOTHTML;

@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.11
+;; Version: 11.2.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.2.10"
+(defconst web-mode-version "11.2.12"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5129,10 +5129,15 @@ the environment as needed for ac-sources, right before they're used.")
             (when (and web-mode-enable-heredoc-fontification
                        (eq char ?\<)
                        (> (- end beg) 8)
+                       ;;(progn (message "%S" (buffer-substring-no-properties beg end)) t)
                        (string-match-p "JS\\|JAVASCRIPT\\|HTM\\|CSS" (buffer-substring-no-properties beg end)))
-              (setq keywords (if (eq ?H (char-after (+ beg 3)))
-                                 web-mode-html-font-lock-keywords
-                               web-mode-javascript-font-lock-keywords))
+              (setq keywords
+                    (cond
+                     ((string-match-p "H" (buffer-substring-no-properties beg (+ beg 8)))
+                      web-mode-html-font-lock-keywords)
+                     (t
+                      web-mode-javascript-font-lock-keywords)
+                     ))
               (web-mode-fontify-region beg end keywords)
             ))
 ;;          (message "%S %c %S beg=%S end=%S" web-mode-enable-string-interpolation char web-mode-engine beg end)
