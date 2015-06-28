@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.12
+;; Version: 11.2.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.2.12"
+(defconst web-mode-version "11.2.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6614,6 +6614,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((null (cdr (assoc "lineup-concats" web-mode-indentation-params)))
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ((not (eq curr-char ?\.))
+            ;;(message "%S" (point))
             (setq offset (current-column)))
            (t
             (setq offset (current-column))
@@ -9671,7 +9672,7 @@ Pos should be in a tag."
 (defun web-mode-block-string-beginning-position (pos &optional block-beg)
   (unless pos (setq pos (point)))
   (unless block-beg (setq block-beg (web-mode-block-beginning-position pos)))
-  (let (char (continue (not (null pos))))
+  (let (char (ori pos) (continue (not (null pos))))
     (while continue
       (setq char (char-after pos))
       (cond
@@ -9687,7 +9688,7 @@ Pos should be in a tag."
         (setq pos (web-mode-block-opening-paren-position pos block-beg))
         (setq pos (1- pos))
         )
-       ((member char '(?\( ?\= ?\[ ?\? ?\: ?\; ?\, ?\`))
+       ((and (> ori pos) (member char '(?\( ?\= ?\[ ?\? ?\: ?\; ?\, ?\`)))
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0))))
@@ -9699,6 +9700,7 @@ Pos should be in a tag."
         (setq pos (1- pos)))
        ) ;cond
       ) ;while
+    ;;(message "pos=%S" pos)
     pos))
 
 (defun web-mode-block-statement-beginning-position (pos &optional block-beg)
