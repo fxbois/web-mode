@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.13
+;; Version: 11.2.14
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -6373,10 +6373,10 @@ the environment as needed for ac-sources, right before they're used.")
             )
            ((not (web-mode-tag-beginning))
             )
-           (web-mode-attr-indent-offset
-            (setq offset (+ (current-column) web-mode-attr-indent-offset)))
            ((string-match-p "^/>" curr-line)
             (setq offset (current-column)))
+           (web-mode-attr-indent-offset
+            (setq offset (+ (current-column) web-mode-attr-indent-offset)))
            (t
             (let ((skip (next-single-property-change (point) 'tag-attr)))
               (when skip
