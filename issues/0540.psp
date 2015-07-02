@@ -1,0 +1,17 @@
+<div>
+  <?php
+
+  $query = <<<SQL
+
+select * from a
+where description like '%"some quoted stuff"%'
+
+SQL;
+
+  $query = "
+  SELECT * FROM a
+  where description like '%xx%'";
+
+
+  ?>
+</div>
