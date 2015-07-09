@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.15
+;; Version: 11.2.16
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.2.15"
+(defconst web-mode-version "11.2.16"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -167,6 +167,11 @@ See web-mode-part-face."
 
 (defcustom web-mode-enable-string-interpolation t
   "Enable string interpolation fontification (php and erb)."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-sql-detection nil
+  "Enable fontification and indentation of sql queries in strings."
   :type 'boolean
   :group 'web-mode)
 
@@ -5152,7 +5157,8 @@ the environment as needed for ac-sources, right before they're used.")
                      (> (- end beg) 3))
             (web-mode-interpolate-comment beg end t)
             ) ;when
-          (when (and (eq token-type 'string)
+          (when (and web-mode-enable-sql-detection
+                     (eq token-type 'string)
                      (> (- end beg) 6)
                      ;;(eq char ?\<)
                      ;;(web-mode-looking-at-p (concat "[ \n]*" web-mode-sql-queries) (1+ beg))
@@ -6299,7 +6305,8 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((string= token "string")
           (cond
-           ((web-mode-block-token-starts-with (concat "[ \n]*" web-mode-sql-queries))
+           ((and web-mode-enable-sql-detection
+                 (web-mode-block-token-starts-with (concat "[ \n]*" web-mode-sql-queries)))
             (save-excursion
               (let (col)
                 (web-mode-block-string-beginning)
@@ -6420,13 +6427,6 @@ the environment as needed for ac-sources, right before they're used.")
          ((string= language "ctemplate")
           (setq offset reg-col))
 
-         ((string= language "erb")
-          (setq offset (web-mode-ruby-indentation pos
-                                                  curr-line
-                                                  reg-col
-                                                  curr-indentation
-                                                  reg-beg)))
-
          ((member language '("mako" "web2py"))
           (setq offset (web-mode-python-indentation pos
                                                     curr-line
@@ -6444,7 +6444,8 @@ the environment as needed for ac-sources, right before they're used.")
          ((member language '("lsp" "cl-emb"))
           (setq offset (web-mode-lisp-indentation pos ctx)))
 
-         ((member curr-char '(?\} ?\) ?\]))
+         ((member curr-char '(?\} ?\) ?]))
+          ;;(message "ici")
           (let ((ori (web-mode-opening-paren-position pos)))
             (cond
              ((null ori)
@@ -6464,6 +6465,13 @@ the environment as needed for ac-sources, right before they're used.")
              ) ;cond
             ) ;let
           )
+
+         ((string= language "erb")
+          (setq offset (web-mode-ruby-indentation pos
+                                                  curr-line
+                                                  reg-col
+                                                  curr-indentation
+                                                  reg-beg)))
 
          ((string= language "css")
           (setq offset (car (web-mode-css-indentation pos
@@ -6763,12 +6771,22 @@ the environment as needed for ac-sources, right before they're used.")
   (unless limit (setq limit nil))
   (let (h offset prev-line prev-indentation open-ctx)
     (setq open-ctx (web-mode-bracket-up pos "ruby" limit))
+    ;;(message "%S" open-ctx)
     (if (plist-get open-ctx :pos)
-        (setq offset (1+ (plist-get open-ctx :column)))
+
+        (cond
+         ((web-mode-looking-at-p ".[ \t\n]+" (plist-get open-ctx :pos))
+          ;;(message "ici %S" (plist-get open-ctx :pos))
+          (setq offset (+ (plist-get open-ctx :indentation) language-offset)))
+         (t
+          (setq offset (1+ (plist-get open-ctx :column))))
+         )
+
       (setq h (web-mode-previous-line pos limit))
       (setq offset initial-column)
       (when h
         (setq prev-line (car h))
+        ;;(message "%S" prev-line)
         (setq prev-indentation (cdr h))
         (cond
          ((string-match-p "^\\(end\\|else\\|elsif\\|when\\)" line)
@@ -8381,6 +8399,7 @@ Pos should be in a tag."
 (defun web-mode-looking-at-p (regexp pos)
   (save-excursion
     (goto-char pos)
+    ;;(message "%s %S %S" regexp pos (looking-at-p regexp))
     (looking-at-p regexp)))
 
 (defun web-mode-looking-back (regexp pos)
@@ -10915,6 +10934,9 @@ Pos should be in a tag."
   (with-temp-buffer
     (let (out sig1 sig2 success err)
       (setq-default indent-tabs-mode nil)
+      (if (string-match-p "sql" file)
+          (setq web-mode-enable-sql-detection t)
+        (setq web-mode-enable-sql-detection nil))
       (insert-file-contents file)
       (set-visited-file-name file)
       (web-mode)

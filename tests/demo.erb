@@ -12,6 +12,18 @@
               :class => 'mail') %>
 </div>
 
+<div>
+  <div>
+    <%
+    a = [
+      [1, 2],
+      [3, 4]
+    ]
+    b = 10
+    %>
+  </div>
+</div>
+
 <div id='header'>
   <% if signed_in? -%>
     <%= link_to t('.sign_out'), sign_out_path, :method => :delete %>
