@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.16
+;; Version: 11.2.17
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.2.16"
+(defconst web-mode-version "11.2.17"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1052,7 +1052,8 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("smarty"           . "{[[:alpha:]#$/*\"]")
    '("template-toolkit" . "\\[%.")
    '("underscore"       . "<%")
-   '("velocity"         . "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]")
+   '("velocity"         . "#[[:alpha:]#*]\\|$[[:alpha:]!{]")
+   ;;'("velocity"         . "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]")
    '("web2py"           . "{{"))
   "Engine regexps used to identify blocks.")
 
@@ -1371,7 +1372,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-velocity-keywords
   (eval-when-compile
-    (regexp-opt '("in"))))
+    (regexp-opt '("in" "true" "false"))))
 
 (defvar web-mode-freemarker-keywords
   (eval-when-compile
@@ -1607,8 +1608,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-velocity-font-lock-keywords
   (list
-   '("#\\([[:alpha:]_]+\\)\\>" (1 'web-mode-block-control-face))
-   (cons (concat "[ ]\\(" web-mode-velocity-keywords "\\)[ ]") '(1 'web-mode-keyword-face t t))
+   '("#{?\\([[:alpha:]_]+\\)\\>" (1 'web-mode-block-control-face))
+   (cons (concat "\\<\\(" web-mode-velocity-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
+   ;;(cons (concat "[ ]\\(" web-mode-velocity-keywords "\\)[ ]") '(1 'web-mode-keyword-face t t))
    '("#macro([ ]*\\([[:alpha:]]+\\)[ ]+" 1 'web-mode-function-name-face)
    '("[.]\\([[:alnum:]_-]+\\)" 1 'web-mode-variable-name-face)
    '("\\<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
@@ -3705,11 +3707,11 @@ the environment as needed for ac-sources, right before they're used.")
 
        ((string= web-mode-engine "velocity")
         (cond
-         ((web-mode-block-starts-with "end" reg-beg)
+         ((web-mode-block-starts-with "{?end" reg-beg)
           (setq controls (append controls (list (cons 'close "ctrl")))))
-         ((web-mode-block-starts-with "els" reg-beg)
+         ((web-mode-block-starts-with "{?els" reg-beg)
           (setq controls (append controls (list (cons 'inside "ctrl")))))
-         ((web-mode-block-starts-with "define\\|if\\|for\\|foreach\\|macro" reg-beg)
+         ((web-mode-block-starts-with "{?\\(define\\|if\\|for\\|foreach\\|macro\\)" reg-beg)
           (setq controls (append controls (list (cons 'open "ctrl")))))
          )
         ) ;velocity
@@ -9217,6 +9219,7 @@ Pos should be in a tag."
    ((string= web-mode-engine "erb")               "<% end %>")
    ((string= web-mode-engine "go")                "{{end}}")
    ((string= web-mode-engine "velocity")          "#end")
+   ((string= web-mode-engine "velocity")          "#{end}")
    ((string= web-mode-engine "template-toolkit")  "[% end %]")
    ((member web-mode-engine '("asp" "jsp"))
     (if (string-match-p ":" type) (concat "</" type ">") "<% } %>")
