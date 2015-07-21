@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 11.2.17
+;; Version: 11.2.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "11.2.17"
+(defconst web-mode-version "11.2.18"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4175,9 +4175,14 @@ the environment as needed for ac-sources, right before they're used.")
 
       (cond
        ((member content-type '("javascript" "json"))
-        (setq token-re "//\\|/\\*\\|\"\\|'\\|`"))
+        (setq token-re "/\\|\"\\|'\\|`")
+        ;;(setq token-re "//\\|/\\*\\|\"\\|'\\|`")
+        )
        ((member content-type '("jsx"))
-        (setq token-re "//\\|/\\*\\|\"\\|'\\|`\\|</?[[:alpha:]]"))
+        ;; regexp if preceding : (,=:[!&|?{};
+        (setq token-re "/\\|\"\\|'\\|`\\|</?[[:alpha:]]")
+        ;;(setq token-re "//\\|/\\*\\|\"\\|'\\|`\\|</?[[:alpha:]]")
+        )
        ((string= content-type "css")
         (setq token-re "/\\*"))
        (t
@@ -4269,6 +4274,27 @@ the environment as needed for ac-sources, right before they're used.")
             ) ;when
           )
 
+         ((and (eq ?\/ ch-at) (member content-type '("javascript" "jsx")))
+          ;;(message "%S" (point))
+          (cond
+           ((eq ?\\ ch-before)
+            )
+           ((eq ?\* ch-next)
+            (when (search-forward "*/" reg-end t)
+              (setq token-type 'comment))
+            )
+           ((eq ?\/ ch-next)
+            (setq token-type 'comment)
+            (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
+            )
+           ((and (looking-at-p ".*/")
+                 (looking-back "[[(,=:!&|?{};][ ]*/")
+                 (re-search-forward "/[gimy]*" reg-end t))
+            (setq token-type 'string)
+            )
+           ) ;cond
+          )
+
          ((eq ?\/ ch-next)
           (unless (eq ?\\ ch-before)
             (setq token-type 'comment)
@@ -4278,16 +4304,12 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((eq ?\* ch-next)
           (cond
-           ((and (member content-type '("javascript" "jsx"))
-                 (looking-back "[(=][ ]*..")
-                 (looking-at-p "[^*]*/[gimy]*"))
-            (setq token-type 'string)
-            (re-search-forward "/[gimy]*" reg-end t))
-           ;; ((unless (eq ?\\ ch-before))
-           ;;  (message "la%S" (point))
-           ;;  (setq token-type 'comment)
-           ;;  (search-forward "*/" reg-end t)
-           ;;  ) ;unless
+           ;;((and (member content-type '("javascript" "jsx"))
+           ;;      (looking-back "[(=][ ]*..")
+           ;;      (looking-at-p "[^*]*/[gimy]*"))
+           ;; (setq token-type 'string)
+           ;; (re-search-forward "/[gimy]*" reg-end t)
+           ;; )
            ((search-forward "*/" reg-end t)
             (setq token-type 'comment))
            (t
@@ -4295,18 +4317,18 @@ the environment as needed for ac-sources, right before they're used.")
            ) ;cond
           )
 
-         ((and (member content-type '("javascript" "jsx"))
-               (eq ?\/ ch-at)
-               (progn (or (bobp) (backward-char)) t)
-               (looking-back "[(=][ ]*/")
-               (looking-at-p ".+/"))
-          (while (and continue (search-forward "/" reg-end t))
-            (setq continue (or (get-text-property (1- (point)) 'block-side)
-                               (eq ?\\ (char-before (1- (point))))))
-            )
-          (setq token-type 'string)
-          (skip-chars-forward "gimy")
-          )
+         ;; ((and (member content-type '("javascript" "jsx"))
+         ;;       (eq ?\/ ch-at)
+         ;;       (progn (or (bobp) (backward-char)) t)
+         ;;       (looking-back "[(=][ ]*/")
+         ;;       (looking-at-p ".+/"))
+         ;;  (while (and continue (search-forward "/" reg-end t))
+         ;;    (setq continue (or (get-text-property (1- (point)) 'block-side)
+         ;;                       (eq ?\\ (char-before (1- (point))))))
+         ;;    )
+         ;;  (setq token-type 'string)
+         ;;  (skip-chars-forward "gimy")
+         ;;  )
 
          ) ;cond
 
