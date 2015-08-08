@@ -20,6 +20,7 @@ export default React.createClass({
 });
 
 
+
 'use strict';
 
 var React = require('react'),
@@ -61,6 +62,39 @@ module.exports = React.createClass({
     );
   }
 });
+
+module.exports = React.createClass({
+  render() {
+    return (
+      <List header={<ListHeader />} footer={<ListFooter />} />
+    );
+  }
+});
+
+module.exports = React.createClass({
+  render() {
+    return (
+      <tag>
+        bla { <inside> { <ListHeader /> } </inside> } bla
+      </tag>
+    );
+  }
+});
+
+module.exports = React.createClass({
+  render() {
+    return (
+      <ul>
+        {
+          this.props.list.map(function(element) {
+            return <li>{element}</li>;
+          })
+         }
+      </ul>
+    );
+  }
+});
+
 
 Landing = React.createClass({
   render: function() {
