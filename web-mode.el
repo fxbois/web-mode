@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.0.1
+;; Version: 12.0.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.0.1"
+(defconst web-mode-version "12.0.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7081,23 +7081,26 @@ the environment as needed for ac-sources, right before they're used.")
          (types '(start end void)))
     (while continue
       (forward-line -1)
-      (back-to-indentation)
-      (setq pos (point))
-      (setq continue (not (or (bobp)
-                              (and (null part-side)
-                                   (null (get-text-property pos 'part-side))
-                                   (get-text-property pos 'tag-beg)
-                                   (member (get-text-property pos 'tag-type) types)
-                                   (null (get-text-property (1- pos) 'invisible)))
-                              (and part-side
-                                   (get-text-property pos 'part-side)
-                                   (get-text-property pos 'tag-beg)
-                                   (member (get-text-property pos 'tag-type) types)
-                                   (null (get-text-property (1- pos) 'invisible)))
-                              (and (get-text-property pos 'block-beg)
-                                   (not (get-text-property pos 'tag-type))
-                                   (web-mode-block-is-control pos)
-                                   (not (looking-at-p "{% comment"))))))
+      (if (bobp)
+          (setq pos (point)
+                continue nil)
+        (back-to-indentation)
+        (setq pos (point))
+        (setq continue (not (or (and (null part-side)
+                                     (null (get-text-property pos 'part-side))
+                                     (get-text-property pos 'tag-beg)
+                                     (member (get-text-property pos 'tag-type) types)
+                                     (null (get-text-property (1- pos) 'invisible)))
+                                (and part-side
+                                     (get-text-property pos 'part-side)
+                                     (get-text-property pos 'tag-beg)
+                                     (member (get-text-property pos 'tag-type) types)
+                                     (null (get-text-property (1- pos) 'invisible)))
+                                (and (get-text-property pos 'block-beg)
+                                     (not (get-text-property pos 'tag-type))
+                                     (web-mode-block-is-control pos)
+                                     (not (looking-at-p "{% comment"))))))
+        ) ;if
       ) ;while
     ;;(message "indent-origin=%S" pos)
     pos))
