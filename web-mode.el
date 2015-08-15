@@ -1977,7 +1977,8 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defvar web-mode-syntax-table
   (let ((table (make-syntax-table)))
-    (modify-syntax-entry ?_ "w" table)
+    (modify-syntax-entry ?_ "_" table) ;; #563
+    ;;(modify-syntax-entry ?_ "w" table)
     (modify-syntax-entry ?< "." table)
     (modify-syntax-entry ?> "." table)
     (modify-syntax-entry ?& "." table)
