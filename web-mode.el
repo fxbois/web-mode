@@ -2388,6 +2388,19 @@ the environment as needed for ac-sources, right before they're used.")
           (setq delim-close "?>")
           ) ;php
 
+         ((string= web-mode-engine "erb")
+          (cond
+           ((string= sub2 "<%")
+            (setq closing-string '("<%". "%>") ;;"%>"
+                  delim-open "<%[=-]?"
+                  delim-close "[-]?%>")
+            )
+           (t
+            (setq closing-string "EOL"
+                  delim-open "%"))
+           )
+          ) ;erb
+
          ((string= web-mode-engine "django")
           (cond
            ((string= sub2 "{{")
@@ -2408,19 +2421,6 @@ the environment as needed for ac-sources, right before they're used.")
                 delim-open "<%[=-]?"
                 delim-close "[-]?%>")
           ) ;ejs
-
-         ((string= web-mode-engine "erb")
-          (cond
-           ((string= sub2 "<%")
-            (setq closing-string "%>"
-                  delim-open "<%[=-]?"
-                  delim-close "[-]?%>")
-            )
-           (t
-            (setq closing-string "EOL"
-                  delim-open "%"))
-           )
-          ) ;erb
 
          ((string= web-mode-engine "lsp")
           (setq closing-string "%>"
@@ -8183,6 +8183,58 @@ Pos should be in a tag."
 
       ))
 
+(defun web-mode-comment-ejs-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos "//" (+ beg 2))))
+
+(defun web-mode-comment-erb-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos "#" (+ beg 2))))
+
+(defun web-mode-comment-django-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos "#" end)
+    (web-mode-insert-text-at-pos "#" (1+ beg))))
+
+(defun web-mode-comment-dust-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos "!" end)
+    (web-mode-insert-text-at-pos "!" (1+ beg))))
+
+(defun web-mode-comment-aspx-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos "#" end)
+    (web-mode-insert-text-at-pos "#" (1+ beg))))
+
+(defun web-mode-comment-jsp-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos "--" (+ beg 2))))
+
+(defun web-mode-comment-go-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos "/" (+ beg 2))))
+
+(defun web-mode-comment-php-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos "*/" (- end 1))
+    (web-mode-insert-text-at-pos "/*" (+ beg (if (web-mode-looking-at "<\\?php" beg) 5 3)))))
+
 (defun web-mode-comment-boundaries (&optional pos)
   (interactive)
   (unless pos (setq pos (point)))
@@ -8255,65 +8307,16 @@ Pos should be in a tag."
        ) ;cond
       (indent-according-to-mode))))
 
-(defun web-mode-comment-ejs-block (pos)
+(defun web-mode-uncomment-erb-block (pos)
   (let (beg end)
     (setq beg (web-mode-block-beginning-position pos)
           end (web-mode-block-end-position pos))
-    (web-mode-insert-text-at-pos "//" (+ beg 2))))
-
-(defun web-mode-comment-erb-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-insert-text-at-pos "#" (+ beg 2))))
-
-(defun web-mode-comment-django-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-insert-text-at-pos "#" end)
-    (web-mode-insert-text-at-pos "#" (1+ beg))))
-
-(defun web-mode-comment-dust-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-insert-text-at-pos "!" end)
-    (web-mode-insert-text-at-pos "!" (1+ beg))))
-
-(defun web-mode-comment-aspx-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-insert-text-at-pos "#" end)
-    (web-mode-insert-text-at-pos "#" (1+ beg))))
-
-(defun web-mode-comment-jsp-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-insert-text-at-pos "--" (+ beg 2))))
-
-(defun web-mode-comment-go-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-insert-text-at-pos "/" (+ beg 2))))
-
-(defun web-mode-comment-php-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-insert-text-at-pos "*/" (- end 1))
-    (web-mode-insert-text-at-pos "/*" (+ beg (if (web-mode-looking-at "<\\?php" beg) 5 3)))))
+    (web-mode-remove-text-at-pos 2 (1- end))
+    (web-mode-remove-text-at-pos 3 beg)
+    )
+  )
 
 (defun web-mode-uncomment-ejs-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
-    (web-mode-remove-text-at-pos 1 (+ beg 2))))
-
-(defun web-mode-uncomment-erb-block (pos)
   (let (beg end)
     (setq beg (web-mode-block-beginning-position pos)
           end (web-mode-block-end-position pos))
