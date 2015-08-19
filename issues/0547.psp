@@ -1,0 +1,18 @@
+<span>
+  <?php
+  class Foo {
+    public function bar() {
+      SomeClass::someFunction(function () {
+        $a = "foo";
+        return true;
+      }):
+
+      SomeOtherClass::someOtherFunction($someArg, $anotherArg,
+                                        function () {
+                                          $a = "foo";
+                                          return true;
+                                        }):
+    }
+  }
+  ?>
+</span>

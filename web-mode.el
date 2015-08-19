@@ -6676,9 +6676,7 @@ the environment as needed for ac-sources, right before they're used.")
 
          ) ;cond
 
-        ;;(message "offset=%S" offset)
         (when (and offset reg-col (< offset reg-col)) (setq offset reg-col))
-        ;;(message "offset=%S" offset)
 
         ) ;let
       ) ;save-excursion
@@ -6759,6 +6757,7 @@ the environment as needed for ac-sources, right before they're used.")
            (indentation (plist-get ctx :indentation)))
       ;;(message "pos(%S) initial-column(%S) language-offset(%S) language(%S) limit(%S)" pos initial-column language-offset language limit)
       ;;(message "bracket-up: %S, %c" ctx char)
+      ;;(message "bracket-up: %S" ctx)
       (cond
        ((null pos)
         (setq indentation initial-column))
@@ -6958,7 +6957,6 @@ the environment as needed for ac-sources, right before they're used.")
       )))
 
 (defun web-mode-clean-part-line (input)
-  "Remove comments and server scripts."
   (let ((out "")
         (beg 0)
         (keep t)
@@ -6979,7 +6977,6 @@ the environment as needed for ac-sources, right before they're used.")
     (if (> beg 0) (setq out (concat out (substring input beg n))))
     (setq out (if (= (length out) 0) input out))
     (web-mode-trim out)
-    ;;    (message "%S [%s] > [%s]" beg input out)
     ))
 
 (defun web-mode-clean-block-line (input)
