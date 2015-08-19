@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.0.2
+;; Version: 12.0.3
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.0.2"
+(defconst web-mode-version "12.0.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8073,8 +8073,7 @@ Pos should be in a tag."
 
       (cond
 
-       ((and single-line-block
-             block-side
+       ((and single-line-block block-side
              (intern-soft (concat "web-mode-comment-" web-mode-engine "-block")))
         (funcall (intern (concat "web-mode-comment-" web-mode-engine "-block")) pos)
         )
@@ -8097,8 +8096,6 @@ Pos should be in a tag."
         (setq beg (region-beginning)
               end (region-end))
 
-        ;;(message "%S %S" beg end)
-
         (when (> (point) (mark))
           (exchange-point-and-mark))
 
@@ -8106,12 +8103,7 @@ Pos should be in a tag."
                  (not (eq (char-after end) ?\n)))
             (setq end (1- end)))
 
-;;        (setq sel (web-mode-trim (buffer-substring-no-properties beg end)))
         (setq sel (buffer-substring-no-properties beg end))
-
-        ;;(web-mode-with-silent-modifications
-        ;; (delete-region beg end))
-        ;;(deactivate-mark)
 
         (cond
 
@@ -8142,9 +8134,7 @@ Pos should be in a tag."
             (setq alt (cdr (assoc language web-mode-comment-formats)))
             (if (and alt (not (string= alt "/*")))
                 (setq content (replace-regexp-in-string "^[ ]*" alt sel))
-              ;;(message "before")
               (setq content (concat "/* " sel " */"))
-              ;;(message "after")
               ) ;if
             )
           )
@@ -8160,26 +8150,19 @@ Pos should be in a tag."
 
          ) ;cond
 
+        (delete-region beg end)
+        (deactivate-mark)
+        (let (beg end)
+          (setq beg (point-at-bol))
+          (insert content)
+          (setq end (point-at-eol))
+          (indent-region beg end)
+          )
+
         ) ;t
        ) ;cond
 
-      ;;(web-mode-with-silent-modifications
-      (delete-region beg end)
-      (deactivate-mark)
-      ;;)
-      ;;(web-mode-insert-and-indent content)
-      (let (beg end)
-        (setq beg (point-at-bol))
-        (insert content)
-        (setq end (point-at-eol))
-        (indent-region beg end)
-        )
-
-      ;;(when content (web-mode-insert-and-indent content))
-
       (when pos-after (goto-char pos-after))
-
-      ;;      (message "END")
 
       ))
 
@@ -8311,8 +8294,12 @@ Pos should be in a tag."
   (let (beg end)
     (setq beg (web-mode-block-beginning-position pos)
           end (web-mode-block-end-position pos))
-    (web-mode-remove-text-at-pos 2 (1- end))
-    (web-mode-remove-text-at-pos 3 beg)
+    (if (string-match-p "<[%[:alpha:]]" (buffer-substring-no-properties (+ beg 2) (- end 2)))
+        (progn
+          (web-mode-remove-text-at-pos 2 (1- end))
+          (web-mode-remove-text-at-pos 3 beg))
+      (web-mode-remove-text-at-pos 1 (+ beg 2))
+      ) ;if
     )
   )
 
