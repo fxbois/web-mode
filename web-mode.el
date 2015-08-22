@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.0.3
+;; Version: 12.0.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.0.3"
+(defconst web-mode-version "12.0.4"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4414,7 +4414,7 @@ the environment as needed for ac-sources, right before they're used.")
          ((> (setq i (1+ i)) 100)
           (message "jsx-skip-forward ** warning **")
           (setq continue nil))
-         ((not (web-mode-dom-rsf ">\\([ \t\n]*[\];,)']\\)\\|{" reg-end))
+         ((not (web-mode-dom-rsf ">\\([ \t\n]*[\];,)':]\\)\\|{" reg-end))
           (setq continue nil)
           (when (string= web-mode-content-type "jsx")
             (setq pos (point-max)))
