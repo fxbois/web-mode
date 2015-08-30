@@ -27,7 +27,7 @@
     <div><?=$obj->show(array('url' => DOC_URL,
                              'port' => "xx $var zz"))?><img src=""/></div>
     <section><span-custom>hello</span-custom>
-      <span>world</span><!-- comment -->
+      <span>world &#8211; and &eacute;</span><!-- comment -->
     </section>
   </body>
 </html>

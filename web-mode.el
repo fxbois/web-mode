@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.1.0
+;; Version: 12.1.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.1.0"
+(defconst web-mode-version "12.1.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -140,6 +140,11 @@
 
 (defcustom web-mode-enable-whitespace-fontification nil
   "Enable whitespaces."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-html-entities-fontification nil
+  "Enable html entities fontification."
   :type 'boolean
   :group 'web-mode)
 
@@ -600,6 +605,12 @@ Must be used in conjunction with web-mode-enable-block-face."
   '((t :weight bold :slant italic))
   "Sql keywords."
   :group 'web-mode-faces)
+
+(defface web-mode-html-entity-face
+  '((t :slant italic))
+  "Face html entities (e.g. &#8211;, &eacute;)."
+  :group 'web-mode-faces)
+
 
 ;;---- VARS --------------------------------------------------------------------
 
@@ -2200,6 +2211,7 @@ the environment as needed for ac-sources, right before they're used.")
   (make-local-variable 'web-mode-inhibit-fontification)
   (make-local-variable 'web-mode-display-table)
   (make-local-variable 'web-mode-enable-block-face)
+  ;;(make-local-variable 'web-mode-enable-html-entities-fontification)
   (make-local-variable 'web-mode-enable-inlays)
   (make-local-variable 'web-mode-enable-part-face)
   (make-local-variable 'web-mode-enable-sexp-functions)
@@ -4951,6 +4963,18 @@ the environment as needed for ac-sources, right before they're used.")
                      (setq end (match-end 0))
                      (not (text-property-any beg end 'tag-end t)))
             (font-lock-append-text-property beg end 'font-lock-face 'web-mode-inlay-face)
+            ) ;when
+          ) ;while
+        ) ;let
+      ) ;when
+    (when web-mode-enable-html-entities-fontification
+      (let (beg end)
+        (goto-char reg-beg)
+        (while (web-mode-dom-rsf "&\\([#]?[[:alnum:]]\\{2,8\\}\\);" reg-end)
+          (setq beg (match-beginning 0)
+                end (match-end 0))
+          (when (not (text-property-any beg end 'tag-end t))
+            (font-lock-append-text-property beg end 'font-lock-face 'web-mode-html-entity-face)
             ) ;when
           ) ;while
         ) ;let
