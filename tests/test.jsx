@@ -13,7 +13,7 @@ export default React.createClass({
   render(): any {
     return
     <div>
-      Your dice roll:
+      Your dice roll :
       {this.state.num}
     </div>;
   }
@@ -89,7 +89,7 @@ module.exports = React.createClass({
           this.props.list.map(function(element) {
             return <li>{element}</li>;
           })
-         }
+        }
       </ul>
     );
   }
