@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.1.1
+;; Version: 12.1.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.1.1"
+(defconst web-mode-version "12.1.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4394,7 +4394,7 @@ the environment as needed for ac-sources, right before they're used.")
 
 
       (when (= depth 1)
-        (put-text-property reg-beg reg-end 'jsx-element depth)
+        (put-text-property reg-beg reg-end 'jsx-element t)
         (put-text-property (1- reg-end) reg-end 'jsx-element 1)
         ;;(put-text-property reg-beg (1+ reg-beg) 'jsx-expr-beg 0)
         ;;(put-text-property (1- reg-end) reg-end 'jsx-expr-end 0)
@@ -6869,12 +6869,21 @@ the environment as needed for ac-sources, right before they're used.")
   (save-excursion
     (goto-char pos)
     (let ((offset 0) beg ret)
-      (when (setq beg (web-mode-markup-indentation-origin))
+      (setq beg (web-mode-markup-indentation-origin))
+      (when beg
+
+        (when (and (get-text-property pos 'jsx-depth)
+                   (not (get-text-property beg 'jsx-depth)))
+          ;;(message "change beg")
+          (goto-char pos)
+          (setq beg (previous-single-property-change pos 'jsx-depth))
+          )
+
+        ;;(message "%S" beg)
         (goto-char beg)
         (setq ret (web-mode-element-is-opened beg pos))
         (cond
          ((null ret)
-          ;;(message "ind=%S col=%S" (current-indentation) (current-column))
           (setq offset (current-indentation)))
          ((eq ret t)
           (setq offset (+ (current-indentation) web-mode-markup-indent-offset)))
