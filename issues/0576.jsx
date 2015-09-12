@@ -1,7 +1,7 @@
 var MyClass = react.createClass({
   render: function() {
     var hello = <div>
-  <hello></hello>
+      <hello></hello>
     </div>;
     return hello;
   }
