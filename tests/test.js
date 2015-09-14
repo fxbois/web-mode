@@ -1,6 +1,11 @@
 var cs = {completed: this.props.todo.completed,
           editing: this.props.editing};
 
+const f = (x) =>
+  x + 1;
+
+var str = "toto";
+
 return {
   nowShowing: Const.ALL_TODOS,
   editing: null
