@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.2.5
+;; Version: 12.2.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.2.5"
+(defconst web-mode-version "12.2.6"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8972,12 +8972,16 @@ Pos should be in a tag."
             web-mode-expand-initial-scroll nil))
 
     (when (member this-command '(yank))
-      (setq web-mode-inhibit-fontification nil)
-      ;;(web-mode-font-lock-highlight web-mode-change-end)
-      (when (and web-mode-change-beg web-mode-change-end)
-        (save-excursion
-          (font-lock-fontify-region web-mode-change-beg web-mode-change-end)
-          ))
+      (let ((beg web-mode-change-beg) (end web-mode-change-end))
+        ;;(message "%S %S" web-mode-change-beg web-mode-change-end)
+        (setq web-mode-inhibit-fontification nil)
+        (when (and web-mode-change-beg web-mode-change-end)
+          (save-excursion
+            (font-lock-fontify-region web-mode-change-beg web-mode-change-end))
+          (when web-mode-enable-auto-indentation
+            (indent-region beg end))
+          ) ; and
+        )
       )
 
     (when (< (point) 16)
