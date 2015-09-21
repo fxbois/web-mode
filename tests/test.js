@@ -6,6 +6,10 @@ const f = (x) =>
 
 var str = "toto";
 
+'test/1'.match(/[a-z]+[0-9]+/g);
+
+'test/1'.match(/[a-z]+\/[0-9]+/ug);
+
 return {
   nowShowing: Const.ALL_TODOS,
   editing: null

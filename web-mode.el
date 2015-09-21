@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.2.6
+;; Version: 12.2.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.2.6"
+(defconst web-mode-version "12.2.7"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4296,9 +4296,22 @@ the environment as needed for ac-sources, right before they're used.")
             (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
             )
            ((and (looking-at-p ".*/")
-                 (looking-back "[[(,=:!&|?{};][ ]*/")
-                 (re-search-forward "/[gimyu]*" reg-end t))
-            (setq token-type 'string)
+                 (looking-back "[[(,=:!&|?{};][ ]*/"))
+                 ;;(re-search-forward "/[gimyu]*" reg-end t))
+            (let ((eol (line-end-position)))
+              (while (and continue (search-forward "/" eol t))
+                (cond
+                 ((get-text-property (1- (point)) 'block-side)
+                  (setq continue t))
+                 ((looking-back "\\\\+/" reg-beg t)
+                  (setq continue (= (mod (- (point) (match-beginning 0)) 2) 0)))
+                 (t
+                  (re-search-forward "[gimyu]*" eol t)
+                  (setq token-type 'string)
+                  (setq continue nil))
+                 )
+                ) ;while
+              ) ;let
             )
            ) ;cond
           )
