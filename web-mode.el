@@ -6568,7 +6568,7 @@ the environment as needed for ac-sources, right before they're used.")
             (setq offset (current-column)))
            (web-mode-attr-indent-offset
             (setq offset (+ (current-column) web-mode-attr-indent-offset)))
-           ((looking-at (concat web-mode-start-tag-regexp "\n"))
+           ((looking-at-p (concat web-mode-start-tag-regexp "[ ]*\n"))
             (setq offset (+ (current-column)
                             (or web-mode-attr-indent-offset 4)))
             )
