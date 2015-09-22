@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.2.7
+;; Version: 12.2.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.2.7"
+(defconst web-mode-version "12.2.8"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6564,10 +6564,14 @@ the environment as needed for ac-sources, right before they're used.")
             )
            ((not (web-mode-tag-beginning))
             )
-           ((string-match-p "^/>" curr-line)
+           ((string-match-p "^/?>" curr-line)
             (setq offset (current-column)))
            (web-mode-attr-indent-offset
             (setq offset (+ (current-column) web-mode-attr-indent-offset)))
+           ((looking-at (concat web-mode-start-tag-regexp "\n"))
+            (setq offset (+ (current-column)
+                            (or web-mode-attr-indent-offset 4)))
+            )
            ((web-mode-attribute-next)
             (setq offset (current-column)))
            ;;(t
