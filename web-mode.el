@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.2.8
+;; Version: 12.2.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.2.8"
+(defconst web-mode-version "12.2.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6845,7 +6845,7 @@ the environment as needed for ac-sources, right before they're used.")
                          (get-text-property (1- pos) 'part-expr))))
           (setq offset (web-mode-markup-indentation pos)))
 
-         ((member language '("javascript" "jsx" "ejs"))
+         ((member language '("javascript" "jsx" "ejs" "underscore"))
           (setq offset (car (web-mode-javascript-indentation pos
                                                              reg-col
                                                              curr-indentation
