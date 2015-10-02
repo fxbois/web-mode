@@ -1508,7 +1508,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (cdr (assoc "javascript" web-mode-extra-keywords))
     '("break" "case" "catch" "class" "const" "continue"
       "debugger" "default" "delete" "do" "else" "enum" "eval"
-      "export" "extends" "finally" "for" "function" "if"
+      "export" "extends" "finally" "for" "from" "function" "if"
       "implements" "import" "in" "instanceof" "interface" "let"
       "new" "package" "private" "protected" "public"
       "return" "static" "super" "switch" "throw"
