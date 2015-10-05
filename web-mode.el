@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.2.10
+;; Version: 12.2.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.2.10"
+(defconst web-mode-version "12.2.11"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6633,18 +6633,26 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((member curr-char '(?\} ?\) ?]))
 
-          (let ((ori (web-mode-opening-paren-position pos)))
+          ;; TODO: create web-mode-part-opening-paren-position
+          (let (ori)
+            (if (get-text-property pos 'block-side)
+                (setq ori (web-mode-block-opening-paren-position pos reg-beg))
+              (setq ori (web-mode-opening-paren-position pos)))
+            ;;(message "pos=%S reg-beg=%S ori=%S" pos reg-beg ori)
             (cond
              ((null ori)
-              (message "indent-line ** invalid closing bracket (%S) **" pos)
+              ;;(message "indent-line ** invalid closing bracket (%S) **" pos)
               (setq offset reg-col))
-             ((and (looking-back ")[ ]*") ;; peut-on se passer du looking-back ?
+             ((and (goto-char ori)
+                   (looking-back ")[ ]*") ;; peut-on se passer du looking-back ?
                    (re-search-backward ")[ ]*" nil t)
+                   ;;(progn (message "point=%S" (point)) t)
                    (web-mode-block-opening-paren reg-beg))
               (back-to-indentation)
               (setq offset (current-indentation))
               )
              (t
+              ;;(message "ori=%S" ori)
               (goto-char ori)
               (back-to-indentation)
               (setq offset (current-indentation))
@@ -9950,18 +9958,25 @@ Pos should be in a tag."
 
 (defun web-mode-block-opening-paren-position (pos limit)
   (save-excursion
+    (when (> limit pos)
+      (message "block-opening-paren-position: limit(%S) > pos(%S)" limit pos))
     (goto-char pos)
     (let (c
           n
           pt
-          (continue t)
+          (continue (> pos limit))
           (pairs '((")" . "(")
                    ("]" . "[")
                    ("}" . "{")))
           (h (make-hash-table :test 'equal))
           (regexp "[\]\[)(}{]"))
       (while (and continue (re-search-backward regexp limit t))
-        (unless (web-mode-is-comment-or-string)
+        (cond
+         ;;((> limit (point))
+         ;; (setq continue nil))
+         ((web-mode-is-comment-or-string)
+          )
+         (t
           (setq c (string (char-after)))
           (cond
            ((member c '("(" "{" "["))
@@ -9976,7 +9991,8 @@ Pos should be in a tag."
             (setq n (gethash c h 0))
             (puthash c (1- n) h))
            ) ;cond
-          ) ;unless
+          ) ;t
+         ) ;cond
         ) ;while
       pt)))
 

@@ -1,0 +1,15 @@
+<?
+while (1) {
+?>
+<?
+}
+?>
+<div>
+  <?php
+  if ( empty($id) ||
+       empty($name) ) {
+    $this->renderNothing( "organisation_name" );
+    return;
+  }
+  ?>
+</div>
