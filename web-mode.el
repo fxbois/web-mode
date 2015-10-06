@@ -6523,6 +6523,14 @@ the environment as needed for ac-sources, right before they're used.")
               (setq offset (+ offset 3)))
              ) ;cond
             )
+           ((string= (buffer-substring-no-properties (point) (+ (point) 4)) "<!--")
+            (cond
+             ((eq ?\- curr-char)
+              (setq offset (+ offset 3)))
+             (t
+              (setq offset (+ offset 5)))
+             ) ;cond
+            )
            ((and (string= web-mode-engine "django") (looking-back "{% comment %}"))
             (setq offset (- offset 12)))
            ((and (string= web-mode-engine "mako") (looking-back "<%doc%>"))
