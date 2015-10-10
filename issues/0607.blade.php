@@ -6,7 +6,7 @@
   </head>
   <body>
     {!! Navbar::top()
-    ->withBrand('BoardSoc') !!}
+              ->withBrand('BoardSoc') !!}
 
     <div>
       {!!

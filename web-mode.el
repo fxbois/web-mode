@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.2
+;; Version: 12.3.3
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.2"
+(defconst web-mode-version "12.3.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6816,13 +6816,19 @@ the environment as needed for ac-sources, right before they're used.")
            ))
 
 
-         ((and (string= language "php") (string-match-p "^->" curr-line))
+         ((and (member language '("php" "blade")) (string-match-p "^->" curr-line))
           (cond
            ((not (web-mode-block-calls-beginning pos reg-beg))
             )
            ((cdr (assoc "lineup-calls" web-mode-indentation-params))
-            (search-forward "->")
-            (setq offset (- (current-column) 2)))
+            ;;(message "%S" (point))
+            (if (looking-back "::[ ]*")
+                (progn
+                  (search-backward "::")
+                  (setq offset (current-column)))
+              (search-forward "->")
+              (setq offset (- (current-column) 2)))
+            )
            (t
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ))
