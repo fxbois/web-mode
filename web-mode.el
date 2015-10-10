@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.0
+;; Version: 12.3.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.0"
+(defconst web-mode-version "12.3.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1065,7 +1065,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("python"           . "<\\?")
    '("razor"            . "@.\\|^[ \t]*}")
    '("smarty"           . "{[[:alpha:]#$/*\"]")
-   '("template-toolkit" . "\\[%.")
+   '("template-toolkit" . "\\[%.\\|%%#")
    '("underscore"       . "<%")
    '("velocity"         . "#[[:alpha:]#*]\\|$[[:alpha:]!{]")
    ;;'("velocity"         . "^[ \t]*#[[:alpha:]#*]\\|$[[:alpha:]!{]")
@@ -2700,6 +2700,8 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((string= web-mode-engine "template-toolkit")
           (cond
+           ((string= tagopen "%%#")
+            (setq closing-string "EOL"))
            ((string= tagopen "[%#")
             (setq closing-string "%]"))
            (t
@@ -3167,7 +3169,7 @@ the environment as needed for ac-sources, right before they're used.")
 
      ((string= web-mode-engine "template-toolkit")
       (cond
-       ((string= sub3 "[%#")
+       ((member sub3 '("[%#" "%%#"))
         (setq token-type 'comment))
        (t
         (setq regexp "#\\|\"\\|'"))

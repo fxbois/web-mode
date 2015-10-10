@@ -1,0 +1,10 @@
+%% IF condition
+<h1>Hello</h1>
+%% END
+instead of
+
+[% IF condition -%]
+  <h1>Hello</h1>
+[% END -%]
+
+%%# dcd
