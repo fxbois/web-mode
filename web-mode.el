@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.1
+;; Version: 12.3.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.1"
+(defconst web-mode-version "12.3.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1044,7 +1044,8 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("angular"          . "{{")
    '("asp"              . "<%\\|</?[[:alpha:]]+:[[:alpha:]]+\\|</?[[:alpha:]]+Template")
    '("aspx"             . "<%.")
-   '("blade"            . "{{.\\|{!!\\|@{{\\|^[ \t]*@[[:alpha:]]")
+   ;;'("blade"            . "{{.\\|{!!\\|@{{\\|^[ \t]*@[[:alpha:]]")
+   '("blade"            . "{{.\\|{!!\\|@{{\\|@[[:alpha:]]")
    '("cl-emb"           . "<%")
    '("closure"          . "{.\\|/\\*\\| //")
    '("clip"             . "</?c:[[:alpha:]-]+")
@@ -2589,6 +2590,9 @@ the environment as needed for ac-sources, right before they're used.")
             (setq closing-string "}}"
                   delim-open "{{"
                   delim-close "}}"))
+           ((string= sub2 "@y")
+            (setq closing-string ")"
+                  delim-open "@"))
            ((string= sub1 "@")
             (setq closing-string "EOL"
                   delim-open "@"))
