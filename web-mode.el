@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.3
+;; Version: 12.3.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.3"
+(defconst web-mode-version "12.3.4"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4895,7 +4895,7 @@ the environment as needed for ac-sources, right before they're used.")
   (interactive)
   (web-mode-scan-region (point-min) (point-max)))
 
-;;---- HIGHLIGHTING ------------------------------------------------------------
+;;---- FONTIFICATION -----------------------------------------------------------
 
 (defun web-mode-font-lock-highlight (limit)
   ;;(message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
@@ -4948,7 +4948,7 @@ the environment as needed for ac-sources, right before they're used.")
   )
 
 (defun web-mode-highlight-region (&optional beg end) ;; content-type)
-;;  (message "highlight-region: beg(%S) end(%S) ct(%S)" beg end content-type)
+  ;;(message "highlight-region: beg(%S) end(%S)" beg end)
   (web-mode-with-silent-modifications
    (save-excursion
      (save-restriction
@@ -6258,11 +6258,9 @@ the environment as needed for ac-sources, right before they're used.")
                    (get-text-property pos 'part-expr)
                    (get-text-property (1- pos) 'part-expr))
           (setq language "javascript")
-          ;;(setq reg-beg (previous-single-property-change pos 'part-expr))
           (setq reg-beg (1+ (previous-single-property-change pos 'part-expr)))
           (goto-char reg-beg)
           (setq reg-col (current-column))
-          ;;(message "%S" reg-col)
           )
         )
 
@@ -6278,8 +6276,7 @@ the environment as needed for ac-sources, right before they're used.")
              (get-text-property pos 'tag-name)
              (not (get-text-property pos 'part-side)))
         (setq language "html"
-              curr-indentation web-mode-markup-indent-offset)
-        )
+              curr-indentation web-mode-markup-indent-offset))
 
        ((and (get-text-property pos 'block-side)
              (not (get-text-property pos 'block-beg)))
@@ -6566,9 +6563,10 @@ the environment as needed for ac-sources, right before they're used.")
           (when (web-mode-tag-match)
             (setq offset (current-indentation))))
 
-         ((and (member language '("html" "xml" "jsx"))
+         ((and (member language '("html" "xml" "javascript" "jsx"))
                (get-text-property pos 'tag-type)
                (not (get-text-property pos 'tag-beg)))
+          ;;(message "la")
           (cond
            ((and (get-text-property pos 'tag-attr)
                  (get-text-property (1- pos) 'tag-attr)
@@ -8173,7 +8171,6 @@ Pos should be in a tag."
        (cond
         ;; *** unfolding
         (overlay
-         ;;(setq overlay (car overlays))
          (setq beg-inside (overlay-start overlay)
                end-inside (overlay-end overlay))
          (remove-overlays beg-inside end-inside)
@@ -8202,14 +8199,12 @@ Pos should be in a tag."
          (when (web-mode-block-match)
            (setq end-inside (point))
            (setq end-outside (1+ (web-mode-block-end-position (point)))))
-         ) ;block-control
+         )
         ) ;cond
        (when (and beg-inside beg-outside end-inside end-outside)
-         ;;(message "beg-out(%d) beg-in(%d) end-in(%d) end-out(%d)" beg-outside beg-inside end-inside end-outside)
          (setq overlay (make-overlay beg-outside end-outside))
          (overlay-put overlay 'font-lock-face 'web-mode-folded-face)
-         (put-text-property beg-inside end-inside 'invisible t)
-         )
+         (put-text-property beg-inside end-inside 'invisible t))
        ))))
 
 (defun web-mode-toggle-comments ()
