@@ -54,19 +54,12 @@ module.exports = React.createClass({
   render() {
     return (
       <div>
-        <Component attr="cqs" xs="xs"
+        <Component header={<ListHeader />} footer={<ListFooter />}
+                   attr="cqs" xs="xs"
                    xsxs="sxx" />
         <Component />
         <Component />
       </div>
-    );
-  }
-});
-
-module.exports = React.createClass({
-  render() {
-    return (
-      <List header={<ListHeader />} footer={<ListFooter />} />
     );
   }
 });
@@ -86,9 +79,9 @@ module.exports = React.createClass({
     return (
       <ul>
         {
-          this.props.list.map(function(element) {
-            return <li>{element}</li>;
-          })
+         this.props.list.map(function(element) {
+           return <li>{element}</li>;
+         })
         }
       </ul>
     );
@@ -101,7 +94,7 @@ Landing = React.createClass({
     return (
       <ul>
         {for(e in list){
-          console.log("not aligned");
+           console.log("not aligned");
          }}
       </ul>
     );

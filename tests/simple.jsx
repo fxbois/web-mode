@@ -3,8 +3,8 @@ React.createClass({
     return (
       <ul class="cscdd" data-toto={ return 1 + "cdxs" }> cqsd
         {this.props.list.map(function(element) {
-          var x = 1;
-          return <li class="dxs" x="xs">{ "aa" + this.getModel().get('bb') }</li>
+           var x = 1;
+           return <li class="dxs" x="xs">{ "aa" + this.getModel().get('bb') }</li>
          })} cqsdc { return "cd"; }
       </ul>
     )

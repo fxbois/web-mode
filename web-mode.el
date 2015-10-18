@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.5
+;; Version: 12.3.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.5"
+(defconst web-mode-version "12.3.6"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -660,7 +660,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list 'tag-beg 'tag-end 'tag-name 'tag-type
         'tag-attr 'tag-attr-beg 'tag-attr-end
         'part-side 'part-token
-        'part-expr
+        ;;'part-expr
         'jsx-element 'jsx-expr-beg 'jsx-expr-end 'jsx-depth
         'block-side 'block-token 'block-controls 'block-beg 'block-end
         'syntax-table)
@@ -3880,7 +3880,7 @@ the environment as needed for ac-sources, right before they're used.")
             (setq script (buffer-substring-no-properties tbeg tend)
                   part-close-tag "</script>")
             (cond
-             ((string-match-p " type[ ]*=[ ]*[\"']text/jsx" script)
+             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(jsx\\|babel\\)" script)
               (setq element-content-type "jsx"))
              ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|x-jquery-tmpl\\|html\\|ng-template\\|template\\|mustache\\)" script)
               (setq element-content-type "html"
@@ -4190,7 +4190,7 @@ the environment as needed for ac-sources, right before they're used.")
 (defun web-mode-part-scan (reg-beg reg-end &optional content-type depth)
   (save-excursion
     (let (token-re ch-before ch-at ch-next token-type beg continue)
-
+      ;;(message "%S %S" reg-beg reg-end)
       (cond
        (content-type
         )
@@ -4265,7 +4265,7 @@ the environment as needed for ac-sources, right before they're used.")
              (t
               (setq continue nil))
              ) ;cond
-            )
+            ) ;while
           (cond
            ((string= content-type "json")
             (if (looking-at-p "[ ]*:")
@@ -4276,7 +4276,7 @@ the environment as needed for ac-sources, right before they're used.")
                   (setq token-type 'key))
                  )
               (setq token-type 'string))
-            )
+            ) ;json
            (t
             (setq token-type 'string))
            ) ;cond
@@ -4286,8 +4286,7 @@ the environment as needed for ac-sources, right before they're used.")
           ;;(message "before [%S>%S|%S] pt=%S" reg-beg reg-end depth (point))
           (if (web-mode-jsx-skip reg-end)
               (web-mode-jsx-scan-element beg (point) depth)
-            (forward-char)
-            ) ;if
+            (forward-char))
           ;;(message "after [%S>%S|%S] pt=%S" reg-beg reg-end depth (point))
           )
 
@@ -4296,6 +4295,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((eq ?\\ ch-before)
             )
            ((eq ?\* ch-next)
+            ;;(message "--> %S %S" (point) reg-end)
             (when (search-forward "*/" reg-end t)
               (setq token-type 'comment))
             )
@@ -4335,7 +4335,7 @@ the environment as needed for ac-sources, right before they're used.")
           (cond
            ((search-forward "*/" reg-end t)
             (setq token-type 'comment))
-           (t
+           ((not (eobp))
             (forward-char))
            ) ;cond
           )
@@ -4352,21 +4352,19 @@ the environment as needed for ac-sources, right before they're used.")
                   (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax ">")) ;#445
                 (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax ">")) ;#377
                 )
-              )
-            )
+              ) ;when
+            ) ;comment
            ((eq token-type 'string)
-
             (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "|"))
             (when (< (point) (point-max))
               (if (< (point) (line-end-position))
                   (put-text-property (1- (point)) (point) 'syntax-table (string-to-syntax "|"))
                 (put-text-property (point) (1+ (point)) 'syntax-table (string-to-syntax "|"))
                 )
-              )
-
-            )
+              ) ;when
+            ) ;string
            ) ;cond
-          )
+          ) ;when
 
         (when (> (point) reg-end)
           (message "reg-beg(%S) reg-end(%S) token-type(%S) point(%S)" reg-beg reg-end token-type (point)))
@@ -4379,29 +4377,19 @@ the environment as needed for ac-sources, right before they're used.")
 
 (defun web-mode-jsx-skip (reg-end)
   (let ((continue t) (pos nil) (i 0))
-   ;; (save-match-data
     (save-excursion
       (while continue
-        ;;(message "pt=%S" (point))
         (cond
          ((> (setq i (1+ i)) 100)
           (message "jsx-skip ** warning **")
           (setq continue nil))
          ((not (web-mode-dom-rsf ">\\([ \t\n]*[\];,)':}]\\)\\|{" reg-end))
           (setq continue nil)
-          ;;(when (string= web-mode-content-type "jsx")
-          ;;  (setq pos (point-max)))
           )
          ((eq (char-before) ?\{)
-          ;;(message "pt=%S %S" (point) reg-end)
           (backward-char)
           (web-mode-closing-paren reg-end)
           (forward-char)
-            ;;(if (web-mode-closing-paren reg-end)
-          ;;    (forward-char)
-          ;;  (setq continue nil)
-          ;;  (forward-char)
-          ;;  ) ;if
           )
          (t
           (setq continue nil)
@@ -4410,7 +4398,6 @@ the environment as needed for ac-sources, right before they're used.")
          ) ;cond
         ) ;while
       ) ;save-excursion
-    ;;  ) ;save-match-data
     (when pos (goto-char pos))
     ;;(message "jsx-skip: %S" pos)
     pos))
@@ -4429,9 +4416,8 @@ the environment as needed for ac-sources, right before they're used.")
 
       (when (= depth 1)
         (put-text-property reg-beg reg-end 'jsx-element t)
+        ;; TODO: est ce utile d'avoir jsx-element
         (put-text-property (1- reg-end) reg-end 'jsx-element 1)
-        ;;(put-text-property reg-beg (1+ reg-beg) 'jsx-expr-beg 0)
-        ;;(put-text-property (1- reg-end) reg-end 'jsx-expr-end 0)
         )
 
       (put-text-property reg-beg reg-end 'jsx-depth depth)
@@ -4467,9 +4453,7 @@ the environment as needed for ac-sources, right before they're used.")
   ))
 
 (defun web-mode-jsx-scan-expression (reg-beg reg-end depth)
-  (let (continue beg end)
-    ;; (save-match-data
-    (setq continue t)
+  (let ((continue t) beg end)
     (save-excursion
       (goto-char reg-beg)
       ;;(message "reg-beg=%S reg-end=%S" reg-beg reg-end)
@@ -4479,30 +4463,107 @@ the environment as needed for ac-sources, right before they're used.")
               end (web-mode-closing-paren reg-end))
         (cond
          ((eq (get-text-property beg 'part-token) 'comment)
-          ;;(message "ici")
           (forward-char))
          ((not end)
           (setq continue nil))
          (t
           (setq end (1+ end))
-          ;; NOTE: keeping { and } as part-token is useful for indentation
-          (put-text-property (1+ beg) (1- end) 'part-token nil)
-          (put-text-property beg end 'part-expr t)
-
-          ;; NOTE: exclude {} for attr-end-position
-          (put-text-property (1+ beg) (1- end) 'jsx-depth depth)
-
+          (put-text-property beg end 'jsx-depth depth)
           (put-text-property beg (1+ beg) 'jsx-expr-beg depth)
           (put-text-property (1- end) end 'jsx-expr-end depth)
-
-          (web-mode-part-scan beg end "jsx" depth)
-
+          (web-mode-part-scan beg end "jsx" (1+ depth))
           ) ;t
          ) ;cond
         )
       )
-    ;;)
     ))
+
+;; (defun web-mode-jsx-is-html (&optional pos)
+;;   (interactive)
+;;   (unless pos (setq pos (point)))
+;;   (let ((continue t) ret depth)
+;;     (setq depth (get-text-property pos 'jsx-depth))
+;;     (cond
+;;      ((null depth)
+;;       (setq ret nil))
+;;      ((= depth 1)
+;;       (setq ret (not (null (get-text-property (1- pos) 'jsx-depth)))))
+;;      ((get-text-property pos 'jsx-expr-beg)
+;;       (setq ret t))
+;;      (t
+;;       (while continue
+;;         (setq pos (previous-single-property-change pos 'jsx-depth))
+;;         ;;(message "pos%S" pos)
+;;         (cond
+;;          ((null (get-text-property pos 'jsx-depth))
+;;           (setq continue nil
+;;                 ret nil))
+;;          ((< (get-text-property (1- pos) 'jsx-depth) depth)
+;;           (setq continue nil
+;;                 ret (not (null (get-text-property pos 'tag-beg))))
+;;           )
+;;          ) ;conf
+;;         ) ;while
+;;       ) ;t
+;;      ) ;conf
+;;     ;;(message "jsx-is-html: %S" ret)
+;;     ret))
+
+;; TODO: vérifier que que cela n'est pas appelé 3x
+(defun web-mode-jsx-is-html (&optional pos)
+  (interactive)
+  (unless pos (setq pos (point)))
+  (let ((depth (get-text-property pos 'jsx-depth)))
+    (cond
+     ((null depth)
+      (setq pos nil))
+     ((and (> pos 1)
+           (null (get-text-property (1- pos) 'jsx-depth)))
+      (setq pos nil)
+      )
+     ((get-text-property pos 'jsx-expr-beg)
+      )
+     ((setq pos (web-mode-jsx-depth-beginning-position pos))
+      (setq pos (not (null (get-text-property pos 'tag-beg)))))
+     (t
+      (setq pos nil))
+     ) ;cond
+    ;;(message "is-html: %S (depth=%S)" pos depth)
+    pos))
+
+(defun web-mode-jsx-depth-beginning-position (&optional pos)
+  (interactive)
+  (unless pos (setq pos (point)))
+  (let ((continue t)
+        (depth (get-text-property pos 'jsx-depth)))
+    (cond
+     ((or (null depth) (bobp))
+      (setq pos nil))
+     ((get-text-property pos 'jsx-expr-beg)
+      )
+     ((and (= depth 1)
+           (not (get-text-property (1- pos) 'jsx-depth)))
+      )
+     (t
+      (while continue
+        (setq pos (previous-single-property-change pos 'jsx-depth))
+        ;;(message "pos%S" pos)
+        (cond
+         ((null pos)
+          (setq continue nil))
+         ((and (= depth 1) (eq (get-text-property pos 'jsx-depth) 1) (get-text-property pos 'tag-beg))
+          (setq continue nil))
+         ((null (get-text-property pos 'jsx-depth))
+          (setq continue nil
+                pos nil))
+         ((< (get-text-property (1- pos) 'jsx-depth) depth)
+          (setq continue nil))
+         ) ;cond
+        ) ;while
+      ) ;t
+     ) ;cond
+    ;;(message "beg: %S" pos)
+    pos))
 
 (defun web-mode-velocity-skip (pos)
   (goto-char pos)
@@ -6231,7 +6292,8 @@ the environment as needed for ac-sources, right before they're used.")
           language
           reg-beg reg-col
           prev-char prev-indentation prev-line
-          token)
+          token
+          part-language)
 
       (setq reg-beg (point-min)
             reg-col 0
@@ -6239,10 +6301,14 @@ the environment as needed for ac-sources, right before they're used.")
             language ""
             prev-line ""
             prev-char 0)
+
+      (when (get-text-property pos 'part-side)
+        (setq part-language (symbol-name (get-text-property pos 'part-side))))
+
       (cond
 
-       ((bobp)
-        (setq language "html")
+       ((and (bobp) (member web-mode-content-type '("html" "xml")))
+        (setq language web-mode-content-type)
         )
 
        ((string= web-mode-content-type "css")
@@ -6253,18 +6319,33 @@ the environment as needed for ac-sources, right before they're used.")
         (setq language "javascript"
               curr-indentation web-mode-code-indent-offset))
 
-       ((member web-mode-content-type '("jsx"))
+       ((or (string= web-mode-content-type "jsx")
+            (and part-language (string= part-language "jsx")))
         (setq language "jsx"
               curr-indentation web-mode-code-indent-offset)
-        (when (and (> pos (point-min))
-                   (get-text-property pos 'part-expr)
-                   (get-text-property (1- pos) 'part-expr))
-          (setq language "javascript")
-          (setq reg-beg (1+ (previous-single-property-change pos 'part-expr)))
-          (goto-char reg-beg)
-          (setq reg-col (current-column))
+        (cond
+         ((web-mode-jsx-is-html pos)
+          (setq curr-indentation web-mode-markup-indent-offset))
+         ((and (get-text-property pos 'jsx-depth)
+               (get-text-property (1- pos) 'jsx-depth))
+          (setq reg-beg (web-mode-jsx-depth-beginning-position pos))
+          (setq reg-beg (1+ reg-beg))
+          (save-excursion
+            (goto-char reg-beg)
+            (setq reg-col (current-column))
+            ) ;save-excursion
           )
-        )
+         (t
+          (setq reg-beg (or (web-mode-part-beginning-position pos) (point-min)))
+          (save-excursion
+            (goto-char reg-beg)
+            (search-backward "<" nil t)
+            (setq reg-col (current-column))
+            ) ;save-excursion
+          )
+         ) ;cond
+        ;;(message "jsx reg-beg=%S" reg-beg)
+        ) ;jsx
 
        ((string= web-mode-content-type "php")
         (setq language "php"
@@ -6274,9 +6355,11 @@ the environment as needed for ac-sources, right before they're used.")
         (setq language "xml"
               curr-indentation web-mode-markup-indent-offset))
 
+       ;; TODO: est ce util ?
        ((and (get-text-property pos 'tag-beg)
              (get-text-property pos 'tag-name)
-             (not (get-text-property pos 'part-side)))
+             ;;(not (get-text-property pos 'part-side))
+             )
         (setq language "html"
               curr-indentation web-mode-markup-indent-offset))
 
@@ -6284,7 +6367,6 @@ the environment as needed for ac-sources, right before they're used.")
              (not (get-text-property pos 'block-beg)))
 
         (setq reg-beg (or (web-mode-block-beginning-position pos) (point-min)))
-        ;;(message "reg-beg=%S" reg-beg)
         (goto-char reg-beg)
         (setq reg-col (current-column))
         (setq language web-mode-engine)
@@ -6296,8 +6378,6 @@ the environment as needed for ac-sources, right before they're used.")
             (when (web-mode-rsf "{{[ ]*")
               (setq reg-col (current-column))))
           (setq reg-beg (+ reg-beg 2))
-          ;;(message "beg=%S" reg-beg)
-          ;;reg-col (+ reg-col 2)
           )
          ((string= web-mode-engine "razor")
           (setq reg-beg (+ reg-beg 2))
@@ -6338,22 +6418,19 @@ the environment as needed for ac-sources, right before they're used.")
          ) ;cond
         ) ;block-side
 
-       ((get-text-property pos 'part-side)
-;;        (message "pos-min=%S reg-beg=%S part-beg=%S" pos-min reg-beg (web-mode-part-beginning-position pos))
-        (setq reg-beg (web-mode-part-beginning-position pos))
-;;        (message "reg-beg %S" reg-beg)
-        (setq reg-beg (or reg-beg (point-min)))
+       ((and part-language (member part-language '("css" "javascript")))
+        (setq reg-beg (or (web-mode-part-beginning-position pos) (point-min)))
         (goto-char reg-beg)
         (search-backward "<" nil t)
         (setq reg-col (current-column))
-        (setq language (symbol-name (get-text-property pos 'part-side)))
+        (setq language part-language)
         (cond
          ((string= language "css")
           (setq curr-indentation web-mode-css-indent-offset)
           )
-         ((string= language "jsx")
-          (setq curr-indentation web-mode-code-indent-offset)
-          )
+         ;;((string= language "jsx")
+         ;; (setq curr-indentation web-mode-code-indent-offset)
+         ;; )
          (t
           (setq language "javascript"
                 curr-indentation web-mode-code-indent-offset)
@@ -6412,7 +6489,7 @@ the environment as needed for ac-sources, right before they're used.")
         (let (prev)
           (cond
            ((member language '("html" "xml" "javascript" "jsx"))
-            (when (setq prev (web-mode-part-previous-live-line))
+            (when (setq prev (web-mode-part-previous-live-line reg-beg))
               (setq prev-line (car prev)
                     prev-indentation (cdr prev))
               (setq prev-line (web-mode-clean-part-line prev-line)))
@@ -6422,7 +6499,6 @@ the environment as needed for ac-sources, right before they're used.")
                   prev-indentation (cdr prev))
             (setq prev-line (web-mode-clean-block-line prev-line)))
            ) ;cond
-
           ) ;let
         (when (>= (length prev-line) 1)
           (setq prev-char (aref prev-line (1- (length prev-line))))
@@ -6434,9 +6510,8 @@ the environment as needed for ac-sources, right before they're used.")
        ((not (member web-mode-content-type '("html" "xml")))
         )
        ((member language '("javascript" "jsx"))
-        (setq reg-col (+ reg-col web-mode-script-padding))
-        )
-       ((string= language "css")
+        (setq reg-col (+ reg-col web-mode-script-padding)))
+       ((member language '("css"))
         (setq reg-col (+ reg-col web-mode-style-padding)))
        ((not (member language '("html" "xml" "razor")))
         (setq reg-col (+ reg-col web-mode-block-padding)))
@@ -6480,8 +6555,8 @@ the environment as needed for ac-sources, right before they're used.")
              (token (plist-get ctx :token))
              (chars (list curr-char prev-char)))
 
-        ;;(message "%S" ctx)
-        ;;(message "%c %S %c" curr-char prev-line prev-char)
+        ;;(message "[%c] [%c]\n%S" curr-char prev-char ctx)
+        ;;(message "%S" prev-line)
 
         (cond
 
@@ -6557,7 +6632,7 @@ the environment as needed for ac-sources, right before they're used.")
 
          ((eq (get-text-property pos 'block-token) 'delimiter-end)
           (when (web-mode-block-beginning)
-            (setq reg-col (current-indentation)) ;; TODO: bad hack
+            (setq reg-col (current-indentation))
             (setq offset (current-column))))
 
          ((and (get-text-property pos 'tag-beg)
@@ -6568,7 +6643,7 @@ the environment as needed for ac-sources, right before they're used.")
          ((and (member language '("html" "xml" "javascript" "jsx"))
                (get-text-property pos 'tag-type)
                (not (get-text-property pos 'tag-beg)))
-          ;;(message "la")
+
           (cond
            ((and (get-text-property pos 'tag-attr)
                  (get-text-property (1- pos) 'tag-attr)
@@ -6583,28 +6658,18 @@ the environment as needed for ac-sources, right before they're used.")
            (web-mode-attr-indent-offset
             (setq offset (+ (current-column) web-mode-attr-indent-offset)))
            ((looking-at-p (concat web-mode-start-tag-regexp "[ ]*\n"))
-            (setq offset (+ (current-column)
-                            (or web-mode-attr-indent-offset 4)))
-            )
+            (setq offset (+ (current-column) (or web-mode-attr-indent-offset 4))))
            ((web-mode-attribute-next)
             (setq offset (current-column)))
-           ;;(t
-           ;;(let ((skip (next-single-property-change (point) 'tag-attr-beg)))
-           ;;  (when skip
-           ;;    (goto-char skip)
-           ;;    (setq offset (current-column)))
-           ;;  ) ;let
-           ;;) ;t
            ) ;cond
           )
 
-         ((member language '("html" "xml"))
+         ((or (member language '("html" "xml"))
+              (and (member language '("jsx"))
+                   (web-mode-jsx-is-html pos)))
           (cond
-           ((and (get-text-property pos 'tag-beg)
-                 ;;(not (get-text-property pos 'part-side))
-                 ;; Est ce que cette derniere ligne est utile ?
-                 ;;(not (member web-mode-content-type '("jsx")))
-                 )
+           ((get-text-property pos 'tag-beg)
+            ;;(message "ici")
             (setq offset (web-mode-markup-indentation pos))
             )
            ((and web-mode-pre-elements
@@ -6702,11 +6767,6 @@ the environment as needed for ac-sources, right before they're used.")
           (search-backward "case ")
           (setq offset (current-column)))
 
-         ;;((and (member language '("javascript" "jsx" "ejs"))
-         ;;      (string-match-p "^@[[:alpha:]]+" prev-line))
-         ;; (setq offset prev-indentation)
-         ;; )
-
          ((and (member language '("javascript" "jsx" "ejs" "php"))
                (or (eq prev-char ?\))
                    (string-match-p "^else$" prev-line))
@@ -6770,11 +6830,9 @@ the environment as needed for ac-sources, right before they're used.")
 
          ;; #446
          ((and (member language '("javascript" "jsx" "ejs" "php"))
-               (or (string-match-p "[+-&|?:]$" prev-line)
-                   (string-match-p "^[+-&|?:]" curr-line))
-               (not (get-text-property pos 'jsx-element))
-               (not (and (eq prev-char ?\:)
-                         (string-match-p "^\\(case\\|default\\)" prev-line))))
+               (or (string-match-p "[+-&|?:]$" prev-line) (string-match-p "^[+-&|?:]" curr-line))
+               ;;(not (get-text-property pos 'jsx-element))
+               (not (and (eq prev-char ?\:) (string-match-p "^\\(case\\|default\\)" prev-line))))
           (cond
            ((not (funcall (if (member language '("javascript" "jsx" "ejs"))
                               'web-mode-javascript-statement-beginning
@@ -6802,8 +6860,15 @@ the environment as needed for ac-sources, right before they're used.")
             )
            ((or (not (cdr (assoc "lineup-args" web-mode-indentation-params)))
                 (looking-at-p "\n"))
-            ;;(message "pos1=%S" pos)
-            (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+            ;;(message "pos1=%S (pt=%S)" pos (point))
+            ;;(setq offset (+ (current-indentation) web-mode-code-indent-offset))
+
+            (if (and reg-col (> reg-col (current-indentation)))
+                (setq offset (+ reg-col web-mode-code-indent-offset))
+              (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+
+            )
+
            ((not (eq curr-char ?\,))
             ;;(message "pos2=%S" pos)
             (setq offset (current-column)))
@@ -6865,15 +6930,8 @@ the environment as needed for ac-sources, right before they're used.")
               (setq offset (- offset (length (match-string-no-properties 0)))))
             )))
 
-         ;; TODOJSX
-         ((and (string= language "jsx")
-               (get-text-property pos 'jsx-element)
-               (get-text-property (1- pos) 'jsx-element)
-               (not (and (get-text-property pos 'part-expr)
-                         (get-text-property (1- pos) 'part-expr))))
-          (setq offset (web-mode-markup-indentation pos)))
-
          ((member language '("javascript" "jsx" "ejs" "underscore"))
+          ;;(message "ici")
           (setq offset (car (web-mode-javascript-indentation pos
                                                              reg-col
                                                              curr-indentation
@@ -6881,7 +6939,6 @@ the environment as needed for ac-sources, right before they're used.")
                                                              reg-beg))))
 
          (t
-          ;;(message "point-context=%S" ctx)
           (setq offset (car (web-mode-bracket-indentation pos
                                                           reg-col
                                                           curr-indentation
@@ -6925,8 +6982,9 @@ the environment as needed for ac-sources, right before they're used.")
         (when (and (get-text-property pos 'jsx-depth)
                    (not (get-text-property beg 'jsx-depth)))
           ;;(message "change beg")
-          (goto-char pos)
-          (setq beg (previous-single-property-change pos 'jsx-depth))
+          ;;(goto-char pos)
+          ;;(setq beg (previous-single-property-change pos 'jsx-depth))
+          (setq beg (web-mode-jsx-depth-beginning-position pos))
           )
 
         ;;(message "%S" beg)
@@ -6955,9 +7013,13 @@ the environment as needed for ac-sources, right before they're used.")
     ))
 
 (defun web-mode-javascript-indentation (pos initial-column language-offset language &optional limit)
-  (let ((open-ctx (web-mode-bracket-up pos language limit)) offset)
+  (let ((open-ctx (web-mode-bracket-up pos language limit)) indentation offset)
     ;;    (message "pos(%S) initial-column(%S) language-offset(%S) language(%S) limit(%S)" pos initial-column language-offset language limit)
     ;;(message "javascript-indentation: %S" open-ctx)
+    (setq indentation (plist-get open-ctx :indentation))
+    (when (and initial-column (> initial-column indentation))
+      (setq indentation initial-column)
+      )
     (cond
      ((or (null open-ctx) (null (plist-get open-ctx :pos)))
       (setq offset initial-column))
@@ -6965,9 +7027,9 @@ the environment as needed for ac-sources, right before they're used.")
            (eq (plist-get open-ctx :char) ?\{)
            (web-mode-looking-back "switch[ ]*(.*)[ ]*" (plist-get open-ctx :pos))
            (not (looking-at-p "case\\|default")))
-      (setq offset (+ (plist-get open-ctx :indentation) (* language-offset 2))))
+      (setq offset (+ indentation (* language-offset 2))))
      (t
-      (setq offset (+ (plist-get open-ctx :indentation) language-offset)))
+      (setq offset (+ indentation language-offset)))
      ) ;cond
     (cons (if (< offset initial-column) initial-column offset) open-ctx)
     ))
@@ -7142,22 +7204,32 @@ the environment as needed for ac-sources, right before they're used.")
         (cons line (current-indentation)))
       )))
 
-(defun web-mode-part-previous-live-line ()
+(defun web-mode-part-previous-live-line (reg-beg)
+  (unless reg-beg (setq reg-beg (point-min)))
+  ;;(message "reg-beg=%S" reg-beg)
   (save-excursion
-    (let ((continue t) (line "") (pos (point)))
+    (let ((continue (> pos reg-beg))
+          (line "")
+          bol-pos
+          eol-pos)
       (beginning-of-line)
-      (while (and continue (not (bobp)) (forward-line -1))
-        (if (not (web-mode-part-is-token-line))
-            (setq line (web-mode-trim (buffer-substring (point) (line-end-position)))))
-        (when (not (string= line "")) (setq continue nil))
-        )
+      (while (and continue (> (point) reg-beg) (forward-line -1))
+        (setq bol-pos (point)
+              eol-pos (line-end-position))
+        (when (> reg-beg bol-pos)
+          (setq bol-pos reg-beg))
+        (when (not (web-mode-part-is-token-line bol-pos))
+          (setq line (web-mode-trim (buffer-substring bol-pos eol-pos)))
+          (when (not (string= line "")) (setq continue nil))
+          )
+        ) ;while
       (if (string= line "")
-          (progn (goto-char pos) nil)
+          nil
+          ;;(progn (goto-char pos) nil)
         (cons line (current-indentation)))
       )))
 
 (defun web-mode-in-code-block (open close &optional prop)
-  "Detect if point is in a block delimited by open and close."
   (save-excursion
     (let ((pos (point)) pos-open pos-close start end ret)
       (when prop
@@ -8083,11 +8155,12 @@ Pos should be in a tag."
       (> counter 0)
       )))
 
-(defun web-mode-part-is-token-line ()
+(defun web-mode-part-is-token-line (pos)
   (save-excursion
     (let ((continue t)
           (counter 0))
-      (beginning-of-line)
+      ;;(beginning-of-line)
+      (goto-char pos)
       (setq continue (not (eolp)))
       (while continue
         (forward-char)
@@ -8354,7 +8427,7 @@ Pos should be in a tag."
               ;;(message "%S" pos)
               )
              ((and (setq alt (cdr (assoc language web-mode-comment-formats)))
-                   (string= alt "/*"))
+                   (string= alt "//"))
               (setq content (replace-regexp-in-string "^[ ]*" alt sel)))
              (t
               (setq content (concat "/* " sel " */")))
@@ -9551,28 +9624,59 @@ Pos should be in a tag."
     (web-mode-tag-match pos)
     (if (= pos (point)) nil (point))))
 
-;; TODO : prendre en compte 'jsx-depth comme web-mode-tag-end-position
 (defun web-mode-tag-beginning-position (&optional pos)
   (unless pos (setq pos (point)))
-  (let (beg)
+  (let (beg depth)
+    (setq depth (get-text-property pos 'jsx-depth))
+    (when (and depth (get-text-property pos 'tag-attr-beg))
+       (setq depth (get-text-property (1- pos) 'jsx-depth)))
     (cond
+     ((null pos)
+      (setq end nil))
      ((get-text-property pos 'tag-beg)
       (setq beg pos))
      ((and (> pos 1) (get-text-property (1- pos) 'tag-beg))
       (setq beg (1- pos)))
      ((get-text-property pos 'tag-type)
-      (setq beg (1- (previous-single-property-change pos 'tag-beg)))
-      (when (not (get-text-property beg 'tag-beg))
-        (setq beg nil)))
+      (setq beg (previous-single-property-change pos 'tag-beg))
+      (when beg (setq beg (1- beg)))
+      (cond
+       ((not (get-text-property beg 'tag-beg))
+        (setq beg nil))
+       ((and depth (not (eq depth (get-text-property beg 'jsx-depth))))
+        (let ((continue (> beg (point-min))))
+          (while continue
+            (setq beg (previous-single-property-change beg 'tag-beg))
+            (when beg (setq beg (1- beg)))
+            ;;(message "coucou=%S" beg)
+            (cond
+             ((null beg)
+              (setq continue nil))
+             ((not (get-text-property beg 'tag-beg))
+              (setq continue nil
+                    beg nil))
+             ((eq depth (get-text-property beg 'jsx-depth))
+              (setq continue nil))
+             ) ;cond
+            ) ;while
+          ) ;let
+        )
+       ) ;cond
+      ;;(when (not (get-text-property beg 'tag-beg))
+      ;;  (setq beg nil))
+      )
      (t
       (setq beg nil))
      ) ;cond
+    ;;(message "beg=%S" beg)
     beg))
 
 (defun web-mode-tag-end-position (&optional pos)
   (unless pos (setq pos (point)))
   (let (end depth)
     (setq depth (get-text-property pos 'jsx-depth))
+    (when (and depth (get-text-property pos 'tag-attr-beg))
+      (setq depth (get-text-property (1- pos) 'jsx-depth)))
     (cond
      ((null pos)
       (setq end nil))
@@ -9584,12 +9688,10 @@ Pos should be in a tag."
        ((not (get-text-property end 'tag-end))
         (setq end nil))
        ((and depth (not (eq depth (get-text-property end 'jsx-depth))))
-
         (let ((continue (< end (point-max))))
           (while continue
             (setq end (1+ end))
             (setq end (next-single-property-change end 'tag-end))
-            ;;(message "ici%S" end)
             (cond
              ((null end)
               (setq continue nil))
@@ -9601,7 +9703,6 @@ Pos should be in a tag."
              ) ;cond
             ) ;while
           ) ;let
-
         )
        ) ;cond
       )
@@ -9667,20 +9768,29 @@ Pos should be in a tag."
       (cond
        ((not (get-text-property end 'tag-attr-end))
         (setq end nil))
-       ((and depth (not (eq depth (get-text-property end 'jsx-depth))))
+       ((and depth
+             (eq depth (get-text-property end 'jsx-depth))
+             (not (eq depth (get-text-property end 'jsx-expr-end)))
+             )
+        ;;(message "end found=%S" end)
+        )
+       ((and depth (eq (1+ depth) (get-text-property end 'jsx-depth)))
+        )
+       ((and depth (not (eq (1+ depth) (get-text-property end 'jsx-depth))))
         (let ((continue (< end (point-max))))
           (while continue
             (setq end (1+ end))
             (setq end (next-single-property-change end 'tag-attr-end))
+            ;;(message "end=%S" end)
             (cond
              ((null end)
               (setq continue nil))
              ((not (get-text-property end 'tag-attr-end))
               (setq continue nil
                     end nil))
-             ((eq depth (get-text-property end 'jsx-depth))
-              (setq continue nil))
-             ((eq depth (get-text-property end 'jsx-depth))
+             ;;((not (get-text-property end 'jsx-expr-end))
+             ;; (setq continue nil))
+             ((eq (1+ depth) (get-text-property end 'jsx-depth))
               (setq continue nil))
              ) ;cond
             ) ;while
@@ -10166,6 +10276,7 @@ Pos should be in a tag."
       ) ;while
     pos))
 
+
 (defun web-mode-javascript-string-beginning-position (pos &optional reg-beg)
   (unless pos (setq pos (point)))
   (let ((char nil)
@@ -10218,18 +10329,30 @@ Pos should be in a tag."
       ) ;while
     pos))
 
+;; TODO: reg-beg : jsx-expr-beg
+;; TODO: skipper les expr dont la depth est superieure
+
+;; NOTE: blockside is useful for ejs
 (defun web-mode-javascript-statement-beginning-position (pos &optional reg-beg)
   (unless pos (setq pos (point)))
   (setq pos (1- pos))
   (let ((char nil)
         (blockside (get-text-property pos 'block-side))
         (i 0)
+        (is-jsx (string= web-mode-content-type "jsx"))
+        (depth-o nil) (depth-l nil)
         (continue (not (null pos))))
+    (setq depth-o (get-text-property pos 'jsx-depth))
     (unless reg-beg
-      (if blockside
-          (setq reg-beg (web-mode-block-beginning-position pos))
+      (cond
+       (blockside
+        (setq reg-beg (web-mode-block-beginning-position pos)))
+       (is-jsx
+        (setq reg-beg (web-mode-jsx-depth-beginning-position pos)))
+       (t
         (setq reg-beg (web-mode-part-beginning-position pos)))
-      )
+       ) ;cond
+      ) ;unless
     (while continue
       (setq char (char-after pos))
       (cond
@@ -10241,9 +10364,18 @@ Pos should be in a tag."
         (message "javascript-statement-beginning-position ** invalid pos **")
         (setq continue nil))
        ((< pos reg-beg)
-        (message "javascript-statement-beginning-position ** failure **")
+        (when (not is-jsx)
+          (message "javascript-statement-beginning-position ** failure **"))
         (setq continue nil
               pos reg-beg))
+       ((and is-jsx
+             (progn (setq depth-l (get-text-property pos 'jsx-depth)))
+             (not (eq depth-l depth-o)))
+        ;;(message "%S > depth-o(%S) depth-l(%S)" pos depth-o depth-l)
+        (setq pos (previous-single-property-change pos 'jsx-depth))
+        (setq pos (1- pos))
+        ;;(message "--> %S %S" pos (get-text-property pos 'jsx-depth))
+        )
        ((and blockside
              (member (get-text-property pos 'block-token) '(string comment))
              (eq (get-text-property pos 'block-token) (get-text-property (1- pos) 'block-token)))
@@ -10271,6 +10403,7 @@ Pos should be in a tag."
         (setq pos (1- pos)))
        ) ;cond
       ) ;while
+    ;;(message "%S -------" pos)
     pos))
 
 (defun web-mode-javascript-args-beginning-position (pos &optional reg-beg)
