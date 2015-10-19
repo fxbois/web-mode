@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.6
+;; Version: 12.3.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.6"
+(defconst web-mode-version "12.3.8"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2550,7 +2550,10 @@ the environment as needed for ac-sources, right before they're used.")
           ) ;asp
 
          ((string= web-mode-engine "jsp")
+          ;;(message "tagopen=%S %S" tagopen (point))
           (cond
+           ((looking-at-p "--")
+            (setq closing-string "--%>"))
            ((string= sub2 "<%")
             (setq closing-string "%>"
                   delim-open "<%\\([!=@]\\|#=\\)?"
@@ -4477,37 +4480,6 @@ the environment as needed for ac-sources, right before they're used.")
         )
       )
     ))
-
-;; (defun web-mode-jsx-is-html (&optional pos)
-;;   (interactive)
-;;   (unless pos (setq pos (point)))
-;;   (let ((continue t) ret depth)
-;;     (setq depth (get-text-property pos 'jsx-depth))
-;;     (cond
-;;      ((null depth)
-;;       (setq ret nil))
-;;      ((= depth 1)
-;;       (setq ret (not (null (get-text-property (1- pos) 'jsx-depth)))))
-;;      ((get-text-property pos 'jsx-expr-beg)
-;;       (setq ret t))
-;;      (t
-;;       (while continue
-;;         (setq pos (previous-single-property-change pos 'jsx-depth))
-;;         ;;(message "pos%S" pos)
-;;         (cond
-;;          ((null (get-text-property pos 'jsx-depth))
-;;           (setq continue nil
-;;                 ret nil))
-;;          ((< (get-text-property (1- pos) 'jsx-depth) depth)
-;;           (setq continue nil
-;;                 ret (not (null (get-text-property pos 'tag-beg))))
-;;           )
-;;          ) ;conf
-;;         ) ;while
-;;       ) ;t
-;;      ) ;conf
-;;     ;;(message "jsx-is-html: %S" ret)
-;;     ret))
 
 ;; TODO: vérifier que que cela n'est pas appelé 3x
 (defun web-mode-jsx-is-html (&optional pos)
@@ -6830,9 +6802,10 @@ the environment as needed for ac-sources, right before they're used.")
 
          ;; #446
          ((and (member language '("javascript" "jsx" "ejs" "php"))
-               (or (string-match-p "[+-&|?:]$" prev-line) (string-match-p "^[+-&|?:]" curr-line))
-               ;;(not (get-text-property pos 'jsx-element))
-               (not (and (eq prev-char ?\:) (string-match-p "^\\(case\\|default\\)" prev-line))))
+               (or (string-match-p "[+-&|?:]$" prev-line)
+                   (string-match-p "^[+-&|?:]" curr-line))
+               (not (and (eq prev-char ?\:)
+                         (string-match-p "^\\(case\\|default\\)" prev-line))))
           (cond
            ((not (funcall (if (member language '("javascript" "jsx" "ejs"))
                               'web-mode-javascript-statement-beginning
@@ -6842,6 +6815,7 @@ the environment as needed for ac-sources, right before they're used.")
            ((null (cdr (assoc "lineup-ternary" web-mode-indentation-params)))
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            (t
+            ;;(message "coucou: %S" (point))
             (setq offset (current-column))
             (when (member curr-char '(?\+ ?\- ?\& ?\| ?\? ?\:))
               (goto-char pos)
@@ -10327,6 +10301,7 @@ Pos should be in a tag."
         (setq pos (1- pos)))
        ) ;cond
       ) ;while
+    ;;(message "js-statement-beg:%S" pos)
     pos))
 
 ;; TODO: reg-beg : jsx-expr-beg
