@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.8
+;; Version: 12.3.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.8"
+(defconst web-mode-version "12.3.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1692,7 +1692,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-ctemplate-font-lock-keywords
   (list
    '("{[~]?{[#/>]?[ ]*\\([[:alnum:]_-]+\\)" 1 'web-mode-block-control-face)
-   '("[ \t]+\\([[:alnum:]_]+\\)=\\([[:alnum:]_.]+\\|\"[^\"]+\"\\)"
+   '("[ \t]+\\([[:alnum:]_]+\\)=\\([[:alnum:]_.]+\\|\"[^\"]+\"\\|\([^)]+\)\\)"
      (1 'web-mode-block-attr-name-face)
      (2 'web-mode-block-attr-value-face))
    '("\"[^\"]+\"" 0 'web-mode-block-string-face)
