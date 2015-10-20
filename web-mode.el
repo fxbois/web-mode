@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.9
+;; Version: 12.3.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.9"
+(defconst web-mode-version "12.3.10"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8186,6 +8186,8 @@ Pos should be in a tag."
   (cond
    ((and tag (member tag '("div" "li" "a" "p")))
     nil)
+   ((and tag (string= web-mode-content-type "jsx"))
+    (member (downcase tag) '("img" "br" "hr")))
    (tag
     (car (member (downcase tag) web-mode-void-elements)))
    (t
