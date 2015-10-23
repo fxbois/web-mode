@@ -10,14 +10,14 @@ export default React.createClass({
           <Glyphicon glyph="home"/>
         </BreadcrumbItem>
         { (this.props.scope.get('type') !== "home") ?
-         <BreadcrumbItem href="#/messages/{this.props.scope.get('scope') || this.props.scope.get('parent')}">
-           {this.props.scope.get('scope') || this.props.scope.get('parent')}
-         </BreadcrumbItem> : null}
-         { this.props.scope.get('type') === "topic" ?
-                                            <BreadcrumbItem href="#/messages/{this.props.scope.get('value')}">
-                                              {this.props.scope.get('value')}
-                                            </BreadcrumbItem> : null
-         }
+          <BreadcrumbItem href="#/messages/{this.props.scope.get('scope') || this.props.scope.get('parent')}">
+            {this.props.scope.get('scope') || this.props.scope.get('parent')}
+          </BreadcrumbItem> : null}
+          { this.props.scope.get('type') === "topic" ?
+            <BreadcrumbItem href="#/messages/{this.props.scope.get('value')}">
+              {this.props.scope.get('value')}
+            </BreadcrumbItem> : null
+          }
       </Breadcrumb>
     );
     const innerGlyphicon = <Glyphicon glyph="search" />;

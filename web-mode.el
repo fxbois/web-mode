@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.12
+;; Version: 12.3.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.12"
+(defconst web-mode-version "12.3.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8721,10 +8721,12 @@ Pos should be in a tag."
     (goto-char pos)
     (looking-at-p regexp)))
 
-(defun web-mode-looking-back (regexp pos)
+(defun web-mode-looking-back (regexp pos &optional limit greedy)
   (save-excursion
     (goto-char pos)
-    (looking-back regexp)))
+    (if limit
+        (looking-back regexp limit greedy)
+      (looking-back regexp))))
 
 (defun web-mode-insert-text-at-pos (text pos)
   (let ((mem web-mode-enable-auto-pairing))
@@ -9671,7 +9673,6 @@ Pos should be in a tag."
           (while continue
             (setq beg (previous-single-property-change beg 'tag-beg))
             (when beg (setq beg (1- beg)))
-            ;;(message "coucou=%S" beg)
             (cond
              ((null beg)
               (setq continue nil))
@@ -9685,13 +9686,10 @@ Pos should be in a tag."
           ) ;let
         )
        ) ;cond
-      ;;(when (not (get-text-property beg 'tag-beg))
-      ;;  (setq beg nil))
       )
      (t
       (setq beg nil))
      ) ;cond
-    ;;(message "beg=%S" beg)
     beg))
 
 (defun web-mode-tag-end-position (&optional pos)
@@ -9793,9 +9791,7 @@ Pos should be in a tag."
         (setq end nil))
        ((and depth
              (eq depth (get-text-property end 'jsx-depth))
-             (not (eq depth (get-text-property end 'jsx-end)))
-             )
-        ;;(message "end found=%S" end)
+             (not (eq depth (get-text-property end 'jsx-end))))
         )
        ((and depth (eq (1+ depth) (get-text-property end 'jsx-depth)))
         )
@@ -9804,15 +9800,12 @@ Pos should be in a tag."
           (while continue
             (setq end (1+ end))
             (setq end (next-single-property-change end 'tag-attr-end))
-            ;;(message "end=%S" end)
             (cond
              ((null end)
               (setq continue nil))
              ((not (get-text-property end 'tag-attr-end))
               (setq continue nil
                     end nil))
-             ;;((not (get-text-property end 'jsx-end))
-             ;; (setq continue nil))
              ((eq (1+ depth) (get-text-property end 'jsx-depth))
               (setq continue nil))
              ) ;cond
@@ -9837,26 +9830,18 @@ Pos should be in a tag."
               depth (get-text-property pos 'jsx-depth))
       (setq continue nil
             pos nil))
-    ;;(message "web-mode-attribute-next-position(%S) %S" pos depth)
     (while continue
       (setq pos (next-single-property-change pos 'tag-attr-beg))
-      ;;(message "-> %S" pos)
       (cond
        ((null pos)
-        ;;(message "la")
         (setq continue nil))
        ((>= pos limit)
         (setq continue nil
               pos nil))
-
-       ;;((and (null depth) (get-text-property pos 'tag-attr-beg))
-       ((null depth) ;;(get-text-property pos 'tag-attr-beg))
+       ((null depth)
         (setq continue nil))
-
-       ;;((and depth (eq depth (get-text-property pos 'jsx-depth)))
        ((eq depth (get-text-property pos 'jsx-depth))
         (setq continue nil))
-
        (t
         (setq pos (1+ pos)
               continue (< pos limit)))
@@ -9996,8 +9981,7 @@ Pos should be in a tag."
           ) ;when
         ) ;while
       ) ;save-excursion
-    (if (null continue) pos nil)
-    ))
+    (if (null continue) pos nil)))
 
 (defun web-mode-element-previous-position (&optional pos limit)
   (unless pos (setq pos (point)))
@@ -10415,6 +10399,12 @@ Pos should be in a tag."
        ((member char '(?\) ?\] ?\}))
         (setq pos (web-mode-opening-paren-position pos reg-beg))
         (setq pos (1- pos)))
+       ((and (eq char ?\=)
+             (web-mode-looking-back "[<>!=]+" pos reg-beg t))
+        (setq pos (- pos 1 (length (match-string-no-properties 0))))
+        ;;(setq pos (1- pos))
+        ;;(message "%S pos=%S" (match-string-no-properties 0) pos)
+        )
        ((member char '(?\( ?\{ ?\[ ?\=))
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
