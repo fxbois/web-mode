@@ -79,9 +79,9 @@ module.exports = React.createClass({
     return (
       <ul>
         {
-         this.props.list.map(function(element) {
-           return <li>{element}</li>;
-         })
+           this.props.list.map(function(element) {
+             return <li>{element}</li>;
+           })
         }
       </ul>
     );
@@ -113,8 +113,7 @@ var Component = React.createClass({
         default :
           return null;
       }
-    }
-    );
+    });
   }
 });
 
