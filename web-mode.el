@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.10
+;; Version: 12.3.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.10"
+(defconst web-mode-version "12.3.11"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2597,6 +2597,8 @@ the environment as needed for ac-sources, right before they're used.")
             (setq closing-string "}}"
                   delim-open "{{"
                   delim-close "}}"))
+           ((looking-at-p "[[:alnum:]]+\\.[[:alpha:]]+")
+            )
            ((string= sub2 "@y")
             (setq closing-string ")"
                   delim-open "@"))
@@ -6392,7 +6394,7 @@ the environment as needed for ac-sources, right before they're used.")
         (cond
          ((string= web-mode-engine "blade")
           (save-excursion
-            (when (web-mode-rsf "{{[ ]*")
+            (when (web-mode-rsf "{[{!]+[ ]*")
               (setq reg-col (current-column))))
           (setq reg-beg (+ reg-beg 2))
           )
@@ -6905,8 +6907,10 @@ the environment as needed for ac-sources, right before they're used.")
             ;;(message "%S" (point))
             (if (looking-back "::[ ]*")
                 (progn
-                  (search-backward "::")
-                  (setq offset (current-column)))
+                  (re-search-backward "::[ ]*")
+                  (setq offset (current-column))
+                  ;;(message "ici%S offset=%S" (point) offset)
+                  )
               (search-forward "->")
               (setq offset (- (current-column) 2)))
             )
