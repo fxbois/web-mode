@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.3.11
+;; Version: 12.3.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.3.11"
+(defconst web-mode-version "12.3.12"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8975,7 +8975,8 @@ Pos should be in a tag."
                (>= pos 4)
                (or (string= "</" chunk)
                    (and (= web-mode-auto-close-style 2)
-                        (not (get-text-property pos 'part-side))
+                        (or (string= web-mode-content-type "jsx")
+                            (not (get-text-property pos 'part-side)))
                         (string-match-p "[[:alnum:]'\"]>" chunk)))
                (not (get-text-property (- pos 2) 'block-side))
                (web-mode-element-close))

@@ -12,9 +12,10 @@ return (
 
 return (
   <div>
+    <div>xs</div>
     <OtherComponent/>
     <OtherComponent class="toto"
                     {...props}
                     id="fr" />
   </div>;
-)
+);
