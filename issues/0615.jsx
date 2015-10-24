@@ -25,10 +25,10 @@ export default React.createClass({
     return (
       <Row className="Header">
         <Col xs={6}>
-        {breadcrumb}
-      </Col>
-      <Col className="search-bar" xs={6}>
-      <Input type="text" addonBefore={innerGlyphicon} />
+          {breadcrumb}
+        </Col>
+        <Col className="search-bar" xs={6}>
+          <Input type="text" addonBefore={innerGlyphicon} />
         </Col>
       </Row>
     );
