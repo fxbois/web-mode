@@ -9652,7 +9652,7 @@ Pos should be in a tag."
   (unless pos (setq pos (point)))
   (unless limit (setq limit (point-max)))
   (cond
-   ((or (>= pos (point-max) (>= pos limit))) nil)
+   ((or (>= pos (point-max)) (>= pos limit)) nil)
    (t
     (when (get-text-property pos 'tag-beg) (setq pos (1+ pos)))
     (setq pos (next-single-property-change pos 'tag-beg))
