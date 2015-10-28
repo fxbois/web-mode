@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.4.0
+;; Version: 12.4.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -26,7 +26,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.4.0"
+(defconst web-mode-version "12.4.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6711,6 +6711,7 @@ the environment as needed for ac-sources, right before they're used.")
                (or (eq prev-char ?\))
                    (string-match-p "^else$" prev-line))
                (not (string-match-p "^\\([{.]\\|->\\)" curr-line)))
+          ;;(message "ici");
           (cond
            ((member language '("javascript" "jsx" "ejs"))
             (setq offset
@@ -6727,7 +6728,10 @@ the environment as needed for ac-sources, right before they're used.")
            )
           )
 
-         ((and (member language '("javascript" "jsx" "ejs")) (member ?\. chars))
+         ((and (member language '("javascript" "jsx" "ejs"))
+               (member ?\. chars)
+               (not (string-match-p "^\\.\\.\\." curr-line))
+               )
           (when (web-mode-javascript-calls-beginning pos reg-beg)
             (cond
              ((cdr (assoc "lineup-calls" web-mode-indentation-params))
