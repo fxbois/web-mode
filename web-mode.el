@@ -1949,6 +1949,14 @@ Auto-complete sources will sometimes need some tweaking to work
 nicely with web-mode. This hook gives users the chance to adjust
 the environment as needed for ac-sources, right before they're used.")
 
+(defvar web-mode-ignore-ac-start-advice nil
+  "If not nil 'defadvice' for 'ac-start' will be ignored.
+
+Can be set inside a hook in 'web-mode-before-auto-complete-hooks' to
+non nil to ignore the defadvice which sets ac-sources according to current
+language. This is needed if the corresponding auto-completion triggers
+another auto-completion with different ac-sources (e.g. ac-php)")
+
 (defvar web-mode-ac-sources-alist nil
   "alist mapping language names to ac-sources for that language.")
 
@@ -11200,14 +11208,19 @@ Pos should be in a tag."
 
 (defadvice ac-start (before web-mode-set-up-ac-sources activate)
   "Set `ac-sources' based on current language before running auto-complete."
-  (if (equal major-mode 'web-mode)
-      (progn
-        (run-hooks 'web-mode-before-auto-complete-hooks)
-        (when web-mode-ac-sources-alist
-          (let ((new-web-mode-ac-sources
-                 (assoc (web-mode-language-at-pos)
-                        web-mode-ac-sources-alist)))
-            (setq ac-sources (cdr new-web-mode-ac-sources)))))))
+  (when (equal major-mode 'web-mode)
+    (progn
+      ;; set ignore each time to nil. User has to implement a hook to change it
+      ;; for each completion
+      (setq web-mode-ignore-ac-start-advice nil)
+      (run-hooks 'web-mode-before-auto-complete-hooks)
+      (unless web-mode-ignore-ac-start-advice
+        (progn
+          (when web-mode-ac-sources-alist
+            (let ((new-web-mode-ac-sources
+                   (assoc (web-mode-language-at-pos)
+                          web-mode-ac-sources-alist)))
+              (setq ac-sources (cdr new-web-mode-ac-sources)))))))))
 
 ;;---- MINOR MODE ADDONS -------------------------------------------------------
 
