@@ -11209,18 +11209,16 @@ Pos should be in a tag."
 (defadvice ac-start (before web-mode-set-up-ac-sources activate)
   "Set `ac-sources' based on current language before running auto-complete."
   (when (equal major-mode 'web-mode)
-    (progn
-      ;; set ignore each time to nil. User has to implement a hook to change it
-      ;; for each completion
-      (setq web-mode-ignore-ac-start-advice nil)
-      (run-hooks 'web-mode-before-auto-complete-hooks)
-      (unless web-mode-ignore-ac-start-advice
-        (progn
-          (when web-mode-ac-sources-alist
-            (let ((new-web-mode-ac-sources
-                   (assoc (web-mode-language-at-pos)
-                          web-mode-ac-sources-alist)))
-              (setq ac-sources (cdr new-web-mode-ac-sources)))))))))
+    ;; set ignore each time to nil. User has to implement a hook to change it
+    ;; for each completion
+    (setq web-mode-ignore-ac-start-advice nil)
+    (run-hooks 'web-mode-before-auto-complete-hooks)
+    (unless web-mode-ignore-ac-start-advice
+      (when web-mode-ac-sources-alist
+        (let ((new-web-mode-ac-sources
+               (assoc (web-mode-language-at-pos)
+                      web-mode-ac-sources-alist)))
+          (setq ac-sources (cdr new-web-mode-ac-sources)))))))
 
 ;;---- MINOR MODE ADDONS -------------------------------------------------------
 
