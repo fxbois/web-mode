@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 12.4.2
+;; Version: 13.0.0
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -19,14 +19,9 @@
 
 ;; Code goes here
 
-;;---- TODO --------------------------------------------------------------------
-
-;; v13 : invert path and XX (web-mode-engines-alist,
-;;       web-mode-content-types-alist) for more consistency
-
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "12.4.2"
+(defconst web-mode-version "13.0.0"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6917,28 +6912,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       ) ;when
 
     ))
-
-;; (defun web-mode-markup-indentation (pos)
-;;   (save-excursion
-;;     (goto-char pos)
-;;     (let ((offset 0) beg ret)
-;;       (setq beg (web-mode-markup-indentation-origin))
-;;       (when beg
-;;         (when (and (get-text-property pos 'jsx-depth)
-;;                    (not (get-text-property beg 'jsx-depth)))
-;;           (setq beg (web-mode-jsx-depth-beginning-position pos)))
-;;         (goto-char beg)
-;;         (setq ret (web-mode-element-is-opened beg pos))
-;;         (cond
-;;          ((null ret)
-;;           (setq offset (current-indentation)))
-;;          ((eq ret t)
-;;           (setq offset (+ (current-indentation) web-mode-markup-indent-offset)))
-;;          (t
-;;           (setq offset ret))
-;;          ) ;cond
-;;         ) ;when beg
-;;       offset)))
 
 (defun web-mode-markup-indentation (pos)
   (let ((offset 0) beg ret)
