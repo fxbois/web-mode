@@ -79,9 +79,9 @@ module.exports = React.createClass({
     return (
       <ul>
         {
-           this.props.list.map(function(element) {
-             return <li>{element}</li>;
-           })
+          this.props.list.map(function(element) {
+            return <li>{element}</li>;
+          })
         }
       </ul>
     );
@@ -93,9 +93,9 @@ Landing = React.createClass({
   render: function() {
     return (
       <ul>
-        {for(e in list){
-           console.log("not aligned");
-         }}
+        { for(e in list){
+            console.log("not aligned");
+          }}
       </ul>
     );
   }

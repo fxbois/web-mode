@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.1
+;; Version: 13.0.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.1"
+(defconst web-mode-version "13.0.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -55,7 +55,7 @@
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-jsx-expression-padding 2
+(defcustom web-mode-jsx-expression-padding 0
   "Multi-line jsx expression left padding."
   :type 'integer
   :group 'web-mode)
@@ -6276,11 +6276,25 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq reg-beg (1+ reg-beg))
           (save-excursion
             (goto-char reg-beg)
-            (setq reg-col (+ (current-column)
-                             (cond
-                              ((looking-at-p "[ ]*$") web-mode-jsx-expression-padding)
-                              ((looking-at "[ ]+") (length (match-string-no-properties 0)))
-                              (t 0))))
+            ;;(setq reg-col (+ (current-column)
+            ;;                 (cond
+            ;;                  ((looking-at-p "[ ]*$") web-mode-jsx-expression-padding)
+            ;;                  ((looking-at "[ ]+") (length (match-string-no-properties 0)))
+            ;;                  (t 0))))
+
+            (cond
+             ((and (not (looking-at-p "[ ]*$"))
+                   (looking-back "^[[:space:]]*{"))
+              (setq reg-col (+ (current-indentation) 1
+                               (cond
+                                ((looking-at "[ ]+") (length (match-string-no-properties 0)))
+                                (t 0))
+                               ))
+              )
+             (t
+              (setq reg-col (+ (current-indentation) web-mode-code-indent-offset web-mode-jsx-expression-padding)))
+             )
+            ;;(message "%S %S %S" (point) (current-indentation) reg-col)
             ) ;save-excursion
           )
          ((string= web-mode-content-type "jsx")
@@ -6502,8 +6516,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              (options (plist-get ctx :options))
              (chars (list curr-char prev-char)))
 
-        ;;(message "[%c] [%c]\n%S" curr-char prev-char ctx)
-        ;;(message "%S" prev-line)
+        ;;(message "curr-char=[%c] prev-char=[%c]\n%S" curr-char prev-char ctx)
 
         (cond
 
@@ -6589,8 +6602,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ((and (member language '("html" "xml" "javascript" "jsx"))
                (get-text-property pos 'tag-type)
-               (not (get-text-property pos 'tag-beg)))
-
+               (not (get-text-property pos 'tag-beg))
+               (or (not (string= language "jsx"))
+                   (string= options "is-html")))
+          ;;(message "html-attr")
           (cond
            ((and (get-text-property pos 'tag-attr)
                  (get-text-property (1- pos) 'tag-attr)
@@ -6614,6 +6629,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((or (member language '("html" "xml"))
               (and (member language '("jsx"))
                    (string= options "is-html")))
+          ;;(message "html")
           (cond
            ((get-text-property pos 'tag-beg)
             (setq offset (web-mode-markup-indentation pos))
@@ -6658,7 +6674,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq offset (web-mode-lisp-indentation pos ctx)))
 
          ((member curr-char '(?\} ?\) ?]))
-
+          ;;(message "coucou")
           ;; TODO: create web-mode-part-opening-paren-position
           (let (ori)
             (if (get-text-property pos 'block-side)
@@ -6714,7 +6730,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                (or (eq prev-char ?\))
                    (string-match-p "^else$" prev-line))
                (not (string-match-p "^\\([{.]\\|->\\)" curr-line)))
-          ;;(message "ici");
+          ;;(message "ici")
           (cond
            ((member language '("javascript" "jsx" "ejs"))
             (setq offset
@@ -6735,6 +6751,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                (member ?\. chars)
                (not (string-match-p "^\\.\\.\\." curr-line))
                )
+          ;;(message "js-lineup")
           (when (web-mode-javascript-calls-beginning pos reg-beg)
             (cond
              ((cdr (assoc "lineup-calls" web-mode-indentation-params))
@@ -6753,6 +6770,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           )
 
          ((and (member language '("javascript" "jsx" "ejs")) (member ?\+ chars))
+          ;;(message "js-concat")
           (cond
            ((not (web-mode-javascript-string-beginning pos reg-beg))
             )
@@ -6773,6 +6791,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((and (member language '("javascript" "jsx" "ejs" "php"))
                (string-match-p "=>$" prev-line))
           (setq offset (+ prev-indentation web-mode-code-indent-offset))
+          ;;(message "ici%S" offset)
           )
 
          ;; #446
@@ -6781,6 +6800,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                    (string-match-p "^[+-&|?:]" curr-line))
                (not (and (eq prev-char ?\:)
                          (string-match-p "^\\(case\\|default\\)" prev-line))))
+          ;;(message "la")
           (cond
            ((not (funcall (if (member language '("javascript" "jsx" "ejs"))
                               'web-mode-javascript-statement-beginning
