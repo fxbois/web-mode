@@ -28,7 +28,7 @@ React.createClass({
 
 return (
   <li>
-    <ModalTrigger modal={ <InviteForm> }>
+    <ModalTrigger test="xs" test="dccd" modal={ <InviteForm> }>
       <a href="#">Invite Representative</a>
     </ModalTrigger>
   </li>
