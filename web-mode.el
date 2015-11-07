@@ -619,12 +619,12 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-auto-pairs nil)
 (defvar web-mode-block-regexp nil)
+(defvar web-mode-change-beg nil)
+(defvar web-mode-change-end nil)
 (defvar web-mode-chunk-length 64)
 (defvar web-mode-column-overlays nil)
 (defvar web-mode-comments-invisible nil)
 (defvar web-mode-content-type "")
-(defvar web-mode-inhibit-fontification nil)
-(defvar web-mode-end-tag-overlay nil)
 (defvar web-mode-engine nil)
 (defvar web-mode-engine-attr-regexp nil)
 (defvar web-mode-engine-font-lock-keywords nil)
@@ -633,19 +633,20 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-expand-initial-scroll nil)
 (defvar web-mode-expand-previous-state "")
 (defvar web-mode-font-lock-keywords '(web-mode-font-lock-highlight))
-(defvar web-mode-change-beg nil)
-(defvar web-mode-change-end nil)
-(defvar web-mode-hook nil)
+(defvar web-mode-inhibit-fontification nil)
+;;(defvar web-mode-hook nil)
 (defvar web-mode-inlay-regexp nil)
 (defvar web-mode-is-scratch nil)
 (defvar web-mode-jshint-errors 0)
-(defvar web-mode-obarray nil)
-(defvar web-mode-snippets nil)
-(defvar web-mode-start-tag-overlay nil)
 (defvar web-mode-minor-engine nil)
+(defvar web-mode-obarray nil)
+(defvar web-mode-overlay-tag-start nil)
+(defvar web-mode-overlay-tag-end nil)
+(defvar web-mode-snippets nil)
 (defvar web-mode-time (current-time))
 
-(defvar web-mode-pre-elements '("code" "pre" "textarea"))
+(defvar web-mode-pre-elements
+  '("code" "pre" "textarea"))
 
 (defvar web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
@@ -2172,13 +2173,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (make-local-variable 'web-mode-comment-style)
   (make-local-variable 'web-mode-content-type)
   (make-local-variable 'web-mode-css-indent-offset)
-  (make-local-variable 'web-mode-inhibit-fontification)
   (make-local-variable 'web-mode-display-table)
+  (make-local-variable 'web-mode-django-control-blocks)
+  (make-local-variable 'web-mode-django-control-blocks-regexp)
   (make-local-variable 'web-mode-enable-block-face)
   (make-local-variable 'web-mode-enable-inlays)
   (make-local-variable 'web-mode-enable-part-face)
   (make-local-variable 'web-mode-enable-sexp-functions)
-  (make-local-variable 'web-mode-end-tag-overlay)
   (make-local-variable 'web-mode-engine)
   (make-local-variable 'web-mode-engine-attr-regexp)
   (make-local-variable 'web-mode-engine-file-regexps)
@@ -2188,17 +2189,16 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (make-local-variable 'web-mode-expand-initial-scroll)
   (make-local-variable 'web-mode-expand-previous-state)
   (make-local-variable 'web-mode-indent-style)
+  (make-local-variable 'web-mode-inhibit-fontification)
   (make-local-variable 'web-mode-is-scratch)
   (make-local-variable 'web-mode-jshint-errors)
   (make-local-variable 'web-mode-last-enabled-feature)
   (make-local-variable 'web-mode-markup-indent-offset)
-  (make-local-variable 'web-mode-sql-indent-offset)
-  (make-local-variable 'web-mode-start-tag-overlay)
   (make-local-variable 'web-mode-minor-engine)
+  (make-local-variable 'web-mode-overlay-tag-end)
+  (make-local-variable 'web-mode-overlay-tag-start)
+  (make-local-variable 'web-mode-sql-indent-offset)
   (make-local-variable 'web-mode-time)
-
-  (make-local-variable 'web-mode-django-control-blocks)
-  (make-local-variable 'web-mode-django-control-blocks-regexp)
 
   (make-local-variable 'comment-end)
   (make-local-variable 'comment-start)
@@ -2215,11 +2215,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (make-local-variable 'indent-line-function)
   (make-local-variable 'parse-sexp-lookup-properties)
   (make-local-variable 'yank-excluded-properties)
-
-  ;; NOTE: required for block-code-beg|end
-  ;;(make-local-variable 'text-property-default-nonsticky)
-  ;;(add-to-list 'text-property-default-nonsticky '(block-token . t))
-  ;;(message "%S" text-property-default-nonsticky)
 
   (setq comment-end "-->"
         comment-start "<!--"
@@ -4909,8 +4904,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
    (save-excursion
      (save-restriction
        (save-match-data
-         (let (
-               (buffer-undo-list t)
+         (let ((buffer-undo-list t)
                ;;(inhibit-modification-hooks t)
                (inhibit-point-motion-hooks t)
                (inhibit-quit t))
@@ -5962,20 +5956,20 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   )
 
 (defun web-mode-make-tag-overlays ()
-  (unless web-mode-start-tag-overlay
-    (setq web-mode-start-tag-overlay (make-overlay 1 1)
-          web-mode-end-tag-overlay (make-overlay 1 1))
-    (overlay-put web-mode-start-tag-overlay
+  (unless web-mode-overlay-tag-start
+    (setq web-mode-overlay-tag-start (make-overlay 1 1)
+          web-mode-overlay-tag-end (make-overlay 1 1))
+    (overlay-put web-mode-overlay-tag-start
                  'font-lock-face
                  'web-mode-current-element-highlight-face)
-    (overlay-put web-mode-end-tag-overlay
+    (overlay-put web-mode-overlay-tag-end
                  'font-lock-face
                  'web-mode-current-element-highlight-face)))
 
 (defun web-mode-delete-tag-overlays ()
-  (when web-mode-start-tag-overlay
-    (delete-overlay web-mode-start-tag-overlay)
-    (delete-overlay web-mode-end-tag-overlay)))
+  (when web-mode-overlay-tag-start
+    (delete-overlay web-mode-overlay-tag-start)
+    (delete-overlay web-mode-overlay-tag-end)))
 
 (defun web-mode-column-overlay-factory (index)
   (let (overlay)
@@ -6064,8 +6058,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
      (t
       (web-mode-make-tag-overlays)
       (setq len (length (get-text-property (caar ctx) 'tag-name)))
-      (move-overlay web-mode-start-tag-overlay (+ (caar ctx) 1) (+ (caar ctx) 1 len))
-      (move-overlay web-mode-end-tag-overlay (+ (cadr ctx) 2) (+ (cadr ctx) 2 len))
+      (move-overlay web-mode-overlay-tag-start (+ (caar ctx) 1) (+ (caar ctx) 1 len))
+      (move-overlay web-mode-overlay-tag-end (+ (cadr ctx) 2) (+ (cadr ctx) 2 len))
       ) ;t
      ) ;cond
     ))
