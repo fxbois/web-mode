@@ -7907,12 +7907,13 @@ Pos should be in a tag."
         (deactivate-mark)
         ))))
 
-(defun web-mode-element-wrap ()
-  "Wrap current REGION with start and end tags."
+(defun web-mode-element-wrap (&optional tag-name)
+  "Wrap current REGION with start and end tags.
+Prompt user if TAG-NAME isn't provided."
   (interactive)
   (let (beg end pos tag sep)
     (save-excursion
-      (setq tag (read-from-minibuffer "Tag name? "))
+      (setq tag (or tag-name (read-from-minibuffer "Tag name? ")))
       (setq pos (point))
       (cond
        (mark-active
