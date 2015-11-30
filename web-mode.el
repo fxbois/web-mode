@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.3
+;; Version: 13.0.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.3"
+(defconst web-mode-version "13.0.4"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -9670,7 +9670,8 @@ Prompt user if TAG-NAME isn't provided."
    ((get-text-property pos 'tag-attr-beg)
     pos)
    (t
-    (previous-single-property-change pos 'tag-attr-beg))
+    (setq pos (previous-single-property-change pos 'tag-attr-beg))
+    (setq pos (1- pos)))
    ))
 
 ;; TODO: retoucher en incluant un param limit et en s'inspirant de
