@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.4
+;; Version: 13.0.5
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.4"
+(defconst web-mode-version "13.0.5"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1898,7 +1898,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    (cons (concat "(\\<\\(" web-mode-php-types "\\)\\>") '(1 'web-mode-type-face))
    (cons (concat "\\<\\(" web-mode-php-constants "\\)\\>") '(0 'web-mode-constant-face))
    '("function[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_][ ]?::[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-constant-face)
    '("->[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    '("\\<\\([[:alnum:]_]+\\)[ ]?::" 1 'web-mode-type-face)
