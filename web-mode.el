@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.5
+;; Version: 13.0.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.5"
+(defconst web-mode-version "13.0.6"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1502,11 +1502,11 @@ Must be used in conjunction with web-mode-enable-block-face."
     (cdr (assoc "javascript" web-mode-extra-keywords))
     '("break" "case" "catch" "class" "const" "continue"
       "debugger" "default" "delete" "do" "else" "enum" "eval"
-      "export" "extends" "finally" "for" "from" "function" "if"
+      "export" "extends" "finally" "for" "from" "function" "get" "if"
       "implements" "import" "in" "instanceof" "interface" "let"
       "new" "package" "private" "protected" "public"
-      "return" "static" "super" "switch" "throw"
-      "try" "typeof" "var" "void" "while" "with" "yield"))))
+      "return" "set" "static" "super" "switch"
+      "throw" "try" "typeof" "var" "void" "while" "with" "yield"))))
 
 (defvar web-mode-javascript-constants
   (regexp-opt
@@ -1563,13 +1563,18 @@ Must be used in conjunction with web-mode-enable-block-face."
          '(0 'web-mode-constant-face))
    '("\\<\\(new\\|instanceof\\|class\\|extends\\) \\([[:alnum:]_.]+\\)\\>" 2 'web-mode-type-face)
    '("\\<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
-   '("\\<function[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
-   '("\\<\\([[:alnum:]_]+\\)([^)]*)[ ]*{" 1 'web-mode-function-name-face)
+   '("\\<\\(function\\|get\\|set\\)[ ]+\\([[:alnum:]_]+\\)"
+     (1 'web-mode-keyword-face)
+     (2 'web-mode-function-name-face))
+   ;;'("\\<\\([[:alnum:]_]+\\)([^)]*)[ ]*{" 1 'web-mode-function-name-face)
    '("([ ]*\\([[:alnum:]_]+\\)[ ]*=>" 1 'web-mode-function-name-face)
    '("[ ]*\\([[:alnum:]_]+\\)[ ]*=[ ]*([^)]*)[ ]*=>[ ]*{" 1 'web-mode-function-name-face)
    '("\\<\\(var\\|let\\|const\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-variable-name-face)
-   '("\\<\\(function\\)[ ]*("
-     (1 'web-mode-keyword-face)
+   ;;'("\\<\\(function\\)[ ]*("
+   ;;  (1 'web-mode-keyword-face)
+   ;;  ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
+   '("\\([[:alnum:]_]+\\)[ ]*=> [{(]" 1 'web-mode-variable-name-face)
+   '("\\(function\\|[,=]\\|^\\)[ ]*("
      ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
    '("\\([[:alnum:]_]+\\):" 1 'web-mode-variable-name-face)
    ))
