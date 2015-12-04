@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.6
+;; Version: 13.0.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.6"
+(defconst web-mode-version "13.0.7"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6767,13 +6767,14 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           ;;(message "ici%S" offset)
           )
 
-         ;; #446
+         ;; #446, #638
          ((and (member language '("javascript" "jsx" "ejs" "php"))
-               (or (string-match-p "[+-&|?:]$" prev-line)
-                   (string-match-p "^[+-&|?:]" curr-line))
+               (or (string-match-p "[&|?:+-]$" prev-line)
+                   (string-match-p "^[&|?:+-]" curr-line))
+               (not (and (string= language "php")
+                         (string-match-p "^->" curr-line)))
                (not (and (eq prev-char ?\:)
                          (string-match-p "^\\(case\\|default\\)" prev-line))))
-          ;;(message "la")
           (cond
            ((not (funcall (if (member language '("javascript" "jsx" "ejs"))
                               'web-mode-javascript-statement-beginning
@@ -6786,7 +6787,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (setq offset (current-column))
             (when (member curr-char '(?\+ ?\- ?\& ?\| ?\? ?\:))
               (goto-char pos)
-              (looking-at "\\(||\\|&&\\|[+-&|?:]\\)[ \t\n]*")
+              (looking-at "\\(||\\|&&\\|[&|?:+-]\\)[ \t\n]*")
               (setq offset (- offset (length (match-string-no-properties 0)))))
             )
            ) ;cond
@@ -6820,7 +6821,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ((not (web-mode-block-calls-beginning pos reg-beg))
             )
            ((cdr (assoc "lineup-calls" web-mode-indentation-params))
-            ;;(message "%S" (point))
+            ;;(message "point=%S" (point))
             (if (looking-back "::[ ]*")
                 (progn
                   (re-search-backward "::[ ]*")
@@ -6938,7 +6939,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-javascript-indentation (pos initial-column language-offset language &optional limit)
   (let ((open-ctx (web-mode-bracket-up pos language limit)) indentation offset sub)
     ;;(message "pos(%S) initial-column(%S) language-offset(%S) language(%S) limit(%S)" pos initial-column language-offset language limit)
-    ;;(message "javascript-indentation: %S" open-ctx)
+    ;;(message "javascript-indentation: %S\nchar=%c" open-ctx (plist-get open-ctx :char))
     (setq indentation (plist-get open-ctx :indentation))
     (when (and initial-column (> initial-column indentation))
       (setq indentation initial-column)
@@ -6946,15 +6947,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (cond
      ((or (null open-ctx) (null (plist-get open-ctx :pos)))
       (setq offset initial-column))
-     ;; ((and (member language '("javascript" "jsx" "ejs"))
-     ;;       (eq (plist-get open-ctx :char) ?\{)
-     ;;       (web-mode-looking-back "switch[ ]*(.*)[ ]*" (plist-get open-ctx :pos))
-     ;;       (not (looking-at-p "case\\|default")))
-     ;;  (setq offset (+ indentation (* language-offset 2))))
      ((and (member language '("javascript" "jsx" "ejs"))
            (eq (plist-get open-ctx :char) ?\{)
            (web-mode-looking-back "switch[ ]*(.*)[ ]*" (plist-get open-ctx :pos)))
-      ;;(message "la")
       (setq sub (if (cdr (assoc "case-extra-offset" web-mode-indentation-params)) 0 1))
       (cond
        ((looking-at-p "case\\|default")
@@ -6977,7 +6972,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            (indentation (plist-get ctx :indentation)))
       ;;(message "pos(%S) initial-column(%S) language-offset(%S) language(%S) limit(%S)" pos initial-column language-offset language limit)
       ;;(message "bracket-up: %S, %c" ctx char)
-      ;;(message "bracket-up: %S" ctx)
       (cond
        ((null pos)
         (setq indentation initial-column))
