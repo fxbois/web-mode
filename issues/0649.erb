@@ -1,0 +1,5 @@
+<% layout.columns.each do |col| %>
+  <td class="<%= class_for_col col %>">
+    <%= best_in_place(expense, col) %>
+  </td>
+<% end %>
