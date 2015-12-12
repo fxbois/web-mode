@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.9
+;; Version: 13.0.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.9"
+(defconst web-mode-version "13.0.10"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2251,8 +2251,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (when web-mode-enable-whitespace-fontification
     (web-mode-whitespaces-on))
 
-  (when (and (boundp 'indent-tabs-mode) indent-tabs-mode)
-    (web-mode-use-tabs))
+  ;;(when (and (boundp 'indent-tabs-mode) indent-tabs-mode)
+  ;;  (web-mode-use-tabs))
 
   (when web-mode-enable-sexp-functions
     (setq-local forward-sexp-function 'web-mode-forward-sexp))
@@ -2267,8 +2267,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              (not (assoc major-mode hs-special-modes-alist)))
     (add-to-list 'hs-special-modes-alist '(web-mode "{" "}" "/[*/]" web-mode-forward-sexp nil))
     ) ;when
-
-  ;;(web-mode-trace "buffer loaded")
 
   )
 
