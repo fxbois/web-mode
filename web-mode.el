@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.8
+;; Version: 13.0.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.8"
+(defconst web-mode-version "13.0.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1523,9 +1523,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-selector-font-lock-keywords
   (list
    '("$[[:alnum:]-]+" 0 'web-mode-css-variable-face)
-   (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>")
+   (cons (concat "@\\(" web-mode-css-at-rules "\\)\\_>")
          '(0 'web-mode-css-at-rule-face))
-   '("\\<\\(all\|braille\\|embossed\\|handheld\\|print\\|projection\\|screen\\|speech\\|tty\\|tv\\|and\\|or\\)\\>"
+   '("\\_<\\(all\|braille\\|embossed\\|handheld\\|print\\|projection\\|screen\\|speech\\|tty\\|tv\\|and\\|or\\)\\_>"
      1 'web-mode-keyword-face)
    '("[^,]+" 0 'web-mode-css-selector-face)
    (cons (concat ":\\(" web-mode-css-pseudo-classes "\\)\\(([^)]*)\\)?")
@@ -1536,7 +1536,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("--[[:alnum:]-]+" 0 'web-mode-css-variable-face)
    '("$[[:alnum:]-]+" 0 'web-mode-css-variable-face)
-   (cons (concat "@\\(" web-mode-css-at-rules "\\)\\>")
+   (cons (concat "@\\(" web-mode-css-at-rules "\\)\\_>")
          '(1 'web-mode-css-at-rule-face))
    '("\\([[:alpha:]-]+\\)[ ]?:" 0 'web-mode-css-property-name-face)
    '("\\([[:alpha:]-]+\\)[ ]?(" 1 'web-mode-css-function-face)
@@ -1556,23 +1556,17 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-javascript-font-lock-keywords
   (list
-   '("@\\([[:alnum:]_]+\\)\\>" 0 'web-mode-keyword-face)
-   (cons (concat "\\([ ]\\|^\\)\\(" web-mode-javascript-keywords "\\)[ ]")
-         '(2 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-javascript-constants "\\)\\>")
-         '(0 'web-mode-constant-face))
-   '("\\<\\(new\\|instanceof\\|class\\|extends\\) \\([[:alnum:]_.]+\\)\\>" 2 'web-mode-type-face)
-   '("\\<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
-   '("\\<\\(function\\|get\\|set\\)[ ]+\\([[:alnum:]_]+\\)"
+   '("@\\([[:alnum:]_]+\\)\\_>" 0 'web-mode-keyword-face)
+   (cons (concat "\\_<\\(" web-mode-javascript-keywords "\\)[ ]") '(1 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-javascript-constants "\\)\\_>") '(0 'web-mode-constant-face))
+   '("\\_<\\(new\\|instanceof\\|class\\|extends\\) \\([[:alnum:]_.]+\\)\\_>" 2 'web-mode-type-face)
+   '("\\_<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
+   '("\\_<\\(function\\|get\\|set\\)[ ]+\\([[:alnum:]_]+\\)"
      (1 'web-mode-keyword-face)
      (2 'web-mode-function-name-face))
-   ;;'("\\<\\([[:alnum:]_]+\\)([^)]*)[ ]*{" 1 'web-mode-function-name-face)
    '("([ ]*\\([[:alnum:]_]+\\)[ ]*=>" 1 'web-mode-function-name-face)
    '("[ ]*\\([[:alnum:]_]+\\)[ ]*=[ ]*([^)]*)[ ]*=>[ ]*{" 1 'web-mode-function-name-face)
-   '("\\<\\(var\\|let\\|const\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-variable-name-face)
-   ;;'("\\<\\(function\\)[ ]*("
-   ;;  (1 'web-mode-keyword-face)
-   ;;  ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
+   '("\\_<\\(var\\|let\\|const\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-variable-name-face)
    '("\\([[:alnum:]_]+\\)[ ]*=> [{(]" 1 'web-mode-variable-name-face)
    '("\\(function\\|[,=]\\|^\\)[ ]*("
      ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
@@ -1593,7 +1587,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("{[#:/?@><+^]\\([[:alpha:]_.]+\\)" 1 'web-mode-block-control-face)
    '(":\\([[:alpha:]]+\\)" 1 'web-mode-keyword-face)
-   '("\\<\\([[:alnum:]_]+=\\)\\(\"[^\"]*\"\\|[[:alnum:]_]*\\)"
+   '("\\_<\\([[:alnum:]_]+=\\)\\(\"[^\"]*\"\\|[[:alnum:]_]*\\)"
      (1 'web-mode-block-attr-name-face)
      (2 'web-mode-block-attr-value-face))
    '("\\\([[:alnum:]_.]+\\)" 0 'web-mode-variable-name-face)
@@ -1601,7 +1595,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-template-toolkit-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-template-toolkit-keywords "\\)\\>")
+   (cons (concat "\\_<\\(" web-mode-template-toolkit-keywords "\\)\\_>")
          '(1 'web-mode-keyword-face))
    '("\\\([[:alpha:]][[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("\\\([[:alpha:]][[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
@@ -1613,8 +1607,8 @@ Must be used in conjunction with web-mode-enable-block-face."
          '(1 'web-mode-keyword-face))
    '("{/?\\([[:alpha:]_]+\\)" 1 'web-mode-block-control-face)
    '("\\([}{]\\)" 0 'web-mode-block-delimiter-face)
-   '("\\<\\([$]\\)\\([[:alnum:]_]+\\)" (1 nil) (2 'web-mode-variable-name-face))
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("\\_<\\([$]\\)\\([[:alnum:]_]+\\)" (1 nil) (2 'web-mode-variable-name-face))
+   '("\\_<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
    '(" \\(\\sw+[ ]?=\\)" 1 'web-mode-param-name-face)
    '(" \\(\\sw+\\)[ }]" 1 'web-mode-param-name-face)
    '("|\\([[:alnum:]_]+\\)" 1 'web-mode-function-call-face)
@@ -1626,42 +1620,42 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-velocity-font-lock-keywords
   (list
-   '("#{?\\([[:alpha:]_]+\\)\\>" (1 'web-mode-block-control-face))
-   (cons (concat "\\<\\(" web-mode-velocity-keywords "\\)\\>") '(1 'web-mode-keyword-face t t))
+   '("#{?\\([[:alpha:]_]+\\)\\_>" (1 'web-mode-block-control-face))
+   (cons (concat "\\_<\\(" web-mode-velocity-keywords "\\)\\_>") '(1 'web-mode-keyword-face t t))
    '("#macro([ ]*\\([[:alpha:]]+\\)[ ]+" 1 'web-mode-function-name-face)
    '("[.]\\([[:alnum:]_-]+\\)" 1 'web-mode-variable-name-face)
-   '("\\<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
+   '("\\_<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
 (defvar web-mode-mako-tag-font-lock-keywords
   (list
    '("</?%\\([[:alpha:]:]+\\)" 1 'web-mode-block-control-face)
-   '("\\<\\([[:alpha:]]+=\\)\\(\"[^\"]*\"\\)"
+   '("\\_<\\([[:alpha:]]+=\\)\\(\"[^\"]*\"\\)"
      (1 'web-mode-block-attr-name-face t t)
      (2 'web-mode-block-attr-value-face t t))
    ))
 
 (defvar web-mode-mako-block-font-lock-keywords
   (list
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
-   (cons (concat "\\<\\(" web-mode-python-constants "\\)\\>") '(1 'web-mode-constant-face))
-   (cons (concat "\\<\\(" web-mode-python-keywords "\\)\\>") '(1 'web-mode-keyword-face))
-   (cons (concat "\\<\\(endfor\\|endif\\|endwhile\\)\\>") '(1 'web-mode-keyword-face))
+   '("\\_<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
+   (cons (concat "\\_<\\(" web-mode-python-constants "\\)\\_>") '(1 'web-mode-constant-face))
+   (cons (concat "\\_<\\(" web-mode-python-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(endfor\\|endif\\|endwhile\\)\\_>") '(1 'web-mode-keyword-face))
    ))
 
 (defvar web-mode-web2py-font-lock-keywords
   (list
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
-   (cons (concat "\\<\\(" web-mode-python-constants "\\)\\>") '(1 'web-mode-constant-face))
-   (cons (concat "\\<\\(" web-mode-python-keywords "\\)\\>") '(1 'web-mode-keyword-face))
-   (cons (concat "\\<\\(block\\|extend\\|super\\|end\\|include\\)\\>") '(1 'web-mode-keyword-face))
+   '("\\_<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
+   (cons (concat "\\_<\\(" web-mode-python-constants "\\)\\_>") '(1 'web-mode-constant-face))
+   (cons (concat "\\_<\\(" web-mode-python-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(block\\|extend\\|super\\|end\\|include\\)\\_>") '(1 'web-mode-keyword-face))
    ))
 
 (defvar web-mode-django-expr-font-lock-keywords
   (list
-   '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-filter-face)
-   (cons (concat "\\<\\(" web-mode-django-types "\\)\\>") '(1 'web-mode-type-face))
-   '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("|[ ]?\\([[:alpha:]_]+\\)\\_>" 1 'web-mode-filter-face)
+   (cons (concat "\\_<\\(" web-mode-django-types "\\)\\_>") '(1 'web-mode-type-face))
+   '("\\_<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
    ))
 
@@ -1669,13 +1663,13 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    (cons (concat "{%[ ]*\\(" web-mode-django-control-blocks-regexp "\\)[ %]")
          '(1 'web-mode-block-control-face))
-   '("{%[ ]*\\(end[[:alpha:]]+\\)\\>" 1 'web-mode-block-control-face) ;#504
-   (cons (concat "\\<\\(" web-mode-django-keywords "\\)\\>")
+   '("{%[ ]*\\(end[[:alpha:]]+\\)\\_>" 1 'web-mode-block-control-face) ;#504
+   (cons (concat "\\_<\\(" web-mode-django-keywords "\\)\\_>")
          '(1 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-django-types "\\)\\>")
+   (cons (concat "\\_<\\(" web-mode-django-types "\\)\\_>")
          '(1 'web-mode-type-face))
-   '("|[ ]?\\([[:alpha:]_]+\\)\\>" 1 'web-mode-function-call-face)
-   '("\\<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("|[ ]?\\([[:alpha:]_]+\\)\\_>" 1 'web-mode-function-call-face)
+   '("\\_<\\([[:alpha:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_.]+" 0 'web-mode-variable-name-face)
    '("[[:alnum:]_]+\\([.][[:alnum:]_]+\\)+" 0 'web-mode-variable-name-face t t)
    ))
@@ -1692,7 +1686,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-razor-font-lock-keywords
   (list
    '("@\\([[:alnum:]_.]+\\)[ ]*[({]" 1 'web-mode-block-control-face)
-   (cons (concat "\\<\\(" web-mode-razor-keywords "\\)\\>") '(1 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-razor-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    '("@\\([[:alnum:]_.]+\\)" 1 'web-mode-variable-name-face)
    ))
 
@@ -1700,20 +1694,20 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("{/?\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
    '("{param[ ]+\\([[:alnum:]]+\\)" 1 'web-mode-symbol-face)
-   '("\\<\\(true\\|false\\|null\\)\\>" 1 'web-mode-type-face)
-   (cons (concat "\\<\\(" web-mode-closure-keywords "\\)\\>") '(1 'web-mode-keyword-face))
+   '("\\_<\\(true\\|false\\|null\\)\\_>" 1 'web-mode-type-face)
+   (cons (concat "\\_<\\(" web-mode-closure-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    '("{\\(alias\\|call\\|delcall\\|delpackage\\|deltemplate\\|namespace\\|template\\)[ ]+\\([[:alnum:].]+\\)" 2 'web-mode-constant-face)
    '("\\(allowemptydefault\\|data\\|desc\\|meaning\\|autoescape\\|private\\|variant\\)=" 0 'web-mode-block-attr-name-face)
    '("|\\([[:alpha:]]+\\)" 1 'web-mode-function-call-face)
-   '("\\<\\([[:alnum:]]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("\\_<\\([[:alnum:]]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("$\\([[:alnum:]._]+\\)" 1 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-go-font-lock-keywords
   (list
    '("{{[ ]*\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
-   (cons (concat "\\<\\(" web-mode-go-keywords "\\)\\>") '(1 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-go-functions "\\)\\>") '(1 'web-mode-function-call-face))
+   (cons (concat "\\_<\\(" web-mode-go-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-go-functions "\\)\\_>") '(1 'web-mode-function-call-face))
    '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
    ))
 
@@ -1729,11 +1723,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-underscore-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-javascript-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   '("\\<\\(_\.[[:alpha:]]+\\)(" 1 'web-mode-function-call-face)
-   '("\\<new \\([[:alnum:]_.]+\\)\\>" 1 'web-mode-type-face)
-   '("\\<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
-   '("\\<\\(var\\)\\>[ ]+\\([[:alnum:]_]+\\)"
+   (cons (concat "\\_<\\(" web-mode-javascript-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   '("\\_<\\(_\.[[:alpha:]]+\\)(" 1 'web-mode-function-call-face)
+   '("\\_<new \\([[:alnum:]_.]+\\)\\_>" 1 'web-mode-type-face)
+   '("\\_<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
+   '("\\_<\\(var\\)\\_>[ ]+\\([[:alnum:]_]+\\)"
      (1 'web-mode-keyword-face)
      (2 'web-mode-variable-name-face))
    ))
@@ -1741,10 +1735,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-tag-font-lock-keywords
   (list
    '("</?\\([[:alpha:]]+\\(?:Template\\|[:.][[:alpha:]-]+\\)\\)" 1 'web-mode-block-control-face)
-   '("\\<\\([[:alpha:]-]+=\\)\\(\"[^\"]*\"\\)"
+   '("\\_<\\([[:alpha:]-]+=\\)\\(\"[^\"]*\"\\)"
      (1 'web-mode-block-attr-name-face t t)
      (2 'web-mode-block-attr-value-face t t))
-   '("\\<\\([[:alpha:]-]+=\\)\\('[^']*\'\\)"
+   '("\\_<\\([[:alpha:]-]+=\\)\\('[^']*\'\\)"
      (1 'web-mode-block-attr-name-face t t)
      (2 'web-mode-block-attr-value-face t t))
    ))
@@ -1752,32 +1746,32 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-jsp-font-lock-keywords
   (list
    '("\\(throws\\|new\\|extends\\)[ ]+\\([[:alnum:].]+\\)" 2 'web-mode-type-face)
-   (cons (concat "\\<\\(" web-mode-jsp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   (cons (concat "\\_<\\(" web-mode-jsp-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   '("\\_<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("@\\(\\sw*\\)" 1 'web-mode-variable-name-face)
-   '("\\<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
+   '("\\_<\\([[:alnum:].]+\\)[ ]+[{[:alpha:]]+" 1 'web-mode-type-face)
    ))
 
 (defvar web-mode-asp-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-asp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-asp-types "\\)\\>") '(0 'web-mode-type-face))
-   (cons (concat "\\<\\(" web-mode-asp-constants "\\)\\>") '(0 'web-mode-constant-face))
+   (cons (concat "\\_<\\(" web-mode-asp-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-asp-types "\\)\\_>") '(0 'web-mode-type-face))
+   (cons (concat "\\_<\\(" web-mode-asp-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("\\(Class\\|new\\) \\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
    '("Const \\([[:alnum:]_]+\\)" 1 'web-mode-constant-face)
-   '("\\<dim\\>"
+   '("\\_<dim\\_>"
      (0 'web-mode-keyword-face)
      ("[[:alnum:]_]+" nil nil (0 'web-mode-variable-name-face)))
-   '("\\<\\(public\\|private\\|sub\\|function\\)\\> \\([[:alnum:]_]+\\)[ ]*("
+   '("\\_<\\(public\\|private\\|sub\\|function\\)\\_> \\([[:alnum:]_]+\\)[ ]*("
      2 'web-mode-function-name-face)
-   '("\\<\\(public\\|private\\|dim\\)\\> \\([[:alnum:]_]+\\)"
+   '("\\_<\\(public\\|private\\|dim\\)\\_> \\([[:alnum:]_]+\\)"
      2 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-aspx-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-aspx-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   '("\\<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
+   (cons (concat "\\_<\\(" web-mode-aspx-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   '("\\_<\\([[:alnum:].]+\\)[ ]+[[:alpha:]]+" 1 'web-mode-type-face)
    ))
 
 (defvar web-mode-uel-font-lock-keywords
@@ -1798,8 +1792,8 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("\\[/?[#@]\\([[:alpha:]_.]*\\)" 1 'web-mode-block-control-face)
    '("#\\(macro\\|function\\) \\([[:alpha:]]+\\)" 2 'web-mode-function-name-face)
-   (cons (concat "\\<\\(" web-mode-freemarker-keywords "\\)\\>") '(1 'web-mode-keyword-face))
-   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   (cons (concat "\\_<\\(" web-mode-freemarker-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
+   '("\\_<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alpha:]]\\([[:alnum:]_]+\\)?" 0 'web-mode-variable-name-face)
    ))
 
@@ -1807,15 +1801,15 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("</?[#@]\\([[:alpha:]_.]*\\)" 1 'web-mode-block-control-face)
    '("#\\(macro\\|function\\) \\([[:alpha:]]+\\)" 2 'web-mode-function-name-face)
-   (cons (concat "\\<\\(" web-mode-freemarker-keywords "\\)\\>") '(1 'web-mode-keyword-face))
-   '("\\<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   (cons (concat "\\_<\\(" web-mode-freemarker-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
+   '("\\_<\\([[:alnum:]._]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alpha:]]\\([[:alnum:]_]+\\)?" 0 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-directive-font-lock-keywords
   (list
    '("<%@[ ]*\\([[:alpha:]]+\\)[ ]+" 1 'web-mode-block-control-face)
-   '("\\<\\([[:alpha:]]+=\\)\\(\"[^\"]*\"\\)"
+   '("\\_<\\([[:alpha:]]+=\\)\\(\"[^\"]*\"\\)"
      (1 'web-mode-block-attr-name-face t t)
      (2 'web-mode-block-attr-value-face t t))
    ))
@@ -1839,26 +1833,26 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-python-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-python-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-python-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
    ))
 
 (defvar web-mode-erlang-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-erlang-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-erlang-constants "\\)\\>") '(0 'web-mode-constant-face))
+   (cons (concat "\\_<\\(" web-mode-erlang-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-erlang-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("@\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
    '("[ ]\\(:[[:alnum:]-_]+\\)" 1 'web-mode-symbol-face)
    ))
 
 (defvar web-mode-mason-code-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-mason-keywords "\\)\\>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-mason-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
    '("sub[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
-   '("\\<\\([[:alnum:]_]+\\)[ ]?::" 1 'web-mode-type-face)
+   '("\\_<\\([[:alnum:]_]+\\)[ ]?::" 1 'web-mode-type-face)
    '("\\([@]\\)\\([[:alnum:]#_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
-   '("\\<\\([$%]\\)\\([[:alnum:]@#_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
+   '("\\_<\\([$%]\\)\\([[:alnum:]@#_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    '("{\\([[:alnum:]_]+\\)}" 1 'web-mode-variable-name-face)
-   '("\\<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("\\_<\\(\\sw+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_][ ]?::[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    '("->[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    '("\\(?:method\\|def\\) \\([[:alnum:]._]+\\)" 1 'web-mode-function-name-face)
@@ -1873,15 +1867,15 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-mojolicious-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-perl-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   '("\\<\\(begin\\|end\\)\\>" 1 'web-mode-constant-face)
-   '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
+   (cons (concat "\\_<\\(" web-mode-perl-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   '("\\_<\\(begin\\|end\\)\\_>" 1 'web-mode-constant-face)
+   '("\\_<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
 (defvar web-mode-lsp-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-lsp-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-lsp-constants "\\)\\>") '(1 'web-mode-constant-face))
+   (cons (concat "\\_<\\(" web-mode-lsp-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-lsp-constants "\\)\\_>") '(1 'web-mode-constant-face))
    '("[ ]\\(:[[:alnum:]-_]+\\)" 1 'web-mode-symbol-face)
    '("(defun \\([[:alnum:]-:]+\\)" 1 'web-mode-function-name-face)
    '("(defvar \\([[:alnum:]-:]+\\)" 1 'web-mode-variable-name-face)
@@ -1889,8 +1883,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-cl-emb-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-cl-emb-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   (cons (concat "\\<\\(" web-mode-cl-emb-constants "\\)\\>") '(0 'web-mode-constant-face))
+   (cons (concat "\\_<\\(" web-mode-cl-emb-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-cl-emb-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("\\(@\\)" 1 'web-mode-function-call-face)
    (list (concat "\\(@" web-mode-cl-emb-keywords "\\)[ ]+\\([[:alnum:]_]+\\)")
          '(1 'web-mode-keyword-face)
@@ -1899,16 +1893,16 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-php-font-lock-keywords
   (list
-   (cons (concat "\\<\\(" web-mode-php-keywords "\\)\\>") '(0 'web-mode-keyword-face))
-   (cons (concat "(\\<\\(" web-mode-php-types "\\)\\>") '(1 'web-mode-type-face))
-   (cons (concat "\\<\\(" web-mode-php-constants "\\)\\>") '(0 'web-mode-constant-face))
+   (cons (concat "\\_<\\(" web-mode-php-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   (cons (concat "(\\_<\\(" web-mode-php-types "\\)\\_>") '(1 'web-mode-type-face))
+   (cons (concat "\\_<\\(" web-mode-php-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("function[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
-   '("\\<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("\\_<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_][ ]?::[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-constant-face)
    '("->[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
-   '("\\<\\([[:alnum:]_]+\\)[ ]?::" 1 'web-mode-type-face)
-   '("\\<\\(instanceof\\|class\\|extends\\|new\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
-   '("\\<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
+   '("\\_<\\([[:alnum:]_]+\\)[ ]?::" 1 'web-mode-type-face)
+   '("\\_<\\(instanceof\\|class\\|extends\\|new\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
+   '("\\_<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
 (defvar web-mode-latex-font-lock-keywords
@@ -3394,7 +3388,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq controls (append controls (list (cons 'close "ctrl")))))
          ((web-mode-block-ends-with " do\\( |.*|\\)?" reg-beg)
           (setq controls (append controls (list (cons 'open "ctrl")))))
-         ((and (web-mode-block-starts-with "\\(for\\|if\\|unless\\|case\\)\\>" reg-beg)
+         ((and (web-mode-block-starts-with "\\(for\\|if\\|unless\\|case\\)\\_>" reg-beg)
                (not (web-mode-block-ends-with "end" reg-end)))
           (setq controls (append controls (list (cons 'open "ctrl")))))
          )
@@ -3404,7 +3398,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (when (eq (char-after (1+ reg-beg)) ?\%)
           (cond
            ((and (string= web-mode-minor-engine "jinja") ;#504
-                 (web-mode-block-starts-with "else\\>" reg-beg))
+                 (web-mode-block-starts-with "else\\_>" reg-beg))
             (let ((continue t)
                   (pos reg-beg)
                   (ctrl nil))
@@ -3632,11 +3626,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
        ((string= web-mode-engine "go")
         (cond
-         ((web-mode-block-starts-with "end\\>" reg-beg)
+         ((web-mode-block-starts-with "end\\_>" reg-beg)
           (setq controls (append controls (list (cons 'close "ctrl")))))
-         ((web-mode-block-starts-with "else\\>" reg-beg)
+         ((web-mode-block-starts-with "else\\_>" reg-beg)
           (setq controls (append controls (list (cons 'inside "ctrl")))))
-         ((web-mode-block-starts-with "\\(range\\|with\\|if\\)\\>" reg-beg)
+         ((web-mode-block-starts-with "\\(range\\|with\\|if\\)\\_>" reg-beg)
           (setq controls (append controls (list (cons 'open "ctrl")))))
          )
         ) ;go
@@ -5602,7 +5596,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 (defun web-mode-interpolate-comment (beg end block-side)
   (save-excursion
-    (let ((regexp (concat "\\<\\(" web-mode-comment-keywords "\\)\\>")))
+    (let ((regexp (concat "\\_<\\(" web-mode-comment-keywords "\\)\\_>")))
       (goto-char beg)
       (while (re-search-forward regexp end t)
         (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
@@ -5614,7 +5608,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-interpolate-sql-string (beg end)
   (save-excursion
     (let ((case-fold-search t)
-          (regexp (concat "\\<\\(" web-mode-sql-keywords "\\)\\>")))
+          (regexp (concat "\\_<\\(" web-mode-sql-keywords "\\)\\_>")))
       (goto-char beg)
       (while (re-search-forward regexp end t)
         (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
@@ -7089,28 +7083,28 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (cond
        ;; ----------------------------------------------------------------------
        ;; unindent
-       ((string-match-p "\\<\\(\\(end \\(if\\|function\\|class\\|sub\\|with\\)\\)\\|else\\|elseif\\|next\\|loop\\)\\>" line)
+       ((string-match-p "\\_<\\(\\(end \\(if\\|function\\|class\\|sub\\|with\\)\\)\\|else\\|elseif\\|next\\|loop\\)\\_>" line)
         (setq out (- prev-indentation language-offset)))
        ;; ----------------------------------------------------------------------
        ;; select case statement
-       ((string-match-p "\\<\\(select case\\)\\>" line)
+       ((string-match-p "\\_<\\(select case\\)\\_>" line)
         (setq out (- prev-indentation 0)))
-       ((string-match-p "\\<\\(end select\\)" line)
+       ((string-match-p "\\_<\\(end select\\)" line)
         (setq out (- prev-indentation (* 2 language-offset))))
-       ((and (string-match-p "\\<\\(case\\)\\>" line) (not (string-match-p "\\<\\(select case\\)\\>" prev-line)))
+       ((and (string-match-p "\\_<\\(case\\)\\_>" line) (not (string-match-p "\\_<\\(select case\\)\\_>" prev-line)))
         (setq out (- prev-indentation language-offset)))
        ;; ----------------------------------------------------------------------
        ;; do nothing
-       ((string-match-p "\\<\\(\\(end \\(if\\|function\\|class\\|sub\\|select\\|with\\)\\)\\|loop\\( until\\| while\\)?\\)\\>" prev-line)
+       ((string-match-p "\\_<\\(\\(end \\(if\\|function\\|class\\|sub\\|select\\|with\\)\\)\\|loop\\( until\\| while\\)?\\)\\_>" prev-line)
         (setq out (+ prev-indentation 0)))
        ;; indent
-       ((string-match-p "\\<\\(\\(select \\)?case\\|else\\|elseif\\|unless\\|for\\|class\\|with\\|do\\( until\\| while\\)?\\|while\\|\\(public \\|private \\)?\\(function\\|sub\\|class\\)\\)\\>" prev-line)
+       ((string-match-p "\\_<\\(\\(select \\)?case\\|else\\|elseif\\|unless\\|for\\|class\\|with\\|do\\( until\\| while\\)?\\|while\\|\\(public \\|private \\)?\\(function\\|sub\\|class\\)\\)\\_>" prev-line)
         (setq out (+ prev-indentation language-offset)))
        ;; single line if statement
-       ((string-match-p "\\<if\\>.*\\<then\\>[ \t]*[[:alpha:]]+" prev-line)
+       ((string-match-p "\\_<if\\_>.*\\_<then\\_>[ \t]*[[:alpha:]]+" prev-line)
         (setq out (+ prev-indentation 0)))
        ;; normal if statement
-       ((string-match-p "\\<\\if\\>" prev-line)
+       ((string-match-p "\\_<\\if\\_>" prev-line)
         (setq out (+ prev-indentation language-offset)))
        (t
         (setq out prev-indentation))
@@ -10060,7 +10054,7 @@ Prompt user if TAG-NAME isn't provided."
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0))))
         )
-       ((web-mode-looking-back "\\<\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\_<\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
         (setq continue nil))
        (t
         (setq pos (1- pos)))
@@ -10094,7 +10088,7 @@ Prompt user if TAG-NAME isn't provided."
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0))))
         )
-       ((web-mode-looking-back "\\<\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\_<\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
         (setq ;;pos (point)
               continue nil))
        (t
@@ -10126,7 +10120,7 @@ Prompt user if TAG-NAME isn't provided."
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
        ((and (string= web-mode-engine "php")
-             (web-mode-looking-back "\\<\\(extends\\|implements\\)[ \n\t]*" pos))
+             (web-mode-looking-back "\\_<\\(extends\\|implements\\)[ \n\t]*" pos))
         (setq continue nil))
        (t
         (setq pos (1- pos)))
@@ -10290,7 +10284,7 @@ Prompt user if TAG-NAME isn't provided."
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ((web-mode-looking-back "\\<\\(return\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\_<\\(return\\)[ \n\t]*" pos)
         (setq continue nil)
         (web-mode-looking-at "[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
@@ -10350,7 +10344,7 @@ Prompt user if TAG-NAME isn't provided."
               continue nil)
 ;;        (message "=>%S" pos)
         )
-       ((web-mode-looking-back "\\<\\(var\\|let\\|return\\|const\\)[ \n\t]+" pos)
+       ((web-mode-looking-back "\\_<\\(var\\|let\\|return\\|const\\)[ \n\t]+" pos)
 ;;        (web-mode-looking-at "[ \t\n]*" pos)
         (web-mode-looking-at "[ \t]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))
@@ -10407,7 +10401,7 @@ Prompt user if TAG-NAME isn't provided."
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ((web-mode-looking-back "\\<\\(return\\|else\\)[ \n\t]*" pos)
+       ((web-mode-looking-back "\\_<\\(return\\|else\\)[ \n\t]*" pos)
         (setq continue nil))
        (t
         (setq pos (1- pos)))
