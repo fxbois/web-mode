@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.11
+;; Version: 13.0.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.11"
+(defconst web-mode-version "13.0.12"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4673,11 +4673,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   (get-text-property (1- beg) 'part-side)
                   (get-text-property end 'part-side))
              ))
-    ;; (not (looking-back "\\*/\\|</"))
-    ;; (progn
-    ;;   (setq chunk (buffer-substring-no-properties beg end))
-    ;;   (not (string-match-p "\\*/\\|</" chunk))
-    ;;   )
     ;;(message "invalidate part (%S > %S)" beg end)
     (web-mode-invalidate-part-region beg end))
 
@@ -4779,6 +4774,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       )))
 
 (defun web-mode-invalidate-region (reg-beg reg-end)
+  ;;(message "%S | reg-beg(%S) reg-end(%S)" (point) reg-beg reg-end)
   (setq reg-beg (web-mode-invalidate-region-beginning-position reg-beg)
         reg-end (web-mode-invalidate-region-end-position reg-end))
   ;;(message "invalidate-region: reg-beg(%S) reg-end(%S)" reg-beg reg-end)
@@ -4816,10 +4812,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (save-excursion
     (goto-char pos)
     ;;(message "pos=%S %S" pos (get-text-property pos 'block-token))
+    (when (and (string= web-mode-engine "jsp")
+               (looking-back "<%")
+               (looking-at-p "--"))
+      (search-forward "--%>"))
     (setq pos (point-max))
-    (let ((continue (not (eobp)))
-          ;;(is-comment (get-text-property pos 'block-token))
-          )
+    (let ((continue (not (eobp))))
       (while continue
         (end-of-line)
         ;;(message "%S %S" (point) (get-text-property (point) 'block-token))
