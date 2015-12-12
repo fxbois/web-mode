@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.10
+;; Version: 13.0.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.10"
+(defconst web-mode-version "13.0.11"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -9004,7 +9004,8 @@ Prompt user if TAG-NAME isn't provided."
 
     (when (and web-mode-expand-previous-state
                (not (member this-command '(web-mode-mark-and-expand
-                                           er/expand-region))))
+                                           er/expand-region
+                                           mc/mark-next-like-this))))
       (when (eq this-command 'keyboard-quit)
         (goto-char web-mode-expand-initial-pos))
       (deactivate-mark)
