@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.12
+;; Version: 13.0.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.12"
+(defconst web-mode-version "13.0.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4812,10 +4812,17 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (save-excursion
     (goto-char pos)
     ;;(message "pos=%S %S" pos (get-text-property pos 'block-token))
-    (when (and (string= web-mode-engine "jsp")
-               (looking-back "<%")
-               (looking-at-p "--"))
-      (search-forward "--%>"))
+    (when (string= web-mode-engine "jsp")
+      (cond
+       ((and (looking-back "<%")
+             (looking-at-p "--"))
+        (search-forward "--%>"))
+       ((and (looking-back "-- %")
+             (looking-at-p ">"))
+        (search-forward "--%>"))
+       ) ;cond
+      ) ;when
+
     (setq pos (point-max))
     (let ((continue (not (eobp))))
       (while continue
