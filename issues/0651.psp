@@ -1,0 +1,12 @@
+<div>
+  <?php
+
+  /*echo "hey";
+  print 'hello';
+  $hi  = 'hmmm';
+  $hi2 = 'new var';*/
+  $hi = 'something else';
+  echo $hi;
+
+  ?>
+</div>

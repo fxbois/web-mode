@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.13
+;; Version: 13.0.14
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.13"
+(defconst web-mode-version "13.0.14"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4702,6 +4702,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         ) ; asp
        (t
         (goto-char pos-beg)
+        (when (string= web-mode-engine "php")
+          (cond
+           ((and (looking-back "\*")
+                 (looking-at-p "/"))
+            (search-backward "/*" code-beg))
+           ) ;cond
+          )
         (if (web-mode-block-rsb "[;{}(][ ]*\n" code-beg)
             (setq beg (match-end 0))
           (setq beg code-beg))
