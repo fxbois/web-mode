@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.14
+;; Version: 13.0.15
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.14"
+(defconst web-mode-version "13.0.15"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -665,7 +665,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         'syntax-table)
   "Text properties used for code regions/tokens and html nodes.")
 
-(defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]-]*\\)"
+(defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]:-]*\\)"
   "Regular expression for HTML/XML start tag.")
 
 (defvar web-mode-whitespaces-regexp
@@ -3728,9 +3728,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (if (eq (char-before) ?\() (setq n (1+ n)) (setq n (1- n)))))
     (> n 0)))
 
-(defvar web-mode-regexp1 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
+(defvar web-mode-regexp1 "<\\(/?[[:alpha:]][[:alnum:]:-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
 
-(defvar web-mode-regexp2 "<\\(/?[[:alpha:]][[:alnum:]-]*\\|!--\\|!\\[CDATA\\[\\)")
+(defvar web-mode-regexp2 "<\\(/?[[:alpha:]][[:alnum:]:-]*\\|!--\\|!\\[CDATA\\[\\)")
 
 (defun web-mode-scan-elements (reg-beg reg-end)
   (save-excursion
@@ -3844,6 +3844,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 ;; tag flags
 ;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)bracket-end
+;; (32)prefix
 
 ;; attr flags
 ;; (1)custom-attr (2)engine-attr (4)spread-attr[jsx]
@@ -6102,7 +6103,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq continue nil))
       (while continue
         (skip-chars-forward "<!/")
-        (if (looking-at "\\([[:alnum:]-]+\\)")
+        (if (looking-at "\\([[:alnum:]:-]+\\)")
             (replace-match (funcall f (match-string 0)) t))
 ;;        (message "tag: %S (%S)"
 ;;                 (get-text-property (point) 'tag-name)
@@ -8773,7 +8774,7 @@ Prompt user if TAG-NAME isn't provided."
   (save-excursion
     (goto-char pos)
     (if (and (web-mode-tag-beginning)
-             (looking-at "<\\(/?[[:alpha:]][[:alnum:]-]*\\)"))
+             (looking-at "<\\(/?[[:alpha:]][[:alnum:]:-]*\\)"))
         (match-string-no-properties 1)
       nil)))
 
