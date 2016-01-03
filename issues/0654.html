@@ -1,0 +1,5 @@
+<script>
+ jQuery.validator.addMethod("lettersonly", function (value, element) {
+   return this.optional(element) || /^[^:%,'*\"\s<>&]+$/i.test(value);
+ }, "Letters only please");
+</script>
