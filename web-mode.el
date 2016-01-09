@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2015 François-Xavier Bois
 
-;; Version: 13.0.16
+;; Version: 13.0.17
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.0.16"
+(defconst web-mode-version "13.0.17"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6513,6 +6513,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                            'block-token)
                          pos))))
           (setq offset (current-column))
+          ;;(message "%S %S" (point) offset)
           (cond
            ((member (buffer-substring-no-properties (point) (+ (point) 2)) '("/*" "{*" "@*"))
             (cond
@@ -6524,6 +6525,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             )
            ((string= (buffer-substring-no-properties (point) (+ (point) 4)) "<!--")
             (cond
+             ((string-match-p "^<!\\[endif" curr-line)
+              )
+             ((looking-at-p "<!--\\[if")
+              (setq offset (+ offset web-mode-markup-indent-offset)))
              ((eq ?\- curr-char)
               (setq offset (+ offset 3)))
              (t
