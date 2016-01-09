@@ -1,7 +1,7 @@
 ;;; web-mode.el --- major mode for editing web templates
 ;;; -*- coding: utf-8 -*-
 
-;; Copyright 2011-2015 François-Xavier Bois
+;; Copyright 2011-2016 François-Xavier Bois
 
 ;; Version: 13.1.0
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
