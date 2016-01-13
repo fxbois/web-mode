@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.0
+;; Version: 13.1.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.0"
+(defconst web-mode-version "13.1.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -55,10 +55,10 @@
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-jsx-expression-padding 0
-  "Multi-line jsx expression left padding."
-  :type 'integer
-  :group 'web-mode)
+;;(defcustom web-mode-jsx-expression-padding 0
+;;  "Multi-line jsx expression left padding."
+;;  :type 'integer
+;;  :group 'web-mode)
 
 (defcustom web-mode-attr-indent-offset nil
   "Html attribute indentation level."
@@ -6250,9 +6250,15 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                 (t 0))
                                ))
               )
-             (t
-              (setq reg-col (+ (current-indentation) web-mode-code-indent-offset web-mode-jsx-expression-padding)))
+             ((looking-at-p "[ ]*\\[[ ]*$") ;; #0659
+              (setq reg-col (current-indentation))
              )
+             (t
+              ;;(message "%S %S : %S %S" (point) (current-indentation) web-mode-code-indent-offset)
+              ;;(setq reg-col (+ (current-indentation) web-mode-code-indent-offset web-mode-jsx-expression-padding)))
+              (setq reg-col (+ (current-indentation) web-mode-code-indent-offset)))
+             )
+
             ;;(message "%S %S %S" (point) (current-indentation) reg-col)
             ) ;save-excursion
           )
