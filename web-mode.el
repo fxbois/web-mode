@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.1
+;; Version: 13.1.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.1"
+(defconst web-mode-version "13.1.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2194,6 +2194,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (make-local-variable 'web-mode-time)
 
   (make-local-variable 'comment-end)
+  (make-local-variable 'comment-region-function)
   (make-local-variable 'comment-start)
   (make-local-variable 'fill-paragraph-function)
   (make-local-variable 'font-lock-beg)
@@ -2207,9 +2208,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (make-local-variable 'imenu-generic-expression)
   (make-local-variable 'indent-line-function)
   (make-local-variable 'parse-sexp-lookup-properties)
+  (make-local-variable 'uncomment-region-function)
   (make-local-variable 'yank-excluded-properties)
 
   (setq comment-end "-->"
+        comment-region-function 'web-mode-comment-or-uncomment-region
         comment-start "<!--"
         fill-paragraph-function 'web-mode-fill-paragraph
         font-lock-defaults '(web-mode-font-lock-keywords t)
@@ -2220,7 +2223,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         imenu-create-index-function 'web-mode-imenu-index
         indent-line-function 'web-mode-indent-line
         parse-sexp-lookup-properties t
-        yank-excluded-properties t)
+        yank-excluded-properties t
+        uncomment-region-function 'web-mode-comment-or-uncomment-region)
 
   (add-hook 'after-change-functions 'web-mode-on-after-change nil t)
   (add-hook 'after-save-hook        'web-mode-on-after-save t t)
@@ -6726,7 +6730,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                (member ?\. chars)
                (not (string-match-p "^\\.\\.\\." curr-line))
                )
-          ;;(message "js-lineup")
           (when (web-mode-javascript-calls-beginning pos reg-beg)
             (cond
              ((cdr (assoc "lineup-calls" web-mode-indentation-params))
@@ -6798,7 +6801,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((and (member language '("javascript" "jsx" "ejs"))
                (or (member ?\, chars)
                    (member prev-char '(?\( ?\[))))
-          ;;(member prev-char '(?\( ?\[ ?\{))))
           (cond
            ((not (web-mode-javascript-args-beginning pos reg-beg))
             (message "no js args beg")
@@ -8234,7 +8236,7 @@ Prompt user if TAG-NAME isn't provided."
       ) ;let
     ))
 
-(defun web-mode-comment-or-uncomment-region (beg end)
+(defun web-mode-comment-or-uncomment-region (beg end &optional arg)
   (interactive)
   (save-excursion
     (push-mark end)
