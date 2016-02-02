@@ -1,0 +1,16 @@
+@(bb: String)
+
+<html>
+
+  @foo(bar: String) = {
+    @for(i <- 1 to 10) {
+      <div>
+      <span>@i</span>
+      </div>
+    }
+    @if(bar == "bar") {
+      <div>@bar</div>
+    }
+  }
+
+</html>

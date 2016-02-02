@@ -1,0 +1,8 @@
+<div id="content-main">
+  <form id="form1" action="." method="post" class="well">
+    {% csrf_token %}
+    <table>
+      {{ form.as_table }}
+    </table>
+  </form>
+</div>
