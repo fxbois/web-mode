@@ -8341,6 +8341,8 @@ Prompt user if TAG-NAME isn't provided."
             (setq content (concat "{* " sel " *}")))
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "blade"))
             (setq content (concat "{{-- " sel " --}}")))
+           ((and (= web-mode-comment-style 2) (string= web-mode-engine "ctemplate"))
+            (setq content (concat "{{!-- " sel " --}}")))
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "razor"))
             (setq content (concat "@* " sel " *@")))
            (t
@@ -8546,6 +8548,13 @@ Prompt user if TAG-NAME isn't provided."
           end (web-mode-block-end-position pos))
     (web-mode-remove-text-at-pos 2 (1- end))
     (web-mode-remove-text-at-pos 2 beg)))
+
+(defun web-mode-uncomment-ctemplate-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-remove-text-at-pos 5 (- end 4))
+    (web-mode-remove-text-at-pos 5 beg)))
 
 (defun web-mode-uncomment-dust-block (pos)
   (let (beg end)
