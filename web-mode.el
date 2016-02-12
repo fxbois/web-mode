@@ -63,29 +63,34 @@
 (defcustom web-mode-attr-indent-offset nil
   "Html attribute indentation level."
   :type 'integer
+  :safe #'integerp
   :group 'web-mode)
 
 (defcustom web-mode-markup-indent-offset
   (if (and (boundp 'standard-indent) standard-indent) standard-indent 2)
   "Html indentation level."
   :type 'integer
+  :safe #'integerp
   :group 'web-mode)
 
 (defcustom web-mode-css-indent-offset
   (if (and (boundp 'standard-indent) standard-indent) standard-indent 2)
   "CSS indentation level."
   :type 'integer
+  :safe #'integerp
   :group 'web-mode)
 
 (defcustom web-mode-code-indent-offset
   (if (and (boundp 'standard-indent) standard-indent) standard-indent 2)
   "Code (javascript, php, etc.) indentation level."
   :type 'integer
+  :safe #'integerp
   :group 'web-mode)
 
 (defcustom web-mode-sql-indent-offset 4
   "Sql (inside strings) indentation level."
   :type 'integer
+  :safe #'integerp
   :group 'web-mode)
 
 (defcustom web-mode-enable-css-colorization (display-graphic-p)
