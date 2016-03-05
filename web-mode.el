@@ -211,13 +211,13 @@ See web-mode-block-face."
   :type '(choice (const :tag "default" 1)
                  (const :tag "force engine comments" 2)))
 
-(defcustom web-mode-indent-style 2
+(defcustom web-mode-indent-style 1
   "Indentation style."
   :group 'web-mode
   :type '(choice (const :tag "default (all lines are indented)" 2)
                  (const :tag "text at the beginning of line is not indented" 1)))
 
-(defcustom web-mode-auto-close-style 1
+(defcustom web-mode-auto-close-style 2
   "Auto-close style."
   :group 'web-mode
   :type '(choice (const :tag "Auto-close on </" 1)
@@ -8944,8 +8944,9 @@ Prompt user if TAG-NAME isn't provided."
     (when epp
 ;;      (setq tag (get-text-property epp 'tag-name))
       (setq tag (web-mode-element-tag-name epp))
+      ;;(message "tag=%S" tag)
       (cond
-       ((null tag)
+       ((or (null tag) (web-mode-element-is-void tag))
         (setq epp nil))
        ((looking-back "</")
         (setq ins tag))
@@ -9031,6 +9032,7 @@ Prompt user if TAG-NAME isn't provided."
     (when (and web-mode-enable-auto-closing
                (>= pos 4)
                (or (string= "</" chunk)
+                   ;;(progn (message "%c" char) nil)
                    (and (= web-mode-auto-close-style 2)
                         (or (string= web-mode-content-type "jsx")
                             (not (get-text-property pos 'part-side)))
