@@ -2312,12 +2312,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             ((member web-mode-content-type web-mode-part-content-types)
              (web-mode-scan-blocks beg end)
              (web-mode-part-scan beg end))
-            ((string= web-mode-engine "none")
-             (web-mode-scan-elements beg end)
-             (web-mode-process-parts beg end 'web-mode-part-scan))
             (t
-             (web-mode-scan-blocks beg end)
              (web-mode-scan-elements beg end)
+             (web-mode-scan-blocks beg end)
              (web-mode-process-parts beg end 'web-mode-part-scan))
             ) ;cond
            (cons beg end)
@@ -2357,7 +2354,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq sub1 (substring tagopen 0 1)
                 sub2 (substring tagopen 0 (if (>= l 2) 2 1)))
           )
-
+        ;;(message " found block #(%S) at pos=(%S), part-type=(%S)" i open (get-text-property open 'part-side))
         (cond
 
          ((string= web-mode-engine "php")
@@ -2742,7 +2739,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           ) ;razor
 
          ((and (string= web-mode-engine "riot")
-               (not (get-text-property reg-beg 'part-side)))
+               (not (get-text-property open 'part-side)))
           (setq closing-string "}"
                 delim-open "{"
                 delim-close "}")
