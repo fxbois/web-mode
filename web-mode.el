@@ -740,6 +740,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("php"              . ())
     ("python"           . ())
     ("razor"            . ("play" "play2"))
+    ("riot"             . ())
     ("template-toolkit" . ())
     ("smarty"           . ())
     ("thymeleaf"        . ())
@@ -804,6 +805,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("php"              . "\\.\\(p[hs]p\\|ctp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
     ("razor"            . "\\.\\(cs\\|vb\\)html\\'")
+    ("riot"           .  "\\.tag\\'")
     ("smarty"           . "\\.tpl\\'")
     ("template-toolkit" . "\\.tt.?\\'")
     ("thymeleaf"        . "\\.thtml\\'")
@@ -1013,6 +1015,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("template-toolkit" . (("[% " . " %]")
                            ("[%-" . " | %]")
                            ("[%#" . " | %]")))
+    ("riot"             . (("={ " . " }")))
     ("underscore"       . (("<% " . " %>")))
     ("web2py"           . (("{{ " . " }}")
                            ("{{=" . "}}")))
@@ -1086,6 +1089,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("php"              . "<\\?")
    '("python"           . "<\\?")
    '("razor"            . "@.\\|^[ \t]*}")
+   '("riot"             . "{.")
    '("smarty"           . "{[[:alpha:]#$/*\"]")
    '("template-toolkit" . "\\[%.\\|%%#")
    '("underscore"       . "<%")
@@ -1712,6 +1716,14 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("@\\([[:alnum:]_.]+\\)" 1 'web-mode-variable-name-face)
    ))
 
+(defvar web-mode-riot-font-lock-keywords
+  (list
+   '("\\(parent\\|opts\\|tags\\|this\\)\\.\\([[:alnum:]_.]+\\)"
+     (1 'web-mode-constant-face)
+     (2 'web-mode-variable-name-face))
+   '("\\([[:alnum:]_.]+\\)" 0 'web-mode-variable-name-face)
+   ))
+
 (defvar web-mode-closure-font-lock-keywords
   (list
    '("{/?\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
@@ -1952,6 +1964,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("php"              . web-mode-php-font-lock-keywords)
     ("python"           . web-mode-python-font-lock-keywords)
     ("razor"            . web-mode-razor-font-lock-keywords)
+    ("riot"             . web-mode-riot-font-lock-keywords)
     ("smarty"           . web-mode-smarty-font-lock-keywords)
     ("template-toolkit" . web-mode-template-toolkit-font-lock-keywords)
     ("underscore"       . web-mode-underscore-font-lock-keywords)
@@ -2322,12 +2335,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             ((member web-mode-content-type web-mode-part-content-types)
              (web-mode-scan-blocks beg end)
              (web-mode-part-scan beg end))
-            ((string= web-mode-engine "none")
-             (web-mode-scan-elements beg end)
-             (web-mode-process-parts beg end 'web-mode-part-scan))
             (t
-             (web-mode-scan-blocks beg end)
              (web-mode-scan-elements beg end)
+             (web-mode-scan-blocks beg end)
              (web-mode-process-parts beg end 'web-mode-part-scan))
             ) ;cond
            (cons beg end)
@@ -2367,7 +2377,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq sub1 (substring tagopen 0 1)
                 sub2 (substring tagopen 0 (if (>= l 2) 2 1)))
           )
-
+        ;;(message " found block #(%S) at pos=(%S), part-type=(%S)" i open (get-text-property open 'part-side))
         (cond
 
          ((string= web-mode-engine "php")
@@ -2750,6 +2760,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             ) ; case }
            ) ;cond
           ) ;razor
+
+         ((and (string= web-mode-engine "riot")
+               (not (get-text-property open 'part-side)))
+          (setq closing-string "}"
+                delim-open "{"
+                delim-close "}")
+          ) ;riot
 
          ) ;cond
 
