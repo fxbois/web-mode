@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.6
+;; Version: 13.1.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.6"
+(defconst web-mode-version "13.1.7"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -734,6 +734,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("go"               . ("gtl"))
     ("jsp"              . ("grails"))
     ("mako"             . ())
+    ("marko"            . ())
     ("mason"            . ("poet"))
     ("lsp"              . ("lisp"))
     ("mojolicious"      . ())
@@ -800,6 +801,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("jsp"              . "\\.[gj]sp\\'")
     ("lsp"              . "\\.lsp\\'")
     ("mako"             . "\\.mako?\\'")
+    ("marko"            . "\\.marko\\'")
     ("mason"            . "\\.mas\\'")
     ("mojolicious"      . "\\.epl?\\'")
     ("php"              . "\\.\\(p[hs]p\\|ctp\\|inc\\)\\'")
@@ -1003,6 +1005,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("mako"             . (("<% " . " %>")
                            ("<%!" . " | %>")
                            ("${ " . " }")))
+    ("marko"            . (("${ " . " }")))
     ("mason"            . (("<% " . " %>")
                            ("<& " . " &>")))
     ("mojolicious"      . (("<% " . " %>")
@@ -1084,6 +1087,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("jsp"              . "<%\\|${\\|</?[[:alpha:]]+[:.][[:alpha:]]+")
    '("lsp"              . "<%")
    '("mako"             . "</?%\\|${\\|^[ \t]*%.\\|^[ \t]*##")
+   '("marko"            . "${")
    '("mason"            . "</?[&%]\\|^%.")
    '("mojolicious"      . "<%\\|^[ \t]*%.")
    '("php"              . "<\\?")
@@ -1820,6 +1824,11 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\".+\"\\|'.*'" 0 'web-mode-string-face)
    ))
 
+(defvar web-mode-marko-font-lock-keywords
+  (list
+   '("[[:alnum:]_]+" 0 'web-mode-variable-name-face)
+   ))
+
 (defvar web-mode-freemarker-square-font-lock-keywords
   (list
    '("\\[/?[#@]\\([[:alpha:]_.]*\\)" 1 'web-mode-block-control-face)
@@ -1960,6 +1969,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("erb"              . web-mode-erb-font-lock-keywords)
     ("go"               . web-mode-go-font-lock-keywords)
     ("lsp"              . web-mode-lsp-font-lock-keywords)
+    ("marko"            . web-mode-marko-font-lock-keywords)
     ("mojolicious"      . web-mode-mojolicious-font-lock-keywords)
     ("php"              . web-mode-php-font-lock-keywords)
     ("python"           . web-mode-python-font-lock-keywords)
@@ -2771,6 +2781,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 delim-open "{"
                 delim-close "}")
           ) ;riot
+
+         ((string= web-mode-engine "marko")
+          (setq closing-string "}"
+                delim-open "${"
+                delim-close "}")
+          ) ;marko
 
          ) ;cond
 

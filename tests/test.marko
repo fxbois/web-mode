@@ -1,0 +1,15 @@
+<lasso-page package-path="./Some_path" flags="data.someFlags"/>
+
+<layout-use template="path/to/default-layout.marko"
+            title="${data.pageTitle}"
+            bodyClass="${data.bodyClass}">
+  <layout-put into="body">
+    <ul if(notEmpty(data.colors))>
+      <li for(color in data.colors)>
+        ${color}
+      </li>
+    </ul>
+    <include template="path/${data.site}/template.marko"
+             model="${data.model}" />
+  </layout-put>
+</layout-use>
