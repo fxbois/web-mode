@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.5
+;; Version: 13.1.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.5"
+(defconst web-mode-version "13.1.6"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2335,9 +2335,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             ((member web-mode-content-type web-mode-part-content-types)
              (web-mode-scan-blocks beg end)
              (web-mode-part-scan beg end))
-            (t
+            ((string= web-mode-engine "riot")
              (web-mode-scan-elements beg end)
              (web-mode-scan-blocks beg end)
+             (web-mode-process-parts beg end 'web-mode-part-scan))
+            (t
+             (web-mode-scan-blocks beg end)
+             (web-mode-scan-elements beg end)
              (web-mode-process-parts beg end 'web-mode-part-scan))
             ) ;cond
            (cons beg end)
