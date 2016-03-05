@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.4
+;; Version: 13.1.5
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -14,14 +14,14 @@
 ;; Distribution: This file is not part of Emacs
 
 ;;==============================================================================
-;; WEB-MODE is sponsored by Kernix : ultimate DigitalFactory & DataLab in Paris
+;; WEB-MODE is sponsored by Kernix: ultimate Digital Factory & Data Lab in Paris
 ;;==============================================================================
 
 ;; Code goes here
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.4"
+(defconst web-mode-version "13.1.5"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -54,11 +54,6 @@
   "Multi-line block (php, ruby, java, python, asp, etc.) left padding."
   :type 'integer
   :group 'web-mode)
-
-;;(defcustom web-mode-jsx-expression-padding 0
-;;  "Multi-line jsx expression left padding."
-;;  :type 'integer
-;;  :group 'web-mode)
 
 (defcustom web-mode-attr-indent-offset nil
   "Html attribute indentation level."
@@ -265,6 +260,15 @@ See web-mode-block-face."
 
 (defcustom web-mode-tests-directory (concat default-directory "tests/")
   "Directory containing all the unit tests."
+  :type 'list
+  :group 'web-mode)
+
+(defcustom web-mode-jsx-depth-faces nil
+;;  '(web-mode-jsx-depth-1-face
+;;    web-mode-jsx-depth-2-face
+;;    web-mode-jsx-depth-3-face
+;;    web-mode-jsx-depth-4-face)
+  "Each jsx depth has is own face."
   :type 'list
   :group 'web-mode)
 
@@ -616,6 +620,25 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Face html entities (e.g. &#8211;, &eacute;)."
   :group 'web-mode-faces)
 
+(defface web-mode-jsx-depth-1-face
+  '((t :background "#333333"))
+  "jsx depth 1"
+  :group 'web-mode-faces)
+
+(defface web-mode-jsx-depth-2-face
+  '((t :background "#222222"))
+  "jsx"
+  :group 'web-mode-faces)
+
+(defface web-mode-jsx-depth-3-face
+  '((t :background "#111111"))
+  "jsx"
+  :group 'web-mode-faces)
+
+(defface web-mode-jsx-depth-4-face
+  '((t :background "#000000"))
+  "jsx"
+  :group 'web-mode-faces)
 
 ;;---- VARS --------------------------------------------------------------------
 
@@ -4948,7 +4971,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (cond
        (depth
         (when (eq depth (get-text-property (point) 'jsx-depth))
-          (web-mode-tag-highlight)))
+          (web-mode-tag-highlight)
+          )
+        ;; BGJSX
+        )
        (t
         (web-mode-tag-highlight))
        ) ;cond
@@ -5358,6 +5384,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                           'web-mode-style-face))
         )
 
+
+
       (when (and (eq depth 0) (string= content-type "jsx"))
         (let (pair elt-beg elt-end exp-beg exp-end exp-depth)
           (goto-char reg-beg)
@@ -5385,6 +5413,23 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 )
               (goto-char (1+ exp-beg))
               ) ;while exp
+
+            (when (and elt-beg web-mode-jsx-depth-faces)
+              (let (depth-beg depth-end jsx-face)
+                (goto-char elt-beg)
+                (while (setq pair (web-mode-jsx-depth-next reg-end))
+                  ;;(message "depth-pair=%S" pair)
+                  (setq depth-beg (car pair)
+                        depth-end (cdr pair)
+                        depth (get-text-property depth-beg 'jsx-depth)
+                        jsx-face (elt web-mode-jsx-depth-faces (1- depth)))
+                  ;;(message "%S" jsx-face)
+                  (font-lock-prepend-text-property depth-beg (1+ depth-end) 'face jsx-face)
+                  (goto-char (+ depth-beg 2))
+                  )
+                ) ;let
+              )
+
             (goto-char (1+ elt-end))
             ) ;while elt
           ) ;let
@@ -5466,6 +5511,50 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       ) ;when
     ;;(message "%S > %S" beg end)
     (if (and beg end) (cons beg end) nil)))
+
+(defun web-mode-jsx-depth-next (reg-end)
+  (let (beg end depth continue pos)
+    (setq beg (point))
+    ;;(message "pt=%S" beg)
+    (unless (get-text-property beg 'jsx-beg)
+      ;;(setq beg (next-single-property-change beg 'jsx-beg))
+      ;;(setq pos (1+ beg))
+      (setq pos (next-single-property-change (1+ beg) 'jsx-beg))
+      (cond
+       ((null pos)
+        (setq beg nil))
+       ((>= pos reg-end)
+        (setq beg nil))
+       (t
+        (setq beg pos))
+       ) ;cond
+      ) ;unless
+    ;;(message "beg=%S" beg)
+    (when beg
+      (setq depth (get-text-property beg 'jsx-beg)
+            continue (not (null depth))
+            pos beg)
+      ;;(message "beg=%S" beg)
+      (while continue
+        (setq pos (next-single-property-change pos 'jsx-end))
+        ;;(message "pos=%S" pos)
+        (cond
+         ((null pos)
+          (setq continue nil))
+         ((> pos reg-end)
+          (setq continue nil))
+         ((eq depth (get-text-property pos 'jsx-end))
+          (setq continue nil
+                end pos))
+         (t
+          ;;(setq pos (1+ pos))
+          )
+         ) ;cond
+        ) ;while
+      ) ;when
+    ;;(message "%S > %S" beg end)
+    (if (and beg end) (cons beg end) nil)))
+
 
 (defun web-mode-css-rules-highlight (part-beg part-end)
   (save-excursion
