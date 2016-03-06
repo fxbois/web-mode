@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.7
+;; Version: 13.1.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.7"
+(defconst web-mode-version "13.1.8"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -57,6 +57,12 @@
 
 (defcustom web-mode-attr-indent-offset nil
   "Html attribute indentation level."
+  :type 'integer
+  :safe #'integerp
+  :group 'web-mode)
+
+(defcustom web-mode-attr-value-indent-offset nil
+  "Html attribute value indentation level."
   :type 'integer
   :safe #'integerp
   :group 'web-mode)
@@ -672,8 +678,11 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-snippets nil)
 (defvar web-mode-time (current-time))
 
-(defvar web-mode-pre-elements
+(defvar web-mode-indentless-elements
   '("code" "pre" "textarea"))
+
+(defvar web-mode-indentless-attributes
+  '("onclick" "onmouseover" "onmouseout" "onsubmit"))
 
 (defvar web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
@@ -2209,6 +2218,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   "Major mode for editing web templates."
 
   (make-local-variable 'web-mode-attr-indent-offset)
+  (make-local-variable 'web-mode-attr-value-indent-offset)
   (make-local-variable 'web-mode-auto-pairs)
   (make-local-variable 'web-mode-block-regexp)
   (make-local-variable 'web-mode-change-beg)
@@ -2234,6 +2244,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (make-local-variable 'web-mode-expand-initial-scroll)
   (make-local-variable 'web-mode-expand-previous-state)
   (make-local-variable 'web-mode-indent-style)
+  (make-local-variable 'web-mode-indentless-attributes)
+  (make-local-variable 'web-mode-indentless-elements)
   (make-local-variable 'web-mode-inhibit-fontification)
   (make-local-variable 'web-mode-is-scratch)
   (make-local-variable 'web-mode-jshint-errors)
@@ -3917,7 +3929,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 ;; (32)prefix
 
 ;; attr flags
-;; (1)custom-attr (2)engine-attr (4)spread-attr[jsx]
+;; (1)custom-attr (2)engine-attr (4)spread-attr[jsx] (8)code-value
 
 ;; attr states
 ;; (0)nil (1)space (2)name (3)space-before (4)equal (5)space-after
@@ -4001,6 +4013,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
        ((and (eq ?\= char) (member state '(2 3)))
         (setq equal-offset (- pos name-beg))
         (setq state 4)
+        (setq attr (buffer-substring-no-properties name-beg (1+ name-end)))
+        (when (and web-mode-indentless-attributes (member (downcase attr) web-mode-indentless-attributes))
+          ;;(message "onclick")
+          (setq attr-flags (logior attr-flags 8)))
         )
 
        ((and spaced (= state 0))
@@ -4113,7 +4129,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
        ((= state 2)
         (setq name-end pos)
-        (when (and (= attr-flags 0) (member char '(?\- ?\:))) ;;(= (logand attr-flags 1) 1)
+        (when (and (= attr-flags 0) (member char '(?\- ?\:)))
           (let (attr)
             (setq attr (buffer-substring-no-properties name-beg (1+ name-end)))
             (cond
@@ -6722,9 +6738,18 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (cond
            ((and (get-text-property pos 'tag-attr)
                  (get-text-property (1- pos) 'tag-attr)
-                 (web-mode-attribute-beginning)
-                 (web-mode-dom-rsf "=[ ]*[\"']?" pos))
-            (setq offset (current-column))
+                 (web-mode-attribute-beginning))
+
+            (cond
+             ((eq (logand (get-text-property (point) 'tag-attr-beg) 8) 8)
+              (setq offset nil))
+             ((and web-mode-attr-value-indent-offset (web-mode-tag-beginning))
+              (setq offset (+ (current-column) web-mode-attr-value-indent-offset)))
+             (t
+              (web-mode-dom-rsf "=[ ]*[\"']?" pos)
+              (setq offset (current-column)))
+             ) ;cond
+
             )
            ((not (web-mode-tag-beginning))
             )
@@ -6747,14 +6772,14 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ((get-text-property pos 'tag-beg)
             (setq offset (web-mode-markup-indentation pos))
             )
-           ((and web-mode-pre-elements
+           ((and web-mode-indentless-elements
                  (not (string= language "jsx"))
                  (null (get-text-property pos 'block-side))
                  (null (get-text-property pos 'part-side))
                  (and (null (get-text-property pos 'tag-beg))
                       (save-excursion
                         (and (web-mode-element-parent)
-                             (member (get-text-property (point) 'tag-name) web-mode-pre-elements))))
+                             (member (get-text-property (point) 'tag-name) web-mode-indentless-elements))))
                  )
             (setq offset nil))
            ((or (eq (length curr-line) 0)
