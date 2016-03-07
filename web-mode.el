@@ -8965,11 +8965,20 @@ Prompt user if TAG-NAME isn't provided."
   "Close html element."
   (interactive)
   (let (jump epp ins tag)
-    (setq epp (web-mode-element-parent-position))
+
+    (if (and (eq (char-before) ?\>)
+             (web-mode-element-is-void (get-text-property (1- (point)) 'tag-name)))
+        (unless (eq (char-before (1- (point))) ?\/)
+          (backward-char)
+          (insert "/")
+          (forward-char))
+      (setq epp (web-mode-element-parent-position)))
+
+    ;;(message "epp=%S" epp)
     (when epp
-;;      (setq tag (get-text-property epp 'tag-name))
+      (setq tag (get-text-property epp 'tag-name))
       (setq tag (web-mode-element-tag-name epp))
-      ;;(message "tag=%S" tag)
+      ;;(message "tag=%S %c" tag (char-before))
       (cond
        ((or (null tag) (web-mode-element-is-void tag))
         (setq epp nil))
@@ -8979,7 +8988,7 @@ Prompt user if TAG-NAME isn't provided."
         (setq ins (concat "/" tag)))
        (t
         ;; auto-close-style = 2
-;;        (message "%S %c" (point) (char-after))
+        ;; (message "%S %c" (point) (char-after))
         (when (and (looking-at-p "[[:alpha:]]") (> (length tag) 4))
           (dolist (elt '("div" "span" "strong" "pre" "li"))
             (when (and (string-match-p (concat "^" elt) tag) (not (string= tag elt)))
@@ -8994,7 +9003,6 @@ Prompt user if TAG-NAME isn't provided."
         )
        ) ;cond
       (when ins
-        ;;        (message "ins=%S" ins)
         (unless (looking-at-p "[ ]*>")
           (setq ins (concat ins ">")))
         (insert ins)
@@ -9003,13 +9011,11 @@ Prompt user if TAG-NAME isn't provided."
           (setq jump (and (eq (char-before) ?\>)
                           (string= (get-text-property (1- (point)) 'tag-name) tag)))
           (if jump (setq jump (point)))
-          ;;        (setq jump (looking-back (concat "<" tag ">")))
           ) ;save-excursion
         (if jump (goto-char jump))
         ) ;when not ins
       ) ;when epp
-    epp
-    ))
+    epp))
 
 (defun web-mode-detect-content-type ()
   (cond
