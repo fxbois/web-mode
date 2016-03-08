@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.8
+;; Version: 13.1.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.8"
+(defconst web-mode-version "13.1.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -217,13 +217,13 @@ See web-mode-block-face."
   :type '(choice (const :tag "default" 1)
                  (const :tag "force engine comments" 2)))
 
-(defcustom web-mode-indent-style 1
+(defcustom web-mode-indent-style 2
   "Indentation style."
   :group 'web-mode
   :type '(choice (const :tag "default (all lines are indented)" 2)
                  (const :tag "text at the beginning of line is not indented" 1)))
 
-(defcustom web-mode-auto-close-style 2
+(defcustom web-mode-auto-close-style 1
   "Auto-close style."
   :group 'web-mode
   :type '(choice (const :tag "Auto-close on </" 1)
@@ -7037,6 +7037,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                                              reg-beg))))
 
          (t
+          ;;(message "ici")
           (setq offset (car (web-mode-bracket-indentation pos
                                                           reg-col
                                                           curr-indentation
