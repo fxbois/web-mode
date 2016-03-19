@@ -6863,10 +6863,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq offset (current-column)))
 
          ((and (member language '("javascript" "jsx" "ejs" "php"))
-               (or (eq prev-char ?\))
+               (or (and (eq prev-char ?\)) (string-match-p "^if\\([[:space:]]\\|(\\)" prev-line))
                    (string-match-p "^else$" prev-line))
                (not (string-match-p "^\\([{.]\\|->\\)" curr-line)))
           ;;(message "ici")
+          ;; Javascript conditional without enclosing curly braces
           (cond
            ((member language '("javascript" "jsx" "ejs"))
             (setq offset
