@@ -8,6 +8,8 @@
 
   {{-- This comment will not be in the rendered HTML --}}
 
+  @section('title', 'Page Title')
+
   @if (count($records) === 1)
     I have one record!
   @elseif (count($records) > 1)

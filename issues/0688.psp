@@ -1,0 +1,13 @@
+<?php
+
+global $gaFileConfigurations;
+
+print_r(
+  array_filter(
+    $gaFileConfigurations,
+    function($aConfig)
+    {
+      return array_value_default($aConfig, 'ContainerVisibility', Core_FileSystem_SwiftFile::VISIBILITY_PRIVATE_CONTAINER) === Core_FileSystem_SwiftFile::VISIBILITY_PRIVATE_CONTAINER;
+    }
+  )
+);
