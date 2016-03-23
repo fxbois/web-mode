@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.10
+;; Version: 13.1.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.10"
+(defconst web-mode-version "13.1.11"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6865,6 +6865,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (search-backward "case ")
           (setq offset (current-column)))
 
+         ;; TODO : prev-pos : se plasser sur ), remonter sur ( et
+         ;; verifer que ca n'est pas if
          ((and (member language '("javascript" "jsx" "ejs" "php"))
                (or (eq prev-char ?\))
                    (string-match-p "^else$" prev-line))
@@ -8126,7 +8128,7 @@ Prompt user if TAG-NAME isn't provided."
           )
         ;;        (message "start %S %S - end %S %S" start-b start-e end-b end-e))
         ) ;when
-      (skip-chars-forward "[:space:]")
+      (skip-chars-forward "[:space:]\n")
       (setq arg (1- arg))
       ) ;while
     ) ;let
