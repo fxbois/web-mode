@@ -103,6 +103,15 @@ var bar = 1;
 var foo = (bar == 1) ?
           "ONE" : "OTHER";  // THIS IS THE PROBLEM
 
+foo() {
+  bar()
+  baz()
+  if(true)
+    hello();
+  if (true)
+    hello();
+}
+
 function fieldIsValid( field, fieldSpec) {
   // todo: add remote possibility
   var value = field.value;

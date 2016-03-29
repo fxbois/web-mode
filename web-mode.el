@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.12
+;; Version: 13.1.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.12"
+(defconst web-mode-version "13.1.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6370,7 +6370,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           language
           options
           reg-beg reg-col
-          prev-char prev-indentation prev-line
+          prev-char prev-indentation prev-line prev-pos
           token
           part-language
           depth)
@@ -6381,7 +6381,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             options ""
             language ""
             prev-line ""
-            prev-char 0)
+            prev-char 0
+            prev-pos nil)
 
       (when (get-text-property pos 'part-side)
         (setq part-language (symbol-name (get-text-property pos 'part-side))))
@@ -6588,9 +6589,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (cond
            ((member language '("html" "xml" "javascript" "jsx"))
             (when (setq prev (web-mode-part-previous-live-line reg-beg))
-              (setq prev-line (car prev)
-                    prev-indentation (cdr prev))
-              (setq prev-line (web-mode-clean-part-line prev-line)))
+              (setq prev-line (nth 0 prev)
+                    prev-indentation (nth 1 prev)
+                    prev-pos (nth 2 prev))
+              )
             )
            ((setq prev (web-mode-block-previous-live-line))
             (setq prev-line (car prev)
@@ -6623,6 +6625,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             :prev-char prev-char
             :prev-indentation prev-indentation
             :prev-line prev-line
+            :prev-pos prev-pos
             :reg-beg reg-beg
             :reg-col reg-col
             :token token)
@@ -6649,6 +6652,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              (prev-char (plist-get ctx :prev-char))
              (prev-indentation (plist-get ctx :prev-indentation))
              (prev-line (plist-get ctx :prev-line))
+             (prev-pos (plist-get ctx :prev-pos))
              (reg-beg (plist-get ctx :reg-beg))
              (reg-col (plist-get ctx :reg-col))
              (token (plist-get ctx :token))
@@ -6887,7 +6891,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ;; TODO : prev-pos : se plasser sur ), remonter sur ( et
          ;; verifer que ca n'est pas if
          ((and (member language '("javascript" "jsx" "ejs" "php"))
-               (or (eq prev-char ?\))
+               (or (and (eq prev-char ?\)) (string-match-p "^if[ ]*(" prev-line))
+                   (and (member language '("javascript" "jsx")) (web-mode-part-is-opener prev-pos reg-beg))
                    (string-match-p "^else$" prev-line))
                (not (string-match-p "^\\([{.]\\|->\\)" curr-line)))
           ;;(message "ici")
@@ -7319,6 +7324,15 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (cons line (current-indentation)))
       )))
 
+(defun web-mode-part-is-opener (pos reg-beg)
+  (save-excursion
+    (save-match-data
+      (and pos
+           (web-mode-go (web-mode-part-opening-paren-position pos))
+           (>= (point) reg-beg)
+           ;;(progn (message "%S %S" pos (point)))
+           (looking-back "if[ ]*")))))
+
 (defun web-mode-part-previous-live-line (reg-beg)
   (unless reg-beg (setq reg-beg (point-min)))
   ;;(message "reg-beg=%S" reg-beg)
@@ -7326,7 +7340,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (let ((continue (> (point) reg-beg))
           (line "")
           bol-pos
-          eol-pos)
+          eol-pos
+          pos)
       (beginning-of-line)
       (while (and continue (> (point) reg-beg) (forward-line -1))
         (setq bol-pos (point)
@@ -7336,12 +7351,28 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (when (not (web-mode-part-is-token-line bol-pos))
           (setq line (web-mode-trim (buffer-substring bol-pos eol-pos)))
           (when (not (string= line "")) (setq continue nil))
-          )
+          ) ;when
         ) ;while
-      (if (string= line "")
-          nil
-          ;;(progn (goto-char pos) nil)
-        (cons line (current-indentation)))
+      (cond
+       ((string= line "")
+        nil)
+       (t
+        (setq continue t)
+        (setq pos (1- eol-pos))
+        (while (and (>= pos bol-pos) continue)
+          (cond
+           ((eq (char-after pos) ?\s)
+            (setq pos (1- pos)))
+           ((get-text-property pos 'part-token)
+            (setq pos (1- pos)))
+           (t
+            (setq continue nil))
+           ) ;cond
+          ) ;while
+        ;;(message "%S %S : %S" bol-pos eol-pos pos)
+        (setq line (web-mode-clean-part-line line))
+        (list line (current-indentation) pos))
+       )
       )))
 
 (defun web-mode-in-code-block (open close &optional prop)
