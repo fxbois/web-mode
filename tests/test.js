@@ -4,6 +4,13 @@ var cs = {completed: this.props.todo.completed,
 const f = (x) =>
   x + 1;
 
+var data = {
+  password: this.password
+}
+
+ajax.post('/signup')
+    .send(data)
+
 var str = "toto";
 
 'test/1'.match(/[a-z]+[0-9]+/g);
