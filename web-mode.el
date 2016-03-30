@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.13
+;; Version: 13.1.14
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.13"
+(defconst web-mode-version "13.1.14"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -998,6 +998,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                            ("<%#" . "%>")
                            ("<%-" . "%>")))
     ("freemarker"       . (("<% " . " %>")
+                           ("<#-" . "- | -->")
                            ("${ " . " }")
                            ("[% " . " %]")
                            ("[# " . " #]")
