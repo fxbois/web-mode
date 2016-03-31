@@ -2756,6 +2756,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ((string= web-mode-engine "freemarker")
           (cond
+           ((and (string= sub2 "<#") (eq (char-after) ?\-))
+            (setq closing-string "-->"))
            ((string= sub1 "<")
             (setq closing-string ">"
                   delim-open "</?[#@]"
