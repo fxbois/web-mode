@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.14
+;; Version: 13.1.15
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.14"
+(defconst web-mode-version "13.1.15"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -334,6 +334,11 @@ See web-mode-block-face."
 (defface web-mode-html-tag-custom-face
   '((t :inherit web-mode-html-tag-face))
   "Face for html custom tags (e.g. <polymer-element>)."
+  :group 'web-mode-faces)
+
+(defface web-mode-html-tag-namespaced-face
+  '((t :inherit web-mode-block-control-face))
+  "Face for html namespaced tags (e.g. <c:forEach>)."
   :group 'web-mode-faces)
 
 (defface web-mode-html-tag-bracket-face
@@ -1094,7 +1099,8 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("erb"              . "<%\\|^%.")
    '("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#]\\|\\[/?[@#].")
    '("go"               . "{{.")
-   '("jsp"              . "<%\\|${\\|</?[[:alpha:]]+[:.][[:alpha:]]+")
+   ;;'("jsp"              . "<%\\|${\\|</?[[:alpha:]]+[:.][[:alpha:]]+")
+   '("jsp"              . "<%\\|${")
    '("lsp"              . "<%")
    '("mako"             . "</?%\\|${\\|^[ \t]*%.\\|^[ \t]*##")
    '("marko"            . "${")
@@ -2596,10 +2602,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (setq closing-string "}"
                   delim-open "${"
                   delim-close "}"))
-           (t
-            (setq closing-string ">"
-                  delim-open "</?"
-                  delim-close "/?>"))
+           ;;(t
+           ;; (setq closing-string ">"
+           ;;       delim-open "</?"
+           ;;       delim-close "/?>"))
            )
           ) ;jsp
 
@@ -3862,8 +3868,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
         (cond
          ((not (member char '(?\! ?\?)))
-          (when (string-match-p "-" tname)
+          (cond
+           ((string-match-p "-" tname)
             (setq flags (logior flags 2)))
+           ((string-match-p ":" tname)
+            (setq flags (logior flags 32)))
+           )
           (cond
            ((eq char ?\/)
             (setq props (list 'tag-name (substring tname 1) 'tag-type 'end)
@@ -3951,7 +3961,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 ;; tag flags
 ;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)bracket-end
-;; (32)prefix
+;; (32)namespaced
 
 ;; attr flags
 ;; (1)custom-attr (2)engine-attr (4)spread-attr[jsx] (8)code-value
@@ -5118,8 +5128,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   ((and web-mode-enable-element-tag-fontification
                         (setq face (cdr (assoc name web-mode-element-tag-faces))))
                    face)
-                  ((> (logand flags 2) 0) 'web-mode-html-tag-custom-face)
-                  (t                      'web-mode-html-tag-face))
+                  ((> (logand flags 32) 0) 'web-mode-html-tag-namespaced-face)
+                  ((> (logand flags 2) 0)  'web-mode-html-tag-custom-face)
+                  (t                       'web-mode-html-tag-face))
             slash-beg (> (logand flags 4) 0)
             slash-end (> (logand flags 8) 0)
             bracket-end (> (logand flags 16) 0))
@@ -5250,8 +5261,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq keywords web-mode-uel-font-lock-keywords))
        ((string= sub2 "<%")
         (setq keywords web-mode-jsp-font-lock-keywords))
-       (t
-        (setq keywords web-mode-engine-tag-font-lock-keywords))
+       ;;(t
+       ;; (setq keywords web-mode-engine-tag-font-lock-keywords))
        )) ;jsp
 
      ((string= web-mode-engine "asp")
@@ -5365,7 +5376,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         ) ;while continue
       ) ;when keywords
 
-    (when (and (member web-mode-engine '("jsp" "mako"))
+    ;;(when (and (member web-mode-engine '("jsp" "mako"))
+    (when (and (member web-mode-engine '("mako"))
                (> (- reg-end reg-beg) 12)
                (eq ?\< (char-after reg-beg)))
       (web-mode-interpolate-block-tag reg-beg reg-end))
@@ -6505,7 +6517,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 reg-col (+ reg-col 3))
           )
          ((and (string= web-mode-engine "jsp")
-               (web-mode-looking-at "<%@\\|<[[:alpha:]]" reg-beg))
+               ;;(web-mode-looking-at "<%@\\|<[[:alpha:]]" reg-beg))
+               (web-mode-looking-at "<%@" reg-beg))
           (save-excursion
             (goto-char reg-beg)
             (looking-at "<%@[ ]*[[:alpha:]]+[ ]+\\|</?[[:alpha:]]+[:.][[:alpha:]]+[ ]+")
