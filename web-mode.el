@@ -6713,8 +6713,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                            'block-token)
                          pos))))
           (setq offset (current-column))
-          ;;(message "%S %S" (point) offset)
           (cond
+           ((string= web-mode-engine "freemarker")
+            (setq offset (+ (current-indentation) 2)))
            ((member (buffer-substring-no-properties (point) (+ (point) 2)) '("/*" "{*" "@*"))
             (cond
              ((eq ?\* curr-char)
