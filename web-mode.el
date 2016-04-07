@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.15
+;; Version: 13.1.16
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.15"
+(defconst web-mode-version "13.1.16"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -788,6 +788,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("element-tag-fontification" . web-mode-enable-element-tag-fontification)
     ("block-face"                . web-mode-enable-block-face)
     ("part-face"                 . web-mode-enable-part-face)))
+
+(defvar web-mode-comment-prefixing nil)
 
 (defvar web-mode-comment-formats
   '(("java"       . "/*")
@@ -2919,12 +2921,23 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (when delim-open
               (web-mode-block-delimiters-set open close delim-open delim-close))
             (web-mode-block-scan open close)
-            (when (and (string= web-mode-engine "erb")
-                       (looking-at-p "<%= javascript_tag do %>"))
+            (cond
+             ((and (string= web-mode-engine "erb")
+                   (looking-at-p "<%= javascript_tag do %>"))
               (setq tagopen "<%= javascript_tag do %>"))
+             ((and (string= web-mode-engine "mako")
+                   (looking-at-p "<%block filter=\"collect_js\">"))
+              (setq tagopen "<%block filter=\"collect_js\">"))
+             ((and (string= web-mode-engine "mako")
+                   (looking-at-p "<%block filter=\"collect_css\">"))
+              (setq tagopen "<%block filter=\"collect_css\">"))
+             )
+            ;;(message "%S %s" (point) tagopen)
             (when (and (member tagopen '("<r:script" "<r:style"
                                          "<c:js" "<c:css"
-                                         "<%= javascript_tag do %>"))
+                                         "<%= javascript_tag do %>"
+                                         "<%block filter=\"collect_js\">"
+                                         "<%block filter=\"collect_css\">"))
                        (setq part-beg close)
                        (setq tagclose
                              (cond
@@ -2933,6 +2946,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                               ((string= tagopen "<c:js") "</c:js")
                               ((string= tagopen "<c:css") "</c:css")
                               ((string= tagopen "<%= javascript_tag do %>") "<% end %>")
+                              ((member tagopen '("<%block filter=\"collect_js\">"
+                                                 "<%block filter=\"collect_css\">")) "</%block")
                               ))
                        (web-mode-sf tagclose)
                        (setq part-end (match-beginning 0))
@@ -2940,7 +2955,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               (put-text-property part-beg part-end
                                  'part-side
                                  (cond
-                                  ((member tagopen '("<r:style" "<c:css")) 'css)
+                                  ((member tagopen '("<r:style" "<c:css" "<%block filter=\"collect_css\">")) 'css)
                                   (t 'javascript)))
               (setq pos part-beg
                     part-beg nil
@@ -4854,7 +4869,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (setq part-beg (web-mode-part-beginning-position pos-beg)
             part-end (web-mode-part-end-position pos-beg))
       ;;(message "language(%S) pos-beg(%S) pos-end(%S) part-beg(%S) part-end(%S)"
-      ;;       language pos-beg pos-end part-beg part-end)
+      ;;         language pos-beg pos-end part-beg part-end)
       (goto-char pos-beg)
       (cond
        ((not (and part-beg part-end
@@ -8592,6 +8607,10 @@ Prompt user if TAG-NAME isn't provided."
              ((and (setq alt (cdr (assoc language web-mode-comment-formats)))
                    (string= alt "//"))
               (setq content (replace-regexp-in-string "^[ ]*" alt sel)))
+             (web-mode-comment-prefixing
+              (setq content (replace-regexp-in-string "^\\([ ]\\)*" "* \\1" sel))
+              (setq content (concat "/*\n" content "\n*/"))
+              )
              (t
               (setq content (concat "/* " sel " */")))
               ) ;cond
