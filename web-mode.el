@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.16
+;; Version: 13.1.17
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.16"
+(defconst web-mode-version "13.1.17"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3990,7 +3990,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0) (brace-depth 0)
         (pos-ori (point)) (state 0) (equal-offset 0) (go-back nil)
         (is-jsx (string= web-mode-content-type "jsx"))
-        name-beg name-end val-beg char pos escaped spaced quoted)
+        attr name-beg name-end val-beg char pos escaped spaced quoted)
 
     (while continue
 
@@ -4568,6 +4568,179 @@ another auto-completion with different ac-sources (e.g. ac-php)")
    ) ;cond
   ;;(message "beg: %S" pos)
   pos)
+
+
+(defun web-mode-jsx-element-next (reg-end)
+  (let (continue beg end)
+    (setq beg (point))
+    (unless (get-text-property beg 'jsx-depth)
+      (setq beg (next-single-property-change beg 'jsx-beg)))
+    (setq continue (and beg (< beg reg-end))
+          end beg)
+    (while continue
+      (setq end (next-single-property-change end 'jsx-end))
+      (cond
+       ((or (null end) (> end reg-end))
+        (setq continue nil
+              end nil))
+       ((eq (get-text-property end 'jsx-depth) 1)
+        (setq continue nil))
+       (t
+        (setq end (1+ end)))
+       ) ;cond
+      ) ;while
+    ;;(message "beg=%S end=%S" beg end)
+    (if (and beg end (< beg end)) (cons beg end) nil)))
+
+(defun web-mode-jsx-expression-next (reg-end)
+  (let (beg end depth continue pos)
+    (setq beg (point))
+    ;;(message "pt=%S" beg)
+    (unless (and (get-text-property beg 'jsx-beg) (null (get-text-property beg 'tag-beg)))
+      ;;(setq beg (next-single-property-change beg 'jsx-beg))
+      (setq continue t
+            pos (1+ beg))
+      (while continue
+        (setq pos (next-single-property-change pos 'jsx-beg))
+        (cond
+         ((null pos)
+          (setq continue nil
+                beg nil))
+         ((> pos reg-end)
+          (setq continue nil
+                beg nil))
+         ((null (get-text-property pos 'jsx-beg))
+          )
+         ((null (get-text-property pos 'tag-beg))
+          (setq continue nil
+                beg pos))
+         ;;(t
+         ;; (setq pos (1+ pos)))
+         ) ;cond
+        ) ;while
+      ) ;unless
+    ;;(message "beg=%S" beg)
+    (when (and beg (< beg reg-end))
+      (setq depth (get-text-property beg 'jsx-beg)
+            continue (not (null depth))
+            pos beg)
+      ;;(message "beg=%S" beg)
+      (while continue
+        (setq pos (next-single-property-change pos 'jsx-end))
+        ;;(message "pos=%S" pos)
+        (cond
+         ((null pos)
+          (setq continue nil))
+         ((> pos reg-end)
+          (setq continue nil))
+         ((eq depth (get-text-property pos 'jsx-end))
+          (setq continue nil
+                end pos))
+         (t
+          ;;(setq pos (1+ pos))
+          )
+         ) ;cond
+        ) ;while
+      ) ;when
+    ;;(message "%S > %S" beg end)
+    (if (and beg end) (cons beg end) nil)))
+
+(defun web-mode-jsx-depth-next (reg-end)
+  (let (beg end depth continue pos)
+    (setq beg (point))
+    ;;(message "pt=%S" beg)
+    (unless (get-text-property beg 'jsx-beg)
+      ;;(setq beg (next-single-property-change beg 'jsx-beg))
+      ;;(setq pos (1+ beg))
+      (setq pos (next-single-property-change (1+ beg) 'jsx-beg))
+      (cond
+       ((null pos)
+        (setq beg nil))
+       ((>= pos reg-end)
+        (setq beg nil))
+       (t
+        (setq beg pos))
+       ) ;cond
+      ) ;unless
+    ;;(message "beg=%S" beg)
+    (when beg
+      (setq depth (get-text-property beg 'jsx-beg)
+            continue (not (null depth))
+            pos beg)
+      ;;(message "beg=%S" beg)
+      (while continue
+        (setq pos (next-single-property-change pos 'jsx-end))
+        ;;(message "pos=%S" pos)
+        (cond
+         ((null pos)
+          (setq continue nil))
+         ((> pos reg-end)
+          (setq continue nil))
+         ((eq depth (get-text-property pos 'jsx-end))
+          (setq continue nil
+                end pos))
+         (t
+          ;;(setq pos (1+ pos))
+          )
+         ) ;cond
+        ) ;while
+      ) ;when
+    ;;(message "%S > %S" beg end)
+    (if (and beg end) (cons beg end) nil)))
+
+(defun web-mode-jsx-beginning ()
+  (interactive)
+  (let (depth (continue t) (reg-beg (point-min)) (pos (point)))
+    (setq depth (get-text-property pos 'jsx-depth))
+    (cond
+     ((not depth)
+      )
+     ((get-text-property (1- pos) 'jsx-beg)
+      (goto-char (1- pos)))
+     (t
+      (while continue
+        (setq pos (previous-single-property-change pos 'jsx-beg))
+        ;;(message "pos=%S" pos)
+        (cond
+         ((null pos)
+          (setq continue nil))
+         ((<= pos reg-beg)
+          (setq continue nil))
+         ((eq depth (get-text-property pos 'jsx-beg))
+          (setq continue nil))
+         ) ;cond
+        ) ;while
+      (web-mode-go pos)
+      ) ;t
+     ) ;cond
+    ))
+
+(defun web-mode-jsx-end ()
+  (interactive)
+  (let (depth (continue t) (reg-end (point-max)) (pos (point)))
+    (setq depth (get-text-property pos 'jsx-depth))
+    (cond
+     ((not depth)
+      )
+     ((get-text-property pos 'jsx-end)
+      (goto-char (+ pos 1)))
+     (t
+      (while continue
+        (setq pos (next-single-property-change pos 'jsx-end))
+        ;;(message "pos=%S" pos)
+        (cond
+         ((null pos)
+          (setq continue nil))
+         ((> pos reg-end)
+          (setq continue nil))
+         ((eq depth (get-text-property pos 'jsx-end))
+          (setq continue nil))
+         ) ;cond
+        ) ;while
+      (web-mode-go pos 1)
+      ) ;t
+     ) ;cond
+    ))
 
 (defun web-mode-velocity-skip (pos)
   (goto-char pos)
@@ -5541,125 +5714,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         ) ;when
 
       )))
-
-(defun web-mode-jsx-element-next (reg-end)
-  (let (continue beg end)
-    (setq beg (point))
-    (unless (get-text-property beg 'jsx-depth)
-      (setq beg (next-single-property-change beg 'jsx-beg)))
-    (setq continue (and beg (< beg reg-end))
-          end beg)
-    (while continue
-      (setq end (next-single-property-change end 'jsx-end))
-      (cond
-       ((or (null end) (> end reg-end))
-        (setq continue nil
-              end nil))
-       ((eq (get-text-property end 'jsx-depth) 1)
-        (setq continue nil))
-       (t
-        (setq end (1+ end)))
-       ) ;cond
-      ) ;while
-    ;;(message "beg=%S end=%S" beg end)
-    (if (and beg end (< beg end)) (cons beg end) nil)))
-
-(defun web-mode-jsx-expression-next (reg-end)
-  (let (beg end depth continue pos)
-    (setq beg (point))
-    ;;(message "pt=%S" beg)
-    (unless (and (get-text-property beg 'jsx-beg) (null (get-text-property beg 'tag-beg)))
-      ;;(setq beg (next-single-property-change beg 'jsx-beg))
-      (setq continue t
-            pos (1+ beg))
-      (while continue
-        (setq pos (next-single-property-change pos 'jsx-beg))
-        (cond
-         ((null pos)
-          (setq continue nil
-                beg nil))
-         ((> pos reg-end)
-          (setq continue nil
-                beg nil))
-         ((null (get-text-property pos 'jsx-beg))
-          )
-         ((null (get-text-property pos 'tag-beg))
-          (setq continue nil
-                beg pos))
-         ;;(t
-         ;; (setq pos (1+ pos)))
-         ) ;cond
-        ) ;while
-      ) ;unless
-    ;;(message "beg=%S" beg)
-    (when (and beg (< beg reg-end))
-      (setq depth (get-text-property beg 'jsx-beg)
-            continue (not (null depth))
-            pos beg)
-      ;;(message "beg=%S" beg)
-      (while continue
-        (setq pos (next-single-property-change pos 'jsx-end))
-        ;;(message "pos=%S" pos)
-        (cond
-         ((null pos)
-          (setq continue nil))
-         ((> pos reg-end)
-          (setq continue nil))
-         ((eq depth (get-text-property pos 'jsx-end))
-          (setq continue nil
-                end pos))
-         (t
-          ;;(setq pos (1+ pos))
-          )
-         ) ;cond
-        ) ;while
-      ) ;when
-    ;;(message "%S > %S" beg end)
-    (if (and beg end) (cons beg end) nil)))
-
-(defun web-mode-jsx-depth-next (reg-end)
-  (let (beg end depth continue pos)
-    (setq beg (point))
-    ;;(message "pt=%S" beg)
-    (unless (get-text-property beg 'jsx-beg)
-      ;;(setq beg (next-single-property-change beg 'jsx-beg))
-      ;;(setq pos (1+ beg))
-      (setq pos (next-single-property-change (1+ beg) 'jsx-beg))
-      (cond
-       ((null pos)
-        (setq beg nil))
-       ((>= pos reg-end)
-        (setq beg nil))
-       (t
-        (setq beg pos))
-       ) ;cond
-      ) ;unless
-    ;;(message "beg=%S" beg)
-    (when beg
-      (setq depth (get-text-property beg 'jsx-beg)
-            continue (not (null depth))
-            pos beg)
-      ;;(message "beg=%S" beg)
-      (while continue
-        (setq pos (next-single-property-change pos 'jsx-end))
-        ;;(message "pos=%S" pos)
-        (cond
-         ((null pos)
-          (setq continue nil))
-         ((> pos reg-end)
-          (setq continue nil))
-         ((eq depth (get-text-property pos 'jsx-end))
-          (setq continue nil
-                end pos))
-         (t
-          ;;(setq pos (1+ pos))
-          )
-         ) ;cond
-        ) ;while
-      ) ;when
-    ;;(message "%S > %S" beg end)
-    (if (and beg end) (cons beg end) nil)))
-
 
 (defun web-mode-css-rules-highlight (part-beg part-end)
   (save-excursion
@@ -10881,6 +10935,9 @@ Prompt user if TAG-NAME isn't provided."
          ((get-text-property (1- pos) 'tag-type)
           (backward-char 1)
           (web-mode-tag-beginning))
+         ((get-text-property (1- pos) 'jsx-end)
+          (backward-char 1)
+          (web-mode-jsx-beginning))
          (t
           (let ((forward-sexp-function nil))
             (backward-sexp))
@@ -10910,6 +10967,8 @@ Prompt user if TAG-NAME isn't provided."
           (web-mode-attribute-end))
          ((get-text-property pos 'tag-type)
           (web-mode-tag-end))
+         ((get-text-property pos 'jsx-beg)
+          (web-mode-jsx-end))
          (t
           (let ((forward-sexp-function nil))
             (forward-sexp))
@@ -11844,7 +11903,7 @@ Prompt user if TAG-NAME isn't provided."
          (setq matched t)
          ;; move to head if the link requires it
          (when (nth 2 type)
-           (beginning-of-buffer)
+           (goto-char (point-min))
            (search-forward "</head>")
            (backward-char 7)
            (open-line 1))
@@ -11852,9 +11911,9 @@ Prompt user if TAG-NAME isn't provided."
          (indent-for-tab-command)
          ;; fix indentation and return point where it was
          (when (nth 2 type)
-           (next-line)
+           (forward-line)
            (indent-for-tab-command)
-           (goto-line (+ point-line 1))
+           (forward-line (+ point-line 1))
            (move-to-column point-column))))
      (when (not matched)		;return an error if filetype is unknown
        (error "Unknown file type")))))
