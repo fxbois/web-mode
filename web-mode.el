@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.17
+;; Version: 13.1.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.17"
+(defconst web-mode-version "13.1.18"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1101,7 +1101,6 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("erb"              . "<%\\|^%.")
    '("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#]\\|\\[/?[@#].")
    '("go"               . "{{.")
-   ;;'("jsp"              . "<%\\|${\\|</?[[:alpha:]]+[:.][[:alpha:]]+")
    '("jsp"              . "<%\\|${")
    '("lsp"              . "<%")
    '("mako"             . "</?%\\|${\\|^[ \t]*%.\\|^[ \t]*##")
@@ -1588,7 +1587,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    (append
     (cdr (assoc "razor" web-mode-extra-keywords))
     '("false" "true" "foreach" "if" "else" "in" "var" "for" "display"
-      "match" "case"
+      "match" "case" "to"
       "Html"))))
 
 (defvar web-mode-selector-font-lock-keywords
@@ -1753,7 +1752,9 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("@\\([[:alnum:]_.]+\\)[ ]*[({]" 1 'web-mode-block-control-face)
    (cons (concat "\\_<\\(" web-mode-razor-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
-   '("@\\([[:alnum:]_.]+\\)" 1 'web-mode-variable-name-face)
+   '("\\_<\\(String\\)\\_>" 1 'web-mode-type-face)
+   '("\\([[:alnum:]]+:\\)" 1 'web-mode-symbol-face)
+   '("\\(@[[:alnum:]_.]+\\)" 1 'web-mode-variable-name-face)
    ))
 
 (defvar web-mode-riot-font-lock-keywords
@@ -2803,7 +2804,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ((string= sub1 "@")
             (setq closing-string "EOR"
                   delim-open "@"))
+           ((and (string= sub1 "}")
+                 (looking-at-p "[ ]*\n"))
+            (setq closing-string "EOC")
+            )
            ((string= sub1 "}")
+            ;;(message "%s: %s" (point) sub1)
             (save-excursion
               (let (paren-pos)
                 (setq paren-pos (web-mode-part-opening-paren-position (1- (point))))
@@ -2888,6 +2894,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
            ((string= closing-string "EOL")
             (end-of-line)
+            (setq close (point)
+                  pos (point)))
+
+           ((string= closing-string "EOC")
             (setq close (point)
                   pos (point)))
 
@@ -4789,7 +4799,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (forward-char)
         )
        ((and (not (eobp)) (eq ?\( (char-after)))
-        (if (looking-at-p "[ \n]*<")
+        (if (looking-at-p "[ \n]*[<@]")
             (setq continue nil)
           (when (setq pos (web-mode-closing-paren-position))
             (goto-char pos))
@@ -4800,7 +4810,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (forward-char))
        ((looking-at-p "[ \n]*{")
         (search-forward "{")
-        (if (looking-at-p "[ \n]*<")
+        (if (looking-at-p "[ \n]*[<@]")
             (setq continue nil)
           (backward-char)
           (when (setq pos (web-mode-closing-paren-position))
