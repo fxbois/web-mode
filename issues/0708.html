@@ -1,0 +1,5 @@
+<script>
+ @connect((state, props) => ({
+   error: state.errorRegistry.get(resourceRequest(props.eventLocator)).relevant
+ }));
+</script>
