@@ -8,6 +8,12 @@ var data = {
   password: this.password
 }
 
+for (let type in types)
+  doSomething(type);
+
+for (let type of types)
+  doSomething(type); // should be indented
+
 ajax.post('/signup')
     .send(data)
 

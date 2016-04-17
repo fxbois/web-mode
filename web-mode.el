@@ -1574,7 +1574,7 @@ Must be used in conjunction with web-mode-enable-block-face."
       "debugger" "default" "delete" "do" "else" "enum" "eval"
       "export" "extends" "finally" "for" "from" "function" "get" "if"
       "implements" "import" "in" "instanceof" "interface" "let"
-      "new" "package" "private" "protected" "public"
+      "new" "of" "package" "private" "protected" "public"
       "return" "set" "static" "super" "switch"
       "throw" "try" "typeof" "var" "void" "while" "with" "yield"))))
 
@@ -1627,7 +1627,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   (list
    '("@\\([[:alnum:]_]+\\)\\_>" 0 'web-mode-keyword-face)
    ;;(cons (concat "\\_<\\(" web-mode-javascript-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
-   (cons (concat "\\([ \t}]\\|^\\)\\(" web-mode-javascript-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\([ \t}{(]\\|^\\)\\(" web-mode-javascript-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-javascript-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("\\_<\\(new\\|instanceof\\|class\\|extends\\) \\([[:alnum:]_.]+\\)\\_>" 2 'web-mode-type-face)
    '("\\_<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
@@ -6988,7 +6988,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ;; TODO : prev-pos : se plasser sur ), remonter sur ( et
          ;; verifer que ca n'est pas if
          ((and (member language '("javascript" "jsx" "ejs" "php"))
-               (or (and (eq prev-char ?\)) (string-match-p "^if[ ]*(" prev-line))
+               (or (and (eq prev-char ?\)) (string-match-p "^\\(if\\|for\\)[ ]*(" prev-line))
                    (and (member language '("javascript" "jsx")) (web-mode-part-is-opener prev-pos reg-beg))
                    (string-match-p "^else$" prev-line))
                (not (string-match-p "^\\([{.]\\|->\\)" curr-line)))
