@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.19
+;; Version: 13.1.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.19"
+(defconst web-mode-version "13.1.20"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6988,8 +6988,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ;; TODO : prev-pos : se plasser sur ), remonter sur ( et
          ;; verifer que ca n'est pas if
          ((and (member language '("javascript" "jsx" "ejs" "php"))
-               (or (and (eq prev-char ?\)) (string-match-p "^\\(if\\|for\\)[ ]*(" prev-line))
-                   (and (member language '("javascript" "jsx")) (web-mode-part-is-opener prev-pos reg-beg))
+               (or (and (eq prev-char ?\))
+                        (string-match-p "^\\(for\\|if\\|while\\)[ ]*(" prev-line))
+                   (and (member language '("javascript" "jsx"))
+                        (web-mode-part-is-opener prev-pos reg-beg))
                    (string-match-p "^else$" prev-line))
                (not (string-match-p "^\\([{.]\\|->\\)" curr-line)))
           ;;(message "ici")
@@ -7030,7 +7032,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             ) ;when
           )
 
-         ((and (member language '("javascript" "jsx" "ejs")) (member ?\+ chars))
+         ((and (member language '("javascript" "jsx" "ejs"))
+               (member ?\+ chars))
           ;;(message "js-concat")
           (cond
            ((not (web-mode-javascript-string-beginning pos reg-beg))
