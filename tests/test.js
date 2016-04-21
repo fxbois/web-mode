@@ -4,6 +4,12 @@ var cs = {completed: this.props.todo.completed,
 const f = (x) =>
   x + 1;
 
+if (a)
+  if (b)
+    if (c)
+      console.log("ici");
+console.log("la");
+
 var data = {
   password: this.password
 }

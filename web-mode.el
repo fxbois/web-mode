@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.20
+;; Version: 13.1.21
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Created: July 2011
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.20"
+(defconst web-mode-version "13.1.21"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6989,13 +6989,19 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ;; verifer que ca n'est pas if
          ((and (member language '("javascript" "jsx" "ejs" "php"))
                (or (and (eq prev-char ?\))
-                        (string-match-p "^\\(for\\|if\\|while\\)[ ]*(" prev-line))
+                        (string-match-p "^\\(for\\|if\\|while\\)[ ]*(" prev-line)
+;;                        (progn (message "%S" (point)) t)
+                        )
                    (and (member language '("javascript" "jsx"))
                         (web-mode-part-is-opener prev-pos reg-beg))
                    (string-match-p "^else$" prev-line))
                (not (string-match-p "^\\([{.]\\|->\\)" curr-line)))
           ;;(message "ici")
           (cond
+           ((and (eq prev-char ?\))
+                 (string-match-p "^\\(for\\|if\\|while\\)[ ]*(" prev-line))
+            (setq offset (+ prev-indentation web-mode-code-indent-offset))
+            )
            ((member language '("javascript" "jsx" "ejs"))
             (setq offset
                   (+ (car (web-mode-javascript-indentation pos
