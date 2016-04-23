@@ -9124,7 +9124,7 @@ Prompt user if TAG-NAME isn't provided."
     (goto-char pos)
     (if (and (web-mode-tag-beginning)
              (looking-at "<\\(/?[[:alpha:]][[:alnum:]:-]*\\)"))
-        (match-string-no-properties 1)
+        (replace-regexp-in-string "^/" "" (match-string-no-properties 1))
       nil)))
 
 (defun web-mode-element-close ()
