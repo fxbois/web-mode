@@ -1,0 +1,24 @@
+<script type="text/babel">
+ var data = [
+   {id: 1, author: "Pete Hunt", text: "This is one comment"},
+   {id: 2, author: "Jordan Walke", text: "This is *another* comment"}
+ ];
+
+ var Comment = React.createClass({
+   rawMarkup: function() {
+     var rm = marked(this.props.children.toString(), {sanitize: true});
+     return { __html: rm };
+   },
+
+   render: function() {
+     return (
+       <div className="comment">
+	     <h2 className="commentAuthor">
+	       {this.props.author}
+	     </h2>
+	     <span dangerouslySetInnerHTML={this.rawMarkup()} />
+       </div>
+     );
+   }
+ });
+</script>

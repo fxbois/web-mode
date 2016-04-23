@@ -1,0 +1,14 @@
+<div class='well'>
+  <p>
+    <div id="states" class="monospace">
+      <% store_states.each do |state| %>
+        <% unless state.first.blank? %>
+          <a href='?state=<%= state.first %>&filter=true'><%= state.first %></a>&nbsp;
+          <% if state.first == "MT" %>
+            Yes
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  </p>
+</div>

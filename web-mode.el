@@ -6,10 +6,10 @@
 ;; Version: 13.1.21
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
-;; Created: July 2011
-;; Keywords: languages
-;; Homepage: http://web-mode.org
+;; URL: http://web-mode.org
 ;; Repository: http://github.com/fxbois/web-mode
+;; Created: 1st July 2011
+;; Keywords: languages
 ;; License: GNU General Public License >= 2
 ;; Distribution: This file is not part of Emacs
 
@@ -17,7 +17,7 @@
 ;; WEB-MODE is sponsored by Kernix: ultimate Digital Factory & Data Lab in Paris
 ;;==============================================================================
 
-;; Code goes here
+;;; Code:
 
 ;;---- CONSTS ------------------------------------------------------------------
 
