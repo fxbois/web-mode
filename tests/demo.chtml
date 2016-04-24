@@ -8,3 +8,21 @@
       attribute=bar
       otherAttribute=baz}}
 </div>
+
+<div>
+  {{#if foo}}
+    {{#each bar}}
+      foo
+    {{else}}
+      bar
+    {{/each}}
+  {{/if}}
+</div>
+
+<div>
+  {{#if foo}}
+    foo
+  {{else}}
+    bar
+  {{/if}}
+</div>

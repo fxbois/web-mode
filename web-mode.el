@@ -3701,8 +3701,24 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
        ((string= web-mode-engine "ctemplate")
         (cond
-         ((looking-at-p "{{else")
-          (setq controls (append controls (list (cons 'inside "if")))))
+         ((looking-at-p "{{else") ;#721
+          (let ((continue t)
+                (pos reg-beg)
+                (ctrl nil))
+            (while continue
+              (cond
+               ((null (setq pos (web-mode-block-control-previous-position 'open pos)))
+                (setq continue nil))
+               ((member (setq ctrl (cdr (car (get-text-property pos 'block-controls)))) '("if" "each"))
+                (setq continue nil)
+                )
+               ) ;cond
+              ) ;while
+            (setq controls (append controls (list (cons 'inside (or ctrl "if")))))
+            )
+          ;;(setq controls (append controls (list (cons 'inside "if"))))
+          )
+
          ((looking-at "{{[#^/][ ]*\\([[:alpha:]-]+\\)")
           (setq control (match-string-no-properties 1)
                 type (if (eq (aref (match-string-no-properties 0) 2) ?\/) 'close 'open))
