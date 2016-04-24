@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.23
+;; Version: 13.1.24
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -14,14 +14,14 @@
 ;; Distribution: This file is not part of Emacs
 
 ;;==============================================================================
-;;  WEB-MODE is sponsored by Kernix : best Digital Factory & Data Lab in Paris
+;; WEB-MODE is sponsored by Kernix : Best Digital Factory & Data Lab in Paris !
 ;;==============================================================================
 
 ;;; Code:
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.23"
+(defconst web-mode-version "13.1.24"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4024,7 +4024,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0) (brace-depth 0)
         (pos-ori (point)) (state 0) (equal-offset 0) (go-back nil)
-        (is-jsx (string= web-mode-content-type "jsx"))
+        (is-jsx (or (string= web-mode-content-type "jsx") (eq (get-text-property (point) 'part-type) 'jsx)))
         attr name-beg name-end val-beg char pos escaped spaced quoted)
 
     (while continue
@@ -4973,12 +4973,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (unless beg (setq beg web-mode-change-beg))
   (unless end (setq end web-mode-change-end))
 
-;;  (message "propertize: beg(%S) end(%S)" web-mode-change-beg web-mode-change-end)
+  ;;(message "%S %S" web-mode-content-type (get-text-property beg 'part-side))
+  ;;(message "propertize: beg(%S) end(%S)" web-mode-change-beg web-mode-change-end)
+  ;;(message "%S %S" (get-text-property beg 'part-side) (get-text-property end 'part-side))
 
   (when (and end (> end (point-max)))
     (setq end (point-max)))
-
-;;  (remove-text-properties beg end '(font-lock-face nil))
 
   (setq web-mode-change-beg nil
         web-mode-change-end nil)
@@ -5000,14 +5000,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              (and (get-text-property beg 'part-side)
                   (get-text-property end 'part-side)
                   (> beg (point-min))
-                  (get-text-property (1- beg) 'part-side)
-                  (get-text-property end 'part-side))
+                  (get-text-property (1- beg) 'part-side))
              ))
     ;;(message "invalidate part (%S > %S)" beg end)
     (web-mode-invalidate-part-region beg end))
 
    (t
-    ;;(message "%S %S" beg end)
+    ;;(message "invalidate default (%S > %S)" beg end)
     (web-mode-invalidate-region beg end))
 
    ) ;cond
@@ -9386,13 +9385,13 @@ Prompt user if TAG-NAME isn't provided."
        ((and (eq char ?\")
              (looking-back "=[ ]*\"")
              (not (looking-at-p "[ ]*[\"]")))
-        (insert "\"")
+        (insert-and-inherit "\"")
         (backward-char)
         (setq auto-quoted t))
        ((and (eq char ?\')
              (looking-back "=[ ]*'")
              (not (looking-at-p "[ ]*[']")))
-        (insert "'")
+        (insert-and-inherit "'")
         (backward-char)
         (setq auto-quoted t))
        ((and (eq char ?\")

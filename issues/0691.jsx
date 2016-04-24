@@ -11,7 +11,7 @@ var Comment = React.createClass({
 
   render: function() {
 	return (
-	  <div className="comment">
+	  <div className="commenct">
 		<h2 className="commentAuthor">
 		  {this.props.author}
 		</h2>

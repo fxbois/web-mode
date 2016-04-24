@@ -1,1 +1,1 @@
-{{foo  foo-with-hyphens="bar" prop1="bar" prop2='bar'}}
+{{foo  foo-with-hyphens="bar" prop1="bar" prop2='bar' prop=(or a (and b c) d e) }}
