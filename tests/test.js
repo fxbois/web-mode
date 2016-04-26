@@ -21,7 +21,17 @@ for (let type of types)
   doSomething(type); // should be indented
 
 ajax.post('/signup')
-    .send(data)
+    .send(data);
+
+$(document.body)
+  .append("<span/>")
+  .attr(...);
+
+$('<div style="background: #fff">Open</div>')
+  .attr("data-id", "foo");
+
+$(document.body).append("<span/>")
+                .attr(...);
 
 var str = "toto";
 

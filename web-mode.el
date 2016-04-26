@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.24
+;; Version: 13.1.25
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -14,14 +14,14 @@
 ;; Distribution: This file is not part of Emacs
 
 ;;==============================================================================
-;; WEB-MODE is sponsored by Kernix : Best Digital Factory & Data Lab in Paris !
+;;WEB-MODE is sponsored by ** Kernix ** Best Digital Factory & Data Lab in Paris
 ;;==============================================================================
 
 ;;; Code:
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.24"
+(defconst web-mode-version "13.1.25"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7040,22 +7040,33 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((and (member language '("javascript" "jsx" "ejs"))
                (member ?\. chars)
                (not (string-match-p "^\\.\\.\\." curr-line)))
-          (when (web-mode-javascript-calls-beginning pos reg-beg)
-            ;;(message "%S" (point))
-            (cond
-             ((cdr (assoc "lineup-calls" web-mode-indentation-params))
-              (search-forward ".")
-              (setq offset (current-column))
-              (when (eq curr-char ?\.)
-                (goto-char pos)
-                (looking-at "\\.[ \t\n]*")
-                (setq offset (- offset (length (match-string-no-properties 0)))))
-              )
-             (t
-              (setq offset (+ (current-indentation) web-mode-code-indent-offset))
-              ) ;t
-             ) ;cond
-            ) ;when
+          (let (pair)
+            (setq pair (web-mode-javascript-calls-beginning-position pos reg-beg))
+            (when pair
+              (goto-char (car pair))
+              ;;(message "%S %S" (point) pair)
+              (cond
+               ((cdr (assoc "lineup-calls" web-mode-indentation-params))
+                ;;(search-forward ".")
+                (if (cdr pair)
+                    (progn
+                      (goto-char (cdr pair))
+                      (setq offset (current-column))
+                      (looking-at "\\.\\([ \t\n]*\\)")
+                      (setq offset (- offset (length (match-string-no-properties 1))))
+                      (unless (eq curr-char ?\.) (setq offset (1+ offset)))
+                      ) ;progn
+                  ;; TODO: cela devrait etre fait dans web-mode-javascript-calls-beginning-position
+                  (skip-chars-forward " \t\n")
+                  (setq offset (+ (current-indentation) web-mode-code-indent-offset))
+                  ) ;if
+                )
+               (t
+                (setq offset (+ (current-indentation) web-mode-code-indent-offset))
+                ) ;t
+               ) ;cond
+              ) ;when
+            ) ;let
           )
 
          ((and (member language '("javascript" "jsx" "ejs"))
@@ -10819,6 +10830,7 @@ Prompt user if TAG-NAME isn't provided."
   (unless pos (setq pos (point)))
   ;;(message "pos=%S" pos)
   (let ((char nil)
+        (dot-pos nil)
         (blockside (get-text-property pos 'block-side))
         (i 0)
         (continue (not (null pos))))
@@ -10829,6 +10841,7 @@ Prompt user if TAG-NAME isn't provided."
       )
     (while continue
       (setq char (char-after pos))
+      ;;(message "%S| %S=%c" reg-beg pos char)
       (cond
        ((> (setq i (1+ i)) 20000)
         (message "javascript-calls-beginning-position ** warning (%S) **" pos)
@@ -10838,6 +10851,8 @@ Prompt user if TAG-NAME isn't provided."
         (message "javascript-calls-beginning-position ** invalid pos **")
         (setq continue nil))
        ((< pos reg-beg)
+        ;;(forward-char)
+        ;;(skip-chars-forward " \t")
         ;;(message "pos(%S) reg-beg(%S)" pos reg-beg)
         ;;(message "javascript-calls-beginning-position ** failure **")
         (setq continue nil
@@ -10855,6 +10870,11 @@ Prompt user if TAG-NAME isn't provided."
         (when (setq pos (web-mode-block-beginning-position pos))
           (setq pos (1- pos))))
        ;;((member char '(?\) ?\] ?\}))
+       ;;((member char '(?\s ?\t))
+       ;; (skip-chars-backward " \t" reg-beg))
+       ((and (member char '(?\.)) (> i 1))
+        (setq dot-pos pos
+              pos (1- pos)))
        ((member char '(?\) ?\]))
         (when (setq pos (web-mode-part-opening-paren-position pos reg-beg))
           (setq pos (1- pos)))
@@ -10870,7 +10890,9 @@ Prompt user if TAG-NAME isn't provided."
         (setq pos (1- pos)))
        ) ;cond
       ) ;while
-    pos))
+    ;;(message "pos=%S dot-pos=%S" pos dot-pos)
+    (if (null pos) pos (cons pos dot-pos))
+    ))
 
 (defun web-mode-part-token-beginning-position (&optional pos)
   (unless pos (setq pos (point)))
@@ -11376,7 +11398,10 @@ Prompt user if TAG-NAME isn't provided."
     (if (get-text-property pos 'block-side)
         (setq reg-beg (web-mode-block-beginning-position pos))
       (setq reg-beg (web-mode-part-beginning-position pos))))
-  (web-mode-go (web-mode-javascript-calls-beginning-position pos reg-beg)))
+  (let (pair)
+    (setq pair (web-mode-javascript-calls-beginning-position pos reg-beg))
+    (when pair (web-mode-go (car pair)))
+    ))
 
 (defun web-mode-go (pos &optional offset)
   (unless offset (setq offset 0))
