@@ -2204,6 +2204,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     ;;C-c C-t : tag
     (define-key map (kbd "C-c C-w")   'web-mode-whitespaces-show)
 
+    (define-key map (kbd "C-c <C-return>") 'web-mode-break-lines)
+
     map)
   "Keymap for `web-mode'.")
 
@@ -12016,25 +12018,45 @@ Prompt user if TAG-NAME isn't provided."
          (matched nil)
          (point-line (line-number-at-pos))
          (point-column (current-column)))
-     (dolist (type web-mode-file-extensions)		;for every element in web-mode-type-list
+     (dolist (type web-mode-file-extensions)
        (when (string-match (nth 0 type) file)
          (setq matched t)
-         ;; move to head if the link requires it
          (when (nth 2 type)
            (goto-char (point-min))
            (search-forward "</head>")
            (backward-char 7)
            (open-line 1))
-         (insert (nth 0 (nth (nth 1 type) web-mode-file-elements)) file (nth 1 (nth (nth 1 type) web-mode-file-elements)))
+         (insert
+          (nth 0 (nth (nth 1 type) web-mode-file-elements))
+          file
+          (nth 1 (nth (nth 1 type) web-mode-file-elements)))
          (indent-for-tab-command)
-         ;; fix indentation and return point where it was
          (when (nth 2 type)
+           ;; fix indentation
            (forward-line)
            (indent-for-tab-command)
-           (forward-line (+ point-line 1))
+           (if (> point-line (- (line-number-at-pos) 2))
+               (forward-line (+ (- point-line (line-number-at-pos)) 1))
+             (forward-line (- point-line (line-number-at-pos))))
            (move-to-column point-column))))
-     (when (not matched)		;return an error if filetype is unknown
+     (when (not matched)
        (error "Unknown file type")))))
+
+(defun web-mode-break-lines ()
+  "Insert a \"<br/>\" tag where point is or on every line in region if it's active."
+  (interactive)
+  (if (use-region-p)
+      (let ((point-line (line-number-at-pos))
+            (point-column (current-column))
+            (end-line (line-number-at-pos (region-end))))
+	(goto-char (region-beginning))
+	(while (<= (line-number-at-pos) end-line)
+	  (end-of-line)
+	  (insert "<br/>")
+	  (forward-line))
+	(forward-line (- point-line (line-number-at-pos)))
+        (move-to-column point-column))
+    (insert "<br/>")))
 
 (defun web-mode-reload ()
   "Reload web-mode."
