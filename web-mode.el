@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.25
+;; Version: 13.1.26
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.25"
+(defconst web-mode-version "13.1.26"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8765,9 +8765,8 @@ Prompt user if TAG-NAME isn't provided."
                  (string= alt "//"))
             (setq content (replace-regexp-in-string "^[ ]*" alt sel)))
            (web-mode-comment-prefixing
-            ;;(message "col=%S" col)
-            (setq content (replace-regexp-in-string (concat "\n[ ]\\{" (number-to-string col) "\\}") "\n*" sel))
-            (setq content (concat "/*" content "*/")))
+            (setq content (replace-regexp-in-string (concat "\n[ ]\\{" (number-to-string col) "\\}") "\n* " sel))
+            (setq content (concat "/* " content "*/")))
            (t
             (setq content (concat "/* " sel " */")))
            ) ;cond
