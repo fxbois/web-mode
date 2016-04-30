@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.27
+;; Version: 13.2.0
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.27"
+(defconst web-mode-version "13.2.0"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2262,6 +2262,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (make-local-variable 'web-mode-change-end)
   (make-local-variable 'web-mode-code-indent-offset)
   (make-local-variable 'web-mode-column-overlays)
+  (make-local-variable 'web-mode-comment-formats)
   (make-local-variable 'web-mode-comment-style)
   (make-local-variable 'web-mode-content-type)
   (make-local-variable 'web-mode-css-indent-offset)
