@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.1.26
+;; Version: 13.1.27
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.1.26"
+(defconst web-mode-version "13.1.27"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8635,11 +8635,11 @@ Prompt user if TAG-NAME isn't provided."
   (let (ctx)
     (setq ctx (web-mode-comment-context))
     (if (null ctx) nil
-      (message "ctx=%S" ctx)
+      ;; (message "ctx=%S" ctx)
       (newline 1)
       (indent-line-to (plist-get ctx :col))
       (insert (concat (plist-get ctx :prefix) ""))
-      )
+      ) ;if
     ))
 
 (defun web-mode-comment-context (&optional pos)
@@ -8763,7 +8763,10 @@ Prompt user if TAG-NAME isn't provided."
             (setq content (concat "{/* " sel " */}")))
            ((and (setq alt (cdr (assoc language web-mode-comment-formats)))
                  (string= alt "//"))
-            (setq content (replace-regexp-in-string "^[ ]*" alt sel)))
+            (setq content (replace-regexp-in-string (concat "\n[ ]\\{" (number-to-string col) "\\}") "\n// " sel))
+            (setq content (concat "// " content))
+            ;;(setq content (replace-regexp-in-string "^[ ]*" alt sel))
+            )
            (web-mode-comment-prefixing
             (setq content (replace-regexp-in-string (concat "\n[ ]\\{" (number-to-string col) "\\}") "\n* " sel))
             (setq content (concat "/* " content "*/")))
