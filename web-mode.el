@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 13.2.0
+;; Version: 14.0.0
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "13.2.0"
+(defconst web-mode-version "14.0.0"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2048,7 +2048,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defvar web-mode-syntax-table
   (let ((table (make-syntax-table)))
     (modify-syntax-entry ?- "_" table)
-    (modify-syntax-entry ?_ "_" table) ;; #563
+    (modify-syntax-entry ?_ "_" table) ;#563
     (modify-syntax-entry ?< "." table)
     (modify-syntax-entry ?> "." table)
     (modify-syntax-entry ?& "." table)
@@ -2615,10 +2615,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (setq closing-string "}"
                   delim-open "${"
                   delim-close "}"))
-           ;;(t
-           ;; (setq closing-string ">"
-           ;;       delim-open "</?"
-           ;;       delim-close "/?>"))
            )
           ) ;jsp
 
@@ -10410,44 +10406,6 @@ Prompt user if TAG-NAME isn't provided."
        ) ;cond
       ) ;while
     pos))
-
-;; (defun web-mode-block-opening-paren-position2 (pos limit)
-;;   (save-excursion
-;;     (when (> limit pos)
-;;       (message "block-opening-paren-position: limit(%S) > pos(%S)" limit pos))
-;;     (goto-char pos)
-;;     (let (c
-;;           n
-;;           pt
-;;           (continue (> pos limit))
-;;           (pairs '((")" . "(")
-;;                    ("]" . "[")
-;;                    ("}" . "{")))
-;;           (h (make-hash-table :test 'equal))
-;;           (regexp "[\]\[)(}{]"))
-;;       (while (and continue (re-search-backward regexp limit t))
-;;         (cond
-;;          ((web-mode-is-comment-or-string)
-;;           )
-;;          (t
-;;           (setq c (string (char-after)))
-;;           (cond
-;;            ((member c '("(" "{" "["))
-;;             (setq n (gethash c h 0))
-;;             (if (= n 0)
-;;                 (setq continue nil
-;;                       pt (point))
-;;               (puthash c (1+ n) h)
-;;               ))
-;;            (t
-;;             (setq c (cdr (assoc c pairs)))
-;;             (setq n (gethash c h 0))
-;;             (puthash c (1- n) h))
-;;            ) ;cond
-;;           ) ;t
-;;          ) ;cond
-;;         ) ;while
-;;       pt)))
 
 (defun web-mode-block-opening-paren-position (pos limit)
   (save-excursion
