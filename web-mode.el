@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.0
+;; Version: 14.0.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.0"
+(defconst web-mode-version "14.0.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1630,10 +1630,10 @@ Must be used in conjunction with web-mode-enable-block-face."
      (2 'web-mode-html-attr-value-face))
    ))
 
+;; voir https://www.gnu.org/software/emacs/manual/html_node/elisp/Search_002dbased-Fontification.html
 (defvar web-mode-javascript-font-lock-keywords
   (list
    '("@\\([[:alnum:]_]+\\)\\_>" 0 'web-mode-keyword-face)
-   ;;(cons (concat "\\_<\\(" web-mode-javascript-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
    (cons (concat "\\([ \t}{(]\\|^\\)\\(" web-mode-javascript-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-javascript-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("\\_<\\(new\\|instanceof\\|class\\|extends\\) \\([[:alnum:]_.]+\\)\\_>" 2 'web-mode-type-face)
@@ -1644,6 +1644,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("([ ]*\\([[:alnum:]_]+\\)[ ]*=>" 1 'web-mode-function-name-face)
    '("[ ]*\\([[:alnum:]_]+\\)[ ]*=[ ]*([^)]*)[ ]*=>[ ]*{" 1 'web-mode-function-name-face)
    '("\\_<\\(var\\|let\\|const\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-variable-name-face)
+   '("({" "\\([[:alnum:]_]+\\)[, }]+" nil nil (1 'web-mode-variable-name-face)) ;#738
    '("\\([[:alnum:]_]+\\)[ ]*=> [{(]" 1 'web-mode-variable-name-face)
    '("\\(function\\|[,=]\\|^\\)[ ]*("
      ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
@@ -7162,6 +7163,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((member ?\, chars)
           (cond
            ((not (web-mode-block-args-beginning pos reg-beg))
+            ;;(message "ici")
             )
            ((cdr (assoc "lineup-args" web-mode-indentation-params))
             (setq offset (current-column))
