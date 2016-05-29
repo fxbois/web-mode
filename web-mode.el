@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.2
+;; Version: 14.0.3
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.2"
+(defconst web-mode-version "14.0.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6540,9 +6540,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               )
              ((looking-at-p "[ ]*\\[[ ]*$") ;; #0659
               (setq reg-col (current-indentation))
-             )
+              )
+             ((and (looking-back "=[ ]*{") ;; #0739
+                   (looking-at-p "{[ ]*"))
+              (setq reg-col (current-indentation))
+              )
              (t
-              ;;(message "%S %S : %S %S" (point) (current-indentation) web-mode-code-indent-offset)
+              ;;(message "%S : %S %S" (point) (current-indentation) web-mode-code-indent-offset)
               ;;(setq reg-col (+ (current-indentation) web-mode-code-indent-offset web-mode-jsx-expression-padding)))
               (setq reg-col (+ (current-indentation) web-mode-code-indent-offset)))
              )
@@ -7217,6 +7221,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       ) ;save-excursion
 
     (when offset
+      ;;(message "offset=%S" offset)
       (let ((diff (- (current-column) (current-indentation))))
         (when (not (= offset (current-indentation)))
           (setq web-mode-change-beg (line-beginning-position)
@@ -7264,7 +7269,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     ))
 
 (defun web-mode-javascript-indentation (pos initial-column language-offset language &optional limit)
-  (let ((open-ctx (web-mode-bracket-up pos language limit)) indentation offset sub)
+  (let (open-ctx indentation offset sub)
+    (setq open-ctx (web-mode-bracket-up pos language limit))
     ;;(message "pos(%S) initial-column(%S) language-offset(%S) language(%S) limit(%S)" pos initial-column language-offset language limit)
     ;;(message "javascript-indentation: %S\nchar=%c" open-ctx (plist-get open-ctx :char))
     (setq indentation (plist-get open-ctx :indentation))
