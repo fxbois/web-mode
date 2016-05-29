@@ -14,6 +14,13 @@ var data = {
   password: this.password
 }
 
+var json = {
+  msg: 'hello',
+  attr: condition
+      ? "This message"
+      : "Some other message"
+}
+
 for (let type in types)
   doSomething(type);
 

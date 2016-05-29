@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.3
+;; Version: 14.0.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.3"
+(defconst web-mode-version "14.0.4"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -10726,6 +10726,10 @@ Prompt user if TAG-NAME isn't provided."
        ((web-mode-looking-back "\\_<\\(return\\)[ \n\t]*" pos)
         (setq continue nil)
         (web-mode-looking-at "[ \t\n]*" pos)
+        (setq pos (+ pos (length (match-string-no-properties 0)))))
+       ((web-mode-looking-back "[{,][ \t\n]*[[:alnum:]_]+[ ]*:[ ]*" pos)
+        (setq continue nil)
+        (web-mode-looking-at "[ ]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
        (t
         (setq pos (1- pos)))
