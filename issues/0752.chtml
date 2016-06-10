@@ -1,0 +1,10 @@
+<div>
+  {{^block}} is not highlighted,
+    {{object.key}} - dot notation highlight is broken.
+</div>
+
+
+<div>
+  {{#object.key}} is closing to {{/object.key}}
+  {{#object_list}} is closing to {{/object_list}}
+</div>

@@ -1,0 +1,15 @@
+<script>
+
+ windowOffset.right = (
+   $(window).width()
+   + this.$window.outerWidth()
+   - windowOffset.left
+ );
+
+ if(!rstart.isCollapsed()
+    || this.ve.document.data.isContentOffset(rstart.to)
+    || !this.ve.document.hasSlugAtOffset(rstart.to)) {
+   groups = this.ve.document.getCoveredSiblingGroups(rstart);
+ }
+
+</script>
