@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.6
+;; Version: 14.0.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.6"
+(defconst web-mode-version "14.0.7"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2813,7 +2813,17 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   delim-open "@"))
            ((and (string= sub1 "}")
                  (looking-at-p "[ ]*\n"))
-            (setq closing-string "EOC")
+            ;;(setq closing-string "EOC")
+            (save-excursion
+              (let (paren-pos)
+                (setq paren-pos (web-mode-part-opening-paren-position (1- (point))))
+                (if (and paren-pos (get-text-property paren-pos 'block-side))
+                    (setq closing-string "EOC")
+                  (setq closing-string nil)
+                  ) ;if
+                ) ;let
+              ) ;save-excursion
+            ;;(message "%s %S %S" sub2 (point) (get-text-property (point) 'part-side))
             )
            ((string= sub1 "}")
             ;;(message "%s: %s" (point) sub1)
@@ -2825,7 +2835,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   (setq closing-string nil)
                   ) ;if
                 ) ;let
-              ) ;let
+              ) ;save-excursion
             ) ;case }
            ) ;cond
           ) ;razor
@@ -11878,6 +11888,8 @@ Prompt user if TAG-NAME isn't provided."
            (cdr (assoc nil             web-mode-extra-snippets))
            (cdr (assoc web-mode-engine web-mode-engines-snippets))
            (cdr (assoc nil             web-mode-engines-snippets))))
+
+    ;;(message "%S" elts)
 
     (dolist (elt elts)
       (unless (assoc (car elt) web-mode-snippets)
