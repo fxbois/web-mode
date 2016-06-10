@@ -6956,7 +6956,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((member language '("lsp" "cl-emb"))
           (setq offset (web-mode-lisp-indentation pos ctx)))
 
-         ((member curr-char '(?\} ?\) ?]))
+         ((member curr-char '(?\} ?\) ?\]))
           (let (ori)
             (if (get-text-property pos 'block-side)
                 (setq ori (web-mode-block-opening-paren-position pos reg-beg))
