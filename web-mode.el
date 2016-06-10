@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.7
+;; Version: 14.0.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.7"
+(defconst web-mode-version "14.0.8"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4840,6 +4840,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         )
        ((and (not (eobp)) (eq ?\. (char-after)))
         (forward-char))
+       ((and (not (eobp)) (looking-at-p "[ \n]*else"))
+        (re-search-forward "[ \t]*else")
+        )
        ((looking-at-p "[ \n]*{")
         (search-forward "{")
         (if (looking-at-p "[ \n]*[<@]")
