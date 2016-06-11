@@ -1,0 +1,68 @@
+<view version="2.0">
+  <title>Free Capacity</title>
+
+  <dataSource id="ds_waterChart" applyVpaRestrictions="false">
+    <!-- Define parameters for the custom SQL query -->
+    <parameter name="locationField" dataType="verbatim" value="ctry_id"/>
+    <parameter name="locationValue" dataType="text" value=""/>
+    <parameter name="timePeriodFrom" dataType="text" value=""/>
+    <parameter name="timePeriodTo" dataType="text" value=""/>
+
+    <!-- Define a custom SQL query that can be restricted by various location values -->
+    <sql dialect="generic">
+     select 'Water Usage Comparison' water_usage_label,
+         'Water Cost Comparison' water_cost_label,
+         sum(case
+             when b.time_period like '2013-%'
+             then   a.qty_volume * c.area_fraction
+             else   0
+             end) base_usage_hcf
+     from   bill_line_archive a
+     join   bill_archive b
+     on     a.bill_id = b.bill_id
+     join   rsc_primary_building c
+     on     b.bl_id = c.primary_bl_id
+     and    a.meterseq = c.meterseq
+     join   bl d
+     on     c.bl_id = d.bl_id
+     join   vn e
+     on     a.vn_id = e.vn_id
+     where  b.bill_type_id = 'WATER'
+    </sql>
+    <table name="bill_archive" role="main"/>
+    <field name="water_usage_label" dataType="text">
+      <title translatable="true">Water Usage</title>
+    </field>
+    <field name="water_cost_label" dataType="text">
+      <title translatable="true">Water Cost</title>
+    </field>
+    <field name="base_usage_hcf" dataType="number" size="12" decimals="2">
+      <title translatable="true">2013 Usage (HCF)</title>
+    </field>
+  </dataSource>
+
+  <dataSource id="processDataSource">
+    <table name="afm_processes"/>
+    <field name="process_id"/>
+    <parameter name="user_name" dataType="text" value="${user.name}"/>
+    <restriction type="sql"
+                 sql="NOT EXISTS (SELECT activity_id, process_id FROM afm_userprocs
+                      WHERE user_name = ${parameters[\'user_name\']}
+                      AND activity_id = afm_processes.activity_id
+                      AND process_id = afm_processes.process_id)"/>
+  </dataSource>
+
+  <panel type="grid" id="roomReqResByBldgGrid" dataSource="roomReqResByBldgDS" showOnLoad="false">
+    <title>7 days</title>
+    <action id="pnlConsolePreviousWeek" onclick="previousWeek()">
+      <title>Previous week</title>
+      <script language="javaScript">
+       function previousWeek() {
+         var console = View.panels.get('pnl_free_capacity_console');
+         this.setFilterAndRender();
+       }
+      </script>
+    </action>
+    <sortField table="reserve_request" name="meeting_date"/>
+  </panel>
+</view>

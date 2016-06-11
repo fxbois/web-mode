@@ -693,7 +693,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
     "link" "meta" "param" "source" "track" "wbr"))
 
-(defvar web-mode-part-content-types '("css" "javascript" "json" "jsx"))
+(defvar web-mode-part-content-types '("css" "javascript" "json" "jsx" "sql"))
 
 (defvar web-mode-javascript-languages '("javascript" "jsx" "ejs"))
 
@@ -730,6 +730,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engines
   '(("angular"          . ("angularjs" "angular.js"))
+    ("archibus"         . ())
     ("asp"              . ())
     ("aspx"             . ())
     ("blade"            . ("laravel"))
@@ -800,6 +801,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-file-regexps
   '(("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
+    ("archibus"         . "\\.axvw\\'")
     ("blade"            . "\\.blade\\.php\\'")
     ("cl-emb"           . "\\.clemb\\'")
     ("clip"             . "\\.ctml\\'")
@@ -1191,9 +1193,9 @@ Must be used in conjunction with web-mode-enable-block-face."
    (append
     (cdr (assoc "sql" web-mode-extra-keywords))
     '("SELECT" "INSERT" "UPDATE" "DELETE"
-      "FROM" "WHERE" "GROUP BY" "LIMIT" "HAVING" "JOIN" "LEFT" "INNER"
+      "FROM" "WHERE" "GROUP BY" "LIKE" "LIMIT" "HAVING" "JOIN" "LEFT" "INNER"
       "FULL" "OUTER" "VALUES" "ORDER BY" "SEPARATOR" "ASC" "DESC"
-      "AND" "OR" "ON"))))
+      "AND" "OR" "ON" "WHEN" "ELSE" "END" "THEN"))))
 
 (defvar web-mode-python-constants
   (regexp-opt
@@ -1649,6 +1651,12 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\(function\\|[,=]\\|^\\)[ ]*("
      ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
    '("\\([[:alnum:]_]+\\):" 1 'web-mode-variable-name-face)
+   '("\\_<\\([[:alnum:]_-]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   ))
+
+(defvar web-mode-sql-font-lock-keywords
+  (list
+   (cons (concat "\\_<\\(" web-mode-sql-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
    '("\\_<\\([[:alnum:]_-]+\\)[ ]?(" 1 'web-mode-function-call-face)
    ))
 
@@ -2391,6 +2399,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                  ((string= content-type "json") 'json)
                                  ((string= content-type "jsx") 'jsx)
                                  ((string= content-type "css") 'css)
+                                 ((string= content-type "sql") 'sql)
                                  ))
              (web-mode-scan-blocks beg end)
              (web-mode-part-scan beg end content-type))
@@ -3906,7 +3915,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-scan-elements (reg-beg reg-end)
   (save-excursion
     (let (part-beg part-end flags limit close-expr props tname tbeg tend element-content-type (regexp web-mode-regexp1) part-close-tag char)
-
+      ;;(message "%S" web-mode-engine)
       (goto-char reg-beg)
 
       (while (web-mode-dom-rsf regexp reg-end)
@@ -3995,6 +4004,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ) ;cond
             ) ;let
           ) ;script
+         ((and (string= web-mode-engine "archibus")
+               (string= tname "sql"))
+          (setq element-content-type "sql"
+                part-close-tag "</sql>"))
          )
 
         (add-text-properties tbeg tend props)
@@ -5080,7 +5093,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-invalidate-part-region (pos-beg pos-end)
   (save-excursion
     (let (beg end part-beg part-end language)
-      (if (member web-mode-content-type '("css" "javascript" "json" "jsx"))
+      (if (member web-mode-content-type web-mode-part-content-types)
           (setq language web-mode-content-type)
         (setq language (symbol-name (get-text-property pos-beg 'part-side))))
       (setq part-beg (web-mode-part-beginning-position pos-beg)
@@ -5251,7 +5264,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
      (save-restriction
        (save-match-data
          (let ((buffer-undo-list t)
-               ;;(inhibit-modification-hooks t)
                (inhibit-point-motion-hooks t)
                (inhibit-quit t))
            (remove-list-of-text-properties beg end '(font-lock-face face))
@@ -5260,7 +5272,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   (not (get-text-property beg 'block-beg)))
              (web-mode-block-highlight beg end))
             ((or (member web-mode-content-type web-mode-part-content-types)
-                 ;;(member content-type web-mode-part-content-types)
                  (get-text-property beg 'part-side))
              (web-mode-part-highlight beg end)
              (web-mode-process-blocks beg end 'web-mode-block-highlight))
@@ -5625,9 +5636,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (if (member web-mode-content-type web-mode-part-content-types)
           (setq content-type web-mode-content-type)
         (setq content-type (symbol-name (get-text-property reg-beg 'part-side))))
+      ;;(message "content-type=%S" content-type)
       (unless depth
         (when (string= content-type "jsx") (setq depth 0))
         )
+      (setq string-face 'web-mode-part-string-face
+            comment-face 'web-mode-part-comment-face)
       (cond
        ((member content-type '("javascript" "jsx"))
         (setq string-face 'web-mode-javascript-string-face
@@ -5641,9 +5655,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq string-face 'web-mode-css-string-face
               comment-face 'web-mode-css-comment-face)
         (web-mode-css-rules-highlight reg-beg reg-end))
-       (t
-        (setq string-face 'web-mode-part-string-face
-              comment-face 'web-mode-part-comment-face))
+       ((string= content-type "sql")
+        (web-mode-fontify-region reg-beg reg-end web-mode-sql-font-lock-keywords))
        )
 
       (goto-char reg-beg)
@@ -5699,9 +5712,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
       (when (and (string= web-mode-content-type "html") web-mode-enable-part-face)
         (font-lock-append-text-property reg-beg reg-end 'face
-                                        (if (string= content-type "javascript")
-                                            'web-mode-script-face
-                                          'web-mode-style-face))
+                                        (cond
+                                         ((string= content-type "javascript")
+                                          'web-mode-script-face)
+                                         ((string= content-type "css")
+                                          'web-mode-style-face)
+                                         (t
+                                          'web-mode-part-face)))
         )
 
       (when (and (eq depth 0) (string= content-type "jsx"))
@@ -5810,7 +5827,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (let ((font-lock-keywords keywords)
           (font-lock-multiline nil)
           (font-lock-keywords-case-fold-search
-           (member web-mode-engine '("asp" "template-toolkit")))
+           (member web-mode-engine '("archibus" "asp" "template-toolkit")))
           (font-lock-keywords-only t)
           (font-lock-extend-region-functions nil))
       ;;      (message "%S" keywords)
@@ -6653,7 +6670,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ) ;cond
         ) ;block-side
 
-       ((and part-language (member part-language '("css" "javascript")))
+       ((and part-language (member part-language '("css" "javascript" "sql")))
         (setq reg-beg (or (web-mode-part-beginning-position pos) (point-min)))
         (goto-char reg-beg)
         (search-backward "<" nil t)
@@ -6662,6 +6679,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (cond
          ((string= language "css")
           (setq curr-indentation web-mode-css-indent-offset))
+         ((string= language "sql")
+          (setq curr-indentation web-mode-sql-indent-offset))
          (t
           (setq language "javascript"
                 curr-indentation web-mode-code-indent-offset))
@@ -6744,6 +6763,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq reg-col (+ reg-col web-mode-script-padding)))
        ((member language '("css"))
         (setq reg-col (+ reg-col web-mode-style-padding)))
+       ((member language '("sql"))
+        (setq reg-col (+ reg-col web-mode-style-padding)))
        ((not (member language '("html" "xml" "razor")))
         (setq reg-col (+ reg-col web-mode-block-padding)))
        )
@@ -6790,6 +6811,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              (options (plist-get ctx :options))
              (chars (list curr-char prev-char)))
 
+        ;;(message "%S" language)
         ;;(message "curr-char=[%c] prev-char=[%c]\n%S" curr-char prev-char ctx)
 
         (cond
@@ -7004,6 +7026,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ((string= language "css")
           (setq offset (car (web-mode-css-indentation pos
+                                                      reg-col
+                                                      curr-indentation
+                                                      language
+                                                      reg-beg))))
+
+         ((string= language "sql")
+          (setq offset (car (web-mode-sql-indentation pos
                                                       reg-col
                                                       curr-indentation
                                                       language
@@ -7284,6 +7313,20 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (setq offset initial-column))
      (t
       (setq offset (+ (plist-get open-ctx :indentation) language-offset)))
+     ) ;cond
+    (cons (if (< offset initial-column) initial-column offset) open-ctx)
+    ))
+
+(defun web-mode-sql-indentation (pos initial-column language-offset language &optional limit)
+  (let ((open-ctx (web-mode-bracket-up pos language limit)) offset)
+    ;;(message "%S %S %S %S %S" pos (point) initial-column language-offset open-ctx)
+    (cond
+     ((and (not (null open-ctx)) (not (null (plist-get open-ctx :pos))))
+      (setq offset (+ (plist-get open-ctx :column) 1)))
+     ((looking-at-p "\\(SELECT\\|INSERT\\|DELETE\\|UPDATE\\|FROM\\|LEFT\\|JOIN\\|WHERE\\|GROUP BY\\|LIMIT\\|HAVING\\|ON\\|select\\|insert\\|delete\\|update\\|from\\|left\\|join\\|where\\|group by\\|limit\\|having\\|on\\|AND\\|and\\|OR\\|or\\)")
+      (setq offset initial-column))
+     (t
+      (setq offset (+ initial-column language-offset)))
      ) ;cond
     (cons (if (< offset initial-column) initial-column offset) open-ctx)
     ))
@@ -11862,15 +11905,20 @@ Prompt user if TAG-NAME isn't provided."
     (setq web-mode-engine-attr-regexp (cdr (assoc web-mode-engine web-mode-engine-attr-regexps)))
     (setq web-mode-engine-token-regexp (cdr (assoc web-mode-engine web-mode-engine-token-regexps)))
 
-    ;;(message "%S %S" web-mode-engine-attr-regexp web-mode-engine)
+    ;;(message "%S %S %S" web-mode-engine web-mode-engine-attr-regexp web-mode-engine-token-regexp)
 
     (when (null web-mode-minor-engine)
       (setq web-mode-minor-engine "none"))
 
     (setq elt (assoc web-mode-engine web-mode-engine-open-delimiter-regexps))
-    (if elt
-        (setq web-mode-block-regexp (cdr elt))
+    (cond
+     (elt
+      (setq web-mode-block-regexp (cdr elt)))
+     ((string= web-mode-engine "archibus")
+      (setq web-mode-block-regexp nil))
+     (t
       (setq web-mode-engine "none"))
+     )
 
     (unless (boundp 'web-mode-extra-auto-pairs)
       (setq web-mode-extra-auto-pairs nil))
