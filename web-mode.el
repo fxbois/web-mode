@@ -782,6 +782,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("python"           . ())
     ("razor"            . ("play" "play2"))
     ("riot"             . ())
+    ("spip"             . ())
     ("template-toolkit" . ())
     ("smarty"           . ())
     ("thymeleaf"        . ())
@@ -1161,6 +1162,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("razor"            . "@.\\|^[ \t]*}")
    '("riot"             . "{.")
    '("smarty"           . "{[[:alpha:]#$/*\"]")
+   '("spip"             . "\\[(#REM)\\|(\\|#[A-Z0-9_]\\|{\\|<:")
    '("template-toolkit" . "\\[%.\\|%%#")
    '("underscore"       . "<%")
    '("velocity"         . "#[[:alpha:]#*]\\|$[[:alpha:]!{]")
@@ -2076,6 +2078,14 @@ shouldn't be moved back.)")
    '("\\_<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
    ))
 
+(defvar web-mode-spip-font-lock-keywords
+  (list
+   '("<:.+:>" 0 'web-mode-block-string-face)
+   '("#[A-Z0-9_]+" 0 'web-mode-variable-name-face)
+   '("|[a-z0-9_=!?<>]+" 0 'web-mode-function-call-face)
+   '("(\\([[:alnum:]_ ]+\\))" 1 'web-mode-constant-face)
+   ))
+
 (defvar web-mode-latex-font-lock-keywords
   (list
    '("[[:alnum:]_]+" 0 'web-mode-function-name-face t t)
@@ -2107,6 +2117,7 @@ shouldn't be moved back.)")
     ("razor"            . web-mode-razor-font-lock-keywords)
     ("riot"             . web-mode-riot-font-lock-keywords)
     ("smarty"           . web-mode-smarty-font-lock-keywords)
+    ("spip"             . web-mode-spip-font-lock-keywords)
     ("template-toolkit" . web-mode-template-toolkit-font-lock-keywords)
     ("underscore"       . web-mode-underscore-font-lock-keywords)
     ("web2py"           . web-mode-web2py-font-lock-keywords)
@@ -2971,6 +2982,21 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 delim-close "}")
           ) ;riot
 
+         ((string= web-mode-engine "spip")
+          (cond
+           ((and (string= sub1 "#")
+                 (looking-at "[A-Z0-9_]+"))
+            (setq closing-string (match-string-no-properties 0)))
+           ((string= sub1 "(")
+            (setq closing-string '("(" . ")")))
+           ((string= sub1 "{")
+            (setq closing-string '("{" . "}")))
+           ((string= sub2 "<:")
+            (setq closing-string ":>"))
+           (t
+            (setq closing-string "]"))
+            ))
+
          ((string= web-mode-engine "marko")
           (setq closing-string "}"
                 delim-open "${"
@@ -3442,6 +3468,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
        (t
         (setq regexp "\"\\|'")))
       ) ;xoops
+
+     ((string= web-mode-engine "spip")
+      (if (string= (buffer-substring-no-properties
+                    block-beg (+ block-beg 7))
+                   "[(#REM)")
+          (setq token-type 'comment
+                regexp "\\]")))
 
      ((string= web-mode-engine "dust")
       (cond
@@ -12711,6 +12744,9 @@ Prompt user if TAG-NAME isn't provided."
       (setq web-mode-django-control-blocks-regexp
             (regexp-opt web-mode-django-control-blocks t))
       )
+
+    (when (string= web-mode-engine "spip")
+      (modify-syntax-entry ?# "w" (syntax-table)))
 
 ;;    (message "%S" (symbol-value (cdr (assoc web-mode-engine web-mode-engines-font-lock-keywords))))
 
