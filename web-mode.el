@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.9
+;; Version: 14.0.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.9"
+(defconst web-mode-version "14.0.10"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -10204,6 +10204,8 @@ Prompt user if TAG-NAME isn't provided."
     nil)
    ((get-text-property pos 'tag-attr-beg)
     pos)
+   ((and (> pos (point-min)) (get-text-property (1- pos) 'tag-attr-beg))
+    (1- pos))
    (t
     (setq pos (previous-single-property-change pos 'tag-attr-beg))
     (setq pos (1- pos)))
