@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.8
+;; Version: 14.0.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.8"
+(defconst web-mode-version "14.0.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -228,6 +228,12 @@ See web-mode-block-face."
   :group 'web-mode
   :type '(choice (const :tag "Auto-close on </" 1)
                  (const :tag "Auto-close on > and </" 2)))
+
+(defcustom web-mode-auto-quote-style 1
+  "Auto-quoting style."
+  :group 'web-mode
+  :type '(choice (const :tag "Auto-quotes with double quote" 1)
+                 (const :tag "Auto-quotes with single quote" 2)))
 
 (defcustom web-mode-extra-expanders '()
   "A list of additional expanders."
@@ -9486,7 +9492,9 @@ Prompt user if TAG-NAME isn't provided."
       (cond
        ((and (eq char ?\=)
              (not (looking-at-p "[ ]*[\"']")))
-        (insert "\"\"")
+        (if (= web-mode-auto-quote-style 2)
+            (insert "''")
+          (insert "\"\""))
         (backward-char)
         (setq auto-quoted t))
        ((and (eq char ?\")
