@@ -1,3 +1,9 @@
+while (x) {
+  if (true) a()
+  b()
+  c()
+}
+
 var cs = {completed: this.props.todo.completed,
           editing: this.props.editing};
 
