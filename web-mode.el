@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.11
+;; Version: 14.0.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.11"
+(defconst web-mode-version "14.0.12"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -10320,13 +10320,20 @@ Prompt user if TAG-NAME isn't provided."
   (unless pos (setq pos (point)))
   (unless limit (setq limit (point-min)))
   (let (continue depth)
-    (when (get-text-property pos 'tag-attr-beg)
-      (setq pos (1- pos)))
-    (if (> pos limit)
-        (setq continue t
-              depth (get-text-property pos 'jsx-depth))
-      (setq continue nil
-            pos nil))
+    (cond
+     ((and (> pos (point-min)) (get-text-property (1- pos) 'tag-attr-beg))
+      (setq pos (1- pos)
+            continue nil))
+     (t
+      (when (get-text-property pos 'tag-attr-beg)
+        (setq pos (1- pos)))
+      (if (> pos limit)
+          (setq continue t
+                depth (get-text-property pos 'jsx-depth))
+        (setq continue nil
+              pos nil))
+      ) ;t
+     ) ;cond
     (while continue
       (setq pos (previous-single-property-change pos 'tag-attr-beg))
       (cond
@@ -10335,13 +10342,17 @@ Prompt user if TAG-NAME isn't provided."
        ((< pos limit)
         (setq continue nil
               pos nil))
-       ((null depth)
-        (setq continue nil))
-       ((eq depth (get-text-property pos 'jsx-depth))
-        (setq continue nil))
+       ;;((null depth)
+       ;; (setq continue nil))
+       ((and depth (eq depth (get-text-property pos 'jsx-depth)))
+        (setq  pos (1- pos)
+               continue nil))
+       (depth
+        (setq pos nil
+              continue (> pos limit)))
        (t
         (setq pos (1- pos)
-              continue (> pos limit)))
+              continue nil))
        ) ;cond
       ) ;while
     pos))
