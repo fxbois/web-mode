@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.12
+;; Version: 14.0.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.12"
+(defconst web-mode-version "14.0.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7571,7 +7571,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                (web-mode-go (web-mode-part-opening-paren-position pos))
                (>= (point) reg-beg)
                ;;(progn (message "%S %S" pos (point)))
-               (looking-back "\\(if\\|for\\|while\\)[ ]*"))
+               (looking-back "\\(^\\|[ \t]\\)\\(if\\|for\\|while\\)[ ]*"))
           (current-indentation)
         nil)
       )))

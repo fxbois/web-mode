@@ -4,6 +4,10 @@ while (x) {
   c()
 }
 
+let newList = list.skipWhile(f)
+a()
+b()
+
 var cs = {completed: this.props.todo.completed,
           editing: this.props.editing};
 
