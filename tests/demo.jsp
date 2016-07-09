@@ -1,4 +1,11 @@
 
+<%!
+public int sum(int a, int b)
+{
+  return a + b;
+}
+%>
+
 <html>
   <c:if>
     <p></p>
