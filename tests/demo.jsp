@@ -4,6 +4,13 @@ public int sum(int a, int b)
 {
   return a + b;
 }
+
+private void doNothing(HttpServletResponse response) {}
+
+%>
+
+<%
+doNothing(response);
 %>
 
 <html>
