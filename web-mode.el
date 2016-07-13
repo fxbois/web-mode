@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.17
+;; Version: 14.0.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.17"
+(defconst web-mode-version "14.0.18"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -9493,10 +9493,12 @@ Prompt user if TAG-NAME isn't provided."
                (not auto-closed)
                (not auto-paired)
                (eq char ?\/)
-               (not (get-text-property (1- pos) 'tag-type))
-               (not (get-text-property (1- pos) 'part-side))
+               (looking-back "\\(^\\|[[:punct:][:space:]>]\\)./")
+               (or (web-mode-jsx-is-html (1- pos))
+                   (and (not (get-text-property (1- pos) 'tag-type))
+                        (not (get-text-property (1- pos) 'part-side))))
                (not (get-text-property (1- pos) 'block-side))
-               (looking-back "\\(^\\|[[:punct:][:space:]>]\\)./"))
+               )
       (setq expanders (append web-mode-expanders web-mode-extra-expanders))
       (let ((i 0) pair (l (length expanders)))
         (setq chunk (buffer-substring-no-properties (- pos 2) pos))
