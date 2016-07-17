@@ -284,6 +284,13 @@ See web-mode-block-face."
   :type 'list
   :group 'web-mode)
 
+(defcustom web-mode-commands-like-expand-region '(web-mode-mark-and-expand
+                                                  er/expand-region
+                                                  mc/mark-next-like-this)
+  "Add it to here if you have some wrapper function for er/expand-region"
+  :type '(repeat function)
+  :group 'web-mode)
+
 ;;---- FACES -------------------------------------------------------------------
 
 (defface web-mode-error-face
@@ -9585,9 +9592,7 @@ Prompt user if TAG-NAME isn't provided."
     ;;(message "%S: %S %S" this-command web-mode-change-beg web-mode-change-end)
 
     (when (and web-mode-expand-previous-state
-               (not (member this-command '(web-mode-mark-and-expand
-                                           er/expand-region
-                                           mc/mark-next-like-this))))
+               (not (member this-command web-mode-commands-like-expand-region)))
       (when (eq this-command 'keyboard-quit)
         (goto-char web-mode-expand-initial-pos))
       (deactivate-mark)
