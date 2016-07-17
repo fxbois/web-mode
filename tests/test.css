@@ -7,3 +7,6 @@ body {
   div[name="btn"] {
     height:10px; /* comment */ }
 }
+div:nth-of-type(5n):not(:nth-of-type(3n)):before {
+  content: "";
+}

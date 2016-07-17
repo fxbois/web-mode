@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.18
+;; Version: 14.0.19
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.18"
+(defconst web-mode-version "14.0.19"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1620,8 +1620,9 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("\\_<\\(all\|braille\\|embossed\\|handheld\\|print\\|projection\\|screen\\|speech\\|tty\\|tv\\|and\\|or\\)\\_>"
      1 'web-mode-keyword-face)
    '("[^,]+" 0 'web-mode-css-selector-face)
-   (cons (concat ":\\(" web-mode-css-pseudo-classes "\\)\\(([^)]*)\\)?")
-         '(0 'web-mode-css-pseudo-class-face t t))
+   ;;(cons (concat ":\\(" web-mode-css-pseudo-classes "\\)\\(([^)]*)\\)?")
+   ;;      '(0 'web-mode-css-pseudo-class-face t t))
+   (cons (concat ":\\([ ]*[[:alpha:]][^,{]*\\)") '(0 'web-mode-css-pseudo-class-face t t))
    ))
 
 (defvar web-mode-declaration-font-lock-keywords

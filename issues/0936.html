@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <style>
+     div {
+       counter-increment: item;
+     }
+     div:before {
+       content: counter(item);
+     }
+     div:nth-of-type(3n):before {
+       content: "Fizz";
+     }
+     div:nth-of-type(5n):after {
+       content: "Buzz";
+     }
+     div:nth-of-type(5n):not(:nth-of-type(3n)):before {
+       content: "";
+     }
+    </style>
+    <script>
+     for (i = 1; i < 101; i++)
+       document.body.innerHTML += "<div></div>";
+    </script>
+  </body>
+</html>
