@@ -9964,6 +9964,7 @@ Prompt user if TAG-NAME isn't provided."
     (web-mode-attribute-beginning)
     (set-mark (point))
     (web-mode-attribute-end)
+    (exchange-point-and-mark)
     (point)
     ))
 
