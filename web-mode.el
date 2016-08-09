@@ -324,7 +324,7 @@ See web-mode-block-face."
   :group 'web-mode-faces)
 
 (defface web-mode-symbol-face
-  '((t :foreground "gold"))
+  '((t :foreground "goldenrod2"))
   "Face for symbols."
   :group 'web-mode-faces)
 
