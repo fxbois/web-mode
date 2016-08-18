@@ -31,6 +31,20 @@ function foo() {
   </label>;
 }
 
+var React = require('react')
+
+return React.render(
+  <div className="fooBar">
+    {
+      conditional &&
+      <myComponent className="myComponent" />
+    }
+    <label>{labelText}</label>
+    <div>
+      <span>Hello</span>
+    </div>
+  </div>
+);
 
 'use strict';
 

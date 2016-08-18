@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.19
+;; Version: 14.0.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.19"
+(defconst web-mode-version "14.0.20"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6969,6 +6969,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           ;;(message "html")
           (cond
            ((get-text-property pos 'tag-beg)
+            ;;(message "ici")
             (setq offset (web-mode-markup-indentation pos))
             )
            ((and web-mode-indentless-elements
@@ -7334,10 +7335,19 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     ))
 
 (defun web-mode-markup-indentation (pos)
-  (let ((offset 0) beg ret)
+  (let ((offset 0) beg ret depth-beg depth-pos)
     (when (setq beg (web-mode-markup-indentation-origin pos))
-      (when (and (get-text-property pos 'jsx-depth)
-                 (not (get-text-property beg 'jsx-depth)))
+      (when (and (setq depth-pos (get-text-property pos 'jsx-depth))
+                 (setq depth-beg (get-text-property beg 'jsx-depth))
+                 (progn
+                   (when (and (get-text-property pos 'jsx-beg)
+                              (not (get-text-property pos 'tag-beg)))
+                     (setq depth-pos (1- depth-pos)))
+                   t)
+                 ;;(progn (message "%S" depth-pos) t)
+                 ;;(not (get-text-property beg 'jsx-depth)))
+                 (not (eq depth-beg depth-pos)))
+        ;;(message "2 - %S" beg)
         (setq beg (web-mode-jsx-depth-beginning-position pos)))
       (cond
        ((null (setq ret (web-mode-element-is-opened beg pos)))
