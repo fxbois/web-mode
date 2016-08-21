@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.20
+;; Version: 14.0.21
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.20"
+(defconst web-mode-version "14.0.21"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4543,20 +4543,20 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (put-text-property (1- reg-end) reg-end 'jsx-end depth)
       (put-text-property reg-beg reg-end 'jsx-depth depth)
       (goto-char reg-beg)
-      (while (web-mode-part-sf "/*" reg-end t)
-        (goto-char (match-beginning 0))
-        (if (looking-back "{")
-            (progn
-              (backward-char)
-              (setq regexp "*/}"))
-          (setq regexp "*/"))
-        (setq token-beg (point))
-        (if (not (web-mode-part-sf regexp reg-end t))
-            (goto-char reg-end)
-          (setq token-end (point))
-          (put-text-property token-beg token-end 'part-token 'comment)
-          ) ;if
-        ) ;while
+      ;;(while (web-mode-part-sf "/*" reg-end t)
+      ;;  (goto-char (match-beginning 0))
+      ;;  (if (looking-back "{")
+      ;;      (progn
+      ;;        (backward-char)
+      ;;        (setq regexp "*/}"))
+      ;;    (setq regexp "*/"))
+      ;;  (setq token-beg (point))
+      ;;  (if (not (web-mode-part-sf regexp reg-end t))
+      ;;      (goto-char reg-end)
+      ;;    (setq token-end (point))
+      ;;    (put-text-property token-beg token-end 'part-token 'comment)
+      ;;    ) ;if
+      ;;  ) ;while
       (web-mode-scan-elements reg-beg reg-end)
       (web-mode-jsx-scan-expression reg-beg reg-end (1+ depth))
       )))
@@ -5745,16 +5745,24 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               (setq exp-beg (car pair)
                     exp-end (cdr pair))
               (when (eq (char-after exp-beg) ?\{)
-                (setq exp-depth (get-text-property exp-beg 'jsx-depth))
-                (remove-list-of-text-properties exp-beg exp-end '(font-lock-face))
-                (put-text-property exp-beg (1+ exp-beg) 'font-lock-face 'web-mode-block-delimiter-face)
-                (when (and (eq (get-text-property exp-beg 'tag-attr-beg) 4) (web-mode-looking-at-p "\.\.\." (1+ exp-beg)))
+                ;;(message "%S : %c %c" exp-beg (char-after (+ exp-beg 1)) (char-after (+ exp-beg 2)))
+                (cond
+                 ;;((and (eq (char-after (+ exp-beg 1)) ?\/) (eq (char-after (+ exp-beg 2)) ?\*))
+                 ;; (put-text-property exp-beg (1+ exp-end) 'font-lock-face 'web-mode-part-comment-face)
+                 ;; )
+                 (t
+                  (setq exp-depth (get-text-property exp-beg 'jsx-depth))
+                  (remove-list-of-text-properties exp-beg exp-end '(font-lock-face))
+                  (put-text-property exp-beg (1+ exp-beg) 'font-lock-face 'web-mode-block-delimiter-face)
+                  (when (and (eq (get-text-property exp-beg 'tag-attr-beg) 4) (web-mode-looking-at-p "\.\.\." (1+ exp-beg)))
                   (put-text-property exp-beg (+ exp-beg 4) 'font-lock-face 'web-mode-block-delimiter-face))
-                (put-text-property exp-end (1+ exp-end) 'font-lock-face 'web-mode-block-delimiter-face)
-                (web-mode-highlight-tags (1+ exp-beg) exp-end (1+ exp-depth))
-                (web-mode-part-highlight (1+ exp-beg) exp-end exp-depth)
-                (web-mode-fontify-region (1+ exp-beg) exp-end web-mode-javascript-font-lock-keywords)
-                )
+                  (put-text-property exp-end (1+ exp-end) 'font-lock-face 'web-mode-block-delimiter-face)
+                  (web-mode-highlight-tags (1+ exp-beg) exp-end (1+ exp-depth))
+                  (web-mode-part-highlight (1+ exp-beg) exp-end exp-depth)
+                  (web-mode-fontify-region (1+ exp-beg) exp-end web-mode-javascript-font-lock-keywords)
+                  ) ;t
+                 ) ;cond
+                ) ;when
               (goto-char (1+ exp-beg))
               ) ;while exp
 
