@@ -2,6 +2,18 @@
 var React = require('react/addons');
 var Component = require('./component');
 
+export default class Header extends Component {
+  render() {
+    return (
+      <div {...attributes}
+           onClick={this.onClicked}
+           onKeyDown={this.onKeyDowned}>
+        {this.getChildren()}
+      </div>);
+  }
+}
+
+
 export default React.createClass({
   getInitialState() {
     return { num: this.getRandomNumber() };
