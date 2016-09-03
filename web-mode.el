@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.22
+;; Version: 14.0.23
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.22"
+(defconst web-mode-version "14.0.23"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4003,7 +4003,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (cond
              ((string-match-p " type[ ]*=[ ]*[\"']text/\\(jsx\\|babel\\)" script)
               (setq element-content-type "jsx"))
-             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|x-jquery-tmpl\\|html\\|ng-template\\|template\\|mustache\\)" script)
+             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|x-jquery-tmpl\\|html\\|ng-template\\|template\\|mustache\\|x-dust-template\\)" script)
               (setq element-content-type "html"
                     part-close-tag nil))
              ((string-match-p " type[ ]*=[ ]*[\"']application/\\(ld\\+json\\|json\\)" script)

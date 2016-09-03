@@ -1,0 +1,55 @@
+<section>
+  <div class="class" id="test"></div>
+  <div class="info">
+	Information...
+  </div>
+  <div id="messages" class="messages">
+  </div>
+  <div class="footer">
+	<ul>
+	  <li>Item1</li>
+	  <li>Item2</li>
+	  <li>Item3</li>
+	</ul>
+  </div>
+</section>
+<script type="text/x-dust-template" id="testTpl">
+  <div class="header">
+    {header}
+    {@eq key="{ok}" value="yes"}
+      This is ok!<br />
+      <button id="ok">OK!</button>
+    {/eq}
+  </div>
+  <div class="text">
+    {#text}
+      {.}
+    {/text}
+  </div>
+  {#buttons}
+    <button id="{id}">{text}</button>
+  {/buttons}
+</script>
+<script type="text/x-dust-template" id="template2">
+  <div id="template">
+    {#test}
+      {@eq key="{item}" value="enabled"}
+        {?variable}
+          {variable}
+        {/variable}
+        {@gt key="$idx" value="40"}
+          {$idx}: {#func}{.}{/func}
+        {/gt}
+      {/eq}
+    {/test}
+  </div>
+</script>
+<script type="text/x-dust-template" id="otherTpl">
+  <h2>{template}</h2>
+  <div class="info">
+    {#info}
+      <h3>{header}</h3>
+      {text}
+    {/info}
+  </div>
+</script>
