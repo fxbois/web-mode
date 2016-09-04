@@ -850,6 +850,12 @@ Must be used in conjunction with web-mode-enable-block-face."
     )
   "Engine file extensions.")
 
+(defvar web-mode-engines-alist nil
+  "Alist of filename patterns and corresponding web-mode engine. For example,
+(setq web-mode-engines-alist
+      '((\"php\"    . \"\\\\.phtml\\\\'\")
+        (\"blade\"  . \"\\\\.blade\\\\.\")))")
+
 (defvar web-mode-smart-quotes
   '("«" . "»")
   "Preferred smart quotes")
