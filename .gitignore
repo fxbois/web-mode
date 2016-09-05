@@ -2,4 +2,5 @@
 \#*\#
 *.elc
 .#*
+.DS_Store
 _err.*
