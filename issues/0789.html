@@ -1,0 +1,32 @@
+<!-- Printing and PDF exports -->
+<script>
+ var link = document.createElement( 'link' );
+ link.rel = 'stylesheet';
+ link.type = 'text/css';
+ link.href = window.location.search.match( /print-pdf/gi )
+           ? 'css/print/pdf.css'
+           : 'css/print/paper.css';
+ document.getElementsByTagName( 'head' )[0].appendChild( link );
+</script>
+
+<!--[if lt IE 9]>
+  <script src="lib/js/html5shiv.js"></script>
+<![endif]-->
+
+<section data-markdown>
+  <script type="text/template">
+   ## Markdown support
+
+   Write content using inline or external Markdown.
+   Instructions and more info available in the [readme](https://github.com/hakimel/reveal.js#markdown).
+
+   ```
+   <section data-markdown>
+   ## Markdown support
+
+     Write content using inline or external Markdown.
+   Instructions and more info available in the [readme](https://github.com/hakimel/reveal.js#markdown).
+   </section>
+   ```
+  </script>
+</section>
