@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.25
+;; Version: 14.0.26
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.25"
+(defconst web-mode-version "14.0.26"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2213,6 +2213,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
     ;;--------------------------------------------------------------------------
 
+    ;;(define-key map (kbd "M-q")       'fill-paragraph)
     (define-key map (kbd "M-;")       'web-mode-comment-or-uncomment)
 
     ;;C-c C-a : attribute
@@ -6006,7 +6007,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         )
 
        ) ;cond
-;;      (message "beg(%S) end(%S)" beg end)
+      ;;(message "beg(%S) end(%S)" beg end)
       (when (and beg end)
         (fill-region beg end))
       t)))
@@ -9577,8 +9578,7 @@ Prompt user if TAG-NAME isn't provided."
                (not auto-closed)
                (not auto-paired)
                (not auto-expanded)
-               (get-text-property (- pos 2) 'tag-attr)
-               )
+               (get-text-property (- pos 2) 'tag-attr))
       (cond
        ((and (eq char ?\=)
              (not (looking-at-p "[ ]*[\"']")))
@@ -9597,6 +9597,13 @@ Prompt user if TAG-NAME isn't provided."
              (looking-back "=[ ]*'")
              (not (looking-at-p "[ ]*[']")))
         (insert-and-inherit "'")
+        (backward-char)
+        (setq auto-quoted t))
+       ((and (eq char ?\{)
+             (eq (get-text-property pos 'part-side) 'jsx)
+             (looking-back "=[ ]*{")
+             (not (looking-at-p "[ ]*[}]")))
+        (insert-and-inherit "}")
         (backward-char)
         (setq auto-quoted t))
        ((and (eq char ?\")
