@@ -10744,7 +10744,10 @@ Prompt user if TAG-NAME isn't provided."
        ((member char '(?\) ?\] ?\}))
         (setq pos (web-mode-block-opening-paren-position pos block-beg))
         (setq pos (1- pos)))
-       ((member char '(?\( ?\[ ?\{ ?\=))
+       ((or (member char '(?\( ?\[ ?\{))
+            (and (= char ?\=) ;Guard against operators that include =
+                 (not (member (char-after (1+ pos)) '(?\! ?\= ?\< ?\>)))
+                 (not (member (char-after (1- pos)) '(?\! ?\= ?\< ?\>)))))
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
