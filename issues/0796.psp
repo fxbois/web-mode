@@ -1,0 +1,14 @@
+<div>
+  <?php
+  if ($test == 5 &&
+               $test2 == 7) {
+    print("hello");
+  }
+  ?>
+</div>
+<script>
+ if (xx &&
+     yy) {
+
+ }
+</script>
