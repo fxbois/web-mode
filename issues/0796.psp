@@ -1,7 +1,7 @@
 <div>
   <?php
   if ($test == 5 &&
-               $test2 == 7) {
+      $test2 == 7) {
     print("hello");
   }
   ?>
