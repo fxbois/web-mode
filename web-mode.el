@@ -1587,7 +1587,7 @@ shouldn't be moved back.)")
   (regexp-opt
    (append
     (cdr (assoc "javascript" web-mode-extra-keywords))
-    '("async" "await" "break" "case" "catch" "class" "const" "continue"
+    '("as" "async" "await" "break" "case" "catch" "class" "const" "continue"
       "debugger" "default" "delete" "do" "else" "enum" "eval"
       "export" "extends" "finally" "for" "from" "function" "get" "if"
       "implements" "import" "in" "instanceof" "interface" "let"
