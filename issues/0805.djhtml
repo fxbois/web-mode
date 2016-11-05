@@ -1,0 +1,10 @@
+<div>
+  {% graph %}
+    xsxs
+  {% endgraph %}
+
+  {% if block %}
+    Content
+  {% endif %}
+
+</div>
