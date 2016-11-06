@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.28
+;; Version: 14.0.29
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.28"
+(defconst web-mode-version "14.0.29"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7440,12 +7440,25 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       )))
 
 (defun web-mode-relayql-indentation (pos)
-  (let (beg offset level)
+  (let (beg offset level char)
+    (setq char (char-after))
     (setq beg (web-mode-part-token-beginning-position pos))
     (goto-char beg)
-    (if (setq level (web-mode-bracket-level pos beg))
-        (setq offset (+ level web-mode-code-indent-offset))
-      (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+    (cond
+     ((member char '(?\`))
+      (setq offset (current-indentation))
+      )
+     ((member char '(?\) ?\} ?\]))
+      (web-mode-go (web-mode-token-opening-paren-position pos beg "relayql"))
+      (setq offset (current-indentation))
+      )
+     ((setq level (web-mode-bracket-level pos beg))
+      (setq offset (+ level web-mode-code-indent-offset))
+      )
+     (t
+      (setq offset (+ (current-indentation) web-mode-code-indent-offset))
+      )
+     )
     offset))
 
 (defun web-mode-markup-indentation (pos)
@@ -10210,6 +10223,36 @@ Prompt user if TAG-NAME isn't provided."
           (setq continue nil))
          ((or (web-mode-is-comment-or-string)
               (get-text-property (point) 'block-side))
+          )
+         ((eq (char-after) paren)
+          (setq n (1- n)))
+         (t
+          (setq n (1+ n))
+          (setq continue (not (= n 0))))
+         )
+        ) ;while
+      (if (= n 0) (point) nil)
+      )))
+
+(defun web-mode-token-opening-paren-position (pos limit context)
+  (save-restriction
+    (unless limit (setq limit nil))
+    (goto-char pos)
+    (let* ((n -1)
+           (paren (char-after))
+           (pairs '((?\) . "[)(]")
+                    (?\] . "[\]\[]")
+                    (?\} . "[}{]")
+                    (?\> . "[><]")))
+           (regexp (cdr (assoc paren pairs)))
+           (continue (not (null regexp)))
+           (counter 0))
+      (while (and continue (re-search-backward regexp limit t))
+        (cond
+         ((> (setq counter (1+ counter)) 200)
+          (message "token-opening-paren-position ** warning **")
+          (setq continue nil))
+         ((get-text-property (point) 'block-side)
           )
          ((eq (char-after) paren)
           (setq n (1- n)))
