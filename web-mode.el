@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.30
+;; Version: 14.0.31
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.30"
+(defconst web-mode-version "14.0.31"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5301,8 +5301,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   ;;(if (fboundp 'font-lock-flush)
   ;;    (font-lock-flush)
   ;;  (font-lock-fontify-buffer))
-  (font-lock-flush)
-  (font-lock-ensure)
+  (if (fboundp 'font-lock-flush)
+      (progn
+        (font-lock-flush)
+        (font-lock-ensure))
+    ;;(font-lock-fontify-buffer)
+    (font-lock-fontify-region (point-min) (point-max)) ;emacs 24
+    ) ;if
   )
 
 (defun web-mode-extend-region ()
