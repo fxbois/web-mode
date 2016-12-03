@@ -8717,12 +8717,12 @@ Prompt user if TAG-NAME isn't provided."
      ) ;cond
     ))
 
-(defun web-mode-element-rename ()
+(defun web-mode-element-rename (&optional tag-name)
   "Rename the current html element."
   (interactive)
   (save-excursion
-    (let (pos tag-name)
-      (setq tag-name (read-from-minibuffer "New tag name? "))
+    (let (pos)
+      (unless tag-name (setq tag-name (read-from-minibuffer "New tag name? ")))
       (when (and (> (length tag-name) 0)
                  (web-mode-element-beginning)
                  (looking-at "<\\([[:alnum:]]+\\(:?[-][[:alpha:]]+\\)?\\)"))
