@@ -5954,7 +5954,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (setq plist (list :background str
                         :foreground (web-mode-colorize-foreground str)))
       (put-text-property beg end 'face plist))
-     ((string= (substring str 0 4) "rgb(")
+     ((or (string= (substring str 0 4) "rgb(") (string= (substring str 0 5) "rgba("))
       (setq str (format "#%02X%02X%02X"
                         (string-to-number (match-string-no-properties 1))
                         (string-to-number (match-string-no-properties 2))
