@@ -1,6 +1,13 @@
 @import url('https://fonts.googleapis.com/css?family=Merriweather');
 
+$red: #f00;
+
 body {
   margin: 0;
   padding: 0;
+  background: #722;
+}
+
+#features {
+  margin:0;
 }

@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.31
+;; Version: 14.0.33
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.31"
+(defconst web-mode-version "14.0.33"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1652,6 +1652,7 @@ shouldn't be moved back.)")
 (defvar web-mode-javascript-font-lock-keywords
   (list
    '("@\\([[:alnum:]_]+\\)\\_>" 0 'web-mode-keyword-face)
+   (cons (concat "\\_<\\(function\\*\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\([ \t}{(]\\|^\\)\\(" web-mode-javascript-keywords "\\)\\_>") '(2 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-javascript-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("\\_<\\(new\\|instanceof\\|class\\|extends\\) \\([[:alnum:]_.]+\\)\\_>" 2 'web-mode-type-face)
@@ -4952,7 +4953,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 ;; css rule = selector(s) + declaration (properties)
 (defun web-mode-css-rule-next (limit)
-  (let (at-rule sel-beg sel-end dec-beg dec-end chunk)
+  (let (at-rule var-rule sel-beg sel-end dec-beg dec-end chunk)
     (skip-chars-forward "\n\t ")
     (setq sel-beg (point))
     (when (and (< (point) limit)
@@ -4973,12 +4974,17 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         )
        ) ;cond
       (setq chunk (buffer-substring-no-properties sel-beg sel-end))
-      (when (string-match "@\\([[:alpha:]-]+\\)" chunk)
+      (cond
+       ((string-match "@\\([[:alpha:]-]+\\)" chunk)
         (setq at-rule (match-string-no-properties 1 chunk)))
+       ((string-match "\\$\\([[:alpha:]-]+\\)" chunk)
+        (setq var-rule (match-string-no-properties 1 chunk)))
+       ) ;cond
       ) ;when
     (if (not sel-end)
         (progn (goto-char limit) nil)
       (list :at-rule at-rule
+            :var-rule var-rule
             :sel-beg sel-beg
             :sel-end sel-end
             :dec-beg dec-beg
@@ -5872,7 +5878,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-css-rules-highlight (part-beg part-end)
   (save-excursion
     (goto-char part-beg)
-    (let (rule (continue t) (i 0) (at-rule nil))
+    (let (rule (continue t) (i 0) (at-rule nil) (var-rule nil))
       (while continue
         (setq rule (web-mode-css-rule-next part-end))
         ;;(message "rule=%S" rule)
