@@ -2,6 +2,12 @@
 var React = require('react/addons');
 var Component = require('./component');
 
+function f() {
+  return true
+      && <E b={true} />
+      || <E />;
+}
+
 export default class Header extends Component {
   render() {
     return (
