@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2016 François-Xavier Bois
 
-;; Version: 14.0.34
+;; Version: 14.0.35
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.34"
+(defconst web-mode-version "14.0.35"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4562,7 +4562,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (save-excursion
       (while continue
         (cond
-         ((> (setq i (1+ i)) 100)
+         ((> (setq i (1+ i)) 1000)
           (message "jsx-skip ** warning **")
           (setq continue nil))
          ((looking-at "<[[:alpha:]][[:alnum:]:-]*[ ]*/>")
