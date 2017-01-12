@@ -847,9 +847,10 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("smarty"           . "\\.tpl\\'")
     ("template-toolkit" . "\\.tt.?\\'")
     ("thymeleaf"        . "\\.thtml\\'")
+    ("twig"             . "\\.twig")
     ("velocity"         . "\\.v\\(sl\\|tl\\|m\\)\\'")
 
-    ("django"           . "[st]wig")
+    ("django"           . "swig")
     ("razor"            . "scala")
 
     )
