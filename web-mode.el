@@ -3587,7 +3587,24 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (when (eq (char-after (1+ reg-beg)) ?\%)
           (cond
            ((and (string= web-mode-minor-engine "jinja") ;#504
-                 (web-mode-block-starts-with "else\\_>" reg-beg))
+                 (web-mode-block-starts-with "else\\>" reg-beg))
+            (let ((continue t)
+                  (pos reg-beg)
+                  (ctrl nil))
+              (while continue
+                (cond
+                 ((null (setq pos (web-mode-block-control-previous-position 'open pos)))
+                  (setq continue nil))
+                 ((member (setq ctrl (cdr (car (get-text-property pos 'block-controls)))) '("if" "for"))
+                  (setq continue nil)
+                  )
+                 ) ;cond
+                )
+              (setq controls (append controls (list (cons 'inside (or ctrl "if")))))
+              )
+            )
+           ((and (string= web-mode-minor-engine "twig")
+                 (web-mode-block-starts-with "\\(else\\|elseif\\)" reg-beg))
             (let ((continue t)
                   (pos reg-beg)
                   (ctrl nil))
