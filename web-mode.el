@@ -9940,7 +9940,9 @@ Prompt user if TAG-NAME isn't provided."
 
     (when (and web-mode-enable-auto-indentation
                (member this-command '(self-insert-command))
-               (member (get-text-property (point) 'part-side) '(javascript))
+               (or
+                 (member (get-text-property (point) 'part-side) '(javascript))
+                 (member (get-text-property (point) 'part-side) '(jsx)))
                (looking-back "^[ \t]+\\(}\\|\]\\)"))
       (indent-according-to-mode)
       ;;(message "%S" (point))
