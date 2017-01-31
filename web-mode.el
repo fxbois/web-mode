@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.0.36
+;; Version: 14.0.37
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.36"
+(defconst web-mode-version "14.0.37"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -756,7 +756,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("clip"             . ())
     ("closure"          . ("soy"))
     ("ctemplate"        . ("mustache" "handlebars" "hapax" "ngtemplate" "ember"
-                           "kite" "meteor" "blaze" "ractive"))
+                           "kite" "meteor" "blaze" "ractive" "velvet"))
     ("django"           . ("dtl" "twig" "swig" "jinja" "erlydtl" "liquid"
                            "clabango" "selmer" "nunjucks"))
     ("dust"             . ("dustjs"))
@@ -1083,12 +1083,14 @@ Must be used in conjunction with web-mode-enable-block-face."
               ("switch"  . "<?php switch (|): ?>\n<?php case 1: ?>\n\n<?php break ;?>\n<?php case 2: ?>\n\n<?php break ;?>\n<?php endswitch;?>")))
     ("django" . (("block"      . "{% block | %}\n\n{% endblock %}")
                  ("comment"    . "{% comment | %}\n\n{% endcomment %}")
+                 ("css"        . "{% stylesheet  %}\n\n{% endstylesheet  %}")
                  ("cycle"      . "{% cycle | as  %}\n\n{% endcycle  %}")
                  ("filter"     . "{% filter | %}\n\n{% endfilter %}")
                  ("for"        . "{% for | in  %}\n\n{% endfor %}")
                  ("if"         . "{% if | %}\n\n{% endif %}")
                  ("ifequal"    . "{% ifequal | %}\n\n{% endifequal %}")
                  ("ifnotequal" . "{% ifnotequal | %}\n\n{% endifnotequal %}")
+                 ("js"         . "{% javascript | %}\n\n{% endjavascript %}")
                  ("safe"       . "{% safe | %}\n\n{% endsafe %}")))
     ("template-toolkit" . (("if"      . "[% IF | %]\n\n[% END %]")))
     (nil . (("html5" . "<!doctype html>\n<html>\n<head>\n<title></title>\n<meta charset=\"utf-8\" />\n</head>\n<body>\n|\n</body>\n</html>")
@@ -1535,6 +1537,11 @@ shouldn't be moved back.)")
      "elif" "else" "elseif" "elsif" "empty" "extends"
      "firstof" "include" "load" "lorem" "now" "regroup" "ssi"
      "trans" "templatetag" "url" "widthratio"
+
+     ;; #805
+     "graph" "endgraph"
+     "javascript" "endjavascript"
+     "stylesheet" "endstylesheet"
 
      )))
 
@@ -3002,13 +3009,21 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ((and (string= web-mode-engine "mako")
                    (looking-at-p "<%block filter=\"collect_css\">"))
               (setq tagopen "<%block filter=\"collect_css\">"))
+             ((and (string= web-mode-engine "django")
+                   (looking-at-p "{% javascript %}"))
+              (setq tagopen "{% javascript %}"))
+             ((and (string= web-mode-engine "django")
+                   (looking-at-p "{% stylesheet %}"))
+              (setq tagopen "{% stylesheet %}"))
              )
             ;;(message "%S %s" (point) tagopen)
             (when (and (member tagopen '("<r:script" "<r:style"
                                          "<c:js" "<c:css"
                                          "<%= javascript_tag do %>"
                                          "<%block filter=\"collect_js\">"
-                                         "<%block filter=\"collect_css\">"))
+                                         "<%block filter=\"collect_css\">"
+                                         "{% javascript %}"
+                                         "{% stylesheet %}"))
                        (setq part-beg close)
                        (setq tagclose
                              (cond
@@ -3016,6 +3031,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                               ((string= tagopen "<r:style") "</r:style")
                               ((string= tagopen "<c:js") "</c:js")
                               ((string= tagopen "<c:css") "</c:css")
+                              ((string= tagopen "{% javascript %}") "{% endjavascript %}")
+                              ((string= tagopen "{% stylesheet %}") "{% endstylesheet %}")
                               ((string= tagopen "<%= javascript_tag do %>") "<% end %>")
                               ((member tagopen '("<%block filter=\"collect_js\">"
                                                  "<%block filter=\"collect_css\">")) "</%block")
@@ -3023,10 +3040,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                        (web-mode-sf tagclose)
                        (setq part-end (match-beginning 0))
                        (> part-end part-beg))
+              ;;(message "end=%S" (point))
               (put-text-property part-beg part-end
                                  'part-side
                                  (cond
-                                  ((member tagopen '("<r:style" "<c:css" "<%block filter=\"collect_css\">")) 'css)
+                                  ((member tagopen '("<r:style" "<c:css" "<%block filter=\"collect_css\">" "{% stylesheet %}")) 'css)
                                   (t 'javascript)))
               (setq pos part-beg
                     part-beg nil
@@ -9941,7 +9959,7 @@ Prompt user if TAG-NAME isn't provided."
     (when (and web-mode-enable-auto-indentation
                (member this-command '(self-insert-command))
                (member (get-text-property (point) 'part-side) '(javascript jsx))
-               (looking-back "^[ \t]+[]})]"))
+               (looking-back "^[ \t]+[]})]" (point-min)))
       (indent-according-to-mode)
       ;;(message "%S" (point))
       (when (and web-mode-change-end (> web-mode-change-end (point-max)))
