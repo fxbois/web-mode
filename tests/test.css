@@ -1,12 +1,95 @@
 body {
   width: 100px;
 }
+
 .dialog INPUT[type=button]:hover,
 .btn { color:#0aa; width:100%; }
+
+div, #aeetoto {
+  width: 100%; background-color: #ff4136;
+}
+
 @media (min-with:900px) {
   div[name="btn"] {
     height:10px; /* comment */ }
+  #aeetoto {
+    width: 100%;
+  }
 }
 div:nth-of-type(5n):not(:nth-of-type(3n)):before {
   content: "";
+}
+
+:root{
+  --main-bg-color: pink;
+}
+
+@font-face {
+  font-family: "Bitstream Vera Serif Bold";
+  src: url("/static/styles/libs/font-awesome/fonts/fontawesome-webfont.fdf491ce5ff5.woff");
+}
+
+@keyframes pulse {
+  0% {
+    background-color: #001f3f;
+  }
+  100% {
+    background-color: #ff4136;
+  }
+}
+
+@media only screen
+and (min-device-width: 320px)
+and (max-device-width: 480px)
+and (-webkit-min-device-pixel-ratio: 2) {
+
+  .module { width: 100%; }
+
+}
+
+@page :first {
+  margin: 1in;
+}
+
+@charset "UTF-8";
+@import 'global.css';
+/* Namespace for XHTML */
+@namespace url(http://www.w3.org/1999/xhtml);
+
+  /* Namespace for SVG embedded in XHTML */
+  @namespace svg url(http://www.w3.org/2000/svg);
+
+body {
+  font-family: "Bitstream Vera Serif Bold", serif;
+}
+
+
+
+@media print {
+  #ee2dd, #footer, aside {
+    display:none;
+  }
+  body {
+    font-size:120%;
+    color:black;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .bloc {
+    display:block;
+    clear:both;
+  }
+}
+
+
+/* On ajoute un paramètre de secours */
+.component .header {
+  color: var(--header-color, blue);
+}
+
+@viewport {
+  zoom: 0.75;
+  min-zoom: 0.5;
+  max-zoom: 0.9;
 }
