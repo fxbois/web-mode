@@ -1091,6 +1091,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                  ("ifequal"    . "{% ifequal | %}\n\n{% endifequal %}")
                  ("ifnotequal" . "{% ifnotequal | %}\n\n{% endifnotequal %}")
                  ("js"         . "{% javascript | %}\n\n{% endjavascript %}")
+                 ("schema"         . "{% javascript | %}\n\n{% endschema %}")
                  ("safe"       . "{% safe | %}\n\n{% endsafe %}")))
     ("template-toolkit" . (("if"      . "[% IF | %]\n\n[% END %]")))
     (nil . (("html5" . "<!doctype html>\n<html>\n<head>\n<title></title>\n<meta charset=\"utf-8\" />\n</head>\n<body>\n|\n</body>\n</html>")
@@ -1541,6 +1542,7 @@ shouldn't be moved back.)")
      ;; #805
      "graph" "endgraph"
      "javascript" "endjavascript"
+     "schema" "endschema"
      "stylesheet" "endstylesheet"
 
      )))
@@ -3013,6 +3015,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                    (looking-at-p "{% javascript %}"))
               (setq tagopen "{% javascript %}"))
              ((and (string= web-mode-engine "django")
+                   (looking-at-p "{% schema %}"))
+              (setq tagopen "{% schema %}"))
+             ((and (string= web-mode-engine "django")
                    (looking-at-p "{% stylesheet %}"))
               (setq tagopen "{% stylesheet %}"))
              )
@@ -3023,6 +3028,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                          "<%block filter=\"collect_js\">"
                                          "<%block filter=\"collect_css\">"
                                          "{% javascript %}"
+                                         "{% schema %}"
                                          "{% stylesheet %}"))
                        (setq part-beg close)
                        (setq tagclose
@@ -3032,6 +3038,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                               ((string= tagopen "<c:js") "</c:js")
                               ((string= tagopen "<c:css") "</c:css")
                               ((string= tagopen "{% javascript %}") "{% endjavascript %}")
+                              ((string= tagopen "{% schema %}") "{% endschema %}")
                               ((string= tagopen "{% stylesheet %}") "{% endstylesheet %}")
                               ((string= tagopen "<%= javascript_tag do %>") "<% end %>")
                               ((member tagopen '("<%block filter=\"collect_js\">"
