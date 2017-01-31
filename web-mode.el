@@ -5970,10 +5970,24 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         ) ;when
       (goto-char sel-beg)
       (while (and web-mode-enable-css-colorization
-                  (re-search-forward "#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgba?([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" end t)
+                  (re-search-forward
+                   (concat
+                    "\\("
+                    "#[0-9a-fA-F]\\{6\\}"
+                    "\\|"
+                    "#[0-9a-fA-F]\\{3\\}"
+                    "\\|"
+                    "rgba?([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))"
+                    "\\)"
+                    "\\([^[:alnum:]]\\|$\\)"
+                    )
+                   end t)
                   ;;(progn (message "%S %S" end (point)) t)
                   (<= (point) end))
-        (web-mode-colorize (match-beginning 0) (match-end 0))
+        (web-mode-colorize (match-beginning 1) (match-end 1)
+                           (match-string-no-properties 2)
+                           (match-string-no-properties 3)
+                           (match-string-no-properties 4))
         ) ;while
       ) ;let
     ))
@@ -6004,7 +6018,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (if (> 128.0 (floor (+ (* .3 r) (* .59 g) (* .11 b)) 256))
 	"white" "black")))
 
-(defun web-mode-colorize (beg end)
+(defun web-mode-colorize (beg end &optional r g b)
   (let (str plist len)
     (setq str (buffer-substring-no-properties beg end))
     (setq len (length str))
@@ -6013,11 +6027,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (setq plist (list :background str
                         :foreground (web-mode-colorize-foreground str)))
       (put-text-property beg end 'face plist))
-     ((or (string= (substring str 0 4) "rgb(") (string= (substring str 0 5) "rgba("))
+     ((and r g b)
       (setq str (format "#%02X%02X%02X"
-                        (string-to-number (match-string-no-properties 1))
-                        (string-to-number (match-string-no-properties 2))
-                        (string-to-number (match-string-no-properties 3))))
+                        (string-to-number r)
+                        (string-to-number g)
+                        (string-to-number b)))
       (setq plist (list :background str
                         :foreground (web-mode-colorize-foreground str)))
       (put-text-property beg end 'face plist))
