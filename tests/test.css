@@ -56,8 +56,8 @@ and (-webkit-min-device-pixel-ratio: 2) {
 /* Namespace for XHTML */
 @namespace url(http://www.w3.org/1999/xhtml);
 
-  /* Namespace for SVG embedded in XHTML */
-  @namespace svg url(http://www.w3.org/2000/svg);
+/* Namespace for SVG embedded in XHTML */
+@namespace svg url(http://www.w3.org/2000/svg);
 
 body {
   font-family: "Bitstream Vera Serif Bold", serif;
