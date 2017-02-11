@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.0.41
+;; Version: 14.0.42
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.41"
+(defconst web-mode-version "14.0.42"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -10647,7 +10647,7 @@ Prompt user if TAG-NAME isn't provided."
 ;;       web-mode-attribute-next-position
 (defun web-mode-attribute-end-position (&optional pos)
   (unless pos (setq pos (point)))
-  (let (beg end depth)
+  (let (beg end depth flags)
     ;;(message "pos=%S" pos)
     (setq depth (get-text-property pos 'jsx-depth))
     (cond
@@ -10660,7 +10660,8 @@ Prompt user if TAG-NAME isn't provided."
       (when (and depth
                  end
                  (setq beg (web-mode-attribute-beginning-position end))
-                 (eq (logand (get-text-property pos 'tag-attr-beg) 4) 4))
+                 (setq flags (get-text-property pos 'tag-attr-beg))
+                 (eq (logand flags 4) 4))
         (setq depth (1- (get-text-property beg 'jsx-depth)))
         ;;(message "%S %S" beg end)
         )
