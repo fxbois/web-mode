@@ -1,0 +1,3 @@
+<div>
+  {{foo prop=(or a (and b c) d e)}}
+</div>

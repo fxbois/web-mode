@@ -1802,9 +1802,9 @@ shouldn't be moved back.)")
 (defvar web-mode-ctemplate-font-lock-keywords
   (list
    '("{[~]?{[#/>^]?[ ]*\\([[:alnum:]_.-]+\\)" 1 'web-mode-block-control-face)
-   '("[ \t]+\\([[:alnum:]_-]+\\)=\\([[:alnum:]_.]+\\|\"[^\"]+\"\\|'[^']+'\\|\([^)]+\)\\)"
-     (1 'web-mode-block-attr-name-face)
-     (2 'web-mode-block-attr-value-face))
+   ;;'("[ \t]+\\([[:alnum:]_-]+\\)=\\([[:alnum:]_.]+\\|\"[^\"]+\"\\|'[^']+'\\|\([^)]+\)\\)"
+   '("[ \t]+\\([[:alnum:]_-]+\\)="
+     (1 'web-mode-block-attr-name-face))
    '("\"[^\"]+\"" 0 'web-mode-block-string-face)
    ))
 
