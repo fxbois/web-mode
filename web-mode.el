@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.0.40
+;; Version: 14.0.41
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.40"
+(defconst web-mode-version "14.0.41"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8999,8 +8999,18 @@ Prompt user if TAG-NAME isn't provided."
          (remove-overlays beg-inside end-inside)
          (put-text-property beg-inside end-inside 'invisible nil)
          )
+        ;; *** block folding
+        ((and (get-text-property (point) 'block-side)
+              (cdr (web-mode-block-is-control (point))))
+         (setq beg-outside (web-mode-block-beginning-position (point)))
+         (setq beg-inside (1+ (web-mode-block-end-position (point))))
+         (when (web-mode-block-match)
+           (setq end-inside (point))
+           (setq end-outside (1+ (web-mode-block-end-position (point)))))
+         )
         ;; *** tag folding
-        ((member (get-text-property (point) 'tag-type) '(start end))
+        ((or (member (get-text-property (point) 'tag-type) '(start end))
+             (web-mode-element-parent))
          (when (not (web-mode-element-is-collapsed (point)))
            (web-mode-tag-beginning)
            (when (eq (get-text-property (point) 'tag-type) 'end)
@@ -9014,14 +9024,6 @@ Prompt user if TAG-NAME isn't provided."
              (web-mode-tag-end)
              (setq end-outside (point)))
            )
-         )
-        ;; *** block folding
-        ((cdr (web-mode-block-is-control (point)))
-         (setq beg-outside (web-mode-block-beginning-position (point)))
-         (setq beg-inside (1+ (web-mode-block-end-position (point))))
-         (when (web-mode-block-match)
-           (setq end-inside (point))
-           (setq end-outside (1+ (web-mode-block-end-position (point)))))
          )
         ) ;cond
        (when (and beg-inside beg-outside end-inside end-outside)
