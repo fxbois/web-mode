@@ -9982,7 +9982,9 @@ Prompt user if TAG-NAME isn't provided."
 
      ((and (>= (point) 3)
            (member this-command '(self-insert-command))
-           (not (member (get-text-property (point) 'part-token) '(comment string))))
+           (not (member (get-text-property (point) 'part-token) '(comment string)))
+           (not (eq (get-text-property (point) 'tag-type) 'comment))
+           )
       (setq ctx (web-mode-complete)))
 
      ((and web-mode-enable-auto-opening
