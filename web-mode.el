@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.0.42
+;; Version: 14.0.43
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.0.42"
+(defconst web-mode-version "14.0.43"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -767,6 +767,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("erb"              . ("eruby" "erubis"))
     ("freemarker"       . ())
     ("go"               . ("gtl"))
+    ("hero"             . ())
     ("jsp"              . ("grails"))
     ("mako"             . ())
     ("marko"            . ())
@@ -837,6 +838,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("freemarker"       . "\\.ftl\\'")
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
     ("handlebars"       . "\\.\\(hb\\.html\\|hbs\\)\\'")
+    ("hero"             . "\\.hero\\'")
     ("jinja"            . "\\.jinja\\'")
     ("jsp"              . "\\.[gj]sp\\'")
     ("lsp"              . "\\.lsp\\'")
@@ -1041,6 +1043,14 @@ Must be used in conjunction with web-mode-enable-block-face."
                            ("[% " . " %]")
                            ("[# " . " #]")
                            ("[#-" . "- | --]")))
+    ("hero"             . (("<% " . " %>")
+                           ("<%=" . " | %>")
+                           ("<%!" . " | %>")
+                           ("<%:" . " | %>")
+                           ("<%#" . " | %>")
+                           ("<%@" . " | %>")
+                           ("<%~" . " | %>")
+                           ("<%+" . " | %>")))
     ("jsp"              . (("<% " . " %>")
                            ("<%-" . "- | --%>")
                            ("<%=" . "%>")
@@ -1135,6 +1145,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("erb"              . "<%\\|^%.")
    '("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#]\\|\\[/?[@#].")
    '("go"               . "{{.")
+   '("hero"             . "<%")
    '("jsp"              . "<%\\|${")
    '("lsp"              . "<%")
    '("mako"             . "</?%\\|${\\|^[ \t]*%.\\|^[ \t]*##")
@@ -1492,13 +1503,22 @@ shouldn't be moved back.)")
 (defvar web-mode-go-keywords
   (eval-when-compile
     (regexp-opt
-     '("define" "else" "end" "if" "pipeline" "range" "template" "with"))))
+     '("const" "define" "else" "end"
+       "for" "func" "if" "import"
+       "pipeline" "range" "return" "struct"
+       "template" "type" "var" "with"))))
 
 (defvar web-mode-go-functions
   (eval-when-compile
     (regexp-opt
      '("and" "call" "html" "index" "js" "len" "not" "or"
        "print" "printf" "println" "urlquery"))))
+
+(defvar web-mode-go-types
+  (regexp-opt
+   (append
+    (cdr (assoc "go" web-mode-extra-types))
+    '("int" "string"))))
 
 (defvar web-mode-closure-keywords
   (eval-when-compile
@@ -1841,6 +1861,9 @@ shouldn't be moved back.)")
 (defvar web-mode-go-font-lock-keywords
   (list
    '("{{[ ]*\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
+   '("\\_<func \\([[:alnum:]]+\\)" 1 'web-mode-function-name-face)
+   '("\\_<type \\([[:alnum:]]+\\)" 1 'web-mode-type-face)
+   (cons (concat "\\_<\\(" web-mode-go-types "\\)\\_>") '(0 'web-mode-type-face))
    (cons (concat "\\_<\\(" web-mode-go-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-go-functions "\\)\\_>") '(1 'web-mode-function-call-face))
    '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
@@ -2068,6 +2091,7 @@ shouldn't be moved back.)")
     ("ejs"              . web-mode-ejs-font-lock-keywords)
     ("erb"              . web-mode-erb-font-lock-keywords)
     ("go"               . web-mode-go-font-lock-keywords)
+    ("hero"             . web-mode-go-font-lock-keywords)
     ("lsp"              . web-mode-lsp-font-lock-keywords)
     ("marko"            . web-mode-marko-font-lock-keywords)
     ("mojolicious"      . web-mode-mojolicious-font-lock-keywords)
@@ -2740,6 +2764,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ) ;cond
           ) ;smarty
 
+         ((string= web-mode-engine "hero")
+          (setq closing-string "%>"
+                delim-open "<%==?\\([biufsv]\\|bs\\)?\\|<%[:~@+!]?"
+                delim-close "%>")
+          ) ;hero
+
          ((string= web-mode-engine "xoops")
           (cond
            ((string= tagopen "<{*")
@@ -3121,7 +3151,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   ;;(message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine
                 '("asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
-                  "elixir" "ejs" "erb" "freemarker" "jsp" "lsp" "mako" "mason" "mojolicious"
+                  "elixir" "ejs" "erb" "freemarker" "hero" "jsp" "lsp" "mako" "mason" "mojolicious"
                   "smarty" "template-toolkit" "web2py" "xoops"))
     (save-excursion
       (when delim-open
@@ -3254,6 +3284,15 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq regexp "\"\\|'"))
        )
       ) ;go
+
+     ((string= web-mode-engine "hero")
+      (cond
+       ((string= sub3 "<%#")
+        (setq token-type 'comment))
+       (t
+        (setq regexp "\"\\|'"))
+       )
+      ) ;hero
 
      ((string= web-mode-engine "razor")
       (cond
@@ -4009,6 +4048,17 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (when (web-mode-block-is-opened-sexp reg-beg reg-end)
           (setq controls (append controls (list (cons 'open "(")))))
         ) ;lsp
+
+       ((string= web-mode-engine "hero")
+        (cond
+         ((web-mode-block-ends-with "}[ ]*else[ ]*{" reg-beg)
+          (setq controls (append controls (list (cons 'inside "{")))))
+         ((web-mode-block-starts-with "}" reg-beg)
+          (setq controls (append controls (list (cons 'close "{")))))
+         ((web-mode-block-ends-with "{" reg-beg)
+          (setq controls (append controls (list (cons 'open "{")))))
+         )
+        ) ;hero
 
        ) ;cond engine
 
@@ -9218,6 +9268,8 @@ Prompt user if TAG-NAME isn't provided."
             (setq content (concat "{* " sel " *}")))
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "xoops"))
             (setq content (concat "<{* " sel " *}>")))
+           ((and (= web-mode-comment-style 2) (string= web-mode-engine "hero"))
+            (setq content (concat "<%# " sel " %>")))
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "blade"))
             (setq content (concat "{{-- " sel " --}}")))
            ((and (= web-mode-comment-style 2) (string= web-mode-engine "ctemplate"))
@@ -10392,6 +10444,7 @@ Prompt user if TAG-NAME isn't provided."
    ((string= web-mode-engine "lsp")               "<% ) %>")
    ((string= web-mode-engine "erb")               "<% } %>")
    ((string= web-mode-engine "erb")               "<% end %>")
+   ((string= web-mode-engine "hero")              "<% } %>")
    ((string= web-mode-engine "go")                "{{end}}")
    ((string= web-mode-engine "velocity")          "#end")
    ((string= web-mode-engine "velocity")          "#{end}")
