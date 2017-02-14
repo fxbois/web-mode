@@ -1,0 +1,58 @@
+<%!
+import (
+  "fmt"
+  "strings"
+)
+
+var a int
+
+const b = "hello, world"
+
+func Add(a, b int) int {
+  return a + b
+}
+
+type S struct {
+  Name string
+}
+%>
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <div>
+      <%: func define %>
+      <%~ "parent template" %>
+      <%+ "sub template" %>
+      <%! go code %>
+    </div>
+    <%@ body { %>
+      <span>hello here</span>
+    <% } %>
+    <div>
+      <%== "hello" %>
+      <%==i 34  %>
+      <%==u Add(a, b) %>
+      <%==s user.Name %>
+    </div>
+    <div>
+      <% for _, user := userList { %>
+        <% if user != "Alice" { %>
+          <%= user %>
+        <% } %>
+      <% } %>
+    </div>
+    <div>
+      <%
+      a, b := 1, 2
+      c := Add(a, b)
+      %>
+    </div>
+    <div>
+      <%# note %>
+    </div>
+  </body>
+</html>
