@@ -10040,7 +10040,7 @@ Prompt user if TAG-NAME isn't provided."
       (setq ctx (web-mode-complete)))
 
      ((and web-mode-enable-auto-opening
-           (member this-command '(newline electric-newline-and-maybe-indent))
+           (member this-command '(newline electric-newline-and-maybe-indent newline-and-indent))
            (or (and (not (eobp))
                     (eq (char-after) ?\<)
                     (eq (get-text-property (point) 'tag-type) 'end)
