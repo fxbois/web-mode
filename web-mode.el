@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.1.0
+;; Version: 14.1.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; URL: http://web-mode.org
@@ -21,7 +21,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.1.0"
+(defconst web-mode-version "14.1.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -10863,7 +10863,7 @@ Prompt user if TAG-NAME isn't provided."
       (when pos (setq pos (web-mode-tag-end-position pos)))
       )
     )
-   ((member (get-text-property pos 'tag-type) '(end void))
+   ((member (get-text-property pos 'tag-type) '(end void comment))
     (setq pos (web-mode-tag-end-position pos))
     )
    ((member (get-text-property pos 'tag-type) '(start))
