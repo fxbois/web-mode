@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.1.4
+;; Version: 14.1.5
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.1.4"
+(defconst web-mode-version "14.1.5"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7126,8 +7126,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               ) ;save-excursion
             )
            ((and (member language '("javascript" "jsx" "ejs"))
-                 (web-mode-is-relayql-string pos))
+                 (web-mode-is-prefixed-string pos "Relay\.QL"))
             (setq offset (web-mode-relayql-indentation pos))
+            )
+           ((and (member language '("javascript" "jsx" "ejs"))
+                 (web-mode-is-prefixed-string pos "gql"))
+            (setq offset (web-mode-relayql-indentation pos "gql"))
             )
            (t
             (setq offset nil))
@@ -7680,7 +7684,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (if (>= value 1) (current-indentation) nil)
       )))
 
-(defun web-mode-relayql-indentation (pos)
+(defun web-mode-relayql-indentation (pos &optional prefix)
+  (unless prefix (setq prefix "relayql"))
   (let (beg offset level char)
     (setq char (char-after))
     (setq beg (web-mode-part-token-beginning-position pos))
@@ -7690,7 +7695,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (setq offset (current-indentation))
       )
      ((member char '(?\) ?\} ?\]))
-      (web-mode-go (web-mode-token-opening-paren-position pos beg "relayql"))
+      (web-mode-go (web-mode-token-opening-paren-position pos beg prefix))
       (setq offset (current-indentation))
       )
      ((setq level (web-mode-bracket-level pos beg))
@@ -11505,11 +11510,12 @@ Prompt user if TAG-NAME isn't provided."
     (if (null pos) pos (cons pos dot-pos))
     ))
 
-(defun web-mode-is-relayql-string (&optional pos)
+;; Relay.QL , gql
+(defun web-mode-is-prefixed-string (pos prefix-regexp)
   (let (beg)
     (cond
      ((and (setq beg (web-mode-part-token-beginning-position pos))
-           (web-mode-looking-back "Relay\.QL" beg))
+           (web-mode-looking-back prefix-regexp beg))
       beg)
      (t
       nil)
