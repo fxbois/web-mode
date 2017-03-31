@@ -1853,8 +1853,8 @@ shouldn't be moved back.)")
 
 (defvar web-mode-closure-font-lock-keywords
   (list
-   '("{/?\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
-   '("{param[ ]+\\([[:alnum:]]+\\)" 1 'web-mode-symbol-face)
+   '("{/?\\([@[:alpha:]]+\\)" 1 'web-mode-block-control-face)
+   '("{@?param\\??[ ]+\\([[:alnum:]]+\\)" 1 'web-mode-symbol-face)
    '("\\_<\\(true\\|false\\|null\\)\\_>" 1 'web-mode-type-face)
    (cons (concat "\\_<\\(" web-mode-closure-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    '("{\\(alias\\|call\\|delcall\\|delpackage\\|deltemplate\\|namespace\\|template\\)[ ]+\\([[:alnum:].]+\\)" 2 'web-mode-constant-face)
