@@ -1,0 +1,35 @@
+<div>
+  {param other: html}
+    <span>ici</span>
+    {@param other: html}
+    {@param? other: html}
+  {/param}
+</div>
+<div>
+  {template .example}
+    /** A leading doc comment. */
+    {@param name: string}
+    {@param? height: int} /** A trailing doc comment. */
+    ...
+  {/template}
+</div>
+<div>
+  {call .mySubtemplate}
+    {param aaa: $aaa /}
+    {param bbb: $bbb /}
+  {/call}
+
+  {foreach $pair in $pairs}
+    {call .exampleCallee}
+      {param largerNum: $pair.largerInt /}
+      {param smallerNum}
+        {if $pair.smallerInt}
+          {$pair.smallerInt}  // if defined, pass it
+        {else}
+          {$pair.largerInt - 100}
+        {/if}
+      {/param}
+    {/call}
+  {/foreach}
+
+</div>
