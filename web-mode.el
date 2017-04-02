@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.1.7
+;; Version: 14.1.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.1.7"
+(defconst web-mode-version "14.1.8"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -762,7 +762,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("closure"          . ("soy"))
     ("ctemplate"        . ("mustache" "handlebars" "hapax" "ngtemplate" "ember"
                            "kite" "meteor" "blaze" "ractive" "velvet"))
-    ("django"           . ("dtl" "twig" "swig" "jinja" "erlydtl" "liquid"
+    ("django"           . ("dtl" "twig" "swig" "jinja" "jinja2" "erlydtl" "liquid"
                            "clabango" "selmer" "nunjucks"))
     ("dust"             . ("dustjs"))
     ("ejs"              . ())
