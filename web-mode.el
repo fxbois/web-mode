@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.1.8
+;; Version: 14.1.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.1.8"
+(defconst web-mode-version "14.1.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7258,7 +7258,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (when debug (message "I10: web-mode-markup-indentation"))
           (cond
            ((get-text-property pos 'tag-beg)
-            ;;(message "ici")
             (setq offset (web-mode-markup-indentation pos))
             )
            ((and web-mode-indentless-elements
@@ -7715,42 +7714,18 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                  (not (get-text-property pos 'tag-beg)))
         (setq jsx-depth (1- jsx-depth))))
     (when (setq beg (web-mode-markup-indentation-origin pos jsx-depth))
+      ;;(message "beg=%S jsx-depth=%S" beg jsx-depth)
       (cond
        ((null (setq ret (web-mode-element-is-opened beg pos)))
         (setq offset (web-mode-indentation-at-pos beg)))
        ((eq ret t)
-        (setq offset (+ (web-mode-indentation-at-pos beg) web-mode-markup-indent-offset)))
+        (setq offset (+ (web-mode-indentation-at-pos beg)
+                        web-mode-markup-indent-offset)))
        (t
         (setq offset ret))
        ) ;cond
       ) ;when beg
     offset))
-
-;; (defun web-mode-markup-indentation2 (pos)
-;;   (let ((offset 0) beg ret depth-beg depth-pos target-depth)
-;;     (when (setq beg (web-mode-markup-indentation-origin pos target-depth))
-;;       ;;(message "beg1=%S" beg)
-;;       (when (and (setq depth-pos (get-text-property pos 'jsx-depth))
-;;                  (setq depth-beg (get-text-property beg 'jsx-depth))
-;;                  (progn
-;;                    (when (and (get-text-property pos 'jsx-beg)
-;;                               (not (get-text-property pos 'tag-beg)))
-;;                      (setq depth-pos (1- depth-pos)))
-;;                    t)
-;;                  (not (eq depth-beg depth-pos)))
-;;         (setq beg (web-mode-jsx-depth-beginning-position pos))
-;;         (message "beg2=%S" beg)
-;;         ) ;when jsx-depth
-;;       (cond
-;;        ((null (setq ret (web-mode-element-is-opened beg pos)))
-;;         (setq offset (web-mode-indentation-at-pos beg)))
-;;        ((eq ret t)
-;;         (setq offset (+ (web-mode-indentation-at-pos beg) web-mode-markup-indent-offset)))
-;;        (t
-;;         (setq offset ret))
-;;        ) ;cond
-;;       ) ;when beg
-;;     offset))
 
 (defun web-mode-css-indentation (pos initial-column language-offset language &optional limit)
   (let ((open-ctx (web-mode-bracket-up pos language limit)) offset)
@@ -8187,32 +8162,31 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-markup-indentation-origin (pos jsx-depth)
   (save-excursion
     (let* ((found (bobp))
-           ;;(part-side (not (null (get-text-property pos 'part-side)))) ;part-side at the origin
-           ;; est ce partside est nécessaire avec jsx-depth ?
+           (jsx-beg nil)
            (types '(start end void))
            (type nil))
+      (when jsx-depth
+        (setq jsx-beg (web-mode-jsx-depth-beginning-position pos jsx-depth)))
       (while (not found)
         (forward-line -1)
         (if (bobp)
             (setq pos (point)
                   found t)
           (back-to-indentation)
+          (when (and jsx-beg (< (point) jsx-beg))
+            (goto-char jsx-beg))
           (setq pos (point))
           (setq type (get-text-property pos 'tag-type))
-          (setq found (or (and ;;(null part-side)
-                               (null jsx-depth)
+          (setq found (or (and (null jsx-depth)
                                (null (get-text-property pos 'part-side))
                                (get-text-property pos 'tag-beg)
                                (member type types)
                                (null (get-text-property (1- pos) 'invisible)))
-                          (and ;;part-side ;;remove?
-                               jsx-depth
-                               ;;(get-text-property pos 'part-side)
+                          (and jsx-depth
                                (get-text-property pos 'tag-beg)
                                (member type types)
                                (null (get-text-property (1- pos) 'invisible))
-                               (eq (get-text-property pos 'jsx-depth) jsx-depth)
-                               ) ;part-side
+                               (eq (get-text-property pos 'jsx-depth) jsx-depth))
                           (and (get-text-property pos 'block-beg)
                                (not type)
                                (web-mode-block-is-control pos)

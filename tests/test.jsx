@@ -1,3 +1,11 @@
+import React from 'react';
+
+const Front = props => {
+  return <div>
+    <span>hello</span>
+  </div>;
+};
+
 /** @jsx React.DOM **/
 var React = require('react/addons');
 var Component = require('./component');
@@ -52,13 +60,13 @@ export default React.createClass({
 
 function foo() {
   return <label>
-      First Name:
-      <Input name="name"
-             type="text"
-             validators={[
-               required('You must supply a first name!'),
-               (value) => value > 15 ? 'too long!': null
-             ]} />
+    First Name:
+    <Input name="name"
+           type="text"
+           validators={[
+             required('You must supply a first name!'),
+             (value) => value > 15 ? 'too long!': null
+           ]} />
   </label>;
 }
 
