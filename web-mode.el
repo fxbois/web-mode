@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.1.10
+;; Version: 14.1.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.1.10"
+(defconst web-mode-version "14.1.11"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -11295,10 +11295,23 @@ Prompt user if TAG-NAME isn't provided."
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ((web-mode-looking-back "\\(return\\)[ \n\t]*" pos)
-        (setq continue nil))
+
+       ((web-mode-looking-at "\\(return\\)[ ]*" pos)
+        (setq pos (+ pos (length (match-string-no-properties 0)))
+              continue nil))
        (t
-        (setq pos (1- pos)))
+        (setq pos (web-mode-rsb-position pos "[\]\[}{)(=?:;,&|]\\|\\(\\_<\\(return\\)[ \n]\\)" reg-beg))
+        (when (not pos)
+          (message "javascript-string-beginning-position ** search failure **")
+          (setq continue nil
+                pos reg-beg)))
+
+
+       ;;((web-mode-looking-back "\\(return\\)[ \n\t]*" pos)
+       ;; (setq continue nil))
+       ;;(t
+       ;; (setq pos (1- pos)))
+
        ) ;cond
       ) ;while
     ;;(message "js-statement-beg:%S" pos)
@@ -11368,24 +11381,38 @@ Prompt user if TAG-NAME isn't provided."
         (setq pos (1- pos)))
        ((and (eq char ?\=)
              (web-mode-looking-back "[<>!=]+" pos reg-beg t))
-        (setq pos (- pos 1 (length (match-string-no-properties 0))))
-        ;;(setq pos (1- pos))
-        ;;(message "%S pos=%S" (match-string-no-properties 0) pos)
-        )
+        (setq pos (- pos 1 (length (match-string-no-properties 0)))))
        ((member char '(?\( ?\{ ?\[ ?\=))
-        (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
-        (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ((web-mode-looking-back "\\_<\\(return\\)[ \n\t]*" pos)
-        (setq continue nil)
-        (web-mode-looking-at "[ \t\n]*" pos)
-        (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ((web-mode-looking-back "[{,][ \t\n]*[[:alnum:]_]+[ ]*:[ ]*" pos)
-        (setq continue nil)
-        (web-mode-looking-at "[ ]*" pos)
-        (setq pos (+ pos (length (match-string-no-properties 0)))))
+        (setq continue nil
+              pos (+ pos (length (match-string-no-properties 0)))))
+
+       ((web-mode-looking-at "\\(return\\)[ ]*" pos)
+        (setq continue nil
+              pos (+ pos (length (match-string-no-properties 0)))))
+       ((and (eq char ?\:)
+             (web-mode-looking-back "[{,][ \t\n]*[[:alnum:]_]+[ ]*" pos))
+        (web-mode-looking-at ".[ \t\n]*" pos)
+        (setq continue nil
+              pos (+ pos (length (match-string-no-properties 0)))))
        (t
-        (setq pos (1- pos)))
+        (setq pos (web-mode-rsb-position pos "[\]\[}{)(=:]\\|\\_<\\(return\\)[ \n]" reg-beg))
+        (when (not pos)
+          (when (not is-jsx) (message "javascript-statement-beginning-position ** search failure **"))
+          (setq continue nil
+                pos reg-beg)))
+
+       ;; ((web-mode-looking-back "\\_<\\(return\\)[ \n\t]*" pos)
+       ;;  (setq continue nil)
+       ;;  (web-mode-looking-at "[ \t\n]*" pos)
+       ;;  (setq pos (+ pos (length (match-string-no-properties 0)))))
+       ;; ((web-mode-looking-back "[{,][ \t\n]*[[:alnum:]_]+[ ]*:[ ]*" pos)
+       ;;  (setq continue nil)
+       ;;  (web-mode-looking-at "[ ]*" pos)
+       ;;  (setq pos (+ pos (length (match-string-no-properties 0)))))
+       ;; (t
+       ;;  (setq pos (1- pos)))
+
        ) ;cond
       ) ;while
     ;;(message "%S -------" pos)
@@ -11444,10 +11471,9 @@ Prompt user if TAG-NAME isn't provided."
        (t
         (setq pos (web-mode-rsb-position pos "[\]\[}{)(]\\|\\(\\_<\\(var\\|let\\|return\\|const\\)[ \n]\\)" reg-beg))
         (when (not pos)
-          (message "javascript-args-beginning-position ** failure(token) **")
+          (message "javascript-args-beginning-position ** search failure **")
           (setq continue nil
-                pos reg-beg))
-        ) ;t
+                pos reg-beg)))
        ) ;cond
       ) ;while
     ;;(message "=%S" pos)
@@ -11508,7 +11534,7 @@ Prompt user if TAG-NAME isn't provided."
        (t
         (setq pos (web-mode-rsb-position pos "[\]\[}{)(=?:;,&|>.]\\|\\(\\_<\\(return\\|else\\)[ \n]\\)" reg-beg))
         (when (not pos)
-          (message "javascript-calls-beginning-position ** failure(token) **")
+          (message "javascript-calls-beginning-position ** search failure **")
           (setq pos reg-beg
                 continue nil))
         ) ;t
