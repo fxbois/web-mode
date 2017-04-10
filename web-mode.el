@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.1.12
+;; Version: 14.1.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.1.12"
+(defconst web-mode-version "14.1.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7112,11 +7112,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (cond
 
          ((or (bobp) (= (line-number-at-pos pos) 1))
-          (when debug (message "I01"))
+          (when debug (message "I100"))
           (setq offset 0))
 
          ((string= token "string")
-          (when debug (message "I02 : string"))
+          (when debug (message "I120(%S) string" pos))
           (cond
            ((and web-mode-enable-sql-detection
                  (web-mode-block-token-starts-with (concat "[ \n]*" web-mode-sql-queries)))
@@ -7146,7 +7146,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           ) ;case string
 
          ((string= token "comment")
-          (when debug (message "I03 : comment"))
+          (when debug (message "I130(%S) comment" pos))
           (if (eq (get-text-property pos 'tag-type) 'comment)
               (web-mode-tag-beginning)
             (goto-char (car
@@ -7190,32 +7190,32 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ((and (string= web-mode-engine "mason")
                (string-match-p "^%" curr-line))
-          (when debug (message "I04"))
+          (when debug (message "I140(%S) mason" pos))
           (setq offset 0))
 
          ((and (get-text-property pos 'block-beg)
                (or (web-mode-block-is-close pos)
                    (web-mode-block-is-inside pos)))
-          (when debug (message "I05"))
+          (when debug (message "I150(%S) block-match" pos))
           (when (web-mode-block-match)
             (setq offset (current-indentation))))
 
          ((eq (get-text-property pos 'block-token) 'delimiter-end)
-          (when debug (message "I06"))
+          (when debug (message "I160(%S) block-beginning" pos))
           (when (web-mode-block-beginning)
             (setq reg-col (current-indentation))
             (setq offset (current-column))))
 
          ((and (get-text-property pos 'tag-beg)
                (eq (get-text-property pos 'tag-type) 'end))
-          (when debug (message "I07"))
+          (when debug (message "I170(%S) tag-match" pos))
           (when (web-mode-tag-match)
             (setq offset (current-indentation))))
 
          ((and (member language '("jsx"))
                (eq curr-char ?\})
                (get-text-property pos 'jsx-end))
-          (when debug (message "I08"))
+          (when debug (message "I180(%S) jsx-expr-beg" pos))
           (web-mode-go (1- reg-beg))
           (setq reg-col nil)
           (setq offset (current-column)))
@@ -7225,7 +7225,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                (not (get-text-property pos 'tag-beg))
                (or (not (string= language "jsx"))
                    (string= options "is-html")))
-          (when debug (message "I09"))
+          (when debug (message "I190(%S) attr-indent" pos))
           (cond
            ((and (get-text-property pos 'tag-attr)
                  (get-text-property (1- pos) 'tag-attr)
@@ -7261,7 +7261,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((or (member language '("html" "xml"))
               (and (member language '("jsx"))
                    (string= options "is-html")))
-          (when debug (message "I10: web-mode-markup-indentation"))
+          (when debug (message "I200(%S) web-mode-markup-indentation" pos))
           (cond
            ((get-text-property pos 'tag-beg)
             (setq offset (web-mode-markup-indentation pos))
@@ -7286,11 +7286,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           )
 
          ((string= language "ctemplate")
-          (when debug (message "I11"))
+          (when debug (message "I210(%S) ctemplate" pos))
           (setq offset reg-col))
 
          ((member language '("mako" "web2py"))
-          (when debug (message "I12"))
+          (when debug (message "I220(%S) mako" pos))
           (setq offset (web-mode-python-indentation pos
                                                     curr-line
                                                     reg-col
@@ -7298,7 +7298,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                                     reg-beg)))
 
          ((string= language "asp")
-          (when debug (message "I13"))
+          (when debug (message "I230(%S) asp" pos))
           (setq offset (web-mode-asp-indentation pos
                                                  curr-line
                                                  reg-col
@@ -7306,11 +7306,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                                  reg-beg)))
 
          ((member language '("lsp" "cl-emb"))
-          (when debug (message "I14"))
+          (when debug (message "I240(%S) lsp" pos))
           (setq offset (web-mode-lisp-indentation pos ctx)))
 
          ((member curr-char '(?\} ?\) ?\]))
-          (when debug (message "I15(%S) closing-paren" pos))
+          (when debug (message "I250(%S) closing-paren" pos))
           (let (ori)
             (if (get-text-property pos 'block-side)
                 (setq ori (web-mode-block-opening-paren-position pos reg-beg))
@@ -7337,7 +7337,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           )
 
          ((string= language "erb")
-          (when debug (message "I16"))
+          (when debug (message "I260(%S) erb" pos))
           (setq offset (web-mode-ruby-indentation pos
                                                   curr-line
                                                   reg-col
@@ -7345,7 +7345,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                                   reg-beg)))
 
          ((string= language "css")
-          (when debug (message "I17"))
+          (when debug (message "I270(%S) css-indentation" pos))
           (setq offset (car (web-mode-css-indentation pos
                                                       reg-col
                                                       curr-indentation
@@ -7353,7 +7353,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                                       reg-beg))))
 
          ((string= language "sql")
-          (when debug (message "I18"))
+          (when debug (message "I280(%S) sql" pos))
           (setq offset (car (web-mode-sql-indentation pos
                                                       reg-col
                                                       curr-indentation
@@ -7361,7 +7361,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                                       reg-beg))))
 
          ((string= language "markdown")
-          (when debug (message "I19"))
+          (when debug (message "I290(%S) markdown" pos))
           (setq offset (car (web-mode-markdown-indentation pos
                                                            reg-col
                                                            curr-indentation
@@ -7369,7 +7369,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                                            reg-beg))))
 
          ((string= language "stylus")
-          (when debug (message "ISTYLUS"))
+          (when debug (message "I295(%S) pos" pos))
           (setq offset (car (web-mode-stylus-indentation pos
                                                          reg-col
                                                          curr-indentation
@@ -7379,20 +7379,20 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((and (string= language "razor")
                (string-match-p "^\\." curr-line)
                (string-match-p "^\\." prev-line))
-          (when debug (message "I20"))
+          (when debug (message "I300(%S) razor" pos))
           (setq offset prev-indentation))
 
          ((and (string= language "razor")
                (string-match-p "^case " curr-line)
                (string-match-p "^case " prev-line))
-          (when debug (message "I21"))
+          (when debug (message "I310(%S) razor case" pos))
           (search-backward "case ")
           (setq offset (current-column)))
 
          ((and is_js
                (member ?\. chars)
                (not (string-match-p "^\\.\\.\\." curr-line)))
-          (when debug (message "I22(%S) javascript-calls" pos))
+          (when debug (message "I320(%S) javascript-calls" pos))
           (let (pair)
             (setq pair (web-mode-javascript-calls-beginning-position pos reg-beg))
             ;;(message "%S" pair)
@@ -7426,7 +7426,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ((and is_js
                (member ?\+ chars))
-          (when debug (message "I23(%S) javascript-string" pos))
+          (when debug (message "I330(%S) javascript-string" pos))
           ;;(message "js-concat")
           (cond
            ((not (web-mode-javascript-string-beginning pos reg-beg))
@@ -7448,7 +7448,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ;; #579 , #742
          ((and (member language '("javascript" "jsx" "ejs" "php"))
                (string-match-p "=[>]?$" prev-line))
-          (when debug (message "I24"))
+          (when debug (message "I340(%S)" pos))
           (setq offset (+ prev-indentation web-mode-code-indent-offset))
           ;;(message "ici%S" offset)
           )
@@ -7464,7 +7464,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                (not (and (eq prev-char ?\:)
                          (string-match-p "^\\(case\\|default\\)" prev-line)))
                )
-          (when debug (message "I25 : ternary"))
+          (when debug (message "I350(%S) ternary" pos))
           (cond
            ((not (funcall (if is_js
                               'web-mode-javascript-statement-beginning
@@ -7488,7 +7488,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((and is_js
                (or (member ?\, chars)
                    (member prev-char '(?\( ?\[))))
-          (when debug (message "I26(%S) javascript-args" pos))
+          (when debug (message "I360(%S) javascript-args" pos))
           (cond
            ((not (web-mode-javascript-args-beginning pos reg-beg))
             (message "no js args beg")
@@ -7514,7 +7514,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((and is_js
                (or (eq prev-char ?\))
                    (string-match-p "^else$" prev-line)))
-          (when debug (message "I27"))
+          (when debug (message "I370(%S)" pos))
           ;;(message "js-ici")
           (cond
            ((string-match-p "^else$" prev-line)
@@ -7546,7 +7546,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                         (web-mode-part-is-opener prev-pos reg-beg))
                    (string-match-p "^else$" prev-line))
                (not (string-match-p "^\\([{.]\\|->\\)" curr-line)))
-          (when debug (message "I28"))
+          (when debug (message "I380(%S)" pos))
           (cond
            ((and (eq prev-char ?\))
                  (string-match-p "^\\(for\\|if\\|while\\)[ ]*(" prev-line))
@@ -7568,7 +7568,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           )
 
          ((and (member language '("php" "blade")) (string-match-p "^->" curr-line))
-          (when debug (message "I29(%S) block-calls" pos))
+          (when debug (message "I390(%S) block-calls" pos))
           (cond
            ((not (web-mode-block-calls-beginning pos reg-beg))
             )
@@ -7588,7 +7588,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ))
 
          ((member ?\, chars)
-          (when debug (message "I30(%S) block-args" pos))
+          (when debug (message "I400(%S) block-args" pos))
           (cond
            ((not (web-mode-block-args-beginning pos reg-beg))
             ;;(message "ici")
@@ -7605,7 +7605,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ))
 
          ((and (string= language "php") (member ?\. chars))
-          (when debug (message "I31(%S) block-string" pos))
+          (when debug (message "I410(%S) block-string" pos))
           (cond
            ((not (web-mode-block-string-beginning pos reg-beg))
             )
@@ -7622,7 +7622,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             )))
 
          ((member language '("javascript" "jsx" "ejs" "underscore"))
-          (when debug (message "I32(%S) javascript-indentation" pos))
+          (when debug (message "I420(%S) javascript-indentation" pos))
           ;;(message "js-indent")
           (setq offset (car (web-mode-javascript-indentation pos
                                                              reg-col
@@ -7631,7 +7631,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                                              reg-beg))))
 
          (t
-          (when debug (message "I33(%S) bracket-indentation" pos))
+          (when debug (message "I430(%S) bracket-indentation" pos))
           (setq offset (car (web-mode-bracket-indentation pos
                                                           reg-col
                                                           curr-indentation
@@ -11145,23 +11145,15 @@ Prompt user if TAG-NAME isn't provided."
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0))))
         )
-
        ((web-mode-looking-at "\\(return\\|echo\\|include\\|print\\)[ \n]" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))
               continue nil))
        (t
-        (setq pos (web-mode-rsb-position pos "[\]\[}{)(=?;,`:]\\|\\(return\\|echo\\|include\\|print\\)" reg-beg))
+        (setq pos (web-mode-rsb-position pos "[\]\[}{)(=?;,`:]\\|\\(return\\|echo\\|include\\|print\\)" block-beg))
         (when (not pos)
           (message "block-string-beginning-position ** search failure **")
           (setq continue nil
-                pos reg-beg)))
-
-       ;; ((web-mode-looking-back "\\_<\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
-       ;;  (setq continue nil))
-       ;; (t
-       ;;  (setq pos (1- pos)))
-
-
+                pos block-beg)))
        ) ;cond
       ) ;while
     ;;(message "pos=%S" pos)
@@ -11194,22 +11186,15 @@ Prompt user if TAG-NAME isn't provided."
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
-
        ((web-mode-looking-at "\\(return\\|echo\\|include\\|print\\)[ \n]" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))
               continue nil))
        (t
-        (setq pos (web-mode-rsb-position pos "[\]\[}{)(=]\\|\\(return\\|echo\\|include\\|print\\)" reg-beg))
+        (setq pos (web-mode-rsb-position pos "[\]\[}{)(=]\\|\\(return\\|echo\\|include\\|print\\)" block-beg))
         (when (not pos)
           (message "block-statement-beginning-position ** search failure **")
           (setq continue nil
-                pos reg-beg)))
-
-       ;; ((web-mode-looking-back "\\_<\\(return\\|echo\\|include\\|print\\)[ \n\t]*" pos)
-       ;;  (setq continue nil))
-       ;; (t
-       ;;  (setq pos (1- pos)))
-
+                pos block-beg)))
        ) ;cond
       ) ;while
     pos))
@@ -11236,27 +11221,17 @@ Prompt user if TAG-NAME isn't provided."
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
-
        ((and (string= web-mode-engine "php")
              (web-mode-looking-at "\\(extends\\|implements\\)[ \n]" pos))
         (setq pos (+ pos (length (match-string-no-properties 0)))
               continue nil))
        (t
-        (setq pos (web-mode-rsb-position pos "[\]\[}{)(]\\|\\(extends\\|implements\\)" reg-beg))
+        (setq pos (web-mode-rsb-position pos "[\]\[}{)(]\\|\\(extends\\|implements\\)" block-beg))
         (when (not pos)
           (message "block-args-beginning-position ** search failure **")
-          (setq pos reg-beg
+          (setq pos block-beg
                 continue nil))
         ) ;t
-
-
-       ;; ((and (string= web-mode-engine "php")
-       ;;       (web-mode-looking-back "\\_<\\(extends\\|implements\\)[ \n\t]*" pos))
-       ;;  (setq continue nil))
-       ;; (t
-       ;;  (setq pos (1- pos)))
-
-
        ) ;cond
       ) ;while
     pos))
@@ -11282,25 +11257,16 @@ Prompt user if TAG-NAME isn't provided."
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))
               continue nil))
-
-
        ((web-mode-looking-at "\\(return\\|else\\)[ \n]" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))
               continue nil))
        (t
-        (setq pos (web-mode-rsb-position pos "[\]\[}{)(=?:;,]\\|\\(return\\|else\\)" reg-beg))
+        (setq pos (web-mode-rsb-position pos "[\]\[}{)(=?:;,]\\|\\(return\\|else\\)" block-beg))
         (when (not pos)
           (message "block-calls-beginning-position ** search failure **")
-          (setq pos reg-beg
+          (setq pos block-beg
                 continue nil))
         ) ;t
-
-
-       ;;((web-mode-looking-back "\\(return\\|else\\)[ \n\t]*" pos)
-       ;; (setq continue nil))
-       ;;(t
-       ;; (setq pos (1- pos)))
-
        ) ;cond
       ) ;while
     pos))
@@ -11349,7 +11315,6 @@ Prompt user if TAG-NAME isn't provided."
         (setq continue nil)
         (web-mode-looking-at ".[ \t\n]*" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))))
-
        ((web-mode-looking-at "\\(return\\)[ \n]" pos)
         (setq pos (+ pos (length (match-string-no-properties 0)))
               continue nil))
@@ -11359,13 +11324,6 @@ Prompt user if TAG-NAME isn't provided."
           (message "javascript-string-beginning-position ** search failure **")
           (setq continue nil
                 pos reg-beg)))
-
-
-       ;;((web-mode-looking-back "\\(return\\)[ \n\t]*" pos)
-       ;; (setq continue nil))
-       ;;(t
-       ;; (setq pos (1- pos)))
-
        ) ;cond
       ) ;while
     ;;(message "js-statement-beg:%S" pos)
@@ -11592,12 +11550,6 @@ Prompt user if TAG-NAME isn't provided."
           (setq pos reg-beg
                 continue nil))
         ) ;t
-
-       ;;((web-mode-looking-back "\\_<\\(return\\|else\\)[ \n]*" pos)
-       ;; (setq continue nil))
-       ;;(t
-       ;; (setq pos (1- pos)))
-
        ) ;cond
       ) ;while
     ;;(message "pos=%S dot-pos=%S" pos dot-pos)
