@@ -1,0 +1,7 @@
+@font-face {
+  font-family: 'Exo';
+  src:
+    url('titi'),
+    url('toto');
+  font-weight: 700;
+}

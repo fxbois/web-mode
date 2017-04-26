@@ -2,6 +2,15 @@ body {
   width: 100px;
 }
 
+@font-face {
+  font-family: 'Exo';
+  src:
+    url('titi'),
+    url('toto');
+  font-weight: 700;
+}
+
+
 .dialog INPUT[type=button]:hover,
 .btn { color:#0aa; width:100%; }
 
