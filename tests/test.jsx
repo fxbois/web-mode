@@ -92,6 +92,21 @@ function foo() {
   </label>;
 }
 
+import React, {Component} from 'react';
+class Confirm extends Component {
+  render() {
+    const project = this.props.project;
+    return (
+      <Switch>
+        <Route
+          path={'/home'}
+          render={ (props) => (
+            <Home {...props} />
+          )} />
+      </Switch>
+    )
+  }
+}
 
 // #870
 import React, {Component} from 'react';
@@ -103,10 +118,10 @@ class Confirm extends Component {
         <fieldset>
           {project.foo && (
              <div>Foo</div>
-           )}
+          )}
           {project.bar && (
              <p>Bar</p>
-           )}
+          )}
         </fieldset>
       </form>
     );

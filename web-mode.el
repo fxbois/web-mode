@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.1.15
+;; Version: 14.1.16
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.1.15"
+(defconst web-mode-version "14.1.16"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7133,16 +7133,20 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               ) ;save-excursion
             )
            ((and is_js
-                 (web-mode-is-prefixed-string pos "Relay\.QL"))
+                 (web-mode-is-ql-string pos "Relay\.QL"))
             (setq offset (web-mode-relayql-indentation pos))
             )
            ((and is_js
-                 (web-mode-is-prefixed-string pos "gql"))
+                 (web-mode-is-ql-string pos "gql"))
             (setq offset (web-mode-relayql-indentation pos "gql"))
             )
            ((and is_js
-                 (web-mode-is-prefixed-string pos "graphql"))
+                 (web-mode-is-ql-string pos "graphql"))
             (setq offset (web-mode-relayql-indentation pos "graphql"))
+            )
+           ((and is_js
+                 (web-mode-is-html-string pos))
+            (setq offset (web-mode-html-indentation pos))
             )
            (t
             (setq offset nil))
@@ -7243,7 +7247,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ((and web-mode-attr-value-indent-offset (web-mode-tag-beginning))
               (setq offset (+ (current-column) web-mode-attr-value-indent-offset)))
              (t
-              ;;(message "ici")
               (web-mode-dom-rsf "=[ ]*[\"']?" pos)
               (setq offset (current-column)))
              ) ;cond
@@ -7254,9 +7257,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ((string-match-p "^/?>" curr-line)
             (setq offset (current-column)))
            (web-mode-attr-indent-offset
+
             (setq offset (+ (current-column) web-mode-attr-indent-offset)))
            ((looking-at-p (concat web-mode-start-tag-regexp "[ ]*\n"))
-            (setq offset (+ (current-column) (or web-mode-attr-indent-offset 4))))
+            (setq offset (+ (current-column) (or web-mode-attr-indent-offset web-mode-code-indent-offset))))
            ((web-mode-attribute-next)
             (setq offset (current-column)))
            ) ;cond
@@ -7319,6 +7323,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (if (get-text-property pos 'block-side)
                 (setq ori (web-mode-block-opening-paren-position pos reg-beg))
               (setq ori (web-mode-part-opening-paren-position pos reg-beg)))
+            ;;(message "ori=%S" ori)
             (cond
              ((null ori)
               (setq offset reg-col))
@@ -7333,7 +7338,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               (goto-char ori)
               (back-to-indentation)
               (setq offset (current-indentation))
-              (when (get-text-property pos 'jsx-end)
+              ;;(message "ori=%S offset=%S" ori offset)
+              (when (get-text-property pos 'jsx-depth)
+                ;;(when (get-text-property pos 'jsx-end)
                 (setq adjust nil))
               ) ;t
              ) ;cond
@@ -7497,6 +7504,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           )
 
          ((and is_js
+               (eq prev-char ?\()
+               (string-match-p "=>[ ]*([ ]*$" prev-line))
+          (when debug (message "I355(%S) => (" pos))
+          (setq offset (+ prev-indentation web-mode-code-indent-offset))
+          )
+
+         ((and is_js
                (or (member ?\, chars)
                    (member prev-char '(?\( ?\[))))
           (when debug (message "I360(%S) javascript-args" pos))
@@ -7651,7 +7665,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ) ;cond
 
+        ;;(message "offset-before=%S" offset)
         (when (and offset reg-col adjust (< offset reg-col)) (setq offset reg-col))
+        ;;(message "offset-after=%S" offset)
 
         ) ;let
       ) ;save-excursion
@@ -7700,6 +7716,63 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         ) ;while
       (if (>= value 1) (current-indentation) nil)
       )))
+
+(defun web-mode-html-indentation (pos)
+  (save-excursion
+    (let (beg (continue t) end level map offset regexp tag val void)
+    (goto-char pos)
+    (setq beg (web-mode-part-token-beginning-position pos))
+    (cond
+     ((eq (char-after pos) ?\`)
+      (setq offset (web-mode-indentation-at-pos beg)))
+     ((web-mode-looking-back "`[ \n\t]*" pos)
+      (setq offset (+ (web-mode-indentation-at-pos beg) web-mode-markup-indent-offset)))
+     ((looking-at "</\\([a-zA-Z]+\\)")
+      (setq tag (match-string-no-properties 1))
+      (setq regexp (concat "</?" tag))
+      (set level -1)
+      (while (and continue (re-search-backward regexp beg t))
+        (if (eq (aref (match-string-no-properties 0) 1) ?/)
+            (setq level (1- level))
+          (setq level (1+ level)))
+        (when (= level 0)
+          (setq continue nil
+                offset (current-indentation)))
+        ) ;while
+      )
+     (t
+      (setq regexp "</?\\([a-zA-Z]+\\)")
+      ;;(message "point=%S" (point))
+      (while (and continue (re-search-backward regexp beg t))
+        (setq tag (match-string-no-properties 1)
+              end nil
+              void nil)
+        (cond
+         ((eq (aref (match-string-no-properties 0) 1) ?/)
+          (setq end t))
+         ((web-mode-element-is-void tag)
+          (setq void t))
+         (t
+          (save-excursion
+            (when (and (search-forward ">" pos t) (eq (char-before) ?\/))
+              (setq void t))
+            ) ;save-excursion
+          ) ;t
+         ) ;cond
+        (unless void
+          (setq val (or (plist-get map tag) 0))
+          (setq val (if end (1- val) (1+ val)))
+          (setq map (plist-put map tag val))
+          (setq continue (not (> val 0)))
+          ) ;unless
+        ;;(message "pos=%S tag=%S val=%S end=%S void=%S" (point) tag val end void)
+        ) ;while
+      (setq offset (if (and val (> val 0))
+                       (+ (current-indentation) web-mode-markup-indent-offset)
+                     nil))
+      ) ;t
+     ) ;cond
+    offset)))
 
 (defun web-mode-relayql-indentation (pos &optional prefix)
   (unless prefix (setq prefix "relayql"))
@@ -9184,17 +9257,29 @@ Prompt user if TAG-NAME isn't provided."
   )
 
 (defun web-mode-comment-insert ()
-  (cond
-   ((get-text-property (point) 'block-side)
-    (insert "/*  */")
-    (search-backward " */"))
-   ((get-text-property (point) 'part-side)
-    (insert "/*  */")
-    (search-backward " */"))
-   (t
-    (insert "<!--  -->")
-    (search-backward " -->"))
-   )
+  (let ((alt nil) (language nil) (pos (point)))
+    (setq language (web-mode-language-at-pos pos))
+    (cond
+     ((get-text-property pos 'block-side)
+      (insert "/*  */")
+      (search-backward " */"))
+     ((get-text-property pos 'part-side)
+      (cond
+       ((and (setq alt (cdr (assoc language web-mode-comment-formats)))
+             (string= alt "//"))
+        (insert "// ")
+        ;;(search-backward " */")
+        )
+       (t
+        (insert "/*  */")
+        (search-backward " */"))
+       );cond
+      ) ; case part-side
+     (t
+      (insert "<!--  -->")
+      (search-backward " -->"))
+     )
+    )
   )
 
 (defun web-mode-comment-indent-new-line (&optional soft)
@@ -11568,11 +11653,23 @@ Prompt user if TAG-NAME isn't provided."
     ))
 
 ;; Relay.QL , gql, graphql
-(defun web-mode-is-prefixed-string (pos prefix-regexp)
+(defun web-mode-is-ql-string (pos prefix-regexp)
   (let (beg)
     (cond
      ((and (setq beg (web-mode-part-token-beginning-position pos))
            (web-mode-looking-back prefix-regexp beg))
+      beg)
+     (t
+      nil)
+     ) ;cond
+    ))
+
+(defun web-mode-is-html-string (pos)
+  (let (beg)
+    (cond
+     ((and (setq beg (web-mode-part-token-beginning-position pos))
+           (web-mode-looking-at-p "`[ \t\n]*<[a-zA-Z]" beg)
+           (web-mode-looking-back "\\(template\\|html\\)[ ]*[=:][ ]*" beg))
       beg)
      (t
       nil)

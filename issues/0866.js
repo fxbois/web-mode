@@ -8,3 +8,19 @@ const query = gql`
     }
   }
 `
+
+new Vue({
+
+  el: '#toto',
+
+  template: `
+    <div>
+      <span>
+        toto
+        <hr/>
+        toto
+      </span>
+    </div>
+  `
+
+});
