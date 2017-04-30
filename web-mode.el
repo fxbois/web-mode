@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.1.16
+;; Version: 14.1.17
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.1.16"
+(defconst web-mode-version "14.1.17"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3219,8 +3219,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
        (t
         (setq part-end (1+ part-end))
         (funcall func part-beg part-end)
-        (setq part-beg part-end)
-        )
+        (setq part-beg part-end))
        ) ;cond
       ) ;while
     ))
@@ -3877,8 +3876,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 type (if (eq (aref (match-string-no-properties 0) 1) ?\/) 'close 'open))
           (setq controls (append controls (list (cons type control))))
           )
-         ) ;mason
-        )
+         )
+        ) ;mason
 
        ((string= web-mode-engine "ctemplate")
         (cond
@@ -4821,8 +4820,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (web-mode-part-scan beg end "jsx" (1+ depth))
           ) ;t
          ) ;cond
-        )
-      )
+        ) ;while
+      ) ;save-excursion
     ))
 
 (defun web-mode-jsx-is-html (&optional pos)
@@ -5249,26 +5248,19 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       )))
 
 (defun web-mode-propertize (&optional beg end)
-
   (unless beg (setq beg web-mode-change-beg))
   (unless end (setq end web-mode-change-end))
-
   ;;(message "%S %S" web-mode-content-type (get-text-property beg 'part-side))
   ;;(message "propertize: beg(%S) end(%S)" web-mode-change-beg web-mode-change-end)
   ;;(message "%S %S" (get-text-property beg 'part-side) (get-text-property end 'part-side))
-
   (when (and end (> end (point-max)))
     (setq end (point-max)))
-
   ;;(message "propertize: reset web-mode-change-beg|end")
   (setq web-mode-change-beg nil
         web-mode-change-end nil)
-
   (cond
-
    ((or (null beg) (null end))
     nil)
-
    ((and (member web-mode-engine '("php" "asp"))
          (get-text-property beg 'block-side)
          (get-text-property end 'block-side)
@@ -5277,7 +5269,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          (not (eq (get-text-property end 'block-token) 'delimiter-end)))
     ;;(message "invalidate block")
     (web-mode-invalidate-block-region beg end))
-
    ((and (or (member web-mode-content-type '("css" "jsx" "javascript"))
              (and (get-text-property beg 'part-side)
                   (get-text-property end 'part-side)
@@ -5286,13 +5277,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ))
     ;;(message "invalidate part (%S > %S)" beg end)
     (web-mode-invalidate-part-region beg end))
-
    (t
     ;;(message "invalidate default (%S > %S)" beg end)
     (web-mode-invalidate-region beg end))
-
    ) ;cond
-
   )
 
 ;; NOTE: il est important d'identifier des caractères en fin de ligne
@@ -6248,13 +6236,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            )
           )
         ) ;comment - case
-
        ((web-mode-is-content)
         (setq pair (web-mode-content-boundaries pos))
         (setq beg (car pair)
               end (cdr pair))
         )
-
        ) ;cond
       ;;(message "beg(%S) end(%S)" beg end)
       (when (and beg end)
@@ -7540,7 +7526,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                (or (eq prev-char ?\))
                    (string-match-p "^else$" prev-line)))
           (when debug (message "I370(%S)" pos))
-          ;;(message "js-ici")
           (cond
            ((string-match-p "^else$" prev-line)
             (setq offset (+ prev-indentation web-mode-code-indent-offset))
@@ -7648,7 +7633,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ((member language '("javascript" "jsx" "ejs" "underscore"))
           (when debug (message "I420(%S) javascript-indentation" pos))
-          ;;(message "js-indent")
           (setq offset (car (web-mode-javascript-indentation pos
                                                              reg-col
                                                              curr-indentation
@@ -7665,9 +7649,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ) ;cond
 
-        ;;(message "offset-before=%S" offset)
         (when (and offset reg-col adjust (< offset reg-col)) (setq offset reg-col))
-        ;;(message "offset-after=%S" offset)
 
         ) ;let
       ) ;save-excursion
@@ -7728,17 +7710,25 @@ another auto-completion with different ac-sources (e.g. ac-php)")
      ((web-mode-looking-back "`[ \n\t]*" pos)
       (setq offset (+ (web-mode-indentation-at-pos beg) web-mode-markup-indent-offset)))
      ((looking-at "</\\([a-zA-Z]+\\)")
-      (setq tag (match-string-no-properties 1))
-      (setq regexp (concat "</?" tag))
-      (set level -1)
+      (setq tag (match-string-no-properties 1)
+            regexp (concat "</?" tag)
+            level -1)
       (while (and continue (re-search-backward regexp beg t))
-        (if (eq (aref (match-string-no-properties 0) 1) ?/)
+        (if (eq (aref (match-string-no-properties 0) 1) ?\/)
             (setq level (1- level))
           (setq level (1+ level)))
         (when (= level 0)
           (setq continue nil
                 offset (current-indentation)))
         ) ;while
+      )
+     ((looking-at "[a-zA-Z-]+[ ]?=")
+      (re-search-backward "<[a-zA-Z]+[ ]*" beg t)
+      (setq offset (+ (current-column) (length (match-string-no-properties 0))))
+      )
+     ((looking-at-p "/>")
+      (search-backward "<" beg t)
+      (setq offset (current-column))
       )
      (t
       (setq regexp "</?\\([a-zA-Z]+\\)")
@@ -10188,32 +10178,41 @@ Prompt user if TAG-NAME isn't provided."
       )
      ) ;cond
 
-    (when (and web-mode-enable-auto-indentation
-               (member this-command '(self-insert-command))
-               (or (and ctx
-                        (or (plist-get ctx :auto-closed)
-                            (plist-get ctx :auto-expanded)))
-                   (and (> (point) (point-min))
-                        (get-text-property (1- (point)) 'tag-end)
-                        (get-text-property (line-beginning-position) 'tag-beg))))
+    (cond
+     ((not web-mode-enable-auto-opening)
+      )
+     ((and (member this-command '(newline electric-newline-and-maybe-indent newline-and-inden))
+           (get-text-property (point) 'part-side)
+           (eq (get-text-property (point) 'part-token) 'string))
       (indent-according-to-mode)
-      (when (and web-mode-change-end (> web-mode-change-end (point-max)))
-        (message "post-command: enlarge web-mode-change-end")
-        (setq web-mode-change-end (point-max))
-        )
-      ) ;when auto-indent
-
-    (when (and web-mode-enable-auto-indentation
-               (member this-command '(self-insert-command))
-               (member (get-text-property (point) 'part-side) '(javascript jsx))
-               (looking-back "^[ \t]+[]})]" (point-min)))
-      (indent-according-to-mode)
-      ;;(message "%S" (point))
       (when (and web-mode-change-end (> web-mode-change-end (point-max)))
         (message "post-command: enlarge web-mode-change-end")
         (setq web-mode-change-end (point-max))
         )
       )
+     ((and (member this-command '(self-insert-command))
+           (or (and ctx
+                    (or (plist-get ctx :auto-closed)
+                        (plist-get ctx :auto-expanded)))
+               (and (> (point) (point-min))
+                    (get-text-property (1- (point)) 'tag-end)
+                    (get-text-property (line-beginning-position) 'tag-beg))))
+      (indent-according-to-mode)
+      (when (and web-mode-change-end (> web-mode-change-end (point-max)))
+        (message "post-command: enlarge web-mode-change-end")
+        (setq web-mode-change-end (point-max))
+        )
+      )
+     ((and (member this-command '(self-insert-command))
+           (member (get-text-property (point) 'part-side) '(javascript jsx css))
+           (looking-back "^[ \t]+[]})]" (point-min)))
+      (indent-according-to-mode)
+      (when (and web-mode-change-end (> web-mode-change-end (point-max)))
+        (message "post-command: enlarge web-mode-change-end")
+        (setq web-mode-change-end (point-max))
+        )
+      )
+     ) ; cond web-mode-enable-auto-opening
 
     (when web-mode-enable-current-element-highlight
       (web-mode-highlight-current-element))
@@ -10400,7 +10399,6 @@ Prompt user if TAG-NAME isn't provided."
           (forward-char)
         (setq continue nil))
       ) ;while
-;;    (message "pt=%S" (point))
     (point)))
 
 (defun web-mode-tag-attributes-sort (&optional pos)

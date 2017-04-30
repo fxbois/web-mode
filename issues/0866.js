@@ -15,8 +15,12 @@ new Vue({
 
   template: `
     <div>
+      titi
       <span>
         toto
+        <img src="/toto.gif"
+             data-x="3"
+        />
         <hr/>
         toto
       </span>
