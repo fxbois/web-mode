@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.1.17
+;; Version: 14.1.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.1.17"
+(defconst web-mode-version "14.1.18"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4124,6 +4124,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   limit (if (> reg-end (line-end-position)) (line-end-position) reg-end))
             )
            ((web-mode-element-is-void tname)
+            ;;(message "void: tag=%S" tname)
             (setq props (list 'tag-name tname 'tag-type 'void)))
            (t
             (setq props (list 'tag-name tname 'tag-type 'start)))
@@ -9103,7 +9104,7 @@ Prompt user if TAG-NAME isn't provided."
 
 (defun web-mode-element-is-void (&optional tag)
   (cond
-   ((eq (get-text-property (point) 'tag-type) 'void)
+   ((and (not tag) (eq (get-text-property (point) 'tag-type) 'void))
     t)
    ((and tag (member tag '("div" "li" "a" "p" "h1" "h2" "h3" "ul" "span" "article" "section" "td" "tr")))
     nil)
