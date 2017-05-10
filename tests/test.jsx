@@ -20,6 +20,17 @@ return (
   </div>;
 );
 
+const Demo = () => (
+  <ListItem
+    leftAvatar={
+      <Avatar
+        src=""
+      />
+    }
+  >
+  </ListItem>
+);
+
 import React, {Component} from 'react';
 class Confirm extends Component {
   render() {

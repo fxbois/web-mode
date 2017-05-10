@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 14.1.19
+;; Version: 14.1.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "14.1.19"
+(defconst web-mode-version "14.1.20"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7226,19 +7226,23 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ((and (get-text-property pos 'tag-attr)
                  (get-text-property (1- pos) 'tag-attr)
                  (web-mode-attribute-beginning)
+                 (not (string-match-p "^/?>" curr-line))
                  ;;(progn (message "%S" pos) t)
                  )
             ;;(message "la")
             (cond
              ((eq (logand (get-text-property (point) 'tag-attr-beg) 8) 8)
               (setq offset nil))
-             ((and web-mode-attr-value-indent-offset (web-mode-tag-beginning))
+             ((not (web-mode-tag-beginning))
+              (message "** tag-beginning ** failure")
+              (setq offset nil))
+             (web-mode-attr-value-indent-offset
               (setq offset (+ (current-column) web-mode-attr-value-indent-offset)))
-             (t
-              (web-mode-dom-rsf "=[ ]*[\"']?" pos)
+             ((web-mode-dom-rsf "=[ ]*[\"']?" pos)
               (setq offset (current-column)))
+             (t
+              (setq offset (+ (current-column) web-mode-markup-indent-offset)))
              ) ;cond
-
             )
            ((not (web-mode-tag-beginning))
             )
