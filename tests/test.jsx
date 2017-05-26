@@ -42,6 +42,19 @@ class Confirm extends Component {
         </DefaultLayout>
       )} />
     )
+  },
+  render() {
+    const project = this.props.project;
+    return (
+      <Foo
+        someLongValue='x'
+        text={
+          <Text>
+            text
+          </Text>
+        }
+      />
+    )
   }
 }
 
