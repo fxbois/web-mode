@@ -9301,7 +9301,7 @@ Prompt user if TAG-NAME isn't provided."
   (interactive)
   (let (ctx)
     (setq ctx (web-mode-comment-context))
-    (if (null ctx) nil
+    (if (null ctx) (indent-new-comment-line)
       ;; (message "ctx=%S" ctx)
       (newline 1)
       (indent-line-to (plist-get ctx :col))
