@@ -1,0 +1,39 @@
+<div>
+  <%
+  content_for :title, t('moderation_queue.moderation_queue')
+  content_for :h1, t('moderation_queue.moderation_queue')
+  content_for :body_id, 'moderation_queue-index'
+  content_for :body_classes, 'moderation_queue index'
+  %>
+</div>
+
+<%# Link showing page number
+- available local variables
+page:          a page object for "this" page
+url:           url to this page
+current_page:  a page object for the currently displayed page
+total_pages:   total number of pages
+per_page:      number of items to fetch per page
+remote:        data-remote
+-%><%
+   attrs = {}
+   attrs['aria-disabled'] = 'true' if page.current?
+   attrs[:rel] = 'next' if page.next?
+   attrs[:rel] = 'prev' if page.prev?
+   attrs[:remote] = remote
+   -%>
+<li class="page<%= ' active' if page.current? %>">
+  <%= cf_link_to page, url + @doc_fragment.to_s, attrs %>
+</li>
+
+<div>
+  <%
+  a=x.y_for_w(1)
+  b=css_class_x2
+  c=3
+  d=4
+  %>
+  <div>
+    <div></div>
+  </div>
+</div>
