@@ -238,6 +238,11 @@ See web-mode-block-face."
   :type '(choice (const :tag "Auto-quotes with double quote" 1)
                  (const :tag "Auto-quotes with single quote" 2)))
 
+(defcustom web-mode-enable-electric-block-closing nil
+  "Enable electric indentation on }, ] and )."
+  :group 'web-mode
+  :type 'boolean)
+
 (defcustom web-mode-extra-expanders '()
   "A list of additional expanders."
   :type 'list
@@ -10245,6 +10250,13 @@ Prompt user if TAG-NAME isn't provided."
     (when (and web-mode-enable-current-column-highlight
                (not (web-mode-buffer-narrowed-p)))
       (web-mode-column-show))
+
+    (when (and web-mode-enable-electric-block-closing
+               (eq this-command 'self-insert-command)
+               (string-match
+                "^[ \t]*[]})]"
+                (thing-at-point 'line t)))
+      (indent-according-to-mode))
 
     ;;(message "post-command (%S) (%S)" web-mode-change-end web-mode-change-end)
 
