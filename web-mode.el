@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.1
+;; Version: 15.0.2
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.1"
+(defconst web-mode-version "15.0.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -730,7 +730,7 @@ Must be used in conjunction with web-mode-enable-block-face."
         'syntax-table)
   "Text properties used for code regions/tokens and html nodes.")
 
-(defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]:-]*\\)"
+(defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]:_-]*\\)"
   "Regular expression for HTML/XML start tag.")
 
 (defvar web-mode-whitespaces-regexp
@@ -4082,9 +4082,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (if (eq (char-before) ?\() (setq n (1+ n)) (setq n (1- n)))))
     (> n 0)))
 
-(defvar web-mode-regexp1 "<\\(/?[[:alpha:]][[:alnum:]:-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
+(defvar web-mode-regexp1 "<\\(/?[[:alpha:]][[:alnum:]:_-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
 
-(defvar web-mode-regexp2 "<\\(/?[[:alpha:]][[:alnum:]:-]*\\|!--\\|!\\[CDATA\\[\\)")
+(defvar web-mode-regexp2 "<\\(/?[[:alpha:]][[:alnum:]:_-]*\\|!--\\|!\\[CDATA\\[\\)")
 
 (defun web-mode-scan-elements (reg-beg reg-end)
   (save-excursion
@@ -9888,7 +9888,7 @@ Prompt user if TAG-NAME isn't provided."
   (save-excursion
     (goto-char pos)
     (if (and (web-mode-tag-beginning)
-             (looking-at "</?\\([[:alpha:]][[:alnum:]:-]*\\)"))
+             (looking-at "</?\\([[:alpha:]][[:alnum:]:_-]*\\)"))
         (match-string-no-properties 1)
       nil)))
 
@@ -11692,7 +11692,7 @@ Prompt user if TAG-NAME isn't provided."
     (cond
      ((and (setq beg (web-mode-part-token-beginning-position pos))
            (web-mode-looking-at-p "`[ \t\n]*<[a-zA-Z]" beg)
-           (web-mode-looking-back "\\(template\\|html\\)[ ]*[=:][ ]*" beg))
+           (web-mode-looking-back "\\(template\\|html\\)\\([ ]*[=:][ ]*\\)?" beg))
       beg)
      (t
       nil)
