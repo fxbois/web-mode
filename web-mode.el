@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.2
+;; Version: 15.0.3
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.2"
+(defconst web-mode-version "15.0.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -627,7 +627,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   :group 'web-mode-faces)
 
 (defface web-mode-current-element-highlight-face
-  '((t :background "#000000"))
+  '((t :background "#000000" :foreground "#ffffff"))
   "Overlay face for element highlight."
   :group 'web-mode-faces)
 
@@ -10282,6 +10282,7 @@ Prompt user if TAG-NAME isn't provided."
         (setq elt (aref elt 0))
         (setq elt (car (rassoc elt web-mode-html-entities)))
         (replace-match (concat "&" elt ";"))
+        (setq max (+ max (length elt) 1))
         ) ;while
       )))
 
