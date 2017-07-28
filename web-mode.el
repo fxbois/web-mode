@@ -10552,6 +10552,10 @@ Prompt user if TAG-NAME isn't provided."
         ) ;let
       ) ;when
     ) ;while
+  ;; Delete a potential space before the closing ">".
+  (if (and (looking-at ">")
+           (looking-back " "))
+        (delete-char -1))
   )
 
 (defun web-mode-block-close (&optional pos)
