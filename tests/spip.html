@@ -1,0 +1,30 @@
+[(#REM)
+  On prend les articles de la rubrique projets et du premier niveau
+  de sous-rubriques. On filtre aussi par le mot-clé dans
+  l'environnement.
+]
+<B_projets>
+  <h2 class="show-for-sr">#INFO_TITRE{rubrique, #GLOBALS{id_rubrique_projets}}</h2>
+  <div id="liste_projets">
+    <BOUCLE_projets(ARTICLES)
+      {id_secteur=#GLOBALS{id_rubrique_projets}}
+      {profondeur<2}
+      {id_mot?}
+      {!par date}>
+
+      <:local:dans{titre_rubrique=#INFO_TITRE{rubrique, #ID_RUBRIQUE}}:>
+      <a href="#URL_ARTICLE">
+        <article [(#COMPTEUR_BOUCLE|=={#TOTAL_BOUCLE}|oui) class="end"]>
+          [(#LOGO_ARTICLE
+            |image_passe_partout{200,200}
+            |image_recadre{200,200}
+          )]
+          <h3>[(#TITRE|cesure{#LANG})]</h3>
+          [(#SOUSTITRE)]
+        </article>
+      </a>
+    </BOUCLE_projets>
+  </div>
+</B_projets>
+
+[(#SET_PUSH{members, #ARRAY{value, #ID_MEMBER, label, #PAYS|upcase : #NOM}})]
