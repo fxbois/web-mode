@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.4
+;; Version: 15.0.5
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.4"
+(defconst web-mode-version "15.0.5"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -867,8 +867,14 @@ Must be used in conjunction with web-mode-enable-block-face."
     )
   "Engine file extensions.")
 
+(defvar web-mode-content-types-alist nil
+  "A list of filename patterns and corresponding web-mode content types. For example,
+(setq web-mode-content-types-alist
+  '((\"json\" . \"/some/path/.*\\.api\\'\")
+    (\"jsx\"  . \"/some/react/path/.*\\.js[x]?\\'\")))")
+
 (defvar web-mode-engines-alist nil
-  "Alist of filename patterns and corresponding web-mode engine. For example,
+  "A list of filename patterns and corresponding web-mode engine. For example,
 (setq web-mode-engines-alist
       '((\"php\"    . \"\\\\.phtml\\\\'\")
         (\"blade\"  . \"\\\\.blade\\\\.\")))")
