@@ -1707,6 +1707,7 @@ shouldn't be moved back.)")
    '("\\_<\\(function\\|get\\|set\\)[ ]+\\([[:alnum:]_]+\\)"
      (1 'web-mode-keyword-face)
      (2 'web-mode-function-name-face))
+   '("\\([[:alnum:]_]+\\)[ ]*([^)]*)[ \n]*{" 1 'web-mode-function-name-face)
    '("([ ]*\\([[:alnum:]_]+\\)[ ]*=>" 1 'web-mode-function-name-face)
    '("[ ]*\\([[:alnum:]_]+\\)[ ]*=[ ]*([^)]*)[ ]*=>[ ]*{" 1 'web-mode-function-name-face)
    '("\\_<\\(var\\|let\\|const\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-variable-name-face)
