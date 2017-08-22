@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.5
+;; Version: 15.0.6
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.5"
+(defconst web-mode-version "15.0.6"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4047,7 +4047,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
        ((string= web-mode-engine "freemarker")
         (cond
-         ((looking-at "<#\\(import\\|assign\\|return\\|local\\)")
+         ((looking-at "[<[]#\\(import\\|include\\|assign\\|return\\|local\\)")
           )
          ((eq (char-after (1- reg-end)) ?\/)
           )
@@ -4062,7 +4062,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 type (if (eq (aref (match-string-no-properties 0) 1) ?\/) 'close 'open))
           (setq controls (append controls (list (cons type control))))
           )
-         ((looking-at "</?\\(@\\)")
+         ((looking-at "[<[]/?\\(@\\)")
           (setq control (match-string-no-properties 1)
                 type (if (eq (aref (match-string-no-properties 0) 1) ?\/) 'close 'open))
           (setq controls (append controls (list (cons type control))))
