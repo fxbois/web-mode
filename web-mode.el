@@ -752,7 +752,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defvar web-mode-engines
-  '(("angularjs"        . ("angularjs" "angular.js"))
+  '(("angular"          . ("angular"))
+    ("angularjs"        . ("angularjs"))
     ("archibus"         . ())
     ("asp"              . ())
     ("aspx"             . ())
@@ -827,7 +828,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defvar web-mode-engine-file-regexps
-  '(("asp"              . "\\.asp\\'")
+  '(("angular"          . "\\.component.html\\'")
+    ("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
     ("archibus"         . "\\.axvw\\'")
     ("blade"            . "\\.blade\\.php\\'")
@@ -1008,7 +1010,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("?/" . "<?php | ?>")))
 
 (defvar web-mode-engines-auto-pairs
-  '(("angularjs"        . (("{{ " . " }}")))
+  '(("angular"          . (("{{ " . " }}")))
+    ("angularjs"        . (("{{ " . " }}")))
     ("asp"              . (("<% " . " %>")))
     ("aspx"             . (("<% " . " %>")
                            ("<%=" . "%>")
@@ -1141,6 +1144,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engine-open-delimiter-regexps
   (list
+   '("angular"          . "{{")
    '("angularjs"        . "{{")
    '("asp"              . "<%\\|</?[[:alpha:]]+:[[:alpha:]]+\\|</?[[:alpha:]]+Template")
    '("aspx"             . "<%.")
@@ -1890,6 +1894,11 @@ shouldn't be moved back.)")
    '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
    ))
 
+(defvar web-mode-angular-font-lock-keywords
+  (list
+   '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
+   ))
+
 (defvar web-mode-angularjs-font-lock-keywords
   (list
    '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
@@ -2105,7 +2114,8 @@ shouldn't be moved back.)")
    web-mode-php-font-lock-keywords))
 
 (defvar web-mode-engines-font-lock-keywords
-  '(("angularjs"        . web-mode-angularjs-font-lock-keywords)
+  '(("angular"          . web-mode-angular-font-lock-keywords)
+    ("angularjs"        . web-mode-angularjs-font-lock-keywords)
     ("blade"            . web-mode-blade-font-lock-keywords)
     ("cl-emb"           . web-mode-cl-emb-font-lock-keywords)
     ("closure"          . web-mode-closure-font-lock-keywords)
@@ -2854,6 +2864,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 delim-close "}}")
           ) ;go
 
+         ((string= web-mode-engine "angular")
+          (setq closing-string "}}"
+                delim-open "{{"
+                delim-close "}}")
+          ) ;angular
+
          ((string= web-mode-engine "angularjs")
           (setq closing-string "}}"
                 delim-open "{{"
@@ -3456,6 +3472,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
      ((string= web-mode-engine "underscore")
       (setq regexp "/\\*\\|\"\\|'")
       ) ;underscore
+
+     ((string= web-mode-engine "angular")
+      ) ;angular
 
      ((string= web-mode-engine "angularjs")
       ) ;angularjs
