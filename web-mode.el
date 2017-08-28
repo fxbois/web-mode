@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.7
+;; Version: 15.0.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.7"
+(defconst web-mode-version "15.0.8"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -211,6 +211,11 @@ See web-mode-block-face."
 
 (defcustom web-mode-enable-engine-detection nil
   "Detect such directive -*- engine: ENGINE -*- at the top of the file."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-optional-tags nil
+  "Certain closing tags can be omitted. (e.g. a li open tag followed by a li open tag is valid)"
   :type 'boolean
   :group 'web-mode)
 
@@ -7129,7 +7134,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
   (let ((offset nil)
         (char nil)
-        (debug nil)
+        (debug t)
         (inhibit-modification-hooks t)
         (adjust t))
 
