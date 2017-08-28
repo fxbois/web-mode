@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.8
+;; Version: 15.0.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.8"
+(defconst web-mode-version "15.0.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -215,7 +215,7 @@ See web-mode-block-face."
   :group 'web-mode)
 
 (defcustom web-mode-enable-optional-tags t
-  "Certain closing tags can be omitted. (e.g. a li open tag followed by a li open tag is valid)"
+  "Enable omission of Certain closing tags (e.g. a li open tag followed by a li open tag is valid)."
   :type 'boolean
   :group 'web-mode)
 
@@ -861,6 +861,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("razor"            . "\\.\\(cs\\|vb\\)html\\|\\.razor\\'")
     ("riot"             . "\\.tag\\'")
     ("smarty"           . "\\.tpl\\'")
+    ("spip"             . "spip")
     ("template-toolkit" . "\\.tt.?\\'")
     ("thymeleaf"        . "\\.thtml\\'")
     ("velocity"         . "\\.v\\(sl\\|tl\\|m\\)\\'")
@@ -7134,7 +7135,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
   (let ((offset nil)
         (char nil)
-        (debug t)
+        (debug nil)
         (inhibit-modification-hooks t)
         (adjust t))
 
@@ -7346,7 +7347,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   (setq prev-tag (get-text-property prev-tag-pos 'tag-name)
                         next-tag (get-text-property next-tag-pos 'tag-name))
                   ;;(message "%S %S" prev-tag next-tag)
-                  (when (or (and (string= prev-tag "p") (member next-tag '("p" "li" "h1" "h2" "address" "article")))
+                  (when (or (and (string= prev-tag "p") (member next-tag '("p" "address", "article", "aside", "blockquote", "div", "dl", "fieldset", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "ul")))
                             (and (string= prev-tag "li") (member next-tag '("li")))
                             (and (string= prev-tag "dt") (member next-tag '("dt" "dd")))
                             (and (string= prev-tag "td") (member next-tag '("td" "th")))
@@ -10637,7 +10638,7 @@ Prompt user if TAG-NAME isn't provided."
     ) ;while
   ;; Delete a potential space before the closing ">".
   (if (and (looking-at ">")
-           (looking-back " "))
+           (looking-back " " (point-min)))
         (delete-char -1))
   )
 
