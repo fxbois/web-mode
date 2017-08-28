@@ -214,7 +214,7 @@ See web-mode-block-face."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-optional-tags nil
+(defcustom web-mode-enable-optional-tags t
   "Certain closing tags can be omitted. (e.g. a li open tag followed by a li open tag is valid)"
   :type 'boolean
   :group 'web-mode)
@@ -7332,7 +7332,34 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               (and (member language '("jsx"))
                    (string= options "is-html")))
           (when debug (message "I200(%S) web-mode-markup-indentation" pos))
+          (when web-mode-enable-optional-tags
+            (save-excursion
+              (let (prev-tag-pos next-tag-pos prev-tag next-tag)
+                (if (get-text-property pos 'tag-type)
+                    (setq next-tag-pos pos)
+                  (setq next-tag-pos (web-mode-tag-next-position pos)))
+                (setq prev-tag-pos (web-mode-tag-previous-position pos))
+                ;;(message "%S %S" prev-tag-pos next-tag-pos)
+                (when (and prev-tag-pos next-tag-pos
+                           (eq (get-text-property prev-tag-pos 'tag-type) 'start)
+                           (eq (get-text-property next-tag-pos 'tag-type) 'start))
+                  (setq prev-tag (get-text-property prev-tag-pos 'tag-name)
+                        next-tag (get-text-property next-tag-pos 'tag-name))
+                  ;;(message "%S %S" prev-tag next-tag)
+                  (when (or (and (string= prev-tag "p") (member next-tag '("p" "li" "h1" "h2" "address" "article")))
+                            (and (string= prev-tag "li") (member next-tag '("li")))
+                            (and (string= prev-tag "dt") (member next-tag '("dt" "dd")))
+                            (and (string= prev-tag "td") (member next-tag '("td" "th")))
+                            (and (string= prev-tag "th") (member next-tag '("td" "th")))
+                            )
+                    (when debug (message "I205(%S) optional-tag" pos))
+                    (setq offset (web-mode-indentation-at-pos prev-tag-pos)))
+                  ) ;when
+                )) ;save-excursion let
+            ) ;when web-mode-enable-optional-tags
           (cond
+           ((not (null offset))
+            )
            ((get-text-property pos 'tag-beg)
             (setq offset (web-mode-markup-indentation pos))
             )
