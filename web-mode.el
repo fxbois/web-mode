@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.6
+;; Version: 15.0.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.6"
+(defconst web-mode-version "15.0.7"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3727,56 +3727,62 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         ) ;erb
 
        ((string= web-mode-engine "django")
-        (when (eq (char-after (1+ reg-beg)) ?\%)
-          (cond
-           ((and (string= web-mode-minor-engine "jinja") ;#504
-                 (web-mode-block-starts-with "else\\_>" reg-beg))
-            (let ((continue t)
-                  (pos reg-beg)
-                  (ctrl nil))
-              (while continue
-                (cond
-                 ((null (setq pos (web-mode-block-control-previous-position 'open pos)))
-                  (setq continue nil))
-                 ((member (setq ctrl (cdr (car (get-text-property pos 'block-controls)))) '("if" "ifequal" "ifnotequal" "for"))
-                  (setq continue nil)
-                  )
-                 ) ;cond
+        ;;(when (eq (char-after (1+ reg-beg)) ?\%)
+        (cond
+         ((and (string= web-mode-minor-engine "jinja") ;#504
+               (web-mode-block-starts-with "else\\_>" reg-beg))
+          (let ((continue t)
+                (pos reg-beg)
+                (ctrl nil))
+            (while continue
+              (cond
+               ((null (setq pos (web-mode-block-control-previous-position 'open pos)))
+                (setq continue nil))
+               ((member (setq ctrl (cdr (car (get-text-property pos 'block-controls)))) '("if" "ifequal" "ifnotequal" "for"))
+                (setq continue nil)
                 )
-              (setq controls (append controls (list (cons 'inside (or ctrl "if")))))
+               ) ;cond
               )
+            (setq controls (append controls (list (cons 'inside (or ctrl "if")))))
             )
-           ((web-mode-block-starts-with "\\(else\\|els?if\\)" reg-beg)
-            (let ((continue t)
-                  (pos reg-beg)
-                  (ctrl nil))
-              (while continue
-                (cond
-                 ((null (setq pos (web-mode-block-control-previous-position 'open pos)))
-                  (setq continue nil))
-                 ((member (setq ctrl (cdr (car (get-text-property pos 'block-controls)))) '("if" "ifequal" "ifnotequal"))
-                  (setq continue nil)
-                  )
-                 ) ;cond
-                ) ;while
-              (setq controls (append controls (list (cons 'inside (or ctrl "if")))))
-              ) ;let
-            ) ;case else
-           ((web-mode-block-starts-with "\\(empty\\)" reg-beg)
-            (setq controls (append controls (list (cons 'inside "for")))))
-           ((web-mode-block-starts-with "end\\([[:alpha:]]+\\)" reg-beg)
-            (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
-           ((web-mode-block-starts-with (concat web-mode-django-control-blocks-regexp "[ %]") reg-beg)
-            (let (control)
-              (setq control (match-string-no-properties 1))
-              ;;(message "%S %S %S" control (concat "end" control) web-mode-django-control-blocks)
-              (when (member (concat "end" control) web-mode-django-control-blocks)
-                (setq controls (append controls (list (cons 'open control))))
-                ) ;when
-              ) ;let
-            ) ;case
-           ) ;cond
-          ) ;when
+          )
+         ((web-mode-block-starts-with "form_start[ ]*(" reg-beg)
+          (setq controls (append controls (list (cons 'open "form_start")))))
+         ((web-mode-block-starts-with "form_end[ ]*(" reg-beg)
+          (setq controls (append controls (list (cons 'close "form_start")))))
+         ((not (eq (char-after (1+ reg-beg)) ?\%))
+          )
+         ((web-mode-block-starts-with "\\(else\\|els?if\\)" reg-beg)
+          (let ((continue t)
+                (pos reg-beg)
+                (ctrl nil))
+            (while continue
+              (cond
+               ((null (setq pos (web-mode-block-control-previous-position 'open pos)))
+                (setq continue nil))
+               ((member (setq ctrl (cdr (car (get-text-property pos 'block-controls)))) '("if" "ifequal" "ifnotequal"))
+                (setq continue nil)
+                )
+               ) ;cond
+              ) ;while
+            (setq controls (append controls (list (cons 'inside (or ctrl "if")))))
+            ) ;let
+          ) ;case else
+         ((web-mode-block-starts-with "\\(empty\\)" reg-beg)
+          (setq controls (append controls (list (cons 'inside "for")))))
+         ((web-mode-block-starts-with "end\\([[:alpha:]]+\\)" reg-beg)
+          (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
+         ((web-mode-block-starts-with (concat web-mode-django-control-blocks-regexp "[ %]") reg-beg)
+          (let (control)
+            (setq control (match-string-no-properties 1))
+            ;;(message "%S %S %S" control (concat "end" control) web-mode-django-control-blocks)
+            (when (member (concat "end" control) web-mode-django-control-blocks)
+              (setq controls (append controls (list (cons 'open control))))
+              ) ;when
+            ) ;let
+          ) ;case
+         ) ;cond
+        ;;) ;when
         ) ;django
 
        ((string= web-mode-engine "smarty")

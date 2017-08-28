@@ -1,0 +1,10 @@
+<div>
+  {{ form_start(form) }}
+    {{ form_errors(form) }}
+
+    {{ form_row(form.name) }}
+    {{ form_row(form.dueDate) }}
+
+    {{ form_row(form.submit, { 'label': 'Submit me' }) }}
+  {{ form_end(form) }}
+</div>
