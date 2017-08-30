@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.9
+;; Version: 15.0.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.9"
+(defconst web-mode-version "15.0.10"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1303,7 +1303,7 @@ shouldn't be moved back.)")
    (append
     (cdr (assoc "php" web-mode-extra-keywords))
     '("and" "array" "as" "break"
-      "callable" "case" "catch"  "catch all" "class" "const" "continue"
+      "callable" "case" "catch"  "catch all" "class" "clone" "const" "continue"
       "default" "die" "do" "echo" "else" "elseif" "empty"
       "endfor" "endforeach" "endif" "endswitch" "endwhile" "exit" "extends"
       "finally" "for" "foreach" "function" "global" "goto"
