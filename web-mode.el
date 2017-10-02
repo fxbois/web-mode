@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.12
+;; Version: 15.0.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.12"
+(defconst web-mode-version "15.0.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7260,8 +7260,17 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                (or (web-mode-block-is-close pos)
                    (web-mode-block-is-inside pos)))
           (when debug (message "I150(%S) block-match" pos))
-          (when (web-mode-block-match)
-            (setq offset (current-indentation))))
+          (cond
+           ((not (web-mode-block-match))
+            )
+           ((and (string= web-mode-engine "closure")
+                 (string-match-p "{\\(case\\|default\\)" curr-line))
+            (setq offset (+ (current-indentation) web-mode-markup-indent-offset)))
+           (t
+            (setq offset (current-indentation))
+            )
+           ) ;cond
+          )
 
          ((eq (get-text-property pos 'block-token) 'delimiter-end)
           (when debug (message "I160(%S) block-beginning" pos))
@@ -7358,6 +7367,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   ) ;when
                 )) ;save-excursion let
             ) ;when web-mode-enable-optional-tags
+          (when (string= web-mode-engine "closure")
+            (save-excursion
+              (when (and (re-search-backward "{/?switch" nil t)
+                         (string= (match-string-no-properties 0) "{switch"))
+                (setq offset (+ (current-indentation) (* 2 web-mode-markup-indent-offset)))
+                )
+              ))
           (cond
            ((not (null offset))
             )
