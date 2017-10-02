@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.11
+;; Version: 15.0.12
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.11"
+(defconst web-mode-version "15.0.12"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7236,8 +7236,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               )
              ((looking-at-p "<!--\\[if")
               (setq offset (+ offset web-mode-markup-indent-offset)))
-             ((eq ?\- curr-char)
-              (setq offset (+ offset 3)))
+             ((string-match-p "-->" curr-line)
+              (setq offset offset))
              (t
               (setq offset (+ offset 5)))
              ) ;cond
