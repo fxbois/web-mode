@@ -1,0 +1,7 @@
+<ul>
+  {% for user in users %}
+    <li>{{ user.username|e }}</li>
+  {% else %}
+    <li><em>no user found</em></li>
+  {% endfor %}
+</ul>

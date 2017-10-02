@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.13
+;; Version: 15.0.14
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.13"
+(defconst web-mode-version "15.0.14"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -757,7 +757,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defvar web-mode-engines
-  '(("angular"          . ("angularjs" "angular.js"))
+  '(("angular"          . ("angularjs"))
     ("archibus"         . ())
     ("asp"              . ())
     ("aspx"             . ())
@@ -832,7 +832,8 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defvar web-mode-engine-file-regexps
-  '(("asp"              . "\\.asp\\'")
+  '(("angular"          . "\\.component.html\\'")
+    ("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
     ("archibus"         . "\\.axvw\\'")
     ("blade"            . "\\.blade\\.php\\'")
