@@ -13,4 +13,17 @@
     <li>xs</li>
     <li>xs</li>
   </ul>
+  <div>
+    <p>Zero</p>
+    <!--#if expr="test1" -->
+      <!--#if expr="test2" -->
+        <p>One</p>
+      <!--#endif -->
+    <!--#elif expr="test3" -->
+      <p>Two</p>
+    <!--#else -->
+      <p>Three</p>
+    <!--#endif -->
+    <p>Four</p>
+  </div>
 </span>
