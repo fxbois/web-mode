@@ -6876,6 +6876,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (when (get-text-property pos 'part-side)
         (setq part-language (symbol-name (get-text-property pos 'part-side))))
 
+      ;;(message "part-language=%S" part-language)
+
       (cond
 
        ((and (bobp) (member web-mode-content-type '("html" "xml")))
@@ -7017,7 +7019,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ) ;cond
         ) ;block-side
 
-       ((and part-language (member part-language '("css" "javascript" "sql" "markdown" "stylus")))
+       ((and part-language (member part-language '("css" "javascript" "json" "sql" "markdown" "stylus")))
         (setq reg-beg (or (web-mode-part-beginning-position pos) (point-min)))
         (goto-char reg-beg)
         (search-backward "<" nil t)
