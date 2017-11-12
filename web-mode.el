@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.15
+;; Version: 15.0.16
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.15"
+(defconst web-mode-version "15.0.16"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2091,7 +2091,7 @@ shouldn't be moved back.)")
    '("->[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face)
    '("\\_<\\([[:alnum:]_]+\\)[ ]?::" 1 'web-mode-type-face)
    '("\\_<\\(instanceof\\|class\\|extends\\|new\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-type-face)
-   '("\\_<\\([$]\\)\\([[:alnum:]_]*\\)" (1 nil) (2 'web-mode-variable-name-face))
+   '("\\(\\_<\\|[+-]\\)\\([$]\\)\\([[:alnum:]_]*\\)" (2 nil) (3 'web-mode-variable-name-face))
    ))
 
 (defvar web-mode-spip-font-lock-keywords
@@ -7590,6 +7590,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                    (string-match-p "^[&|?:+-]" curr-line))
                (not (and (string= language "php")
                          (string-match-p "^->" curr-line)))
+               (not (string-match-p "^\\(++\\|--\\)" curr-line))
                (not (and is_js
                          (string-match-p "]:" prev-line)))
                (not (and (eq prev-char ?\:)
