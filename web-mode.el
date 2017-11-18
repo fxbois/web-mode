@@ -140,7 +140,7 @@
   :group 'web-mode)
 
 (defcustom web-mode-enable-current-element-highlight nil
-  "Disable element highlight."
+  "Enable current element highlight."
   :type 'boolean
   :group 'web-mode)
 
