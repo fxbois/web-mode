@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.18
+;; Version: 15.0.19
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.18"
+(defconst web-mode-version "15.0.19"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1752,7 +1752,8 @@ shouldn't be moved back.)")
 
 (defvar web-mode-stylus-font-lock-keywords
   (list
-   ;;'("^[ \t]*\\([.].+\\)$" 1 'web-mode-css-selector-face)
+   '("^[ \t]*\\([[:alnum:]().-]+\\)$" 1 'web-mode-css-selector-face)
+   '("^[ \t]*\\([[:alnum:]-]+[ ]*:\\)" 1 'web-mode-css-property-name-face)
    ;;'("\\_<\\(\\(background\\|border\\)-[[:alpha:]]+\\)\\_>" 1 'web-mode-css-property-name-face)
    ))
 
@@ -8012,7 +8013,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (let (offset)
     (save-excursion
       (goto-char pos)
-      (setq offset (current-column)))
+      (setq offset (current-column))
+      ) ;save-excursion
     ;;(message "%S %S %S %S" pos (point) initial-column language-offset)
     (cons (if (<= offset initial-column) initial-column offset) nil)))
 
@@ -8020,7 +8022,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (let (offset)
     (save-excursion
       (goto-char pos)
-      (setq offset (current-column)))
+      (setq offset (current-column))
+      (when (looking-at-p "[[:alnum:]-]+:")
+        (setq offset (+ initial-column language-offset)))
+      ) ;save-excursion
     ;;(message "%S %S %S %S" pos (point) initial-column language-offset)
     (cons (if (<= offset initial-column) initial-column offset) nil)))
 
