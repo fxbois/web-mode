@@ -1,0 +1,9 @@
+<span>
+  {% for num in range( 1, pages) %}
+    {% if num <= 3 %}
+      <li class="active"><a href="">{{ num }}</a></li>
+    {% else  %}
+      <li>......</li>
+    {% endif  %}
+  {% endfor %}
+</span>

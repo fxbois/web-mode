@@ -9784,12 +9784,15 @@ Prompt user if TAG-NAME isn't provided."
   (let (beg end)
     (setq beg (web-mode-block-beginning-position pos)
           end (web-mode-block-end-position pos))
-    (if (string-match-p "<[%[:alpha:]]" (buffer-substring-no-properties (+ beg 2) (- end 2)))
-        (progn
-          (web-mode-remove-text-at-pos 2 (1- end))
-          (web-mode-remove-text-at-pos 3 beg))
-      (web-mode-remove-text-at-pos 1 (+ beg 2))
-      ) ;if
+    (cond
+     ((string= (buffer-substring-no-properties beg (+ beg 4)) "<%#=")
+      (web-mode-remove-text-at-pos 1 (+ beg 2)))
+     ((string-match-p "<[%[:alpha:]]" (buffer-substring-no-properties (+ beg 2) (- end 2)))
+      (web-mode-remove-text-at-pos 2 (1- end))
+      (web-mode-remove-text-at-pos 3 beg))
+     (t
+      (web-mode-remove-text-at-pos 1 (+ beg 2)))
+      ) ;cond
     )
   )
 
