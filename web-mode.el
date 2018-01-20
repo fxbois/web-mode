@@ -104,8 +104,13 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-code-annotation nil
-  "Enable fontification of comments."
+(defcustom web-mode-enable-comment-interpolation nil
+  "Enable highlight of keywords like FIXME, TODO, etc. in comments."
+  :type 'boolean
+  :group 'web-mode)
+
+(defcustom web-mode-enable-comment-annotation nil
+  "Enable annotation in comments (jsdoc, phpdoc, etc.)."
   :type 'boolean
   :group 'web-mode)
 
@@ -183,11 +188,6 @@ See web-mode-block-face."
 
 (defcustom web-mode-enable-sexp-functions t
   "Enable specific sexp functions."
-  :type 'boolean
-  :group 'web-mode)
-
-(defcustom web-mode-enable-comment-interpolation t
-  "Enable highlight of keywords like FIXME, TODO, etc. in comments."
   :type 'boolean
   :group 'web-mode)
 
@@ -556,13 +556,18 @@ See web-mode-block-face."
   :group 'web-mode-faces)
 
 (defface web-mode-annotation-tag-face
-  '((t :inherit web-mode-comment-face))
+  '((t :inherit web-mode-comment-face :underline t))
   "Face for @tags in code annotations."
   :group 'web-mode-faces)
 
 (defface web-mode-annotation-type-face
-  '((t :inherit web-mode-comment-face))
+  '((t :inherit web-mode-comment-face :weight bold))
   "Face for types in code annotations."
+  :group 'web-mode-faces)
+
+(defface web-mode-annotation-value-face
+  '((t :inherit web-mode-comment-face :slant italic))
+  "Face for values in code annotations."
   :group 'web-mode-faces)
 
 (defface web-mode-constant-face
@@ -770,6 +775,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("^[ \t]*<\\([@a-z]+\\)[^>]*>? *$" 1 "id=\"\\([a-zA-Z0-9_]+\\)\"" "#" ">"))
   "Regexps to match imenu items (see http://web-mode.org/doc/imenu.txt)")
 
+;; https://www.gnu.org/software/emacs/manual/html_node/ccmode/Syntactic-Symbols.html
 (defvar web-mode-indentation-params
   '(("lineup-args"       . t)
     ("lineup-calls"      . t)
@@ -5643,8 +5649,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              (web-mode-highlight-elements beg end))
            (when web-mode-enable-whitespace-fontification
              (web-mode-highlight-whitespaces beg end))
-           ;;(message "%S %S" font-lock-keywords font-lock-keywords-alist)
-           ))))))
+           ) ;let
+         )))))
 
 (defun web-mode-highlight-tags (reg-beg reg-end &optional depth)
   (let ((continue t))
@@ -5961,6 +5967,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                      (> (- end beg) 3))
             (web-mode-interpolate-comment beg end t)
             ) ;when
+          (when (and web-mode-enable-comment-annotation
+                     (eq token-type 'comment)
+                     (> (- end beg) 3))
+            (web-mode-annotate-comment beg end t)
+            ) ;when
           (when (and web-mode-enable-sql-detection
                      (eq token-type 'string)
                      (> (- end beg) 6)
@@ -6063,7 +6074,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 (web-mode-interpolate-javascript-string beg end)))
              ((eq token-type 'comment)
               (when web-mode-enable-comment-interpolation
-                (web-mode-interpolate-comment beg end t)))
+                (web-mode-interpolate-comment beg end t))
+              (when web-mode-enable-comment-annotation
+                (web-mode-annotate-comment beg end))
+              )
              ) ;cond
             ) ;t
            ) ;cond
@@ -6300,6 +6314,23 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                          'web-mode-comment-keyword-face)
         ) ;while
       )))
+
+(defun web-mode-annotate-comment (beg end)
+  (save-excursion
+    (message "beg=%S end=%S" beg end)
+    (goto-char beg)
+    (when (looking-at-p "/\\*\\*")
+      (while (re-search-forward "[ ]+\\({[^}]+}\\)" end t)
+        (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
+                                         'font-lock-face
+                                         'web-mode-annotation-type-face))
+      (goto-char beg)
+      (while (re-search-forward "\\(@[[:alnum:]]+\\)" end t)
+        (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
+                                         'font-lock-face
+                                         'web-mode-annotation-tag-face))
+      ) ;when
+    ))
 
 (defun web-mode-interpolate-sql-string (beg end)
   (save-excursion
@@ -10778,9 +10809,9 @@ Prompt user if TAG-NAME isn't provided."
       ) ;when
     ) ;while
   ;; Delete a potential space before the closing ">".
-  (if (and (looking-at ">")
-           (looking-back " " (point-min)))
-        (delete-char -1))
+  (when (and (looking-at ">")
+             (looking-back " " (point-min)))
+    (delete-char -1))
   )
 
 (defun web-mode-block-close (&optional pos)
