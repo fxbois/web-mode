@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.20
+;; Version: 15.0.21
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.20"
+(defconst web-mode-version "15.0.21"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -222,7 +222,7 @@ See web-mode-block-face."
   :group 'web-mode)
 
 (defcustom web-mode-enable-optional-tags t
-  "Enable omission of Certain closing tags (e.g. a li open tag followed by a li open tag is valid)."
+  "Enable omission of certain closing tags (e.g. a li open tag followed by a li open tag is valid)."
   :type 'boolean
   :group 'web-mode)
 
@@ -4725,7 +4725,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (goto-char (if (< reg-end (line-end-position)) reg-end (line-end-position)))
             )
            ((and (looking-at-p ".*/")
-                 (looking-back "[[(,=:!&|?{};][ ]*/" (point-min)))
+                 (looking-back "\\(^\\|[[(,=:!&|?{};]\\)[ ]*/" (point-min)))
                  ;;(re-search-forward "/[gimyu]*" reg-end t))
             (let ((eol (line-end-position)))
               (while (and continue (search-forward "/" eol t))
