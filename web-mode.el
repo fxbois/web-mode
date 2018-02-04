@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.19
+;; Version: 15.0.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.19"
+(defconst web-mode-version "15.0.20"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -858,6 +858,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   '(("java"       . "/*")
     ("javascript" . "/*")
     ("php"        . "/*")
+    ("css"        . "/*")
     ))
 
 (defvar web-mode-engine-file-regexps
@@ -6317,7 +6318,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 (defun web-mode-annotate-comment (beg end)
   (save-excursion
-    (message "beg=%S end=%S" beg end)
+    ;;(message "beg=%S end=%S" beg end)
     (goto-char beg)
     (when (looking-at-p "/\\*\\*")
       (while (re-search-forward "[ ]+\\({[^}]+}\\)" end t)
@@ -9485,9 +9486,7 @@ Prompt user if TAG-NAME isn't provided."
       (cond
        ((and (setq alt (cdr (assoc language web-mode-comment-formats)))
              (string= alt "//"))
-        (insert "// ")
-        ;;(search-backward " */")
-        )
+        (insert "// "))
        (t
         (insert "/*  */")
         (search-backward " */"))
