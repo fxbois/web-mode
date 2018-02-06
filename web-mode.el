@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2017 François-Xavier Bois
 
-;; Version: 15.0.21
+;; Version: 15.0.23
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.21"
+(defconst web-mode-version "15.0.23"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -43,18 +43,23 @@
 
 ;;---- CUSTOMS -----------------------------------------------------------------
 
-(defcustom web-mode-script-padding 1
+(defcustom web-mode-block-padding 0
+  "Multi-line block (php, ruby, java, python, asp, etc.) left padding."
+  :type 'integer
+  :group 'web-mode)
+
+(defcustom web-mode-part-padding 1
+  "Part elements (script, style) left padding."
+  :type 'integer
+  :group 'web-mode)
+
+(defcustom web-mode-script-padding web-mode-part-padding
   "Script element left padding."
   :type 'integer
   :group 'web-mode)
 
-(defcustom web-mode-style-padding 1
+(defcustom web-mode-style-padding web-mode-part-padding
   "Style element left padding."
-  :type 'integer
-  :group 'web-mode)
-
-(defcustom web-mode-block-padding 0
-  "Multi-line block (php, ruby, java, python, asp, etc.) left padding."
   :type 'integer
   :group 'web-mode)
 
@@ -295,11 +300,9 @@ See web-mode-block-face."
   :type 'directory
   :group 'web-mode)
 
-(defcustom web-mode-jsx-depth-faces nil
-  ;;'(web-mode-jsx-depth-1-face
-  ;;  web-mode-jsx-depth-2-face
-  ;;  web-mode-jsx-depth-3-face
-  ;;  web-mode-jsx-depth-4-face)
+(defcustom web-mode-jsx-depth-faces
+  nil
+  ;;'(web-mode-jsx-depth-1-face web-mode-jsx-depth-2-face web-mode-jsx-depth-3-face web-mode-jsx-depth-4-face)
   "Each jsx depth has is own face."
   :type '(repeat face)
   :group 'web-mode)
@@ -679,22 +682,22 @@ Must be used in conjunction with web-mode-enable-block-face."
   :group 'web-mode-faces)
 
 (defface web-mode-jsx-depth-1-face
-  '((t :background "#333333"))
+  '((t :background "#000000"))
   "jsx depth 1"
   :group 'web-mode-faces)
 
 (defface web-mode-jsx-depth-2-face
-  '((t :background "#222222"))
+  '((t :background "#444444"))
   "jsx"
   :group 'web-mode-faces)
 
 (defface web-mode-jsx-depth-3-face
-  '((t :background "#111111"))
+  '((t :background "#888888"))
   "jsx"
   :group 'web-mode-faces)
 
 (defface web-mode-jsx-depth-4-face
-  '((t :background "#000000"))
+  '((t :background "#666666"))
   "jsx"
   :group 'web-mode-faces)
 
@@ -761,10 +764,6 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Regular expression for HTML/XML start tag.")
 
 (defvar web-mode-tag-regexp "<\\(/?>\\|/?[[:alpha:]][[:alnum:]:_-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
-
-;;(defvar web-mode-tag-regexp1 "<\\(/?[[:alpha:]][[:alnum:]:_-]*\\|/?>\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
-
-;;(defvar web-mode-tag-regexp2 "<\\(/?[[:alpha:]][[:alnum:]:_-]*\\|/?>\\|!--\\|!\\[CDATA\\[\\)")
 
 (defvar web-mode-whitespaces-regexp
   "^[ \t]\\{2,\\}$\\| \t\\|\t \\|[ \t]+$\\|^[ \n\t]+\\'\\|^[ \t]?[\n]\\{2,\\}"
@@ -3765,7 +3764,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         ) ;erb
 
        ((string= web-mode-engine "django")
-        ;;(when (eq (char-after (1+ reg-beg)) ?\%)
         (cond
          ((and (string= web-mode-minor-engine "jinja") ;#504
                (web-mode-block-starts-with "else\\_>" reg-beg))
@@ -3820,7 +3818,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             ) ;let
           ) ;case
          ) ;cond
-        ;;) ;when
         ) ;django
 
        ((string= web-mode-engine "smarty")
@@ -3980,7 +3977,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               ) ;while
             (setq controls (append controls (list (cons 'inside (or ctrl "if")))))
             )
-          ;;(setq controls (append controls (list (cons 'inside "if"))))
           )
 
          ((looking-at "{{[#^/][ ]*\\([[:alpha:]_.-]+\\)")
@@ -5971,7 +5967,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (when (and web-mode-enable-comment-annotation
                      (eq token-type 'comment)
                      (> (- end beg) 3))
-            (web-mode-annotate-comment beg end t)
+            (web-mode-annotate-comment beg end)
             ) ;when
           (when (and web-mode-enable-sql-detection
                      (eq token-type 'string)
@@ -7068,7 +7064,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 reg-col (+ reg-col 3))
           )
          ((and (string= web-mode-engine "jsp")
-               ;;(web-mode-looking-at "<%@\\|<[[:alpha:]]" reg-beg))
                (web-mode-looking-at "<%@" reg-beg))
           (save-excursion
             (goto-char reg-beg)
@@ -9463,7 +9458,9 @@ Prompt user if TAG-NAME isn't provided."
     (when (and (use-region-p) (eq (point) (region-end)))
       (if (bolp) (backward-char))
       (exchange-point-and-mark))
-    (skip-chars-forward "[:space:]" (line-end-position))
+    (if (eq (get-text-property (point) 'block-token) 'delimiter-beg)
+        (web-mode-block-skip-blank-forward (point) '(delimiter-beg))
+      (skip-chars-forward "[:space:]" (line-end-position)))
     (cond
      ((or (eq (get-text-property (point) 'tag-type) 'comment)
           (eq (get-text-property (point) 'block-token) 'comment)
@@ -9793,11 +9790,11 @@ Prompt user if TAG-NAME isn't provided."
          ((string= sub2 "{/") ;jsx comments
           (setq comment (replace-regexp-in-string "\\(^{/\\*[ ]?\\|[ ]?\\*/}$\\)" "" comment)))
          ((string= sub2 "/*")
-          (message "%S" comment)
+          ;;(message "%S" comment)
           ;;(setq comment (replace-regexp-in-string "\\(\\*/\\|^/\\*[ ]?\\|^[ \t]*\\*\\)" "" comment))
           (setq comment (replace-regexp-in-string "\\([ ]?\\*/$\\|^/\\*[ ]?\\)" "" comment))
           (setq comment (replace-regexp-in-string "\\(^[ \t]*\\*\\)" "" comment))
-          (message "%S" comment)
+          ;;(message "%S" comment)
           )
          ((string= sub2 "//")
           (setq comment (replace-regexp-in-string "\\(//\\)" "" comment)))
@@ -10141,7 +10138,7 @@ Prompt user if TAG-NAME isn't provided."
 (defun web-mode-element-close ()
   "Close html element."
   (interactive)
-  (let (jump epp ins tag)
+  (let (jmp epp ins tag)
 
     (if (and (eq (char-before) ?\>)
              (web-mode-element-is-void (get-text-property (1- (point)) 'tag-name)))
@@ -10186,11 +10183,11 @@ Prompt user if TAG-NAME isn't provided."
         (setq tag (downcase tag))
         (save-excursion
           (search-backward "<")
-          (setq jump (and (eq (char-before) ?\>)
+          (setq jmp (and (eq (char-before) ?\>)
                           (string= (get-text-property (1- (point)) 'tag-name) tag)))
-          (if jump (setq jump (point)))
+          (if jmp (setq jmp (point)))
           ) ;save-excursion
-        (if jump (goto-char jump))
+        (if jmp (goto-char jmp))
         ) ;when not ins
       ) ;when epp
     epp))
@@ -10226,7 +10223,7 @@ Prompt user if TAG-NAME isn't provided."
   ;;(message "on-after-change: inhibit-fontification(%S) change-beg(%S) change-end(%S)" web-mode-inhibit-fontification web-mode-change-beg web-mode-change-end)
   )
 
-(defun web-mode-complete ()
+(defun web-mode-auto-complete ()
   "Autocomple at point."
   (interactive)
   (let ((pos (point))
@@ -10431,7 +10428,7 @@ Prompt user if TAG-NAME isn't provided."
            (not (member (get-text-property (point) 'part-token) '(comment string)))
            (not (eq (get-text-property (point) 'tag-type) 'comment))
            )
-      (setq ctx (web-mode-complete)))
+      (setq ctx (web-mode-auto-complete)))
 
      ((and web-mode-enable-auto-opening
            (member this-command '(newline electric-newline-and-maybe-indent newline-and-indent))
@@ -10665,15 +10662,15 @@ Prompt user if TAG-NAME isn't provided."
       ) ;while
     (point)))
 
-(defun web-mode-block-skip-blank-forward (&optional pos)
+(defun web-mode-block-skip-blank-forward (&optional pos props)
   (unless pos (setq pos (point)))
+  (unless props (setq props '(delimiter-beg delimiter-end comment)))
   (let ((continue t))
     (goto-char pos)
     (while continue
       (if (and (get-text-property (point) 'block-side)
                (or (member (char-after) '(?\s ?\n ?\t))
-                   (member (get-text-property (point) 'block-token)
-                           '(delimiter-beg delimiter-end comment))))
+                   (member (get-text-property (point) 'block-token) props)))
           (forward-char)
         (setq continue nil))
       ) ;while
