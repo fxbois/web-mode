@@ -1920,6 +1920,7 @@ shouldn't be moved back.)")
    (cons (concat "\\_<\\(" web-mode-go-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-go-functions "\\)\\_>") '(1 'web-mode-function-call-face))
    '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
+   '("`[^`]*`\\|\"[^\"]*\"" 0 'web-mode-string-face t t)  ;;; go uses ` as quote for raw strings https://golang.org/ref/spec#String_literals
    ))
 
 (defvar web-mode-expression-font-lock-keywords
