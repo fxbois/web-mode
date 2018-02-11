@@ -2375,13 +2375,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ,@body
            (set-buffer-modified-p old-modified-p)))))
 
-  ;; compatibility with emacs < 24
-  (if (fboundp 'prog-mode)
-      (defmacro web-mode-define-derived-mode (mode &rest args)
-        `(define-derived-mode ,mode prog-mode ,@args))
-    (defmacro web-mode-define-derived-mode (mode &rest args)
-      `(define-derived-mode ,mode fundamental-mode ,@args)))
-
   ;; compatibility with emacs < 24.3
   (defun web-mode-buffer-narrowed-p ()
     (if (fboundp 'buffer-narrowed-p)
@@ -2408,7 +2401,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 ;;---- MAJOR MODE --------------------------------------------------------------
 
 ;;;###autoload
-(web-mode-define-derived-mode web-mode "Web"
+(define-derived-mode web-mode fundamental-mode "Web"
   "Major mode for editing web templates."
 
   (make-local-variable 'web-mode-attr-indent-offset)
@@ -2526,6 +2519,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              (not (assoc major-mode hs-special-modes-alist)))
     (add-to-list 'hs-special-modes-alist '(web-mode "{" "}" "/[*/]" web-mode-forward-sexp nil))
     ) ;when
+
+  ;; compatibility with emacs < 24
+  (if (fboundp 'prog-mode)
+      (put 'web-mode 'derived-mode-parent 'prog-mode))
 
   ;;(web-mode-trace "end")
 
