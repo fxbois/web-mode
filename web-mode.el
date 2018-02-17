@@ -1,9 +1,9 @@
 ;;; web-mode.el --- major mode for editing web templates
 ;;; -*- coding: utf-8 -*-
 
-;; Copyright 2011-2017 François-Xavier Bois
+;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 15.0.24
+;; Version: 15.0.25
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.24"
+(defconst web-mode-version "15.0.25"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1760,7 +1760,6 @@ shouldn't be moved back.)")
   (list
    '("^[ \t]*\\([[:alnum:]().-]+\\)$" 1 'web-mode-css-selector-face)
    '("^[ \t]*\\([[:alnum:]-]+[ ]*:\\)" 1 'web-mode-css-property-name-face)
-   ;;'("\\_<\\(\\(background\\|border\\)-[[:alpha:]]+\\)\\_>" 1 'web-mode-css-property-name-face)
    ))
 
 (defvar web-mode-sql-font-lock-keywords
@@ -1874,7 +1873,6 @@ shouldn't be moved back.)")
 (defvar web-mode-ctemplate-font-lock-keywords
   (list
    '("{[~]?{[#/>^]?[ ]*\\([[:alnum:]_.-]+\\)" 1 'web-mode-block-control-face)
-   ;;'("[ \t]+\\([[:alnum:]_-]+\\)=\\([[:alnum:]_.]+\\|\"[^\"]+\"\\|'[^']+'\\|\([^)]+\)\\)"
    '("[ \t]+\\([[:alnum:]_-]+\\)="
      (1 'web-mode-block-attr-name-face))
    '("\"[^\"]+\"" 0 'web-mode-block-string-face)
@@ -2630,8 +2628,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ((string= sub2 "<%")
             (setq closing-string '("<%". "%>")
                   delim-open "<%[=-]?"
-                  delim-close "[-]?%>")
-            )
+                  delim-close "[-]?%>"))
            (t
             (setq closing-string "EOL"
                   delim-open "%"))
@@ -2641,7 +2638,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((string= web-mode-engine "django")
           (cond
            ((string= sub2 "{{")
-            (setq closing-string '("{{" . "}}")
+            (setq closing-string "EODQ"
+            ;;(setq closing-string '("{{" . "}}")
                   delim-open "{{"
                   delim-close "}}"))
            ((string= sub2 "{%")
@@ -3060,7 +3058,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ) ;cond
 
         (when closing-string
-
           (cond
 
            ((listp closing-string)
@@ -3121,6 +3118,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ((string= closing-string "EOC")
             (setq close (point)
                   pos (point)))
+
+           ((string= closing-string "EODQ")
+            (when (web-mode-django-skip reg-end)
+              (setq close (point)
+                    pos (point))
+              ))
 
            ((string= closing-string "EOR")
             (web-mode-razor-skip open)
@@ -3234,6 +3237,45 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
       )))
 
+(defun web-mode-django-skip (reg-end)
+  (let (regexp char pos inc continue found)
+    (setq regexp "[\"'{}]"
+          inc 0)
+    (while (and (not found) (re-search-forward regexp reg-end t))
+      (setq char (char-before))
+      ;;(setq char (aref (match-string 0) 0))
+      ;;      (message "point=%S char=%c inc=%S | reg-end=%S" (point) char inc reg-end)
+      (cond
+       ((eq char ?\{)
+        (setq inc (1+ inc)))
+       ((eq char ?\})
+        (cond
+         ((and (not (eobp))
+               (eq (char-after) ?\})
+               (< inc 2))
+          (forward-char)
+          (setq found t
+                pos (1+ (point))))
+         ((> inc 0)
+          (setq inc (1- inc)))
+         )
+        )
+       ((eq char ?\')
+        (setq continue t)
+        (while (and continue (search-forward "'" reg-end t))
+          (setq continue (web-mode-string-continue-p reg-beg))
+          )
+        )
+       ((eq char ?\")
+        (setq continue t)
+        (while (and continue (search-forward "\"" reg-end t))
+          (setq continue (web-mode-string-continue-p reg-beg))
+          )
+        )
+       ) ;cond
+      ) ;while
+    pos))
+
 (defun web-mode-block-delimiters-set (reg-beg reg-end delim-open delim-close)
   "Set text-property 'block-token to 'delimiter-(beg|end) on block delimiters (e.g. <?php ?>)"
   ;;(message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
@@ -3278,28 +3320,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (funcall func block-beg block-end)
         (setq block-beg block-end)
         ) ;t
-       ) ;cond
-      ) ;while
-    ))
-
-(defun web-mode-process-parts (reg-beg reg-end func)
-  (let ((i 0) (continue t) (part-beg reg-beg) (part-end nil))
-    (while continue
-      (setq part-end nil)
-      (unless (get-text-property part-beg 'part-side)
-        (setq part-beg (web-mode-part-next-position part-beg)))
-      (when (and part-beg (< part-beg reg-end))
-        (setq part-end (web-mode-part-end-position part-beg)))
-      (cond
-       ((> (setq i (1+ i)) 100)
-        (message "process-parts ** warning (%S) **" (point))
-        (setq continue nil))
-       ((or (null part-end) (> part-end reg-end))
-        (setq continue nil))
-       (t
-        (setq part-end (1+ part-end))
-        (funcall func part-beg part-end)
-        (setq part-beg part-end))
        ) ;cond
       ) ;while
     ))
@@ -4618,6 +4638,28 @@ another auto-completion with different ac-sources (e.g. ac-php)")
    ) ;cond
   )
 
+(defun web-mode-process-parts (reg-beg reg-end func)
+  (let ((i 0) (continue t) (part-beg reg-beg) (part-end nil))
+    (while continue
+      (setq part-end nil)
+      (unless (get-text-property part-beg 'part-side)
+        (setq part-beg (web-mode-part-next-position part-beg)))
+      (when (and part-beg (< part-beg reg-end))
+        (setq part-end (web-mode-part-end-position part-beg)))
+      (cond
+       ((> (setq i (1+ i)) 100)
+        (message "process-parts ** warning (%S) **" (point))
+        (setq continue nil))
+       ((or (null part-end) (> part-end reg-end))
+        (setq continue nil))
+       (t
+        (setq part-end (1+ part-end))
+        (funcall func part-beg part-end)
+        (setq part-beg part-end))
+       ) ;cond
+      ) ;while
+    ))
+
 (defun web-mode-part-scan (reg-beg reg-end &optional content-type depth)
   (save-excursion
     (let (token-re ch-before ch-at ch-next token-type beg continue)
@@ -4853,40 +4895,40 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     ;;(message "jsx-skip: %S" pos)
     pos))
 
-(defun web-mode-jsx-skip2 (reg-end)
-  (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil) (counter 1))
-    (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
-    (setq tag (match-string-no-properties 1))
-    (setq regexp (concat "</?" tag))
-    ;;(message "point=%S tag=%S" (point) tag)
-    (save-excursion
-      (while continue
-        (cond
-         ((> (setq i (1+ i)) 100)
-          (message "jsx-skip ** warning **")
-          (setq continue nil))
-         ((looking-at "<[[:alpha:]][[:alnum:]:-]*[ ]*/>")
-          (goto-char (match-end 0))
-          (setq pos (point))
-          (setq continue nil))
-         ((not (web-mode-dom-rsf ">\\([ \t\n]*[\];,)':}]\\)\\|{" reg-end))
-          (setq continue nil)
-          )
-         ((eq (char-before) ?\{)
-          (backward-char)
-          (web-mode-closing-paren reg-end)
-          (forward-char)
-          )
-         (t
-          (setq continue nil)
-          (setq pos (match-beginning 1))
-          ) ;t
-         ) ;cond
-        ) ;while
-      ) ;save-excursion
-    (when pos (goto-char pos))
-    ;;(message "jsx-skip: %S" pos)
-    pos))
+;; (defun web-mode-jsx-skip2 (reg-end)
+;;   (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil) (counter 1))
+;;     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
+;;     (setq tag (match-string-no-properties 1))
+;;     (setq regexp (concat "</?" tag))
+;;     ;;(message "point=%S tag=%S" (point) tag)
+;;     (save-excursion
+;;       (while continue
+;;         (cond
+;;          ((> (setq i (1+ i)) 100)
+;;           (message "jsx-skip ** warning **")
+;;           (setq continue nil))
+;;          ((looking-at "<[[:alpha:]][[:alnum:]:-]*[ ]*/>")
+;;           (goto-char (match-end 0))
+;;           (setq pos (point))
+;;           (setq continue nil))
+;;          ((not (web-mode-dom-rsf ">\\([ \t\n]*[\];,)':}]\\)\\|{" reg-end))
+;;           (setq continue nil)
+;;           )
+;;          ((eq (char-before) ?\{)
+;;           (backward-char)
+;;           (web-mode-closing-paren reg-end)
+;;           (forward-char)
+;;           )
+;;          (t
+;;           (setq continue nil)
+;;           (setq pos (match-beginning 1))
+;;           ) ;t
+;;          ) ;cond
+;;         ) ;while
+;;       ) ;save-excursion
+;;     (when pos (goto-char pos))
+;;     ;;(message "jsx-skip: %S" pos)
+;;     pos))
 
 ;; http://facebook.github.io/jsx/
 ;; https://github.com/facebook/jsx/blob/master/AST.md
@@ -5548,7 +5590,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (search-forward "--%>"))
        ) ;cond
       ) ;when
-
     (setq pos (point-max))
     (let ((continue (not (eobp))))
       (while continue
@@ -5557,7 +5598,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (cond
          ((eobp)
           (setq continue nil))
-         ;;()
          ((and (not (get-text-property (point) 'tag-type))
                (not (get-text-property (point) 'part-side))
                (not (get-text-property (point) 'block-side)))
@@ -5588,16 +5628,14 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 (defun web-mode-buffer-highlight ()
   (interactive)
-  ;;(if (fboundp 'font-lock-flush)
-  ;;    (font-lock-flush)
-  ;;  (font-lock-fontify-buffer))
-  (if (fboundp 'font-lock-flush)
-      (progn
-        (font-lock-flush)
-        (font-lock-ensure))
+  (cond
+   ((fboundp 'font-lock-flush)
+    (font-lock-flush)
+    (font-lock-ensure))
+   (t  ;emacs 24
     ;;(font-lock-fontify-buffer)
-    (font-lock-fontify-region (point-min) (point-max)) ;emacs 24
-    ) ;if
+    (font-lock-fontify-region (point-min) (point-max)))
+   ) ;cond
   )
 
 (defun web-mode-extend-region ()
@@ -8013,17 +8051,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 (defun web-mode-markup-indentation (pos)
   (let (offset beg ret jsx-depth)
-
-    ;;(when (setq jsx-depth (get-text-property pos 'jsx-depth))
-    ;;  (when (and (get-text-property pos 'jsx-beg)
-    ;;             (not (get-text-property pos 'tag-beg)))
-    ;;    (setq jsx-depth (1- jsx-depth))))
-
     (when (and (setq jsx-depth (get-text-property pos 'jsx-depth))
                (get-text-property pos 'jsx-beg)
                (not (get-text-property pos 'tag-beg)))
       (setq jsx-depth (1- jsx-depth)))
-
     ;;(when (setq beg (web-mode-markup-indentation-origin pos jsx-depth))
     (cond
      ((not (setq beg (web-mode-markup-indentation-origin pos jsx-depth)))
@@ -8502,7 +8533,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                           (and (null jsx-depth)
                                (null (get-text-property pos 'part-side))
                                (eq (get-text-property pos 'tag-type) 'comment)
-                               ;;(web-mode-looking-at-p "<!--#\\(elif\\|else\\|endif\\|if\\)" pos)
                                (web-mode-looking-at-p "<!--#\\(endif\\|if\\)" pos)
                                (null (get-text-property (1- pos) 'invisible)))
                           (and jsx-depth
@@ -11841,18 +11871,6 @@ Prompt user if TAG-NAME isn't provided."
           (when (not is-jsx) (message "javascript-statement-beginning-position ** search failure **"))
           (setq continue nil
                 pos reg-beg)))
-
-       ;; ((web-mode-looking-back "\\_<\\(return\\)[ \n\t]*" pos)
-       ;;  (setq continue nil)
-       ;;  (web-mode-looking-at "[ \t\n]*" pos)
-       ;;  (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ;; ((web-mode-looking-back "[{,][ \t\n]*[[:alnum:]_]+[ ]*:[ ]*" pos)
-       ;;  (setq continue nil)
-       ;;  (web-mode-looking-at "[ ]*" pos)
-       ;;  (setq pos (+ pos (length (match-string-no-properties 0)))))
-       ;; (t
-       ;;  (setq pos (1- pos)))
-
        ) ;cond
       ) ;while
     ;;(message "%S -------" pos)

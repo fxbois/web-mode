@@ -25,6 +25,9 @@ related issues: #293
 {% widthratio this_value max_value max_width as width %}
 {% blocktrans %}The width is: {{ width }}{% endblocktrans %}
 
+<div>
+  {{ form_widget(form.address.city, {'attr': {'class': 'form-control form-control-md'}}) }}
+</div>
 
 {% if something %}
   {% if something2 %}{% endif %}{{  }}
