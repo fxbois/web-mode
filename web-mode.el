@@ -9553,30 +9553,6 @@ Prompt user if TAG-NAME isn't provided."
     ) ;if
   )
 
-(defun web-mode-comment-insert ()
-  (let ((alt nil) (language nil) (pos (point)))
-    (setq language (web-mode-language-at-pos pos))
-    (cond
-     ((get-text-property pos 'block-side)
-      (insert "/*  */")
-      (search-backward " */"))
-     ((get-text-property pos 'part-side)
-      (cond
-       ((and (setq alt (cdr (assoc language web-mode-comment-formats)))
-             (string= alt "//"))
-        (insert "// "))
-       (t
-        (insert "/*  */")
-        (search-backward " */"))
-       );cond
-      ) ; case part-side
-     (t
-      (insert "<!--  -->")
-      (search-backward " -->"))
-     )
-    )
-  )
-
 (defun web-mode-comment-indent-new-line (&optional soft)
   (interactive)
   (let (ctx)
@@ -9630,6 +9606,37 @@ Prompt user if TAG-NAME isn't provided."
                 prefix ";"))
          ) ;cond
         (list :beg beg :col col :prefix prefix :type type :format format)))))
+
+(defun web-mode-comment-insert ()
+  (let ((alt nil) (language nil) (pos (point)))
+    (setq language (web-mode-language-at-pos pos))
+    (setq alt (cdr (assoc language web-mode-comment-formats)))
+    ;;(message "language=%S" language)
+    (cond
+     ((get-text-property pos 'block-side)
+      (cond
+       ((and alt (string= alt "//"))
+        (insert "// "))
+       (t
+        (insert "/*  */")
+        (search-backward " */"))
+       ) ;cond
+      ) ;case block-side
+     ((get-text-property pos 'part-side)
+      (cond
+       ((and alt (string= alt "//"))
+        (insert "// "))
+       (t
+        (insert "/*  */")
+        (search-backward " */"))
+       ) ;cond
+      ) ;case part-side
+     (t
+      (insert "<!--  -->")
+      (search-backward " -->")
+      ) ;case html
+     ) ;cond
+    ))
 
 (defun web-mode-comment (pos)
   (let (ctx language col sel beg end tmp block-side single-line-block pos-after content)
@@ -9711,15 +9718,15 @@ Prompt user if TAG-NAME isn't provided."
 
        ((member language '("php" "javascript" "java" "jsx"))
         (let (alt)
+          (setq alt (cdr (assoc language web-mode-comment-formats)))
+          ;;(message "alt=%S sel=%S col=%S" alt sel col)
           (cond
+           ((and alt (string= alt "//"))
+            (setq content (replace-regexp-in-string (concat "\n[ ]\\{" (number-to-string col) "\\}") "\n" sel))
+            (setq content (replace-regexp-in-string (concat "\n") "\n// " content))
+            (setq content (concat "// " content)))
            ((get-text-property pos 'jsx-depth)
             (setq content (concat "{/* " sel " */}")))
-           ((and (setq alt (cdr (assoc language web-mode-comment-formats)))
-                 (string= alt "//"))
-            (setq content (replace-regexp-in-string (concat "\n[ ]\\{" (number-to-string col) "\\}") "\n// " sel))
-            (setq content (concat "// " content))
-            ;;(setq content (replace-regexp-in-string "^[ ]*" alt sel))
-            )
            (web-mode-comment-prefixing
             (setq content (replace-regexp-in-string (concat "\n[ ]\\{" (number-to-string col) "\\}") "\n* " sel))
             (setq content (concat "/* " content "*/")))

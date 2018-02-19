@@ -6,9 +6,9 @@ render() {
 		<NavbarToggler onClick={this.toggle} />
 		<Collapse isOpen={this.state.isOpen} navbar>
 		  <Nav className="ml-auto" navbar>
-			<NavItem>
-			  <NavLink href="/files/">Files</NavLink>
-			</NavItem>
+            <NavItem>
+              <NavLink href="/files/">Files</NavLink>
+            </NavItem>
 			<UncontrolledDropdown nav inNavbar>
 			  <DropdownToggle nav caret>
 				Options
