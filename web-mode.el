@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 15.0.25
+;; Version: 15.0.26
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.25"
+(defconst web-mode-version "15.0.26"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3246,6 +3246,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       ;;(setq char (aref (match-string 0) 0))
       ;;      (message "point=%S char=%c inc=%S | reg-end=%S" (point) char inc reg-end)
       (cond
+       ((get-text-property (point) 'block-side)
+        (setq found t))
        ((eq char ?\{)
         (setq inc (1+ inc)))
        ((eq char ?\})
@@ -3611,9 +3613,23 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               char (aref match 0))
         (cond
 
-         ((and (string= web-mode-engine "asp")
-               (eq char ?\'))
+         ((and (string= web-mode-engine "asp") (eq char ?\'))
           (goto-char token-end))
+
+         ((and (string= web-mode-engine "razor") (eq char ?\'))
+
+          (cond
+           ((looking-at-p "\\(.\\|[\\][bfntr]\\|[\\]u....\\)'")
+            (search-forward "'" reg-end t)
+            (setq token-type 'string)
+            )
+           (t
+            (re-search-forward "[[:alnum:]_-]+")
+            (setq token-type 'symbol)
+            ) ;t
+           ) ;cond
+
+          )
 
          ((eq char ?\')
           (setq token-type 'string)
@@ -5968,6 +5984,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               (setq face (cond
                           ((eq token-type 'string)  'web-mode-block-string-face)
                           ((eq token-type 'comment) 'web-mode-block-comment-face)
+                          ((eq token-type 'symbol)  'web-mode-symbol-face)
                           (t                        'web-mode-block-delimiter-face)))
               (setq end (next-single-property-change beg 'block-token buffer reg-end))
 ;;              (message "end=%S" end)
