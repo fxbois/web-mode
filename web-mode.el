@@ -8476,21 +8476,15 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (move-to-column (1- column))
     (point)))
 
-(defun web-mode-column-at-pos (&optional pos)
-  (unless pos (setq pos (point)))
-  (save-excursion
-    (goto-char pos)
-    (current-column)))
-
 (defun web-mode-is-single-line-block (pos)
   (= (web-mode-line-number (web-mode-block-beginning-position pos))
      (web-mode-line-number (web-mode-block-end-position pos))))
 
 (defun web-mode-line-number (&optional pos)
-  (unless pos (setq pos (point)))
-  (let (ret)
-    (setq ret (+ (count-lines 1 pos)
-                 (if (= (web-mode-column-at-pos pos) 0) 1 0)))))
+  (setq pos (or pos (point)))
+  (+
+   (count-lines 1 pos)
+   (if (= (current-column) 0) 1 0)))
 
 (defun web-mode-block-is-control (pos)
   (save-excursion
