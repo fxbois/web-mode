@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 15.0.27
+;; Version: 15.0.28
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "15.0.27"
+(defconst web-mode-version "15.0.28"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -803,7 +803,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("elixir"           . ("phoenix"))
     ("erb"              . ("eruby" "erubis"))
     ("freemarker"       . ())
-    ("go"               . ("gtl"))
+    ("go"               . ("gtl" "hugo"))
     ("hero"             . ())
     ("json-t"           . ())
     ("jsp"              . ("grails"))
@@ -1560,8 +1560,8 @@ shouldn't be moved back.)")
 (defvar web-mode-go-functions
   (eval-when-compile
     (regexp-opt
-     '("and" "call" "html" "index" "js" "len" "not" "or"
-       "print" "printf" "println" "urlquery"))))
+     '("and" "call" "ge" "html" "index" "js" "len" "not" "or"
+       "print" "printf" "println" "urlquery" "where"))))
 
 (defvar web-mode-go-types
   (regexp-opt
@@ -1912,13 +1912,14 @@ shouldn't be moved back.)")
 
 (defvar web-mode-go-font-lock-keywords
   (list
-   '("{{[ ]*\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
+   '("{{[-]?[ ]*\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
    '("\\_<func \\([[:alnum:]]+\\)" 1 'web-mode-function-name-face)
    '("\\_<type \\([[:alnum:]]+\\)" 1 'web-mode-type-face)
    (cons (concat "\\_<\\(" web-mode-go-types "\\)\\_>") '(0 'web-mode-type-face))
    (cons (concat "\\_<\\(" web-mode-go-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-go-functions "\\)\\_>") '(1 'web-mode-function-call-face))
    '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
+   '("|[ ]?\\([[:alpha:]_]+\\)\\_>" 1 'web-mode-filter-face)
    ))
 
 (defvar web-mode-expression-font-lock-keywords
@@ -2897,8 +2898,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ((string= web-mode-engine "go")
           (setq closing-string "}}"
-                delim-open "{{"
-                delim-close "}}")
+                delim-open "{{-?"
+                delim-close "-?}}")
           ) ;go
 
          ((string= web-mode-engine "angular")
@@ -3245,8 +3246,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           inc 0)
     (while (and (not found) (re-search-forward regexp reg-end t))
       (setq char (char-before))
-      ;;(setq char (aref (match-string 0) 0))
-      ;;      (message "point=%S char=%c inc=%S | reg-end=%S" (point) char inc reg-end)
       (cond
        ((get-text-property (point) 'block-side)
         (setq found t))
@@ -3281,11 +3280,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     pos))
 
 (defun web-mode-block-delimiters-set (reg-beg reg-end delim-open delim-close)
-  "Set text-property 'block-token to 'delimiter-(beg|end) on block delimiters (e.g. <?php ?>)"
+  "Set text-property 'block-token to 'delimiter-(beg|end) on block delimiters (e.g. <?php and ?>)"
   ;;(message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine
                 '("asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
-                  "elixir" "ejs" "erb" "freemarker" "hero" "jsp" "lsp" "mako" "mason" "mojolicious"
+                  "elixir" "ejs" "erb" "freemarker" "go" "hero" "jsp" "lsp" "mako" "mason" "mojolicious"
                   "smarty" "template-toolkit" "web2py" "xoops"))
     (save-excursion
       (when delim-open

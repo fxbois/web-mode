@@ -1,0 +1,39 @@
+<div>
+  {{- with .Title }}
+    {{ . }}
+  {{ end }}
+</div>
+
+<div>
+  {{ if not .Params.notoc }}
+  <aside>
+    <header>
+      <a href="#{{.Title | urlize}}">
+        <h3>{{.Title}}</h3>
+      </a>
+    </header>
+    {{.TableOfContents}}
+  </aside>
+  <a href="#" id="toc-toggle"></a>
+  {{end}}
+</div>
+
+<div>
+  {{- .Title -}}
+</div>
+
+<h4>Upcoming Events</h4>
+<ul class="upcoming-events">
+  {{ range where .Data.Pages.ByDate "Section" "events" }}
+    {{ if ge .Date.Unix .Now.Unix }}
+      <li>
+        <!-- add span for event type -->
+        <span>{{ .Type | title }} —</span>
+        {{ .Title }} on
+        <!-- add span for event date -->
+        <span>{{ .Date.Format "2 January at 3:04pm" }}</span>
+        at {{ .Params.place }}
+      </li>
+    {{ end }}
+  {{ end }}
+</ul>
