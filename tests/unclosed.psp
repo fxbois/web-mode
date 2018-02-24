@@ -1,8 +1,0 @@
-<ul>
-  <li><?=$x?></li>
-  <li></li>
-</ul>
-<?php
-function hello() {
-  print("world");
-}

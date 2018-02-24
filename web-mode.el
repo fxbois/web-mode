@@ -2533,7 +2533,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 ;;---- DEFUNS ------------------------------------------------------------------
 
 (defun web-mode-scan-region (beg end &optional content-type)
-  "Identify nodes/parts/blocks and syntactic symbols (strings/comments)."
+  "Identify nodes/parts/blocks and syntactic symbols (strings/comments/etc.)."
   ;;(message "scan-region: beg(%d) end(%d) content-type(%S)" beg end content-type)
   (setq web-mode-scan-beg beg
         web-mode-scan-end end)
@@ -3103,28 +3103,14 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   pos (point))
             )
 
-
-
            ((and (member web-mode-engine '("closure"))
                  (string= closing-string "}"))
-            (when (web-mode-closure-skip reg-end)
+            (when (web-mode-closure-skip reg-beg reg-end)
               (setq close (point)
                     pos (point))
-              (message "close=%S pos=%S" close pos)
+              ;;(message "close=%S pos=%S" close pos)
               ) ;when
             )
-
-           ;; ((and (member web-mode-engine '("closure"))
-           ;;       (string= closing-string "}"))
-           ;;  (goto-char open)
-           ;;  (setq tmp (web-mode-closing-paren-position (point) (line-end-position)))
-           ;;  (if tmp
-           ;;      (setq tmp (1+ tmp))
-           ;;    (setq tmp (line-end-position)))
-           ;;  (goto-char tmp)
-           ;;  (setq close (point)
-           ;;        pos (point))
-           ;;  )
 
            ((string= closing-string "EOL")
             (end-of-line)
@@ -3136,7 +3122,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   pos (point)))
 
            ((string= closing-string "EODQ")
-            (when (web-mode-django-skip reg-end)
+            (when (web-mode-django-skip reg-beg reg-end)
               (setq close (point)
                     pos (point))
               ))
@@ -3253,7 +3239,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
       )))
 
-(defun web-mode-closure-skip (reg-end)
+(defun web-mode-closure-skip (reg-beg reg-end)
   (let (regexp char pos inc continue found)
     (setq regexp "[\"'{}]"
           inc 0)
@@ -3290,7 +3276,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       ) ;while
     pos))
 
-(defun web-mode-django-skip (reg-end)
+(defun web-mode-django-skip (reg-beg reg-end)
   (let (regexp char pos inc continue found)
     (setq regexp "[\"'{}]"
           inc 0)
@@ -3328,6 +3314,87 @@ another auto-completion with different ac-sources (e.g. ac-php)")
        ) ;cond
       ) ;while
     pos))
+
+(defun web-mode-velocity-skip (pos)
+  (goto-char pos)
+  (let ((continue t) (i 0))
+    (when (eq ?\# (char-after))
+      (forward-char))
+    (when (member (char-after) '(?\$ ?\@))
+      (forward-char))
+    (when (member (char-after) '(?\!))
+      (forward-char))
+    (if (member (char-after) '(?\{))
+        (search-forward "}")
+      (setq continue t)
+      (while continue
+        (skip-chars-forward "a-zA-Z0-9_-")
+        (when (> (setq i (1+ i)) 500)
+          (message "velocity-skip ** warning (%S) **" pos)
+          (setq continue nil))
+        (when (member (char-after) '(?\())
+          (search-forward ")" nil t))
+        (if (member (char-after) '(?\.))
+            (forward-char)
+          (setq continue nil))
+        ) ;while
+      ) ;if
+    ))
+
+(defun web-mode-razor-skip (pos)
+  (goto-char pos)
+  (let ((continue t) (i 0))
+    (while continue
+      (skip-chars-forward " =@a-zA-Z0-9_-")
+      (cond
+       ((> (setq i (1+ i)) 500)
+        (message "razor-skip ** warning **")
+        (setq continue nil))
+       ((and (eq (char-after) ?\*)
+             (eq (char-before) ?@))
+        (when (not (search-forward "*@" nil t))
+          (setq continue nil))
+        )
+       ((looking-at-p "@[({]")
+        (forward-char)
+        (when (setq pos (web-mode-closing-paren-position (point)))
+          (goto-char pos))
+        (forward-char)
+        )
+       ((and (not (eobp)) (eq ?\( (char-after)))
+        (if (looking-at-p "[ \n]*[<@]")
+            (setq continue nil)
+          (when (setq pos (web-mode-closing-paren-position))
+            (goto-char pos))
+          (forward-char)
+          ) ;if
+        )
+       ((and (not (eobp)) (eq ?\< (char-after)) (looking-back "[a-z]" (point-min)))
+        (unless (search-forward ">" (line-end-position) t)
+          (setq continue nil))
+        )
+       ((and (not (eobp)) (eq ?\. (char-after)))
+        (forward-char))
+       ((and (not (eobp)) (looking-at-p "[ \n]*else"))
+        (re-search-forward "[ \t]*else")
+        )
+       ((looking-at-p "[ \n]*{")
+        (search-forward "{")
+        (if (looking-at-p "[ \n]*[<@]")
+            (setq continue nil)
+          (backward-char)
+          (when (setq pos (web-mode-closing-paren-position))
+            (goto-char pos))
+          (forward-char)
+          ) ;if
+        )
+       ((looking-at-p "}")
+        (forward-char))
+       (t
+        (setq continue nil))
+       ) ;cond
+      ) ;while
+    ))
 
 (defun web-mode-block-delimiters-set (reg-beg reg-end delim-open delim-close)
   "Set text-property 'block-token to 'delimiter-(beg|end) on block delimiters (e.g. <?php and ?>)"
@@ -4373,12 +4440,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (cond
          ((string= tname "style")
           (let (style)
-            (setq element-content-type "css"
-                  style (buffer-substring-no-properties tbeg tend)
+            (setq style (buffer-substring-no-properties tbeg tend)
                   part-close-tag "</style>")
             (cond
              ((string-match-p " lang[ ]*=[ ]*[\"']stylus" style)
               (setq element-content-type "stylus"))
+             (t
+              (setq element-content-type "css"))
              ) ;cond
             ) ;let
           ) ;style
@@ -5272,87 +5340,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (web-mode-go pos 1)
       ) ;t
      ) ;cond
-    ))
-
-(defun web-mode-velocity-skip (pos)
-  (goto-char pos)
-  (let ((continue t) (i 0))
-    (when (eq ?\# (char-after))
-      (forward-char))
-    (when (member (char-after) '(?\$ ?\@))
-      (forward-char))
-    (when (member (char-after) '(?\!))
-      (forward-char))
-    (if (member (char-after) '(?\{))
-        (search-forward "}")
-      (setq continue t)
-      (while continue
-        (skip-chars-forward "a-zA-Z0-9_-")
-        (when (> (setq i (1+ i)) 500)
-          (message "velocity-skip ** warning (%S) **" pos)
-          (setq continue nil))
-        (when (member (char-after) '(?\())
-          (search-forward ")" nil t))
-        (if (member (char-after) '(?\.))
-            (forward-char)
-          (setq continue nil))
-        ) ;while
-      ) ;if
-    ))
-
-(defun web-mode-razor-skip (pos)
-  (goto-char pos)
-  (let ((continue t) (i 0))
-    (while continue
-      (skip-chars-forward " =@a-zA-Z0-9_-")
-      (cond
-       ((> (setq i (1+ i)) 500)
-        (message "razor-skip ** warning **")
-        (setq continue nil))
-       ((and (eq (char-after) ?\*)
-             (eq (char-before) ?@))
-        (when (not (search-forward "*@" nil t))
-          (setq continue nil))
-        )
-       ((looking-at-p "@[({]")
-        (forward-char)
-        (when (setq pos (web-mode-closing-paren-position (point)))
-          (goto-char pos))
-        (forward-char)
-        )
-       ((and (not (eobp)) (eq ?\( (char-after)))
-        (if (looking-at-p "[ \n]*[<@]")
-            (setq continue nil)
-          (when (setq pos (web-mode-closing-paren-position))
-            (goto-char pos))
-          (forward-char)
-          ) ;if
-        )
-       ((and (not (eobp)) (eq ?\< (char-after)) (looking-back "[a-z]" (point-min)))
-        (unless (search-forward ">" (line-end-position) t)
-          (setq continue nil))
-        )
-       ((and (not (eobp)) (eq ?\. (char-after)))
-        (forward-char))
-       ((and (not (eobp)) (looking-at-p "[ \n]*else"))
-        (re-search-forward "[ \t]*else")
-        )
-       ((looking-at-p "[ \n]*{")
-        (search-forward "{")
-        (if (looking-at-p "[ \n]*[<@]")
-            (setq continue nil)
-          (backward-char)
-          (when (setq pos (web-mode-closing-paren-position))
-            (goto-char pos))
-          (forward-char)
-          ) ;if
-        )
-       ((looking-at-p "}")
-        (forward-char))
-       (t
-        (setq continue nil))
-       ) ;cond
-      ) ;while
     ))
 
 ;; css rule = selector(s) + declaration (properties)
@@ -6540,30 +6527,30 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 (defun web-mode-engine-syntax-check ()
   (interactive)
-  (let ((proc nil)
-        (errors nil)
+  (let ((proc nil) (errors nil)
         (file (concat temporary-file-directory "emacs-web-mode-tmp")))
     (write-region (point-min) (point-max) file)
     (cond
-     ;;       ((null (buffer-file-name))
-     ;;        )
+     ;; ((null (buffer-file-name))
+     ;; )
      ((string= web-mode-engine "php")
       (setq proc (start-process "php-proc" nil "php" "-l" file))
-      (set-process-filter proc
-                          (lambda (proc output)
-                            (cond
-                             ((string-match-p "No syntax errors" output)
-                              (message "No syntax errors")
-                              )
-                             (t
-;;                              (setq output (replace-regexp-in-string temporary-file-directory "" output))
-;;                              (message output)
-                              (message "Syntax error")
-                              (setq errors t))
-                             ) ;cond
-;;                            (delete-file file)
-                            ) ;lambda
-                          )
+      (set-process-filter
+       proc
+       (lambda (proc output)
+         (cond
+          ((string-match-p "No syntax errors" output)
+           (message "No syntax errors")
+           )
+          (t
+           ;; (setq output (replace-regexp-in-string temporary-file-directory "" output))
+           ;; (message output)
+           (message "Syntax error")
+           (setq errors t))
+          ) ;cond
+         ;; (delete-file file)
+         ) ;lambda
+       )
       ) ;php
      (t
       (message "no syntax checker found")
