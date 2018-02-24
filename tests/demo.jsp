@@ -19,8 +19,6 @@ doNothing(response);
   </c:if>
 </html>
 
-<span>ss</span>
-
 <div>
   <% if (x) { %>
     <span><%= x %></span>
