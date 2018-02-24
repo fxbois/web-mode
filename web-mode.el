@@ -1091,6 +1091,8 @@ Must be used in conjunction with web-mode-enable-block-face."
                            ("[% " . " %]")
                            ("[# " . " #]")
                            ("[#-" . "- | --]")))
+    ("go"               . (("{{ " . " }}")
+                           ("{{-" . " | -}}")))
     ("hero"             . (("<% " . " %>")
                            ("<%=" . " | %>")
                            ("<%!" . " | %>")
@@ -3101,17 +3103,28 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   pos (point))
             )
 
+
+
            ((and (member web-mode-engine '("closure"))
                  (string= closing-string "}"))
-            (goto-char open)
-            (setq tmp (web-mode-closing-paren-position (point) (line-end-position)))
-            (if tmp
-                (setq tmp (1+ tmp))
-              (setq tmp (line-end-position)))
-            (goto-char tmp)
-            (setq close (point)
-                  pos (point))
+            (when (web-mode-closure-skip reg-end)
+              (setq close (point)
+                    pos (point))
+              (message "close=%S pos=%S" close pos)
+              ) ;when
             )
+
+           ;; ((and (member web-mode-engine '("closure"))
+           ;;       (string= closing-string "}"))
+           ;;  (goto-char open)
+           ;;  (setq tmp (web-mode-closing-paren-position (point) (line-end-position)))
+           ;;  (if tmp
+           ;;      (setq tmp (1+ tmp))
+           ;;    (setq tmp (line-end-position)))
+           ;;  (goto-char tmp)
+           ;;  (setq close (point)
+           ;;        pos (point))
+           ;;  )
 
            ((string= closing-string "EOL")
             (end-of-line)
@@ -3239,6 +3252,43 @@ another auto-completion with different ac-sources (e.g. ac-php)")
        ) ;cond
 
       )))
+
+(defun web-mode-closure-skip (reg-end)
+  (let (regexp char pos inc continue found)
+    (setq regexp "[\"'{}]"
+          inc 0)
+    (while (and (not found) (re-search-forward regexp reg-end t))
+      (setq char (char-before))
+      (cond
+       ((get-text-property (point) 'block-side)
+        (setq found t))
+       ((eq char ?\{)
+        (setq inc (1+ inc)))
+       ((eq char ?\})
+        (cond
+         ((and (not (eobp))
+               (< inc 1))
+          (setq found t
+                pos (point)))
+         ((> inc 0)
+          (setq inc (1- inc)))
+         )
+        )
+       ((eq char ?\')
+        (setq continue t)
+        (while (and continue (search-forward "'" reg-end t))
+          (setq continue (web-mode-string-continue-p reg-beg))
+          )
+        )
+       ((eq char ?\")
+        (setq continue t)
+        (while (and continue (search-forward "\"" reg-end t))
+          (setq continue (web-mode-string-continue-p reg-beg))
+          )
+        )
+       ) ;cond
+      ) ;while
+    pos))
 
 (defun web-mode-django-skip (reg-end)
   (let (regexp char pos inc continue found)
