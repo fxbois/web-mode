@@ -1554,9 +1554,11 @@ shouldn't be moved back.)")
 (defvar web-mode-go-keywords
   (eval-when-compile
     (regexp-opt
-     '("const" "define" "else" "end"
+     '("block"
+       "const" "define" "else" "end"
        "for" "func" "if" "import"
-       "pipeline" "range" "return" "struct"
+       "partial" "pipeline"
+       "range" "return" "struct"
        "template" "type" "var" "with"))))
 
 (defvar web-mode-go-functions
@@ -1952,15 +1954,17 @@ shouldn't be moved back.)")
 
 (defvar web-mode-go-font-lock-keywords
   (list
-   '("{{[-]?[ ]*\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
+   ;; '("{{[-]?[ ]*\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
+   (cons (concat "{{[-]?[ ]*\\(" web-mode-go-keywords "\\)") '(1 'web-mode-block-control-face))
    '("\\_<func \\([[:alnum:]]+\\)" 1 'web-mode-function-name-face)
    '("\\_<type \\([[:alnum:]]+\\)" 1 'web-mode-type-face)
    (cons (concat "\\_<\\(" web-mode-go-types "\\)\\_>") '(0 'web-mode-type-face))
    (cons (concat "\\_<\\(" web-mode-go-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-go-functions "\\)\\_>") '(1 'web-mode-function-call-face))
    (cons (concat "\\.\\(" web-mode-go-hugo-dot-functions "\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face))
-   '("[$.]\\([[:alnum:]_]+\\) :?=" 1 'web-mode-variable-name-face t t)
-   '("$\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
+   '("[$.]\\([[:alnum:]_]+\\) :?=" 1 'web-mode-variable-name-face t t) ;$foo := 1
+   '("$\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t) ;gt $foo 1
+   '("\\({{-?\\|\\s-\\)\\([.]\\)\\(\\s-\\||\\|-?}}\\)" 2 'web-mode-variable-name-face t t) ;the dot
    '("[$]?\\.\\(Site\\|Page\\|Params\\)\\(\\.\\|\\_>\\)" 1 'web-mode-variable-name-face t t)
    '("|[ ]?\\([[:alpha:]_]+\\)\\_>" 1 'web-mode-filter-face)
    ))
