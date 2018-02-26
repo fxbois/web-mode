@@ -1962,7 +1962,7 @@ shouldn't be moved back.)")
    (cons (concat "\\.\\(" web-mode-go-hugo-dot-functions "\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face))
    (cons (concat "\\.\\(Has\\([[:alpha:]_]+\\)*\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face)) ;HasPrev, HasNext, HasChildren
    ;; '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
-   '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face) ;$foo := 1, gt $foo 1
+   '("[$.]\\([[:alpha:]_][[:alnum:]_]+\\)" 1 'web-mode-variable-name-face) ;$foo := 1, gt $foo 1
    '("\\({{-?\\|[[:blank:](]\\)\\([.]\\)\\([[:blank:]|)]\\|-?}}\\)" 2 'web-mode-variable-name-face t t) ;the dot
    '("|[ ]?\\([[:alpha:]_]+\\)\\_>" 1 'web-mode-filter-face)
    '("\\_<\\([0-9]+\\([.eE][0-9]+\\)*\\|true\\|false\\)\\_>" 1 'web-mode-constant-face)
