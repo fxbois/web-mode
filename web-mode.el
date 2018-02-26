@@ -1554,16 +1554,54 @@ shouldn't be moved back.)")
 (defvar web-mode-go-keywords
   (eval-when-compile
     (regexp-opt
-     '("const" "define" "else" "end"
+     '("block"
+       "const" "define" "else" "end"
        "for" "func" "if" "import"
-       "pipeline" "range" "return" "struct"
+       "partial" "pipeline"
+       "range" "return" "struct"
        "template" "type" "var" "with"))))
 
 (defvar web-mode-go-functions
   (eval-when-compile
     (regexp-opt
      '("and" "call" "ge" "html" "index" "js" "len" "not" "or"
-       "print" "printf" "println" "urlquery" "where"))))
+       "print" "printf" "println" "urlquery" "where"
+       ;; Hugo functions - https://gohugo.io/functions/
+       "add" "div" "mod" "modBool" "mul" "sub" "math.Ceil" "math.Floor" "math.Round"
+       "absLangURL" "absURL" "after" "apply"
+       "base64"
+       "chomp" "cond" "countrunes" "countwords"
+       "dateFormat" "default" "delimit" "dict"
+       "echoParam" "emojify" "eq" "errorf"
+       "fileExists" "findRE" "first" "float"
+       "ge" "getenv" "gt"
+       "hasPrefix" "highlight" "htmlEscape" "htmlUnescape" "humanize"
+       "i18n" "imageConfig" "in" "index" "int" "intersect" "isset"
+       "jsonify"
+       "lang.NumFmt" "last" "le" "len" "lower" "lt"
+       "markdownify" "md5"
+       "ne" "now"
+       "partialCached" "plainify" "pluralize" "print" "printf" "println"
+       "querify"
+       "range" "readDir" "readFile" "ref" "relLangURL" "relURL" "relref" "render" "replace" "replaceRE"
+       "safeCSS" "safeHTML" "safeHTMLAttr" "safeJS" "safeURL"
+       "seq" "sha" "shuffle" "singularize" "slice" "slicestr" "sort" "split" "string"
+       "strings.TrimLeft" "strings.TrimPrefix" "strings.TrimRight" "strings.TrimSuffix"
+       "substr"
+       "time" "title" "trim" "truncate"
+       "union" "uniq" "upper" "urlize" "urls.Parse"
+       "where" "with"))))
+
+(defvar web-mode-go-hugo-dot-functions
+  (eval-when-compile
+    (regexp-opt
+     '(;; Hugo functions - https://gohugo.io/functions/
+       "AddDate"
+       "Format"
+       "Get" "GetPage" "Param"
+       "Scratch.Add" "Scratch.Get" "Scratch.Set" "Scratch.SetInMap" "Scratch.GetSortedMapValues"
+       "Unix"
+       ))))
 
 (defvar web-mode-go-types
   (regexp-opt
@@ -1914,14 +1952,18 @@ shouldn't be moved back.)")
 
 (defvar web-mode-go-font-lock-keywords
   (list
-   '("{{[-]?[ ]*\\([[:alpha:]]+\\)" 1 'web-mode-block-control-face)
+   (cons (concat "{{[-]?[ ]*\\(" web-mode-go-keywords "\\)") '(1 'web-mode-block-control-face))
    '("\\_<func \\([[:alnum:]]+\\)" 1 'web-mode-function-name-face)
    '("\\_<type \\([[:alnum:]]+\\)" 1 'web-mode-type-face)
    (cons (concat "\\_<\\(" web-mode-go-types "\\)\\_>") '(0 'web-mode-type-face))
    (cons (concat "\\_<\\(" web-mode-go-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-go-functions "\\)\\_>") '(1 'web-mode-function-call-face))
-   '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
+   (cons (concat "\\.\\(" web-mode-go-hugo-dot-functions "\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face))
+   (cons (concat "\\.\\(Has\\([A-Z][[:alpha:]_]+\\)*\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face)) ;HasPrev, HasNext, HasChildren
+   '("[$.]\\([[:alpha:]_][[:alnum:]_]+\\)" 1 'web-mode-variable-name-face) ;$foo := 1, gt $foo 1
+   '("\\({{-?\\|[[:blank:](]\\)\\([.]\\)\\([[:blank:]|)]\\|-?}}\\)" 2 'web-mode-variable-name-face t t) ;the dot
    '("|[ ]?\\([[:alpha:]_]+\\)\\_>" 1 'web-mode-filter-face)
+   '("\\_<\\([0-9]+\\([.eE][0-9]+\\)*\\|true\\|false\\)\\_>" 1 'web-mode-constant-face)
    ))
 
 (defvar web-mode-expression-font-lock-keywords
