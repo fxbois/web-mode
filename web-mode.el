@@ -1962,11 +1962,13 @@ shouldn't be moved back.)")
    (cons (concat "\\_<\\(" web-mode-go-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-go-functions "\\)\\_>") '(1 'web-mode-function-call-face))
    (cons (concat "\\.\\(" web-mode-go-hugo-dot-functions "\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face))
+   ;; '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t) ;$foo := 1
    '("[$.]\\([[:alnum:]_]+\\) :?=" 1 'web-mode-variable-name-face t t) ;$foo := 1
    '("$\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t) ;gt $foo 1
    '("\\({{-?\\|[[:blank:](]\\)\\([.]\\)\\([[:blank:]|)]\\|-?}}\\)" 2 'web-mode-variable-name-face t t) ;the dot
    '("[$]?\\.\\(Site\\|Page\\|Params\\)\\(\\.\\|\\_>\\)" 1 'web-mode-variable-name-face t t)
    '("|[ ]?\\([[:alpha:]_]+\\)\\_>" 1 'web-mode-filter-face)
+   '("\\_<\\([0-9]+\\([.eE][0-9]+\\)*\\|true\\|false\\)\\_>" 1 'web-mode-constant-face)
    ))
 
 (defvar web-mode-expression-font-lock-keywords
