@@ -1563,7 +1563,45 @@ shouldn't be moved back.)")
   (eval-when-compile
     (regexp-opt
      '("and" "call" "ge" "html" "index" "js" "len" "not" "or"
-       "print" "printf" "println" "urlquery" "where"))))
+       "print" "printf" "println" "urlquery" "where"
+       ;; Hugo functions - https://gohugo.io/functions/
+       "add" "div" "mod" "modBool" "mul" "sub" "math.Ceil" "math.Floor" "math.Round"
+       "absLangURL" "absURL" "after" "apply"
+       "base64"
+       "chomp" "cond" "countrunes" "countwords"
+       "dateFormat" "default" "delimit" "dict"
+       "echoParam" "emojify" "eq" "errorf"
+       "fileExists" "findRE" "first" "float"
+       "ge" "getenv" "gt"
+       "hasPrefix" "highlight" "htmlEscape" "htmlUnescape" "humanize"
+       "i18n" "imageConfig" "in" "index" "int" "intersect" "isset"
+       "jsonify"
+       "lang.NumFmt" "last" "le" "len" "lower" "lt"
+       "markdownify" "md5"
+       "ne" "now"
+       "partialCached" "plainify" "pluralize" "print" "printf" "println"
+       "querify"
+       "range" "readDir" "readFile" "ref" "relLangURL" "relURL" "relref" "render" "replace" "replaceRE"
+       "safeCSS" "safeHTML" "safeHTMLAttr" "safeJS" "safeURL"
+       "seq" "sha" "shuffle" "singularize" "slice" "slicestr" "sort" "split" "string"
+       "strings.TrimLeft" "strings.TrimPrefix" "strings.TrimRight" "strings.TrimSuffix"
+       "substr"
+       "time" "title" "trim" "truncate"
+       "union" "uniq" "upper" "urlize" "urls.Parse"
+       "where" "with"))))
+
+(defvar web-mode-go-hugo-dot-functions
+  (eval-when-compile
+    (regexp-opt
+     '(;; Hugo functions - https://gohugo.io/functions/
+       ;; "haschildren" "hasmenucurrent" "ismenucurrent"
+       "AddDate"
+       "Format"
+       "Get" "GetPage" "Param"
+       "Scratch.Add" "Scratch.Get" "Scratch.Set" "Scratch.SetInMap" "Scratch.GetSortedMapValues"
+       "Unix"
+       ;; Paginator
+       "HasPrev" "HasNext"))))
 
 (defvar web-mode-go-types
   (regexp-opt
@@ -1920,7 +1958,10 @@ shouldn't be moved back.)")
    (cons (concat "\\_<\\(" web-mode-go-types "\\)\\_>") '(0 'web-mode-type-face))
    (cons (concat "\\_<\\(" web-mode-go-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-go-functions "\\)\\_>") '(1 'web-mode-function-call-face))
-   '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
+   (cons (concat "\\.\\(" web-mode-go-hugo-dot-functions "\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face))
+   '("[$.]\\([[:alnum:]_]+\\) :?=" 1 'web-mode-variable-name-face t t)
+   '("$\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
+   '("[$]?\\.\\(Site\\|Page\\|Params\\)\\(\\.\\|\\_>\\)" 1 'web-mode-variable-name-face t t)
    '("|[ ]?\\([[:alpha:]_]+\\)\\_>" 1 'web-mode-filter-face)
    ))
 
