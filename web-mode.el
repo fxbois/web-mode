@@ -1596,14 +1596,12 @@ shouldn't be moved back.)")
   (eval-when-compile
     (regexp-opt
      '(;; Hugo functions - https://gohugo.io/functions/
-       ;; "haschildren" "hasmenucurrent" "ismenucurrent"
        "AddDate"
        "Format"
        "Get" "GetPage" "Param"
        "Scratch.Add" "Scratch.Get" "Scratch.Set" "Scratch.SetInMap" "Scratch.GetSortedMapValues"
        "Unix"
-       ;; Paginator
-       "HasPrev" "HasNext"))))
+       ))))
 
 (defvar web-mode-go-types
   (regexp-opt
@@ -1962,11 +1960,10 @@ shouldn't be moved back.)")
    (cons (concat "\\_<\\(" web-mode-go-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-go-functions "\\)\\_>") '(1 'web-mode-function-call-face))
    (cons (concat "\\.\\(" web-mode-go-hugo-dot-functions "\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face))
-   ;; '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t) ;$foo := 1
-   '("[$.]\\([[:alnum:]_]+\\) :?=" 1 'web-mode-variable-name-face t t) ;$foo := 1
-   '("$\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t) ;gt $foo 1
+   (cons (concat "\\.\\(Has\\([[:alpha:]_]+\\)*\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face)) ;HasPrev, HasNext, HasChildren
+   ;; '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
+   '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face) ;$foo := 1, gt $foo 1
    '("\\({{-?\\|[[:blank:](]\\)\\([.]\\)\\([[:blank:]|)]\\|-?}}\\)" 2 'web-mode-variable-name-face t t) ;the dot
-   '("[$]?\\.\\(Site\\|Page\\|Params\\)\\(\\.\\|\\_>\\)" 1 'web-mode-variable-name-face t t)
    '("|[ ]?\\([[:alpha:]_]+\\)\\_>" 1 'web-mode-filter-face)
    '("\\_<\\([0-9]+\\([.eE][0-9]+\\)*\\|true\\|false\\)\\_>" 1 'web-mode-constant-face)
    ))
