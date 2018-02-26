@@ -1960,7 +1960,7 @@ shouldn't be moved back.)")
    (cons (concat "\\_<\\(" web-mode-go-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-go-functions "\\)\\_>") '(1 'web-mode-function-call-face))
    (cons (concat "\\.\\(" web-mode-go-hugo-dot-functions "\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face))
-   (cons (concat "\\.\\(Has\\([[:alpha:]_]+\\)*\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face)) ;HasPrev, HasNext, HasChildren
+   (cons (concat "\\.\\(Has\\([A-Z][[:alpha:]_]+\\)*\\)\\(\\.\\|\\_>\\)") '(1 'web-mode-function-call-face)) ;HasPrev, HasNext, HasChildren
    ;; '("[$.]\\([[:alnum:]_]+\\)" 1 'web-mode-variable-name-face t t)
    '("[$.]\\([[:alpha:]_][[:alnum:]_]+\\)" 1 'web-mode-variable-name-face) ;$foo := 1, gt $foo 1
    '("\\({{-?\\|[[:blank:](]\\)\\([.]\\)\\([[:blank:]|)]\\|-?}}\\)" 2 'web-mode-variable-name-face t t) ;the dot
