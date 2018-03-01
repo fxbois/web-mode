@@ -1,4 +1,4 @@
-web-mode.el [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](http://web-mode.org) 
+web-mode.el
 =========
 
 web-mode.el is an emacs major mode for editing **web templates** aka HTML files embedding parts (CSS/JavaScript) and blocks (pre rendered by client/server side engines).
@@ -8,6 +8,10 @@ web-mode.el is compatible with many template engines: PHP, JSP, ASP, Django, Twi
 More infos on http://web-mode.org/
 
 ![ScreenShot](http://web-mode.org/web-mode.png?v=5)
+
+[![paypal.me](http://web-mode.org/images/PayPal.svg)](https://www.paypal.me/fxbois)
+
+[![liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/fxbois/donate)
 
 [![MELPA](http://melpa.org/packages/web-mode-badge.svg)](http://melpa.org/#/web-mode)
 
