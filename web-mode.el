@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 16.0.0
+;; Version: 16.0.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.0"
+(defconst web-mode-version "16.0.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -369,6 +369,11 @@ See web-mode-block-face."
 (defface web-mode-html-tag-custom-face
   '((t :inherit web-mode-html-tag-face))
   "Face for html custom tags (e.g. <polymer-element>)."
+  :group 'web-mode-faces)
+
+(defface web-mode-html-tag-unclosed-face
+  '((t :inherit web-mode-html-tag-face :underline t))
+  "Face for unclosed tags."
   :group 'web-mode-faces)
 
 (defface web-mode-html-tag-namespaced-face
@@ -722,7 +727,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-expand-initial-scroll nil)
 (defvar web-mode-expand-previous-state "")
 (defvar web-mode-font-lock-keywords '(web-mode-font-lock-highlight))
-(defvar web-mode-inhibit-fontification nil)
+(defvar web-mode-fontification-off nil)
+;;(defvar web-mode-fontification-pos nil)
 (defvar web-mode-inlay-regexp nil)
 (defvar web-mode-is-scratch nil)
 (defvar web-mode-jshint-errors 0)
@@ -2440,8 +2446,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (make-local-variable 'web-mode-indent-style)
   (make-local-variable 'web-mode-indentless-attributes)
   (make-local-variable 'web-mode-indentless-elements)
-  (make-local-variable 'web-mode-inhibit-fontification)
   (make-local-variable 'web-mode-is-scratch)
+  (make-local-variable 'web-mode-fontification-off)
+;;  (make-local-variable 'web-mode-fontification-pos)
   (make-local-variable 'web-mode-jshint-errors)
   (make-local-variable 'web-mode-last-enabled-feature)
   (make-local-variable 'web-mode-markup-indent-offset)
@@ -5684,7 +5691,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-font-lock-highlight (limit)
   ;;(message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
   (cond
-   (web-mode-inhibit-fontification
+   (web-mode-fontification-off
     nil)
    (t
     (web-mode-highlight-region (point) limit)
@@ -5706,7 +5713,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-extend-region ()
   ;;(message "extend-region: flb(%S) fle(%S) wmcb(%S) wmce(%S)" font-lock-beg font-lock-end web-mode-change-beg web-mode-change-end)
   (cond
-   (web-mode-inhibit-fontification
+   (web-mode-fontification-off
     nil)
    (t
     (when (or (null web-mode-change-beg) (< font-lock-beg web-mode-change-beg))
@@ -5738,6 +5745,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          (let ((buffer-undo-list t)
                (inhibit-point-motion-hooks t)
                (inhibit-quit t))
+           ;;(message "web-mode-highlight-region=%S" (point))
+           ;;(setq web-mode-fontification-pos (point))
            (remove-list-of-text-properties beg end '(font-lock-face face))
            (cond
             ((and (get-text-property beg 'block-side)
@@ -5825,7 +5834,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (setq flags (get-text-property beg 'tag-beg)
           type (get-text-property beg 'tag-type)
           name (get-text-property beg 'tag-name))
+    (setq bracket-end (> (logand flags 16) 0))
     (cond
+     ;; ((and (not bracket-end)
+     ;;       web-mode-fontification-pos
+     ;;       (or (< web-mode-fontification-pos beg)
+     ;;           (> web-mode-fontification-pos end)))
+     ;;  )
      ((eq type 'comment)
       (put-text-property beg end 'font-lock-face 'web-mode-comment-face)
       (when (and web-mode-enable-comment-interpolation (> (- end beg) 5))
@@ -5837,16 +5852,17 @@ another auto-completion with different ac-sources (e.g. ac-php)")
      ((eq type 'declaration)
       (put-text-property beg end 'font-lock-face 'web-mode-doctype-face))
      (name
+      (setq slash-beg (> (logand flags 4) 0)
+            slash-end (> (logand flags 8) 0)
+            bracket-end (> (logand flags 16) 0))
       (setq face (cond
+                  ((not bracket-end)       'web-mode-html-tag-unclosed-face)
                   ((and web-mode-enable-element-tag-fontification
                         (setq face (cdr (assoc name web-mode-element-tag-faces))))
                    face)
                   ((> (logand flags 32) 0) 'web-mode-html-tag-namespaced-face)
                   ((> (logand flags 2) 0)  'web-mode-html-tag-custom-face)
-                  (t                       'web-mode-html-tag-face))
-            slash-beg (> (logand flags 4) 0)
-            slash-end (> (logand flags 8) 0)
-            bracket-end (> (logand flags 16) 0))
+                  (t                       'web-mode-html-tag-face)))
       (put-text-property beg (+ beg (if slash-beg 2 1))
                          'font-lock-face 'web-mode-html-tag-bracket-face)
       (unless (string= name "_fragment_")
@@ -10372,12 +10388,12 @@ Prompt user if TAG-NAME isn't provided."
   ;;(backtrace)
   ;;(message "this-command=%S" this-command)
   (when (eq this-original-command 'yank)
-    (setq web-mode-inhibit-fontification t))
+    (setq web-mode-fontification-off t))
   (when (or (null web-mode-change-beg) (< beg web-mode-change-beg))
     (setq web-mode-change-beg beg))
   (when (or (null web-mode-change-end) (> end web-mode-change-end))
     (setq web-mode-change-end end))
-  ;;(message "on-after-change: inhibit-fontification(%S) change-beg(%S) change-end(%S)" web-mode-inhibit-fontification web-mode-change-beg web-mode-change-end)
+  ;;(message "on-after-change: fontification-off(%S) change-beg(%S) change-end(%S)" web-mode-fontification-off web-mode-change-beg web-mode-change-end)
   )
 
 (defun web-mode-auto-complete ()
@@ -10552,7 +10568,7 @@ Prompt user if TAG-NAME isn't provided."
             web-mode-expand-initial-scroll nil))
 
     (when (member this-command '(yank))
-      (setq web-mode-inhibit-fontification nil)
+      (setq web-mode-fontification-off nil)
       (when (and web-mode-scan-beg web-mode-scan-end)
         (save-excursion
           (font-lock-fontify-region web-mode-scan-beg web-mode-scan-end))
