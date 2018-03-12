@@ -9970,7 +9970,7 @@ Prompt user if TAG-NAME isn't provided."
           ;;(message "%S" comment)
           )
          ((string= sub2 "//")
-          (setq comment (replace-regexp-in-string "\\(//\\)" "" comment)))
+          (setq comment (replace-regexp-in-string "^ *//" "" comment)))
          ) ;cond
         (delete-region beg end)
         (web-mode-insert-and-indent comment)
