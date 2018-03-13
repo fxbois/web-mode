@@ -7795,12 +7795,14 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           ;;(message "ici%S" offset)
           )
 
-         ;; #446, #638, #800
+         ;; #446, #638, #800, #978
          ((and (member language '("javascript" "jsx" "ejs" "php"))
                (or (string-match-p "[&|?:+-]$" prev-line)
                    (string-match-p "^[&|?:+-]" curr-line))
                (not (and (string= language "php")
                          (string-match-p "^->" curr-line)))
+               (not (and (string= language "php")
+                         (string-match-p "\\(else[ ]?:\\|if[ ]?([^)]*)[ ]?:\\)" prev-line)))
                (not (string-match-p "^\\(++\\|--\\)" curr-line))
                (not (and is_js
                          (string-match-p "]:" prev-line)))
@@ -9812,7 +9814,7 @@ Prompt user if TAG-NAME isn't provided."
             (setq content (concat "{/* " sel " */}")))
            (web-mode-comment-prefixing
             (setq content (replace-regexp-in-string (concat "\n[ ]\\{" (number-to-string col) "\\}") "\n* " sel))
-            (setq content (concat "/* " content "*/")))
+            (setq content (concat "/* " content " */")))
            (t
             (setq content (concat "/* " sel " */")))
            ) ;cond
