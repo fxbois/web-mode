@@ -143,8 +143,8 @@ var Component = require('./component');
 
 function f() {
   return true
-      && <E b={true} />
-      || <E />;
+    && <E b={true} />
+    || <E />;
 }
 
 export default class Header extends Component {
@@ -245,7 +245,7 @@ return React.render(
   <div className="fooBar">
     {
       conditional &&
-      <myComponent className="myComponent" />
+        <myComponent className="myComponent" />
     }
     <label>{labelText}</label>
     <div>
