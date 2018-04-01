@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 16.0.3
+;; Version: 16.0.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.3"
+(defconst web-mode-version "16.0.4"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8042,67 +8042,75 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-html-indentation (pos)
   (save-excursion
     (let (beg (continue t) end level map offset regexp tag val void)
-    (goto-char pos)
-    (setq beg (web-mode-part-token-beginning-position pos))
-    (cond
-     ((eq (char-after pos) ?\`)
-      (setq offset (web-mode-indentation-at-pos beg)))
-     ((web-mode-looking-back "`[ \n\t]*" pos)
-      (setq offset (+ (web-mode-indentation-at-pos beg) web-mode-markup-indent-offset)))
-     ((looking-at "</\\([a-zA-Z]+\\)")
-      (setq tag (match-string-no-properties 1)
-            regexp (concat "</?" tag)
-            level -1)
-      (while (and continue (re-search-backward regexp beg t))
-        (if (eq (aref (match-string-no-properties 0) 1) ?\/)
-            (setq level (1- level))
-          (setq level (1+ level)))
-        (when (= level 0)
-          (setq continue nil
-                offset (current-indentation)))
-        ) ;while
-      )
-     ((looking-at "[a-zA-Z-]+[ ]?=")
-      (re-search-backward "<[a-zA-Z]+[ ]*" beg t)
-      (setq offset (+ (current-column) (length (match-string-no-properties 0))))
-      )
-     ((looking-at-p "/>")
-      (search-backward "<" beg t)
-      (setq offset (current-column))
-      )
-     (t
-      (setq regexp "</?\\([a-zA-Z]+\\)")
-      ;;(message "point=%S" (point))
-      (while (and continue (re-search-backward regexp beg t))
+      (goto-char pos)
+      (setq beg (web-mode-part-token-beginning-position pos))
+      (cond
+       ((eq (char-after pos) ?\`)
+        (setq offset (web-mode-indentation-at-pos beg)))
+       ((web-mode-looking-back "`[ \n\t]*" pos)
+        (setq offset (+ (web-mode-indentation-at-pos beg) web-mode-markup-indent-offset)))
+       ((looking-at "</\\([a-zA-Z]+\\)")
         (setq tag (match-string-no-properties 1)
-              end nil
-              void nil)
+              regexp (concat "</?" tag)
+              level -1)
+        (while (and continue (re-search-backward regexp beg t))
+          (if (eq (aref (match-string-no-properties 0) 1) ?\/)
+              (setq level (1- level))
+          (setq level (1+ level)))
+          (when (= level 0)
+            (setq continue nil
+                  offset (current-indentation)))
+          ) ;while
+        )
+       ((looking-at "[a-zA-Z-]+[ ]?=")
+        (re-search-backward "<[a-zA-Z]+[ ]*" beg t)
+        (setq offset (+ (current-column) (length (match-string-no-properties 0))))
+        )
+       ((looking-at-p "/>")
+        (search-backward "<" beg t)
+        (setq offset (current-column))
+        )
+       (t
+        (setq regexp "</?\\([a-zA-Z]+\\)")
+        ;;(message "point=%S" (point))
+        (while (and continue (re-search-backward regexp beg t))
+          (setq tag (downcase (match-string-no-properties 1))
+                end nil
+                void nil)
+          (cond
+           ((eq (aref (match-string-no-properties 0) 1) ?/)
+            (setq end t))
+           ((web-mode-element-is-void tag)
+            (setq void t))
+           (t
+            (save-excursion
+              (when (and (search-forward ">" pos t) (eq (char-before) ?\/))
+                (setq void t))
+              ) ;save-excursion
+            ) ;t
+           ) ;cond
+          (unless void
+            (setq val (or (lax-plist-get map tag) 0))
+            (setq val (if end (1- val) (1+ val)))
+            (setq map (lax-plist-put map tag val))
+            ;;(message "val=%S tag=%S end=%S | %S" val tag end (plist-get map tag))
+            (setq continue (not (> val 0)))
+            ) ;unless
+          ;;(message "pos=%S tag=%S val=%S end=%S void=%S" (point) tag val end void)
+          ) ;while
         (cond
-         ((eq (aref (match-string-no-properties 0) 1) ?/)
-          (setq end t))
-         ((web-mode-element-is-void tag)
-          (setq void t))
+         ((> val 0)
+          ;;(message "point=%S" (point))
+          ;;(goto-char (1+ beg))
+          ;;(forward-char)
+          ;;(re-search-forward "[[:space:]]*")
+          (setq offset (+ (current-indentation) web-mode-markup-indent-offset)))
          (t
-          (save-excursion
-            (when (and (search-forward ">" pos t) (eq (char-before) ?\/))
-              (setq void t))
-            ) ;save-excursion
-          ) ;t
-         ) ;cond
-        (unless void
-          (setq val (or (plist-get map tag) 0))
-          (setq val (if end (1- val) (1+ val)))
-          (setq map (plist-put map tag val))
-          (setq continue (not (> val 0)))
-          ) ;unless
-        ;;(message "pos=%S tag=%S val=%S end=%S void=%S" (point) tag val end void)
-        ) ;while
-      (setq offset (if (and val (> val 0))
-                       (+ (current-indentation) web-mode-markup-indent-offset)
-                     nil))
-      ) ;t
-     ) ;cond
-    offset)))
+          (setq offset nil))
+         )
+        ) ;t
+       ) ;cond
+      offset)))
 
 (defun web-mode-styled-component-indentation (pos)
   (save-excursion
