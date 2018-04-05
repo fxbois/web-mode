@@ -1197,7 +1197,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("ctemplate"        . "[$]?{[{~].")
    '("django"           . "{[#{%]")
    '("dust"             . "{.")
-   '("elixir"           . "<%.")
+   '("elixir"           . "<%")
    '("ejs"              . "<%")
    '("erb"              . "<%\\|^%.")
    '("freemarker"       . "<%\\|${\\|</?[[:alpha:]]+:[[:alpha:]]\\|</?[@#]\\|\\[/?[@#].")
@@ -2718,9 +2718,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ((string= web-mode-engine "elixir")
           (cond
-           ((string= tagopen "<%#")
+           ((member (char-after) '(?\#))
             (setq closing-string "%>"))
-           ((string= sub2 "<%")
+           (t
             (setq closing-string "%>"
                   delim-open "<%[=%]?"
                   delim-close "%>"))
