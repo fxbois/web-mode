@@ -4477,7 +4477,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               (setq element-content-type "markdown"))
              ((string-match-p " type[ ]*=[ ]*[\"']text/ruby" script)
               (setq element-content-type "ruby"))
-             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|x-jquery-tmpl\\|x-jsrender\\|html\\|ng-template\\|template\\|mustache\\|x-dust-template\\)" script)
+             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|x-jquery-tmpl\\|x-jsrender\\|html\\|ng-template\\|template\\|x-template\\|mustache\\|x-dust-template\\)" script)
               (setq element-content-type "html"
                     part-close-tag nil))
              ((string-match-p " type[ ]*=[ ]*[\"']application/\\(ld\\+json\\|json\\)" script)
