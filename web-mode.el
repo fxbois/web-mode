@@ -897,12 +897,12 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("razor"            . "\\.\\(cs\\|vb\\)html\\|\\.razor\\'")
     ("riot"             . "\\.tag\\'")
     ("smarty"           . "\\.tpl\\'")
-    ("spip"             . "spip")
     ("template-toolkit" . "\\.tt.?\\'")
     ("thymeleaf"        . "\\.thtml\\'")
     ("velocity"         . "\\.v\\(sl\\|tl\\|m\\)\\'")
     ("xoops"            . "\\.xoops'")
 
+    ("spip"             . "spip")
     ("django"           . "[st]wig")
     ("razor"            . "scala")
 
@@ -3378,16 +3378,27 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (forward-char)
         )
        ((and (not (eobp)) (eq ?\( (char-after)))
-        (if (looking-at-p "[ \n]*[<@]")
-            (setq continue nil)
-          (when (setq pos (web-mode-closing-paren-position))
-            (goto-char pos))
-          (forward-char)
-          ) ;if
+        (cond
+         ((looking-at-p "[ \n]*[<@]")
+          (setq continue nil))
+         ((setq pos (web-mode-closing-paren-position))
+          (goto-char pos)
+          (forward-char))
+         (t
+          (forward-char))
+         ) ;cond
         )
        ((and (not (eobp)) (eq ?\< (char-after)) (looking-back "[a-z]" (point-min)))
-        (unless (search-forward ">" (line-end-position) t)
+        (setq pos (point))
+        (cond
+         ;; #988
+         ((search-forward ">" (line-end-position) t)
+          (goto-char pos)
+          (setq continue nil)
+          )
+         (t
           (setq continue nil))
+         ) ;cond
         )
        ((and (not (eobp)) (eq ?\. (char-after)))
         (forward-char))
@@ -3735,10 +3746,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
       (goto-char reg-beg)
 
-      (when (> reg-beg reg-end)
-        (message "block-tokenize ** reg-beg(%S) reg-end(%S) **" reg-beg reg-end))
+      (when (> (point) reg-end)
+        (message "block-tokenize ** reg-beg(%S) > reg-end(%S) **" reg-beg reg-end))
 
-      (while (and (< reg-beg reg-end) (re-search-forward regexp reg-end t))
+      (while (and (< (point) reg-end) (re-search-forward regexp reg-end t))
         (setq beg (match-beginning 0)
               match (match-string 0)
               continue t
@@ -3751,7 +3762,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (goto-char token-end))
 
          ((and (string= web-mode-engine "razor") (eq char ?\'))
-
           (cond
            ((looking-at-p "\\(.\\|[\\][bfntr]\\|[\\]u....\\)'")
             (search-forward "'" reg-end t)
@@ -3760,24 +3770,19 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            (t
             (re-search-forward "[[:alnum:]_-]+")
             (setq token-type 'symbol)
-            ) ;t
-           ) ;cond
-
-          )
+            )))
 
          ((eq char ?\')
           (setq token-type 'string)
           (while (and continue (search-forward "'" reg-end t))
             (setq continue (web-mode-string-continue-p reg-beg))
-            )
-          )
+            ))
 
          ((eq char ?\")
           (setq token-type 'string)
           (while (and continue (search-forward "\"" reg-end t))
             (setq continue (web-mode-string-continue-p reg-beg))
-            )
-          )
+            ))
 
          ((string= match "//")
           (goto-char token-end))
@@ -3810,8 +3815,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq token-type nil))
 
          ) ;cond
-
-        ;;(when (eq token-type 'comment) (message "comment: %S %S" beg (point)))
 
         (put-text-property beg (point) 'block-token token-type)
 
