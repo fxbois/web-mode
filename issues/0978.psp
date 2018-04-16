@@ -3,7 +3,7 @@
   if (true):
   echo '<p>True is true!</p>';
   else:
-       echo '<p>My grasp on reality is slipping</p>';
+  echo '<p>My grasp on reality is slipping</p>';
   endif;
   ?>
 </div>
