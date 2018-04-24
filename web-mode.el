@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 16.0.4
+;; Version: 16.0.8
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.4"
+(defconst web-mode-version "16.0.8"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -740,6 +740,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-scan-end nil)
 (defvar web-mode-snippets nil)
 (defvar web-mode-time nil)
+
+(defvar web-mode-offsetless-elements
+  '())
 
 (defvar web-mode-indentless-elements
   '("code" "pre" "textarea"))
@@ -1759,8 +1762,9 @@ shouldn't be moved back.)")
    '("\\_<\\(var\\|let\\|const\\)[ ]+\\([[:alnum:]_]+\\)" 2 'web-mode-variable-name-face)
    '("({" "\\([[:alnum:]_]+\\)[, }]+" nil nil (1 'web-mode-variable-name-face)) ;#738
    '("\\([[:alnum:]_]+\\)[ ]*=> [{(]" 1 'web-mode-variable-name-face)
-   '("\\(function\\|[,=]\\|^\\)[ ]*("
-     ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
+   ;; #989
+   ;; '("\\(function\\|[,=]\\|^\\)[ ]*("
+   ;;   ("\\([[:alnum:]_]+\\)\\([ ]*=[^,)]*\\)?[,)]" nil nil (1 'web-mode-variable-name-face)))
    '("\\([[:alnum:]_]+\\):" 1 'web-mode-variable-name-face)
    '("\\_<\\([[:alnum:]_-]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[a-zA-Z]<\\([a-zA-Z]+\\)[,>]" 1 'web-mode-type-face)
@@ -4178,7 +4182,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            "section\(\s*\\(['\"]\\).*\\1\s*,\s*\\(['\"]\\).*\\2\s*\)" reg-beg)
           )
          ((web-mode-block-starts-with
-           "\\(?:end\\)?\\(foreach\\|forelse\\|for\\|if\\|section\\|unless\\|while\\)"
+           "\\(?:end\\)?\\(component\\|foreach\\|forelse\\|for\\|if\\|section\\|slot\\|unless\\|while\\)"
            reg-beg)
           (setq control (match-string-no-properties 1)
                 type (if (eq (aref (match-string-no-properties 0) 0) ?e) 'close 'open))
@@ -5838,10 +5842,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           name (get-text-property beg 'tag-name))
     (setq bracket-end (> (logand flags 16) 0))
     (cond
-     ;; ((and (not bracket-end)
-     ;;       (or (< web-mode-fontification-pos beg)
-     ;;           (> web-mode-fontification-pos end)))
-     ;;  )
      ((eq type 'comment)
       (put-text-property beg end 'font-lock-face 'web-mode-comment-face)
       (when (and web-mode-enable-comment-interpolation (> (- end beg) 5))
@@ -8686,12 +8686,16 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 state (eq (get-text-property pos 'tag-type) 'start))
           (if (null state) (setq last-end-tag (cons tag pos)))
           (setq n (gethash tag h 0))
-          (if (null state)
-              (progn
-                (when (> n 0) (puthash tag (1- n) h))
-                (puthash tag (1- n) h2))
+          (cond
+           ((null state)
+            (when (> n 0) (puthash tag (1- n) h))
+            (puthash tag (1- n) h2))
+           ((member tag web-mode-offsetless-elements)
+            )
+           (t
             (puthash tag (1+ n) h)
             (puthash tag (1+ n) h2))
+           ) ;cond
           ) ;when
         (when (setq pos (web-mode-tag-end-position pos))
           (setq tag-pos nil)

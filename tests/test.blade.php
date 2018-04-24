@@ -6,6 +6,10 @@
 
   @{{ This will not be processed by Blade }}
 
+  @component
+    toto
+  @endcomponent
+
   {{-- This comment will not be in the rendered HTML --}}
 
   @section('title', 'Page Title')

@@ -220,7 +220,7 @@ foo() {
     hello();
 }
 
-function fieldIsValid( field, fieldSpec) {
+function fieldIsValid(field, fieldSpec) {
   // todo: add remote possibility
   var value = field.value;
   if ( value.length < fieldSpec.minNumberOfChar ||
