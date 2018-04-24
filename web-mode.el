@@ -7561,6 +7561,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               (and (member language '("jsx"))
                    (string= options "is-html")))
           (when debug (message "I200(%S) web-mode-markup-indentation" pos))
+          ;; https://www.w3.org/TR/html5/syntax.html#optional-tags
           (when web-mode-enable-optional-tags
             (save-excursion
               (let (prev-tag-pos next-tag-pos prev-tag next-tag)
@@ -7568,7 +7569,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                     (setq next-tag-pos pos)
                   (setq next-tag-pos (web-mode-tag-next-position pos)))
                 (setq prev-tag-pos (web-mode-tag-previous-position pos))
-                ;;(message "%S %S" prev-tag-pos next-tag-pos)
+                ;;(message "ptp=%S ntp=%S" prev-tag-pos next-tag-pos)
                 (when (and prev-tag-pos next-tag-pos
                            (eq (get-text-property prev-tag-pos 'tag-type) 'start)
                            (eq (get-text-property next-tag-pos 'tag-type) 'start))
