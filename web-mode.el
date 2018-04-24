@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 16.0.6
+;; Version: 16.0.7
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.6"
+(defconst web-mode-version "16.0.7"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -740,6 +740,9 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-scan-end nil)
 (defvar web-mode-snippets nil)
 (defvar web-mode-time nil)
+
+(defvar web-mode-offsetless-elements
+  '())
 
 (defvar web-mode-indentless-elements
   '("code" "pre" "textarea"))
@@ -8682,12 +8685,16 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 state (eq (get-text-property pos 'tag-type) 'start))
           (if (null state) (setq last-end-tag (cons tag pos)))
           (setq n (gethash tag h 0))
-          (if (null state)
-              (progn
-                (when (> n 0) (puthash tag (1- n) h))
-                (puthash tag (1- n) h2))
+          (cond
+           ((null state)
+            (when (> n 0) (puthash tag (1- n) h))
+            (puthash tag (1- n) h2))
+           ((member tag web-mode-offsetless-elements)
+            )
+           (t
             (puthash tag (1+ n) h)
             (puthash tag (1+ n) h2))
+           ) ;cond
           ) ;when
         (when (setq pos (web-mode-tag-end-position pos))
           (setq tag-pos nil)
