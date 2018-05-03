@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 16.0.9
+;; Version: 16.0.10
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.9"
+(defconst web-mode-version "16.0.10"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -770,10 +770,13 @@ Must be used in conjunction with web-mode-enable-block-face."
         'syntax-table)
   "Text properties used for code regions/tokens and html nodes.")
 
-(defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:]:_-]*\\|>\\)"
+(defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:].:_-]*\\|>\\)"
   "Regular expression for HTML/XML start tag.")
 
-(defvar web-mode-tag-regexp "<\\(/?>\\|/?[[:alpha:]][[:alnum:]:_-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
+(defvar web-mode-tag-regexp "</?\\([[:alpha:]][[:alnum:].:_-]*\\)"
+  "Regular expression for HTML/XML tag.")
+
+(defvar web-mode-dom-regexp "<\\(/?>\\|/?[[:alpha:]][[:alnum:].:_-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
 
 (defvar web-mode-whitespaces-regexp
   "^[ \t]\\{2,\\}$\\| \t\\|\t \\|[ \t]+$\\|^[ \n\t]+\\'\\|^[ \t]?[\n]\\{2,\\}"
@@ -4352,7 +4355,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 (defun web-mode-scan-elements (reg-beg reg-end)
   (save-excursion
-    (let (part-beg part-end flags limit close-expr props tname tbeg tend element-content-type (regexp web-mode-tag-regexp) part-close-tag char)
+    (let (part-beg part-end flags limit close-expr props tname tbeg tend element-content-type (regexp web-mode-dom-regexp) part-close-tag char)
       ;;(message "scan-elements: reg-beg(%S) reg-end(%S)" reg-beg reg-end)
       (goto-char reg-beg)
 
@@ -10320,7 +10323,7 @@ Prompt user if TAG-NAME isn't provided."
   (save-excursion
     (goto-char pos)
     (if (and (web-mode-tag-beginning)
-             (looking-at "</?\\([[:alpha:]][[:alnum:]:_-]*\\)"))
+             (looking-at web-mode-tag-regexp))
         (match-string-no-properties 1)
       nil)))
 

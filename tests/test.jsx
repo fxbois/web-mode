@@ -15,6 +15,17 @@ React.createClass({
   }
 });
 
+export default function Example() {
+  return (
+    <Menu>
+      <Menu.Item>
+        ← cursor here
+      </Menu.Item>
+    </Menu>
+  );
+}
+
+
 render() {
   return (
     <>
