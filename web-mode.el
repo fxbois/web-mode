@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 16.0.8
+;; Version: 16.0.9
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.8"
+(defconst web-mode-version "16.0.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -247,7 +247,8 @@ See web-mode-block-face."
   "Auto-close style."
   :group 'web-mode
   :type '(choice (const :tag "Auto-close on </" 1)
-                 (const :tag "Auto-close on > and </" 2)))
+                 (const :tag "Auto-close on > and </" 2)
+                 (const :tag "Auto-close on < and >/>" 3)))
 
 (defcustom web-mode-auto-quote-style 1
   "Auto-quoting style."
@@ -10417,24 +10418,47 @@ Prompt user if TAG-NAME isn't provided."
   (let ((pos (point))
         (char (char-before))
         (chunk (buffer-substring-no-properties (- (point) 2) (point)))
+        (expanders nil) (tag nil)
         (auto-closed   nil)
         (auto-expanded nil)
         (auto-paired   nil)
-        (auto-quoted   nil)
-        expanders)
+        (auto-quoted   nil))
 
     ;;-- auto-closing
-    (when (and web-mode-enable-auto-closing
-               (>= pos 4)
-               (or (string= "</" chunk)
-                   ;;(progn (message "%c" char) nil)
-                   (and (= web-mode-auto-close-style 2)
-                        (or (string= web-mode-content-type "jsx")
-                            (not (get-text-property pos 'part-side)))
-                        (string-match-p "[[:alnum:]'\"]>" chunk)))
-               (not (get-text-property (- pos 2) 'block-side))
-               (web-mode-element-close))
-      (setq auto-closed t))
+    (when web-mode-enable-auto-closing
+
+      (cond
+
+       ((and (= web-mode-auto-close-style 3)
+             (eq char ?\<))
+        (insert "/>")
+        (backward-char 2)
+        (setq auto-closed t))
+
+       ((and (= web-mode-auto-close-style 3)
+             (eq char ?\>)
+             (looking-at-p "/>"))
+        (save-excursion
+          (re-search-backward web-mode-start-tag-regexp)
+          (setq tag (match-string-no-properties 1)))
+        (insert "<")
+        (forward-char)
+        (insert tag)
+        (setq auto-closed t))
+
+       ((and (>= pos 4)
+             (or (string= "</" chunk)
+                 ;;(progn (message "%c" char) nil)
+                 (and (= web-mode-auto-close-style 2)
+                      (or (string= web-mode-content-type "jsx")
+                          (not (get-text-property pos 'part-side)))
+                      (string-match-p "[[:alnum:]'\"]>" chunk)))
+             (not (get-text-property (- pos 2) 'block-side))
+             (web-mode-element-close))
+        (setq auto-closed t))
+
+       ) ;cond
+      ) ;when
 
     ;;-- auto-pairing
     (when (and web-mode-enable-auto-pairing
@@ -10551,8 +10575,7 @@ Prompt user if TAG-NAME isn't provided."
     ;;--
     (cond
      ((or auto-closed auto-paired auto-expanded auto-quoted)
-      (when (and web-mode-change-end
-                 (>= (line-end-position) web-mode-change-end))
+      (when (and web-mode-change-end (>= (line-end-position) web-mode-change-end))
         (setq web-mode-change-end (line-end-position)))
       (list :auto-closed auto-closed
             :auto-paired auto-paired
@@ -10643,7 +10666,7 @@ Prompt user if TAG-NAME isn't provided."
 
      ((not web-mode-enable-auto-opening)
       )
-     ((and (member this-command '(newline electric-newline-and-maybe-indent newline-and-inden))
+     ((and (member this-command '(newline electric-newline-and-maybe-indent newline-and-indent))
            (get-text-property (point) 'part-side)
            (eq (get-text-property (point) 'part-token) 'string))
       (indent-according-to-mode)
