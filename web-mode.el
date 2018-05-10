@@ -4228,7 +4228,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq controls (append controls (list (cons 'close "ctrl")))))
          ((web-mode-block-starts-with "else\\_>" reg-beg)
           (setq controls (append controls (list (cons 'inside "ctrl")))))
-         ((web-mode-block-starts-with "\\(range\\|with\\|if\\)\\_>" reg-beg)
+         ((web-mode-block-starts-with "\\(range\\|with\\|if\\|define\\|block\\)\\_>" reg-beg)
           (setq controls (append controls (list (cons 'open "ctrl")))))
          )
         ) ;go
