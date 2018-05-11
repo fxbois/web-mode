@@ -49,3 +49,5 @@
   @show
 
 </div>
+
+<span>@choice('foo', 2)</span>

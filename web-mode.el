@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 16.0.10
+;; Version: 16.0.11
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.10"
+(defconst web-mode-version "16.0.11"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2837,7 +2837,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   delim-close "}}"))
            ((looking-at-p "[[:alnum:]]+\\.[[:alpha:]]+")
             )
-           ((string= sub2 "@y")
+           ((looking-at-p "[[:alnum:]]+(")
             (setq closing-string ")"
                   delim-open "@"))
            ((string= sub1 "@")
