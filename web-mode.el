@@ -6954,7 +6954,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (indent-region (point-min) (point-max))
     (when debug
       (setq sub (time-subtract (current-time) ts))
-      (message "buffer-indet: time elapsed = %Ss %9Sµs" (nth 1 sub) (nth 2 sub)))
+      (message "buffer-indent: time elapsed = %Ss %9Sµs" (nth 1 sub) (nth 2 sub)))
     (delete-trailing-whitespace)))
 
 (defun web-mode-buffer-change-tag-case (&optional type)
