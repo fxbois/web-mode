@@ -36,6 +36,10 @@ var cs = {completed: this.props.todo.completed,
 const f = (x) =>
   x + 1;
 
+const tptp =  bar > baz ?
+                    value1 :
+                    value2;
+
 if (a)
   if (b)
     if (c)

@@ -9,8 +9,9 @@
     <form action="/sign" method="post">
       <div>{{$piOver2}}
         {{define "myPage"}}
-        {{template "head" .}}
-        <textarea name="content" rows="3" cols="60"></textarea>
+          {{template "head" .}}
+          <textarea name="content" rows="3" cols="60"></textarea>
+        {{end}}
       </div>
       <span>Name: {{.Text.Name | html}}</span>{{index .Keys 3}}
       <div><input type="submit" value="Sign Guestbook"></div>
