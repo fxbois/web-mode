@@ -834,6 +834,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("thymeleaf"        . ())
     ("underscore"       . ("underscore.js"))
     ("velocity"         . ("vtl" "cheetah" "ssp"))
+    ("vue"              . ("vuejs" "vue.js"))
     ("web2py"           . ())
     ("xoops"            . ())
     )
@@ -850,7 +851,8 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engine-attr-regexps
   '(("angular"   . "ng-")
-    ("thymeleaf" . "th:"))
+    ("thymeleaf" . "th:")
+    ("vue"       . "v-"))
   "Engine custom attributes")
 
 (defvar web-mode-last-enabled-feature nil)
@@ -907,6 +909,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("template-toolkit" . "\\.tt.?\\'")
     ("thymeleaf"        . "\\.thtml\\'")
     ("velocity"         . "\\.v\\(sl\\|tl\\|m\\)\\'")
+    ("vue"              . "\\.vue\\'")
     ("xoops"            . "\\.xoops'")
 
     ("spip"             . "spip")
@@ -1142,6 +1145,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                            ("[%#" . " | %]")))
     ("riot"             . (("={ " . " }")))
     ("underscore"       . (("<% " . " %>")))
+    ("vue"              . (("{{ " . " }}")))
     ("web2py"           . (("{{ " . " }}")
                            ("{{=" . "}}")))
     (nil                . (("<!-" . "- | -->")))
@@ -1225,6 +1229,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("template-toolkit" . "\\[%.\\|%%#")
    '("underscore"       . "<%")
    '("velocity"         . "#[[:alpha:]#*]\\|$[[:alpha:]!{]")
+   '("vue"              . "{{")
    '("web2py"           . "{{")
    '("xoops"            . "<{[[:alpha:]#$/*\"]")
    )
@@ -1960,6 +1965,12 @@ shouldn't be moved back.)")
      (2 'web-mode-variable-name-face))
    ))
 
+(defvar web-mode-vue-font-lock-keywords
+  (list
+   '("\\_<\\([[:alnum:]_-]+\\)[ ]?(" 1 'web-mode-function-call-face)
+   '("[[:alpha:]_]" 0 'web-mode-variable-name-face)
+   ))
+
 (defvar web-mode-engine-tag-font-lock-keywords
   (list
    '("</?\\([[:alpha:]]+\\(?:Template\\|[:.][[:alpha:]-]+\\)\\)" 1 'web-mode-block-control-face)
@@ -2183,6 +2194,7 @@ shouldn't be moved back.)")
     ("underscore"       . web-mode-underscore-font-lock-keywords)
     ("web2py"           . web-mode-web2py-font-lock-keywords)
     ("velocity"         . web-mode-velocity-font-lock-keywords)
+    ("vue"              . web-mode-vue-font-lock-keywords)
     ("xoops"            . web-mode-smarty-font-lock-keywords)
     )
   "Engines font-lock keywords")
@@ -2934,6 +2946,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                 delim-close "}}")
           ) ;angular
 
+         ((string= web-mode-engine "vue")
+          (setq closing-string "}}"
+                delim-open "{{"
+                delim-close "}}")
+          ) ;vue
+
          ((string= web-mode-engine "mason")
           (cond
            ((and (member sub2 '("<%" "</"))
@@ -3681,6 +3699,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
      ((string= web-mode-engine "angular")
       ) ;angular
+
+     ((string= web-mode-engine "vue")
+      ) ;vue
 
      ((string= web-mode-engine "smarty")
       (cond
