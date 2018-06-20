@@ -1,5 +1,7 @@
 <div>
 
+  <span>@lang('consumption.this_month')</span>
+
   Hello, {!! $name !!}.
 
   {{ isset($name) ? $name : 'Default' }}
