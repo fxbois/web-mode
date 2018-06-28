@@ -11,3 +11,7 @@
 <%= content_tag :a, href: "https://example.com" do %>
   Hello!
 <% end %>
+
+<%= form_for @changeset, @action, fn _form -> %>
+  Hello again!
+<%= end %>
