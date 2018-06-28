@@ -4284,6 +4284,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq controls (append controls (list (cons 'inside "ctrl")))))
          ((web-mode-block-ends-with " do" reg-beg)
           (setq controls (append controls (list (cons 'open "ctrl")))))
+         ((web-mode-block-ends-with " ->" reg-beg)
+          (setq controls (append controls (list (cons 'open "ctrl")))))
          )
         ) ;elixir
 
