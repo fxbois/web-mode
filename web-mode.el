@@ -119,27 +119,27 @@
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-auto-indentation (display-graphic-p)
+(defcustom web-mode-enable-auto-indentation t
   "Auto-indentation."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-auto-closing (display-graphic-p)
+(defcustom web-mode-enable-auto-closing t
   "Auto-closing."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-auto-pairing (display-graphic-p)
+(defcustom web-mode-enable-auto-pairing t
   "Auto-pairing."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-auto-opening (display-graphic-p)
+(defcustom web-mode-enable-auto-opening t
   "Html element auto-opening."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-auto-quoting (display-graphic-p)
+(defcustom web-mode-enable-auto-quoting t
   "Add double quotes after the character = in a tag."
   :type 'boolean
   :group 'web-mode)
