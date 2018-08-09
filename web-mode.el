@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 16.0.12
+;; Version: 16.0.13
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.12"
+(defconst web-mode-version "16.0.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -226,7 +226,7 @@ See web-mode-block-face."
   :type 'boolean
   :group 'web-mode)
 
-(defcustom web-mode-enable-optional-tags t
+(defcustom web-mode-enable-optional-tags nil
   "Enable omission of certain closing tags (e.g. a li open tag followed by a li open tag is valid)."
   :type 'boolean
   :group 'web-mode)
@@ -7591,29 +7591,47 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           ;; https://www.w3.org/TR/html5/syntax.html#optional-tags
           (when web-mode-enable-optional-tags
             (save-excursion
-              (let (prev-tag-pos next-tag-pos prev-tag next-tag)
-                (if (get-text-property pos 'tag-type)
-                    (setq next-tag-pos pos)
-                  (setq next-tag-pos (web-mode-tag-next-position pos)))
-                (setq prev-tag-pos (web-mode-tag-previous-position pos))
-                ;;(message "ptp=%S ntp=%S" prev-tag-pos next-tag-pos)
-                (when (and prev-tag-pos next-tag-pos
-                           (eq (get-text-property prev-tag-pos 'tag-type) 'start)
-                           (eq (get-text-property next-tag-pos 'tag-type) 'start))
-                  (setq prev-tag (get-text-property prev-tag-pos 'tag-name)
-                        next-tag (get-text-property next-tag-pos 'tag-name))
-                  ;;(message "%S %S" prev-tag next-tag)
-                  (when (or (and (string= prev-tag "p") (member next-tag '("p" "address", "article", "aside", "blockquote", "div", "dl", "fieldset", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "ul")))
-                            (and (string= prev-tag "li") (member next-tag '("li")))
-                            (and (string= prev-tag "dt") (member next-tag '("dt" "dd")))
-                            (and (string= prev-tag "td") (member next-tag '("td" "th")))
-                            (and (string= prev-tag "th") (member next-tag '("td" "th")))
-                            )
-                    (when debug (message "I205(%S) optional-tag" pos))
-                    (setq offset (web-mode-indentation-at-pos prev-tag-pos)))
-                  ) ;when
-                )) ;save-excursion let
-            ) ;when web-mode-enable-optional-tags
+              (let (tag-name parent-tag-name parent-tag-pos)
+                (when (and (setq tag-name (get-text-property pos 'tag-name))
+                           (setq parent-tag-pos (web-mode-element-parent-position pos))
+                           (setq parent-tag-name (get-text-property parent-tag-pos 'tag-name))
+                           (or (and (string= parent-tag-name "p") (member tag-name '("p" "address", "article", "aside", "blockquote", "div", "dl", "fieldset", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup", "hr", "main", "nav", "ol", "pre", "section", "table", "ul")))
+                               (and (string= parent-tag-name "li") (member tag-name '("li")))
+                               (and (string= parent-tag-name "dt") (member tag-name '("dt" "dd")))
+                               (and (string= parent-tag-name "td") (member tag-name '("td" "th")))
+                               (and (string= parent-tag-name "th") (member tag-name '("td" "th")))
+                               ))
+                  (when debug (message "I205(%S) %S(%S) auto-closing" pos parent-tag-name parent-tag-pos))
+                  (setq offset (web-mode-indentation-at-pos parent-tag-pos))
+                  )))) ; when let save-excursion when
+
+          ;; (when (and nil web-mode-enable-optional-tags)
+          ;;   (save-excursion
+          ;;     (let (prev-tag-pos next-tag-pos prev-tag next-tag)
+          ;;       (if (get-text-property pos 'tag-type)
+          ;;           (setq next-tag-pos pos)
+          ;;         (setq next-tag-pos (web-mode-tag-next-position pos)))
+          ;;       (setq prev-tag-pos (web-mode-tag-previous-position pos))
+          ;;       (message "ptp=%S ntp=%S" prev-tag-pos next-tag-pos)
+          ;;       (when (and prev-tag-pos next-tag-pos
+          ;;                  (eq (get-text-property prev-tag-pos 'tag-type) 'start)
+          ;;                  (eq (get-text-property next-tag-pos 'tag-type) 'start))
+          ;;         (setq prev-tag (get-text-property prev-tag-pos 'tag-name)
+          ;;               next-tag (get-text-property next-tag-pos 'tag-name))
+          ;;         ;;(message "%S %S" prev-tag next-tag)
+          ;;         (when (or (and (string= prev-tag "p") (member next-tag '("p" "address", "article", "aside", "blockquote", "div", "dl", "fieldset", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "ul")))
+          ;;                   (and (string= prev-tag "li") (member next-tag '("li")))
+          ;;                   (and (string= prev-tag "dt") (member next-tag '("dt" "dd")))
+          ;;                   (and (string= prev-tag "td") (member next-tag '("td" "th")))
+          ;;                   (and (string= prev-tag "th") (member next-tag '("td" "th")))
+          ;;                   )
+          ;;           (when debug (message "I205(%S) optional-tag" pos))
+          ;;           (setq offset (web-mode-indentation-at-pos prev-tag-pos)))
+          ;;         ) ;when
+          ;;       )) ;save-excursion let
+          ;;   ) ;when web-mode-enable-optional-tags
+
+
           (when (string= web-mode-engine "closure")
             (save-excursion
               (when (and (re-search-backward "{/?switch" nil t)
