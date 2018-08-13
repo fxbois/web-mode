@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2018 François-Xavier Bois
 
-;; Version: 16.0.14
+;; Version: 16.0.15
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.14"
+(defconst web-mode-version "16.0.15"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1845,6 +1845,7 @@ shouldn't be moved back.)")
    '("#{?\\([[:alpha:]_]+\\)\\_>" (1 'web-mode-block-control-face))
    (cons (concat "\\_<\\(" web-mode-velocity-keywords "\\)\\_>") '(1 'web-mode-keyword-face t t))
    '("#macro([ ]*\\([[:alpha:]]+\\)[ ]+" 1 'web-mode-function-name-face)
+   '("\\(def\\|define\\) \\([[:alnum:]_-]+\\)(" 2 'web-mode-function-name-face)
    '("[.]\\([[:alnum:]_-]+\\)" 1 'web-mode-variable-name-face)
    '("\\_<\\($[!]?[{]?\\)\\([[:alnum:]_-]+\\)[}]?" (1 nil) (2 'web-mode-variable-name-face))
    ))
@@ -3366,8 +3367,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (forward-char))
     (when (member (char-after) '(?\!))
       (forward-char))
-    (if (member (char-after) '(?\{))
-        (search-forward "}")
+    (cond
+     ((member (char-after) '(?\{))
+      (search-forward "}"))
+     ((looking-at-p "def \\|define ")
+      (search-forward ")" (line-end-position) t))
+     (t
       (setq continue t)
       (while continue
         (skip-chars-forward "a-zA-Z0-9_-")
@@ -3380,7 +3385,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (forward-char)
           (setq continue nil))
         ) ;while
-      ) ;if
+      ) ;t
+     ) ;cond
     ))
 
 (defun web-mode-razor-skip (pos)
@@ -4295,7 +4301,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq controls (append controls (list (cons 'close "ctrl")))))
          ((web-mode-block-starts-with "{?els" reg-beg)
           (setq controls (append controls (list (cons 'inside "ctrl")))))
-         ((web-mode-block-starts-with "{?\\(define\\|if\\|for\\|foreach\\|macro\\)" reg-beg)
+         ((web-mode-block-starts-with "{?\\(def\\|if\\|for\\|foreach\\|macro\\)" reg-beg)
+          ;;((web-mode-block-starts-with "{?\\(define\\|\\|if\\|for\\|foreach\\|macro\\)" reg-beg)
           (setq controls (append controls (list (cons 'open "ctrl")))))
          )
         ) ;velocity
