@@ -7849,6 +7849,18 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           ;;(message "ici%S" offset)
           )
 
+         ;; #1016
+         ((and (member language '("javascript" "jsx" "ejs" "php"))
+               (string-match-p "{|[ \t]*\\(\\(//\\|/\\*\\).*\\)?$" prev-line))
+          (when debug (message "I344(%S) flow-exact-object-type-begin" pos))
+          (setq offset (+ prev-indentation web-mode-code-indent-offset))
+          )
+         ((and (member language '("javascript" "jsx" "ejs" "php"))
+               (string-match-p "^[ \t]*|}" curr-line))
+          (when debug (message "I346(%S) flow-exact-object-type-end" pos))
+          (setq offset (- prev-indentation web-mode-code-indent-offset))
+          )
+
          ;; #446, #638, #800, #978, #998
          ((and (member language '("javascript" "jsx" "ejs" "php"))
                (or (string-match-p "[&|?:+-]$" prev-line)
