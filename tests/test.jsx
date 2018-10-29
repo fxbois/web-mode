@@ -15,6 +15,18 @@ React.createClass({
   }
 });
 
+function hello() {
+
+  return (
+    <input
+      type="file"
+      ref={component => {
+        this.inputFile = component;
+      }}
+    />
+  );
+}
+
 export default function Example() {
   return (
     <Menu>
