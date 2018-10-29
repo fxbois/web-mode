@@ -45,22 +45,26 @@
 
 (defcustom web-mode-block-padding 0
   "Multi-line block (php, ruby, java, python, asp, etc.) left padding."
-  :type 'integer
+  :type '(choice (integer :tags "Number of spaces")
+		 (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-part-padding 1
   "Part elements (script, style) left padding."
-  :type 'integer
+  :type '(choice (integer :tags "Number of spaces")
+		 (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-script-padding web-mode-part-padding
   "Script element left padding."
-  :type 'integer
+  :type '(choice (integer :tags "Number of spaces")
+		 (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-style-padding web-mode-part-padding
   "Style element left padding."
-  :type 'integer
+  :type '(choice (integer :tags "Number of spaces")
+		 (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-attr-indent-offset nil
