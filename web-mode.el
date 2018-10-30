@@ -46,25 +46,25 @@
 (defcustom web-mode-block-padding 0
   "Multi-line block (php, ruby, java, python, asp, etc.) left padding."
   :type '(choice (integer :tags "Number of spaces")
-		 (const :tags "No indent" nil))
+		         (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-part-padding 1
   "Part elements (script, style) left padding."
   :type '(choice (integer :tags "Number of spaces")
-		 (const :tags "No indent" nil))
+		         (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-script-padding web-mode-part-padding
   "Script element left padding."
   :type '(choice (integer :tags "Number of spaces")
-		 (const :tags "No indent" nil))
+		         (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-style-padding web-mode-part-padding
   "Style element left padding."
   :type '(choice (integer :tags "Number of spaces")
-		 (const :tags "No indent" nil))
+		         (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-attr-indent-offset nil
@@ -760,7 +760,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     "link" "meta" "param" "source" "track" "wbr"))
 
 (defvar web-mode-part-content-types
-  '("css" "javascript" "json" "jsx" "markdown" "ruby" "sql" "stylus"))
+  '("css" "javascript" "json" "jsx" "markdown" "pug" "ruby" "sql" "stylus"))
 
 (defvar web-mode-javascript-languages '("javascript" "jsx" "ejs"))
 
@@ -1789,6 +1789,12 @@ shouldn't be moved back.)")
    '("^[ \t]*\\([[:alnum:]-]+[ ]*:\\)" 1 'web-mode-css-property-name-face)
    ))
 
+(defvar web-mode-pug-font-lock-keywords
+  (list
+   '("#[[:alnum:]-]+" 0 'web-mode-css-selector-face)
+   '(" \\([@:]?\\sw+[ ]?=\\)" 1 'web-mode-param-name-face)
+   ))
+
 (defvar web-mode-sql-font-lock-keywords
   (list
    (cons (concat "\\_<\\(" web-mode-sql-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
@@ -2597,6 +2603,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                  ((string= content-type "jsx") 'jsx)
                                  ((string= content-type "css") 'css)
                                  ((string= content-type "sql") 'sql)
+                                 ((string= content-type "pug") 'pug)
                                  ((string= content-type "stylus") 'stylus)
                                  ((string= content-type "markdown") 'markdown)
                                  ((string= content-type "ruby") 'ruby)
@@ -4532,6 +4539,16 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ) ;cond
             ) ;let
           ) ;script
+         ((string= tname "template")
+          (let (template)
+            (setq template (buffer-substring-no-properties tbeg tend)
+                  part-close-tag "</template>")
+            (cond
+             ((string-match-p " lang[ ]*=[ ]*[\"']pug" template)
+              (setq element-content-type "pug"))
+             ) ;cond
+            ) ;let
+          ) ;style
          ((and (string= web-mode-engine "archibus")
                (string= tname "sql"))
           (setq element-content-type "sql"
@@ -6193,6 +6210,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (web-mode-fontify-region reg-beg reg-end web-mode-sql-font-lock-keywords))
        ((string= content-type "stylus")
         (web-mode-fontify-region reg-beg reg-end web-mode-stylus-font-lock-keywords))
+       ((string= content-type "pug")
+        (web-mode-fontify-region reg-beg reg-end web-mode-pug-font-lock-keywords))
        ((string= content-type "markdown")
         (web-mode-fontify-region reg-beg reg-end web-mode-markdown-font-lock-keywords))
        ((string= content-type "ruby")
@@ -7145,7 +7164,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           ;;(message "%S" (point))
           (save-excursion
             (goto-char reg-beg)
-            (message "pt=%S" reg-beg)
+            ;;(message "pt=%S" reg-beg)
             (cond
              ((and (not (looking-at-p "[ ]*$"))
                    (looking-back "^[[:space:]]*{" (point-min)))
@@ -7158,7 +7177,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ((looking-at-p "[ ]*\\[[ ]*$") ;; #0659
               (setq reg-col (current-indentation))
               )
-             ((and (looking-back "=[ ]*{" (point-min))) ;; #0739 #1022
+             ((and (looking-back "=[ ]*{" (point-min)) ;; #0739 #1022
+                   (not (looking-at-p "[[:space:]]*<")))
               (setq reg-col (current-indentation))
               )
              ;;((and (looking-back "=[ ]*{" (point-min)) ;; #0739
@@ -7259,7 +7279,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ) ;cond
         ) ;block-side
 
-       ((and part-language (member part-language '("css" "javascript" "json" "sql" "markdown" "ruby" "stylus")))
+       ((and part-language (member part-language '("css" "javascript" "json" "sql" "markdown" "pug" "ruby" "stylus")))
         (setq reg-beg (or (web-mode-part-beginning-position pos) (point-min)))
         (goto-char reg-beg)
         (search-backward "<" nil t)
@@ -7271,6 +7291,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((string= language "sql")
           (setq curr-indentation web-mode-sql-indent-offset))
          ((string= language "markdown")
+          (setq curr-indentation web-mode-code-indent-offset))
+         ((string= language "pug")
           (setq curr-indentation web-mode-code-indent-offset))
          ((string= language "stylus")
           (setq curr-indentation web-mode-code-indent-offset))
@@ -7356,7 +7378,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         )
        ((member language '("javascript" "jsx" "ruby"))
         (setq reg-col (if web-mode-script-padding (+ reg-col web-mode-script-padding) 0)))
-       ((member language '("css" "sql" "markdown" "stylus"))
+       ((member language '("css" "sql" "markdown" "pug" "stylus"))
         (setq reg-col (if web-mode-style-padding (+ reg-col web-mode-style-padding) 0)))
        ((not (member language '("html" "xml" "razor")))
         (setq reg-col (if web-mode-block-padding (+ reg-col web-mode-block-padding) 0)))
@@ -7773,12 +7795,20 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                                            reg-beg))))
 
          ((string= language "stylus")
-          (when debug (message "I295(%S) stylus" pos))
+          (when debug (message "I294(%S) stylus" pos))
           (setq offset (car (web-mode-stylus-indentation pos
                                                          reg-col
                                                          curr-indentation
                                                          language
                                                          reg-beg))))
+
+         ((string= language "pug")
+          (when debug (message "I298(%S) pug" pos))
+          (setq offset (car (web-mode-pug-indentation pos
+                                                      reg-col
+                                                      curr-indentation
+                                                      language
+                                                      reg-beg))))
 
          ((and (string= language "razor")
                (string-match-p "^\\." curr-line)
@@ -8294,6 +8324,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       ) ;save-excursion
     ;;(message "%S %S %S %S" pos (point) initial-column language-offset)
     (cons (if (<= offset initial-column) initial-column offset) nil)))
+
+(defun web-mode-pug-indentation (pos initial-column language-offset language &optional limit)
+  nil
+  )
 
 (defun web-mode-javascript-indentation (pos initial-column language-offset language &optional limit)
   (let (open-ctx indentation offset sub)
@@ -9211,14 +9245,17 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           end (cdr (cdr boundaries)))
     (goto-char beg)
     (while continue
-      (if (or (not (and (web-mode-tag-next)
+      (if (or (not (and (or (get-text-property (point) 'tag-type) (web-mode-tag-next))
                         (web-mode-tag-end)))
               (>= (point) end))
           (setq continue nil)
         (setq save (point))
-        (newline)
-        (indent-according-to-mode)
-        (setq end (+ end (- (point) save)))
+        ;;(message "point(%S)" (point))
+        (skip-chars-forward "\n\t ")
+        (when (get-text-property (point) 'tag-type)
+          (newline)
+          (indent-according-to-mode)
+          (setq end (+ end (- (point) save))))
         ) ;if
       ) ;while
     (goto-char beg)
