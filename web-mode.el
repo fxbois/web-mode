@@ -306,8 +306,8 @@ See web-mode-block-face."
   :group 'web-mode)
 
 (defcustom web-mode-jsx-depth-faces
-  nil
-  ;;'(web-mode-jsx-depth-1-face web-mode-jsx-depth-2-face web-mode-jsx-depth-3-face web-mode-jsx-depth-4-face)
+  ;;nil
+  '(web-mode-jsx-depth-1-face web-mode-jsx-depth-2-face web-mode-jsx-depth-3-face web-mode-jsx-depth-4-face web-mode-jsx-depth-5-face)
   "Each jsx depth has is own face."
   :type '(repeat face)
   :group 'web-mode)
@@ -691,23 +691,29 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Face html entities (e.g. &#8211;, &eacute;)."
   :group 'web-mode-faces)
 
+;; https://material.io/tools/color/#!/?view.left=0&view.right=0
 (defface web-mode-jsx-depth-1-face
-  '((t :background "#000000"))
+  '((t :background "#000053"))
   "jsx depth 1"
   :group 'web-mode-faces)
 
 (defface web-mode-jsx-depth-2-face
-  '((t :background "#444444"))
+  '((t :background "#001970"))
   "jsx"
   :group 'web-mode-faces)
 
 (defface web-mode-jsx-depth-3-face
-  '((t :background "#888888"))
+  '((t :background "#002984"))
   "jsx"
   :group 'web-mode-faces)
 
 (defface web-mode-jsx-depth-4-face
-  '((t :background "#666666"))
+  '((t :background "#49599a"))
+  "jsx"
+  :group 'web-mode-faces)
+
+(defface web-mode-jsx-depth-5-face
+  '((t :background "#9499b7"))
   "jsx"
   :group 'web-mode-faces)
 
@@ -9203,7 +9209,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-element-contract ()
   "Flatten elements."
   (interactive)
-  (let (beg end (continue t) replacement)
+  (let (beg end (continue t) replacement boundaries)
     (cond
      ((or (not (get-text-property (point) 'tag-type))
           (not (member (get-text-property (point) 'tag-type) '(start end))))
@@ -9232,7 +9238,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-element-extract ()
   "Flatten element."
   (interactive)
-  (let (beg end (continue t) save)
+  (let (beg end (continue t) save boundaries)
     (cond
      ((or (not (get-text-property (point) 'tag-type))
           (not (member (get-text-property (point) 'tag-type) '(start end))))
