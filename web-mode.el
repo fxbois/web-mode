@@ -4552,6 +4552,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (cond
              ((string-match-p " lang[ ]*=[ ]*[\"']pug" template)
               (setq element-content-type "pug"))
+             (t
+              (setq element-content-type "html"))
              ) ;cond
             ) ;let
           ) ;style
