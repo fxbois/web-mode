@@ -306,8 +306,8 @@ See web-mode-block-face."
   :group 'web-mode)
 
 (defcustom web-mode-jsx-depth-faces
-  ;;nil
-  '(web-mode-jsx-depth-1-face web-mode-jsx-depth-2-face web-mode-jsx-depth-3-face web-mode-jsx-depth-4-face web-mode-jsx-depth-5-face)
+  nil
+  ;;'(web-mode-jsx-depth-1-face web-mode-jsx-depth-2-face web-mode-jsx-depth-3-face web-mode-jsx-depth-4-face web-mode-jsx-depth-5-face)
   "Each jsx depth has is own face."
   :type '(repeat face)
   :group 'web-mode)
@@ -2291,7 +2291,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (define-key map [menu-bar wm tag tag-end] '(menu-item "End" web-mode-tag-end))
     (define-key map [menu-bar wm tag tag-beg] '(menu-item "Beginning" web-mode-tag-beginning))
 
-    (define-key map [menu-bar wm elt elt-wra] '(menu-item "Wrap" web-mode-element-wrap))
+    (define-key map [menu-bar wm elt elt-con] '(menu-item "Contract" web-mode-element-contract))
+    (define-key map [menu-bar wm elt elt-ext] '(menu-item "Extract" web-mode-element-extract))
     (define-key map [menu-bar wm elt elt-van] '(menu-item "Vanish" web-mode-element-vanish))
     (define-key map [menu-bar wm elt elt-exc] '(menu-item "Transpose" web-mode-element-transpose))
     (define-key map [menu-bar wm elt elt-sel] '(menu-item "Select" web-mode-element-select))
@@ -2364,6 +2365,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (define-key map (kbd "C-c C-e u") 'web-mode-element-parent)
     (define-key map (kbd "C-c C-e v") 'web-mode-element-vanish)
     (define-key map (kbd "C-c C-e w") 'web-mode-element-wrap)
+    (define-key map (kbd "C-c C-e +") 'web-mode-element-extract)
+    (define-key map (kbd "C-c C-e -") 'web-mode-element-contract)
 
     (define-key map (kbd "C-c C-t a") 'web-mode-tag-attributes-sort)
     (define-key map (kbd "C-c C-t b") 'web-mode-tag-beginning)
@@ -5806,7 +5809,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   ;;(message "unfontify: %S %S" beg end)
   )
 
-(defun web-mode-highlight-region (&optional beg end) ;; content-type)
+(defun web-mode-highlight-region (&optional beg end)
   ;;(message "highlight-region: beg(%S) end(%S)" beg end)
   (web-mode-with-silent-modifications
    (save-excursion
