@@ -10287,11 +10287,18 @@ Prompt user if TAG-NAME isn't provided."
       (insert snippet)
       (setq pos (point)
             end (point))
-      (when (string-match-p "|" snippet)
-        (search-backward "|")
+      (when (string-match-p "[^\\]|" snippet)
+        (re-search-backward "[^\\]|")
+        (forward-char 1)
         (delete-char 1)
         (setq pos (point)
               end (1- end)))
+      (save-excursion
+        (save-restriction
+          (narrow-to-region beg end)
+          (goto-char (point-max))
+          (while (search-backward "\\|")
+            (delete-char 1))))
       (when sel
         (insert sel)
         (setq pos (point)
