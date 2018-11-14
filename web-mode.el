@@ -266,7 +266,7 @@ See web-mode-block-face."
   :group 'web-mode)
 
 (defcustom web-mode-extra-auto-pairs '()
-  "A list of additional snippets."
+  "A list of additional auto-pairs."
   :type '(alist :key-type string :value-type string)
   :group 'web-mode)
 
