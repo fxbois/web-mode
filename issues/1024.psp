@@ -1,0 +1,16 @@
+<div>
+  <?php
+  function get_questions_from_tag($tag, $page = 0, $limit = 10) {
+
+    $questions = $this->query("SELECT post.id, title, " . self::$query_vote .
+                              ", question, date, " . $this->vote_query .
+                              " FROM questions post WHERE ? in (" .
+                              self::$tags_query .
+                              " = post.id)", $tag);
+    foreach ($questions as &$question) {
+      $question['tags'] = $this->get_tags($question['id']);
+    }
+    return $questions;
+  }
+  ?>
+</div>

@@ -64,6 +64,11 @@
                       array('organisation_id' => $id,
                             1 => 2));
 
+  $questions = $this->query(
+    "SELECT post.id, title, " . self::$query_vote .
+    ", question, date, " . $this->vote_query
+  );
+
   ?>
 </div>
 
