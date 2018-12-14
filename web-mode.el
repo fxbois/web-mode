@@ -7415,7 +7415,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
   (let ((offset nil)
         (char nil)
-        (debug t)
+        (debug nil)
         (inhibit-modification-hooks t)
         (adjust t))
 
