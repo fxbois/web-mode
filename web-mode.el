@@ -8353,6 +8353,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (cond
      ((or (null open-ctx) (null (plist-get open-ctx :pos)))
       (setq offset initial-column))
+     ((string-match-p "else$" prev-line)
+      (setq offset (+ indentation (* language-offset 2))))
      ((and (member language '("javascript" "jsx" "ejs"))
            (eq (plist-get open-ctx :char) ?\{)
            (web-mode-looking-back "switch[ ]*" (plist-get open-ctx :pos)))
