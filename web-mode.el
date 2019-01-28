@@ -1,9 +1,9 @@
 ;;; web-mode.el --- major mode for editing web templates
 ;;; -*- coding: utf-8; lexical-binding: t; -*-
 
-;; Copyright 2011-2018 François-Xavier Bois
+;; Copyright 2011-2019 François-Xavier Bois
 
-;; Version: 16.0.17
+;; Version: 16.0.18
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.17"
+(defconst web-mode-version "16.0.18"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1094,6 +1094,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                            ("{~{" . " | }}")
                            ("{{~" . "{ | }}}")
                            ("{{!" . "-- | --}}")
+                           ("{{^" . "}}")
                            ("{{/" . "}}")
                            ("{{#" . "}}")))
     ("django"           . (("{{ " . " }}")
