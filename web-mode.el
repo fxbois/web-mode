@@ -7189,9 +7189,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (cond
              ((and (not (looking-at-p "[ ]*$"))
                    (looking-back "^[[:space:]]*{" (point-min)))
-              (setq reg-col (+ (current-indentation) 1
+              (setq reg-col (+ (current-indentation) ;; #1027
                                (cond
-                                ((looking-at "[ ]+") (length (match-string-no-properties 0)))
+                                ((looking-at "[ ]+") (1+ (length (match-string-no-properties 0))))
                                 (t 0))
                                ))
               )

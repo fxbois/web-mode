@@ -18,6 +18,20 @@ React.createClass({
 function hello() {
 
   return (
+    <div>
+      {active ? (
+        <div></div>
+      ) : (
+        <span></span>
+      )}
+    </div>
+  )
+
+}
+
+function hello() {
+
+  return (
     <input
       type="file"
       ref={component => {
@@ -249,10 +263,10 @@ class Confirm extends Component {
       <form onSubmit="">
         <fieldset>
           {project.foo && (
-             <div>Foo</div>
+            <div>Foo</div>
           )}
           {project.bar && (
-             <p>Bar</p>
+            <p>Bar</p>
           )}
         </fieldset>
       </form>
