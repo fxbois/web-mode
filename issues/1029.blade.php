@@ -1,12 +1,14 @@
 @switch($i)
+
   @case(1)
     First case...
-  @break
+    @break
 
   @case(2)
     Second case...
-  @break
+    @break
 
   @default
   Default case...
+
 @endswitch
