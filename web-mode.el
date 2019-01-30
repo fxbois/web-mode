@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2019 François-Xavier Bois
 
-;; Version: 16.0.19
+;; Version: 16.0.20
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.19"
+(defconst web-mode-version "16.0.20"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1685,7 +1685,7 @@ shouldn't be moved back.)")
 (defvar web-mode-blade-control-blocks
   (append
    (cdr (assoc "blade" web-mode-extra-control-blocks))
-   '("component" "foreach" "forelse" "for" "if" "section" "slot" "unless" "while")
+   '("component" "foreach" "forelse" "for" "if" "section" "slot" "switch" "unless" "while")
    ))
 
 (defvar web-mode-blade-control-blocks-regexp
@@ -4241,6 +4241,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           )
          ((web-mode-block-starts-with
            "section\(\s*\\(['\"]\\).*\\1\s*,\s*\\(['\"]\\).*\\2\s*\)" reg-beg)
+          )
+         ((web-mode-block-starts-with "case\\|break" reg-beg)
+          (setq type (if (eq (aref (match-string-no-properties 0) 0) ?b) 'close 'open))
+          (setq controls (append controls (list (cons type "case"))))
           )
          ((web-mode-block-starts-with
            (concat "\\(?:end\\)?\\(" web-mode-blade-control-blocks-regexp "\\)")
