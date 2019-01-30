@@ -4562,7 +4562,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ) ;cond
             ) ;let
           ) ;script
-         ((string= tname "template")
+         ((and (string= tname "template") (string-match-p " lang" (buffer-substring-no-properties tbeg tend)))
           (let (template)
             (setq template (buffer-substring-no-properties tbeg tend)
                   part-close-tag "</template>")
