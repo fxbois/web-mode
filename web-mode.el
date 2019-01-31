@@ -9645,7 +9645,7 @@ Prompt user if TAG-NAME isn't provided."
         (cond
          ((get-text-property (point) 'block-token)
           (setq counter (1+ counter)))
-         ((not (or (eq ?\s (following-char)) (eq ?\t (following-char))))
+         ((not (member (following-char) '(?\s ?\t)))
           (setq continue nil
                 counter 0))
          ) ;cond
@@ -9668,9 +9668,7 @@ Prompt user if TAG-NAME isn't provided."
          ((or (get-text-property (point) 'block-side)
               (member (get-text-property (point) 'part-token) '(comment string)))
           (setq counter (1+ counter)))
-         ((or (eq ?\s (following-char)) (eq ?\t (following-char)))
-          )
-         (t
+         ((not (member (following-char) '(?\s ?\t)))
           (setq continue nil
                 counter 0))
          )
