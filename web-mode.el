@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2019 François-Xavier Bois
 
-;; Version: 16.0.20
+;; Version: 16.0.21
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.20"
+(defconst web-mode-version "16.0.21"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7938,6 +7938,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                (not (and (eq prev-char ?\:)
                          (string-match-p "^\\(case\\|default\\)" prev-line)))
                )
+          ;;(message "prev=%S" prev-line)
           (when debug (message "I350(%S) multiline statement" pos))
           (let (is-ternary)
             (setq is-ternary (or (string-match-p "[?:]$" prev-line)
@@ -8610,7 +8611,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         ;;(message "%S %S : %S" bol-pos eol-pos pos)
         (setq line (web-mode-clean-part-line line))
         (list line (current-indentation) pos))
-       )
+       ) ;cond
       )))
 
 (defun web-mode-in-code-block (open close &optional prop)
@@ -9644,7 +9645,7 @@ Prompt user if TAG-NAME isn't provided."
         (cond
          ((get-text-property (point) 'block-token)
           (setq counter (1+ counter)))
-         ((not (eq ?\s (following-char)))
+         ((not (or (eq ?\s (following-char)) (eq ?\t (following-char))))
           (setq continue nil
                 counter 0))
          ) ;cond
@@ -9667,7 +9668,7 @@ Prompt user if TAG-NAME isn't provided."
          ((or (get-text-property (point) 'block-side)
               (member (get-text-property (point) 'part-token) '(comment string)))
           (setq counter (1+ counter)))
-         ((eq ?\s (following-char))
+         ((or (eq ?\s (following-char)) (eq ?\t (following-char)))
           )
          (t
           (setq continue nil
