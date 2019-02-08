@@ -1373,7 +1373,7 @@ shouldn't be moved back.)")
       "match-lambda" "match-lambda*" "match-let" "match-let*"
       "match-letrec" "let" "let*" "letrec" "letrec*" "and-let*"
       "let-syntax" "letrec-syntax" "syntax-rules" "syntax-case"
-      "display" "define" "define-syntax" "define-macro"
+      "define" "define-syntax" "define-macro"
       "define-condition-type" "define-immutable-record-type"
       "define-record-type" "define-values" "parameterize" "for-each"
       "require-extension" "set!" "test-approximate" "test-assert"
