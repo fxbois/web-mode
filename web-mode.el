@@ -2207,8 +2207,8 @@ shouldn't be moved back.)")
   (list
    (cons (concat "\\_<\\(" web-mode-artanis-keywords  "\\)\\_>") '(0 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-artanis-constants "\\)\\_>") '(0 'web-mode-constant-face))
-   '("(define[*]? (\\([[:alnum:]-:]+\\)"     1 'web-mode-function-name-face)
-   '("\\(#:[[:alnum:]-:_!#$%^&*=+/?<>.]+\\)" 1 'web-mode-builtin-face)
+   '("(define[*]? (\\([[:alnum:]-:_!#$%^&*=+/?<>.]+\\)" 1 'web-mode-function-name-face)
+   '("\\(#:[[:alnum:]-:_!#$%^&*=+/?<>.]+\\)"            1 'web-mode-builtin-face)
    ))
 
 (defvar web-mode-php-font-lock-keywords
