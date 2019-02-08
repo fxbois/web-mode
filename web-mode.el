@@ -1350,6 +1350,27 @@ shouldn't be moved back.)")
      "endrepeat" "loop" "endloop" "include" "call" "with"
      "endwith" "set" "genloop" "endgenloop" "insert")))
 
+(defvar web-mode-artanis-constants
+  (regexp-opt
+   '("#f" "#t")))
+
+(defvar web-mode-artanis-keywords
+  (regexp-opt
+   (append
+    (cdr (assoc "artanis" web-mode-extra-keywords))
+    '("begin" "cut" "cute" "if" "when" "unless" "cond" "case"
+      "do" "quote" "syntax" "lambda" "lambda*" "and" "and-let*"
+      "or" "else" "delay" "receive" "use-modules" "match"
+      "match-lambda" "match-lambda*" "match-let" "match-let*"
+      "match-letrec" "let" "let*" "letrec" "letrec*" "and-let*"
+      "let-syntax" "letrec-syntax" "syntax-rules" "syntax-case"
+      "display" "define" "define-syntax" "define-macro"
+      "define-condition-type" "define-immutable-record-type"
+      "define-record-type" "define-values" "parameterize" "for-each"
+      "require-extension" "set!" "test-approximate" "test-assert"
+      "test-begin" "test-end" "test-eq" "test-equal" "test-eqv"
+      "test-error" "test-group" "test-group-with-cleanup" "test-with-runner"))))
+
 (defvar web-mode-lsp-constants
   (regexp-opt
    '("nil" "t")))
@@ -2173,6 +2194,14 @@ shouldn't be moved back.)")
          '(2 'web-mode-variable-name-face))
    ))
 
+(defvar web-mode-artanis-font-lock-keywords
+  (list
+   (cons (concat "\\_<\\(" web-mode-artanis-keywords  "\\)\\_>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-artanis-constants "\\)\\_>") '(0 'web-mode-constant-face))
+   '("(define[*]? (\\([[:alnum:]-:]+\\)"     1 'web-mode-function-name-face)
+   '("\\(#:[[:alnum:]-:_!#$%^&*=+/?<>.]+\\)" 1 'web-mode-builtin-face)
+   ))
+
 (defvar web-mode-php-font-lock-keywords
   (list
    (cons (concat "\\_<\\(" web-mode-php-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
@@ -2208,6 +2237,7 @@ shouldn't be moved back.)")
 
 (defvar web-mode-engines-font-lock-keywords
   '(("angular"          . web-mode-angular-font-lock-keywords)
+    ("artanis"          . web-mode-artanis-font-lock-keywords)
     ("blade"            . web-mode-blade-font-lock-keywords)
     ("cl-emb"           . web-mode-cl-emb-font-lock-keywords)
     ("closure"          . web-mode-closure-font-lock-keywords)
