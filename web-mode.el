@@ -9990,6 +9990,10 @@ Prompt user if TAG-NAME isn't provided."
       (web-mode-comment-erb-block pos)
       )
 
+     ((and block-side (string= web-mode-engine "artanis"))
+      (web-mode-comment-artanis-block pos)
+      )
+
      ((and single-line-block block-side
            (intern-soft (concat "web-mode-comment-" web-mode-engine "-block")))
         (funcall (intern (concat "web-mode-comment-" web-mode-engine "-block")) pos)
@@ -10032,6 +10036,8 @@ Prompt user if TAG-NAME isn't provided."
           (setq content (concat "{# " sel " #}")))
          ((and (= web-mode-comment-style 2) (member web-mode-engine '("ejs" "erb")))
           (setq content (concat "<%# " sel " %>")))
+         ((and (= web-mode-comment-style 2) (string= web-mode-engine "artanis"))
+          (setq content (concat "<%; " sel " %>")))
          ((and (= web-mode-comment-style 2) (string= web-mode-engine "aspx"))
           (setq content (concat "<%-- " sel " --%>")))
          ((and (= web-mode-comment-style 2) (string= web-mode-engine "smarty"))
@@ -10114,6 +10120,12 @@ Prompt user if TAG-NAME isn't provided."
     (setq beg (web-mode-block-beginning-position pos)
           end (web-mode-block-end-position pos))
     (web-mode-insert-text-at-pos "#" (+ beg 2))))
+
+(defun web-mode-comment-artanis-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos ";" (+ beg 2))))
 
 (defun web-mode-comment-django-block (pos)
   (let (beg end)
@@ -10243,6 +10255,22 @@ Prompt user if TAG-NAME isn't provided."
           end (web-mode-block-end-position pos))
     (cond
      ((string= (buffer-substring-no-properties beg (+ beg 4)) "<%#=")
+      (web-mode-remove-text-at-pos 1 (+ beg 2)))
+     ((string-match-p "<[%[:alpha:]]" (buffer-substring-no-properties (+ beg 2) (- end 2)))
+      (web-mode-remove-text-at-pos 2 (1- end))
+      (web-mode-remove-text-at-pos 3 beg))
+     (t
+      (web-mode-remove-text-at-pos 1 (+ beg 2)))
+      ) ;cond
+    )
+  )
+
+(defun web-mode-uncomment-artanis-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (cond
+     ((string= (buffer-substring-no-properties beg (+ beg 4)) "<%;=")
       (web-mode-remove-text-at-pos 1 (+ beg 2)))
      ((string-match-p "<[%[:alpha:]]" (buffer-substring-no-properties (+ beg 2) (- end 2)))
       (web-mode-remove-text-at-pos 2 (1- end))
