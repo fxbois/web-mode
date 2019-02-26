@@ -8132,7 +8132,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
     (when offset
       ;;(message "offset=%S" offset)
-      (let ((diff (- (current-column) (current-indentation))))
+      (let ((diff (- (current-column) (current-indentation)))
+            (inhibit-modification-hooks nil))
         (when (not (= offset (current-indentation)))
           (setq web-mode-change-beg (line-beginning-position)
                 web-mode-change-end (+ web-mode-change-beg offset)))
