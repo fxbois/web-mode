@@ -7217,8 +7217,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ;;      (looking-at-p "{[ ]*"))
              ;; (setq reg-col (current-indentation))
              ;; )
+             ((get-text-property (1- (point)) 'tag-beg)
+              ;;(message "point=%S" (point))
+              (setq reg-col (current-indentation))
+              )
              (t
-              ;;(message "%S : %S %S" (point) (current-indentation) web-mode-code-indent-offset)
+              (message "%S : %S %S" (point) (current-indentation) web-mode-code-indent-offset)
               ;;(setq reg-col (+ (current-indentation) web-mode-code-indent-offset web-mode-jsx-expression-padding)))
               (setq reg-col (+ (current-indentation) web-mode-code-indent-offset)))
              )
@@ -7628,7 +7632,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                  (not (string-match-p "^/?>" curr-line))
                  ;;(progn (message "%S" pos) t)
                  )
-            ;;(message "la")
             (cond
              ((eq (logand (get-text-property (point) 'tag-attr-beg) 8) 8)
               (setq offset nil))
@@ -7646,7 +7649,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ((not (web-mode-tag-beginning))
             )
            ((string-match-p "^/?>" curr-line)
-            (setq offset (current-column)))
+            (setq offset (web-mode-column-at-pos (web-mode-tag-beginning-position pos)))
+            )
            (web-mode-attr-indent-offset
             (setq offset (+ (current-column) web-mode-attr-indent-offset)))
            ((looking-at-p (concat web-mode-start-tag-regexp "[ ]*\n"))
@@ -10358,6 +10362,11 @@ Prompt user if TAG-NAME isn't provided."
     (setq end (point-at-eol))
     (indent-region beg end)
     ))
+
+(defun web-mode-column-at-pos (pos)
+  (save-excursion
+    (goto-char pos)
+    (current-column)))
 
 (defun web-mode-indentation-at-pos (pos)
   (save-excursion
