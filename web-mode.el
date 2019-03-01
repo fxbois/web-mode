@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2019 François-Xavier Bois
 
-;; Version: 16.0.22
+;; Version: 16.0.23
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.22"
+(defconst web-mode-version "16.0.23"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8411,22 +8411,25 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (setq open-ctx (web-mode-bracket-up pos "ruby" limit))
     ;;(message "%S" open-ctx)
     (if (plist-get open-ctx :pos)
-
         (cond
          ((web-mode-looking-at-p ".[ \t\n]+" (plist-get open-ctx :pos))
-          ;;(message "ici %S" (plist-get open-ctx :pos))
           (setq offset (+ (plist-get open-ctx :indentation) language-offset)))
          (t
           (setq offset (1+ (plist-get open-ctx :column))))
          )
-
       (setq h (web-mode-previous-line pos limit))
       (setq offset initial-column)
       (when h
         (setq prev-line (car h))
-        ;;(message "%S" prev-line)
         (setq prev-indentation (cdr h))
         (cond
+         ((string-match-p ",$" prev-line)
+          (save-excursion
+            (goto-char limit)
+            (looking-at "<%=? [a-z]+ ")
+            (setq offset (+ initial-column (length (match-string-no-properties 0))))
+            ) ;save-excursion
+          )
          ((string-match-p "^[ ]*\\(end\\|else\\|elsif\\|when\\)" line)
           (setq offset (- prev-indentation language-offset))
           )
