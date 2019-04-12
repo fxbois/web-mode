@@ -7985,14 +7985,14 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                    (string-match-p "^else$" prev-line)))
           (when debug (message "I370(%S)" pos))
           (cond
-           ((looking-at-p "{") ;; #1020
-            (setq offset prev-indentation))
            ((string-match-p "^else$" prev-line)
             (setq offset (+ prev-indentation web-mode-code-indent-offset))
             )
            ((setq tmp (web-mode-part-is-opener prev-pos reg-beg))
             ;;(message "is-opener")
-            (setq offset (+ tmp web-mode-code-indent-offset))
+            (if (looking-at-p "{") ;; #1020, #1053
+                (setq offset tmp)
+              (setq offset (+ tmp web-mode-code-indent-offset)))
             ;;(setq offset (+ prev-indentation web-mode-code-indent-offset))
             )
            (t
