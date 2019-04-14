@@ -13,6 +13,16 @@
 </div>
 
 <div>
+  <%= render partial: 'some_partial',
+             locals: {
+               icon: nil,
+               errors: [],
+               title: 'Title'
+             }
+  %>
+</div>
+
+<div>
   <div>
     <%
     a = [

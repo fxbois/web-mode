@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2019 François-Xavier Bois
 
-;; Version: 16.0.21
+;; Version: 16.0.23
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.21"
+(defconst web-mode-version "16.0.23"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2365,6 +2365,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (define-key map [menu-bar wm elt elt-inn] '(menu-item "Content (select)" web-mode-element-content-select))
     (define-key map [menu-bar wm elt elt-clo] '(menu-item "Close" web-mode-element-close))
     (define-key map [menu-bar wm elt elt-ins] '(menu-item "Insert" web-mode-element-insert))
+    (define-key map [menu-bar wm elt elt-ins] '(menu-item "Word to tag" web-mode-element-insert-at-point))
     (define-key map [menu-bar wm elt elt-dup] '(menu-item "Clone" web-mode-element-clone))
     (define-key map [menu-bar wm elt elt-cfo] '(menu-item "Children fold" web-mode-element-children-fold-or-unfold))
     (define-key map [menu-bar wm elt elt-chi] '(menu-item "Child" web-mode-element-child))
@@ -2414,6 +2415,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (define-key map (kbd "C-c C-e e") 'web-mode-element-end)
     (define-key map (kbd "C-c C-e f") 'web-mode-element-children-fold-or-unfold)
     (define-key map (kbd "C-c C-e i") 'web-mode-element-insert)
+    (define-key map (kbd "C-c C-e I") 'web-mode-element-insert-at-point)
     (define-key map (kbd "C-c C-e k") 'web-mode-element-kill)
     (define-key map (kbd "C-c C-e m") 'web-mode-element-mute-blanks)
     (define-key map (kbd "C-c C-e n") 'web-mode-element-next)
@@ -7071,6 +7073,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (cond
      ((null ctx)
       (web-mode-delete-tag-overlays))
+     ((eq (get-text-property (caar ctx) 'tag-type) 'void) ;; #1046
+      (web-mode-make-tag-overlays)
+      (setq len (length (get-text-property (caar ctx) 'tag-name)))
+      (move-overlay web-mode-overlay-tag-start (+ (caar ctx) 1) (+ (caar ctx) 1 len))
+      )
      (t
       (web-mode-make-tag-overlays)
       (setq len (length (get-text-property (caar ctx) 'tag-name)))
@@ -7315,8 +7322,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ;;      (looking-at-p "{[ ]*"))
              ;; (setq reg-col (current-indentation))
              ;; )
+             ((get-text-property (1- (point)) 'tag-beg)
+              ;;(message "point=%S" (point))
+              (setq reg-col (current-indentation))
+              )
              (t
-              ;;(message "%S : %S %S" (point) (current-indentation) web-mode-code-indent-offset)
+              (message "%S : %S %S" (point) (current-indentation) web-mode-code-indent-offset)
               ;;(setq reg-col (+ (current-indentation) web-mode-code-indent-offset web-mode-jsx-expression-padding)))
               (setq reg-col (+ (current-indentation) web-mode-code-indent-offset)))
              )
@@ -7535,7 +7546,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (let ((offset nil)
         (char nil)
         (debug nil)
-        (inhibit-modification-hooks t)
+        (inhibit-modification-hooks nil)
         (adjust t))
 
     (save-excursion
@@ -7726,7 +7737,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                  (not (string-match-p "^/?>" curr-line))
                  ;;(progn (message "%S" pos) t)
                  )
-            ;;(message "la")
             (cond
              ((eq (logand (get-text-property (point) 'tag-attr-beg) 8) 8)
               (setq offset nil))
@@ -7744,7 +7754,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
            ((not (web-mode-tag-beginning))
             )
            ((string-match-p "^/?>" curr-line)
-            (setq offset (current-column)))
+            (setq offset (web-mode-column-at-pos (web-mode-tag-beginning-position pos)))
+            )
            (web-mode-attr-indent-offset
             (setq offset (+ (current-column) web-mode-attr-indent-offset)))
            ((looking-at-p (concat web-mode-start-tag-regexp "[ ]*\n"))
@@ -7774,33 +7785,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   (when debug (message "I205(%S) %S(%S) auto-closing" pos parent-tag-name parent-tag-pos))
                   (setq offset (web-mode-indentation-at-pos parent-tag-pos))
                   )))) ; when let save-excursion when
-
-          ;; (when (and nil web-mode-enable-optional-tags)
-          ;;   (save-excursion
-          ;;     (let (prev-tag-pos next-tag-pos prev-tag next-tag)
-          ;;       (if (get-text-property pos 'tag-type)
-          ;;           (setq next-tag-pos pos)
-          ;;         (setq next-tag-pos (web-mode-tag-next-position pos)))
-          ;;       (setq prev-tag-pos (web-mode-tag-previous-position pos))
-          ;;       (message "ptp=%S ntp=%S" prev-tag-pos next-tag-pos)
-          ;;       (when (and prev-tag-pos next-tag-pos
-          ;;                  (eq (get-text-property prev-tag-pos 'tag-type) 'start)
-          ;;                  (eq (get-text-property next-tag-pos 'tag-type) 'start))
-          ;;         (setq prev-tag (get-text-property prev-tag-pos 'tag-name)
-          ;;               next-tag (get-text-property next-tag-pos 'tag-name))
-          ;;         ;;(message "%S %S" prev-tag next-tag)
-          ;;         (when (or (and (string= prev-tag "p") (member next-tag '("p" "address", "article", "aside", "blockquote", "div", "dl", "fieldset", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup", "hr", "main", "nav", "ol", "p", "pre", "section", "table", "ul")))
-          ;;                   (and (string= prev-tag "li") (member next-tag '("li")))
-          ;;                   (and (string= prev-tag "dt") (member next-tag '("dt" "dd")))
-          ;;                   (and (string= prev-tag "td") (member next-tag '("td" "th")))
-          ;;                   (and (string= prev-tag "th") (member next-tag '("td" "th")))
-          ;;                   )
-          ;;           (when debug (message "I205(%S) optional-tag" pos))
-          ;;           (setq offset (web-mode-indentation-at-pos prev-tag-pos)))
-          ;;         ) ;when
-          ;;       )) ;save-excursion let
-          ;;   ) ;when web-mode-enable-optional-tags
-
 
           (when (string= web-mode-engine "closure")
             (save-excursion
@@ -8532,22 +8516,25 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (setq open-ctx (web-mode-bracket-up pos "ruby" limit))
     ;;(message "%S" open-ctx)
     (if (plist-get open-ctx :pos)
-
         (cond
          ((web-mode-looking-at-p ".[ \t\n]+" (plist-get open-ctx :pos))
-          ;;(message "ici %S" (plist-get open-ctx :pos))
           (setq offset (+ (plist-get open-ctx :indentation) language-offset)))
          (t
           (setq offset (1+ (plist-get open-ctx :column))))
          )
-
       (setq h (web-mode-previous-line pos limit))
       (setq offset initial-column)
       (when h
         (setq prev-line (car h))
-        ;;(message "%S" prev-line)
         (setq prev-indentation (cdr h))
         (cond
+         ((string-match-p ",$" prev-line)
+          (save-excursion
+            (goto-char limit)
+            (looking-at "<%=? [a-z]+ ")
+            (setq offset (+ initial-column (length (match-string-no-properties 0))))
+            ) ;save-excursion
+          )
          ((string-match-p "^[ ]*\\(end\\|else\\|elsif\\|when\\)" line)
           (setq offset (- prev-indentation language-offset))
           )
@@ -9693,6 +9680,29 @@ Prompt user if TAG-NAME isn't provided."
      ) ;cond
     ))
 
+(defun web-mode-element-insert-at-point ()
+  "Replace the word at point with a html tag of it."
+  (interactive)
+  (let ((tag-name (thing-at-point 'word)))
+    (cond
+     ((web-mode-element-is-void tag-name)
+      (backward-kill-word 1)
+      (insert (concat "<" (replace-regexp-in-string "/" "" tag-name) "/>"))
+      )
+     (mark-active
+      (setq tag-name (buffer-substring (region-beginning) (region-end)))
+      (delete-region (region-beginning) (region-end))
+      (insert (concat "<" tag-name ">" "</" tag-name ">"))
+      (web-mode-sb "</")
+      )
+     (tag-name ; do nothing is there isn's word at point
+      (backward-kill-word 1)
+      (insert (concat "<" tag-name ">" "</" tag-name ">"))
+      (web-mode-sb "</")
+      )
+     ) ;cond
+    ))
+
 (defun web-mode-element-rename (&optional tag-name)
   "Rename the current html element."
   (interactive)
@@ -10488,6 +10498,11 @@ Prompt user if TAG-NAME isn't provided."
     (setq end (point-at-eol))
     (indent-region beg end)
     ))
+
+(defun web-mode-column-at-pos (pos)
+  (save-excursion
+    (goto-char pos)
+    (current-column)))
 
 (defun web-mode-indentation-at-pos (pos)
   (save-excursion
