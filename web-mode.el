@@ -4090,34 +4090,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          )
         ) ;erb
 
-       ((string= web-mode-engine "artanis")
-        (cond
-         ((web-mode-block-starts-with "\\()\\|]\\)" reg-beg)
-          (setq controls (append controls (list (cons 'close "ctrl")))))
-         ((and (web-mode-block-starts-with "\\((\\|\\[\\)" reg-beg)
-               ;; Regex if you want to target tag blocks that only
-               ;; have an open parenthesis and whitespace/newlines
-               ;; "\\((\\|\\[\\)\\([[:blank:]]\\|\n\\|^%\\)*[^[:blank:]\n%]\\(.\\|\n\\|^%\\)*?%>"
-               (condition-case ex
-                   (let* ((pos  reg-beg)
-                          (temp (save-excursion
-                                  (web-mode-block-beginning)
-                                  (web-mode-block-skip-blank-forward)
-                                  (buffer-substring
-                                    (point)
-                                    (condition-case ex2
-                                        (progn (search-forward "%>") (point))
-                                      (point-max))))))
-                     (with-temp-buffer
-                       (insert temp)
-                       (move-beginning-of-line 1)
-                       (forward-sexp)
-                       nil))
-                 ('error t)))
-          (setq controls (append controls (list (cons 'open "ctrl")))))
-         )
-        ) ;artanis
-
        ((string= web-mode-engine "django")
         (cond
          ((and (string= web-mode-minor-engine "jinja") ;#504
