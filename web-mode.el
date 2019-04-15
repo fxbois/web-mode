@@ -2275,6 +2275,11 @@ shouldn't be moved back.)")
     )
   "Engines font-lock keywords")
 
+(defvar web-mode-prettify-symbols-alist
+  '(("=>" . 8658)
+    (">=" . 8805)
+    ("<=" . 8804)))
+
 (defvar web-mode-before-auto-complete-hooks nil
   "List of functions to run before triggering the auto-complete library.
 
@@ -2595,7 +2600,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         indent-line-function 'web-mode-indent-line
         parse-sexp-lookup-properties t
         yank-excluded-properties t
-        uncomment-region-function 'web-mode-comment-or-uncomment-region)
+        uncomment-region-function 'web-mode-comment-or-uncomment-region
+        prettify-symbols-alist web-mode-prettify-symbols-alist)
 
   (substitute-key-definition 'indent-new-comment-line
                              'web-mode-comment-indent-new-line
