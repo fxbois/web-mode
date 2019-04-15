@@ -810,6 +810,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engines
   '(("angular"          . ("angularjs"))
     ("archibus"         . ())
+    ("artanis"          . ())
     ("asp"              . ())
     ("aspx"             . ())
     ("blade"            . ("laravel"))
@@ -887,6 +888,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engine-file-regexps
   '(("angular"          . "\\.component.html\\'")
+    ("artanis"          . "\\.tpl\\'")
     ("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
     ("archibus"         . "\\.axvw\\'")
@@ -1073,6 +1075,12 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engines-auto-pairs
   '(("angular"          . (("{{ " . " }}")))
+    ("artanis"          . (("<% "       . " %>")
+                           ("<%="       . " | %>")
+                           ("<@css"     . " | %>")
+                           ("<@icon"    . " | %>")
+                           ("<@include" . " | %>")
+                           ("<@js"      . " | %>")))
     ("asp"              . (("<% " . " %>")))
     ("aspx"             . (("<% " . " %>")
                            ("<%=" . "%>")
@@ -1163,7 +1171,16 @@ Must be used in conjunction with web-mode-enable-block-face."
     ))
 
 (defvar web-mode-engines-snippets
-  '(("ejs" . (("for"     . "<% for (|) { %>\n\n<% } %>")
+  '(("artanis" . (("if"       . "<% (if (|) %>\n\n<% ) %>")
+                  ("when"     . "<% (when (|) %>\n\n<% ) %>")
+                  ("unless"   . "<% (unless (|) %>\n\n<% ) %>")
+                  ("cond"     . "<% (cond %>\n<%  [(|) %>\n\n<%  ] %>\n<%  [else %>\n\n<%  ] %>\n<% ) %>")
+                  ("let"      . "<% (let ([|]) %>\n\n<% ) %>")
+                  ("let*"     . "<% (let* ([|]) %>\n\n<% ) %>")
+                  ("do"       . "<% (do ([|]) %>\n<%     [()] %>\n\n<% ) %>")
+                  ("for-each" . "<% (for-each %>\n|\n\n<% ) %>")
+                  ("case"     . "<% (case | %>\n<%   [() %>\n\n<%   ] %>\n<%   [() %>\n\n<%   ] %>\n<% ) %>")))
+    ("ejs" . (("for"     . "<% for (|) { %>\n\n<% } %>")
               ("if"      . "<% if (|) { %>\n\n<% } %>")))
     ("erb" . (("each"    . "<% |.each do  %>\n\n<% end %>")
               ("if"      . "<% if | %>\n\n<% end %>")
@@ -1195,6 +1212,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engine-token-regexps
   (list
+   '("artanis"     . "\"\\|#|\\|;")
    '("asp"         . "//\\|/\\*\\|\"\\|'")
    '("ejs"         . "//\\|/\\*\\|\"\\|'")
    '("erb"         . "\"\\|'\\|#\\|<<[-]?['\"]?\\([[:alnum:]_]+\\)['\"]?")
@@ -1210,6 +1228,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-open-delimiter-regexps
   (list
    '("angular"          . "{{")
+   '("artanis"          . "<%\\|<@\\(css\\|icon\\|include\\|js\\)")
    '("asp"              . "<%\\|</?[[:alpha:]]+:[[:alpha:]]+\\|</?[[:alpha:]]+Template")
    '("aspx"             . "<%.")
    '("blade"            . "{{.\\|{!!\\|@{{\\|@[[:alpha:]]")
@@ -1339,6 +1358,27 @@ shouldn't be moved back.)")
    '("if" "else" "endif" "unless" "endunless" "var" "repeat"
      "endrepeat" "loop" "endloop" "include" "call" "with"
      "endwith" "set" "genloop" "endgenloop" "insert")))
+
+(defvar web-mode-artanis-constants
+  (regexp-opt
+   '("#f" "#t")))
+
+(defvar web-mode-artanis-keywords
+  (regexp-opt
+   (append
+    (cdr (assoc "artanis" web-mode-extra-keywords))
+    '("begin" "cut" "cute" "if" "when" "unless" "cond" "case"
+      "do" "quote" "syntax" "lambda" "lambda*" "and" "and-let*"
+      "or" "else" "delay" "receive" "use-modules" "match"
+      "match-lambda" "match-lambda*" "match-let" "match-let*"
+      "match-letrec" "let" "let*" "letrec" "letrec*" "and-let*"
+      "let-syntax" "letrec-syntax" "syntax-rules" "syntax-case"
+      "define" "define-syntax" "define-macro"
+      "define-condition-type" "define-immutable-record-type"
+      "define-record-type" "define-values" "parameterize" "for-each"
+      "require-extension" "set!" "test-approximate" "test-assert"
+      "test-begin" "test-end" "test-eq" "test-equal" "test-eqv"
+      "test-error" "test-group" "test-group-with-cleanup" "test-with-runner"))))
 
 (defvar web-mode-lsp-constants
   (regexp-opt
@@ -2163,6 +2203,14 @@ shouldn't be moved back.)")
          '(2 'web-mode-variable-name-face))
    ))
 
+(defvar web-mode-artanis-font-lock-keywords
+  (list
+   (cons (concat "\\_<\\(" web-mode-artanis-keywords  "\\)\\_>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-artanis-constants "\\)\\_>") '(0 'web-mode-constant-face))
+   '("(define[*]? (\\([[:alnum:]-:_!#$%^&*=+/?<>.]+\\)" 1 'web-mode-function-name-face)
+   '("\\(#:[[:alnum:]-:_!#$%^&*=+/?<>.]+\\)"            1 'web-mode-builtin-face)
+   ))
+
 (defvar web-mode-php-font-lock-keywords
   (list
    (cons (concat "\\_<\\(" web-mode-php-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
@@ -2198,6 +2246,7 @@ shouldn't be moved back.)")
 
 (defvar web-mode-engines-font-lock-keywords
   '(("angular"          . web-mode-angular-font-lock-keywords)
+    ("artanis"          . web-mode-artanis-font-lock-keywords)
     ("blade"            . web-mode-blade-font-lock-keywords)
     ("cl-emb"           . web-mode-cl-emb-font-lock-keywords)
     ("closure"          . web-mode-closure-font-lock-keywords)
@@ -2768,6 +2817,23 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   delim-close "%>"))
            )
           ) ;cl-emb
+
+         ((string= web-mode-engine "artanis")
+          (cond
+           ((string= tagopen "<%;")
+            (setq closing-string "%>"))
+           ((string= tagopen "<%#|")
+            (setq closing-string "|#%>"))
+           ((string= sub2 "<@")
+            (setq closing-string "%>"
+                  delim-open "<@\\(css\\|icon\\|include\\|js\\)"
+                  delim-close "%>"))
+           ((string= sub2 "<%")
+            (setq closing-string "%>"
+                  delim-open "<%[=]?"
+                  delim-close "%>"))
+           )
+          ) ;artanis
 
          ((string= web-mode-engine "elixir")
           (cond
@@ -3491,7 +3557,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   "Set text-property 'block-token to 'delimiter-(beg|end) on block delimiters (e.g. <?php and ?>)"
   ;;(message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine
-                '("asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
+                '("artanis" "asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
                   "elixir" "ejs" "erb" "freemarker" "go" "hero" "jsp" "lsp" "mako" "mason" "mojolicious"
                   "smarty" "template-toolkit" "web2py" "xoops"))
     (save-excursion
@@ -3638,6 +3704,17 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq regexp "\"\\|'"))
        )
       ) ;cl-emb
+
+     ((string= web-mode-engine "artanis")
+      (cond
+       ((string= sub3 "<%;")
+        (setq token-type 'comment))
+       ((string= sub3 "<%#|")
+        (setq token-type 'comment))
+       (t
+        (setq regexp "\""))
+       )
+      ) ;artanis
 
      ((string= web-mode-engine "elixir")
       (cond
@@ -7733,7 +7810,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                                  curr-indentation
                                                  reg-beg)))
 
-         ((member language '("lsp" "cl-emb"))
+         ((member language '("lsp" "cl-emb" "artanis"))
           (when debug (message "I240(%S) lsp" pos))
           (setq offset (web-mode-lisp-indentation pos ctx)))
 
@@ -9962,6 +10039,10 @@ Prompt user if TAG-NAME isn't provided."
       (web-mode-comment-erb-block pos)
       )
 
+     ((and block-side (string= web-mode-engine "artanis"))
+      (web-mode-comment-artanis-block pos)
+      )
+
      ((and single-line-block block-side
            (intern-soft (concat "web-mode-comment-" web-mode-engine "-block")))
         (funcall (intern (concat "web-mode-comment-" web-mode-engine "-block")) pos)
@@ -10004,6 +10085,8 @@ Prompt user if TAG-NAME isn't provided."
           (setq content (concat "{# " sel " #}")))
          ((and (= web-mode-comment-style 2) (member web-mode-engine '("ejs" "erb")))
           (setq content (concat "<%# " sel " %>")))
+         ((and (= web-mode-comment-style 2) (string= web-mode-engine "artanis"))
+          (setq content (concat "<%; " sel " %>")))
          ((and (= web-mode-comment-style 2) (string= web-mode-engine "aspx"))
           (setq content (concat "<%-- " sel " --%>")))
          ((and (= web-mode-comment-style 2) (string= web-mode-engine "smarty"))
@@ -10086,6 +10169,12 @@ Prompt user if TAG-NAME isn't provided."
     (setq beg (web-mode-block-beginning-position pos)
           end (web-mode-block-end-position pos))
     (web-mode-insert-text-at-pos "#" (+ beg 2))))
+
+(defun web-mode-comment-artanis-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (web-mode-insert-text-at-pos ";" (+ beg 2))))
 
 (defun web-mode-comment-django-block (pos)
   (let (beg end)
@@ -10215,6 +10304,22 @@ Prompt user if TAG-NAME isn't provided."
           end (web-mode-block-end-position pos))
     (cond
      ((string= (buffer-substring-no-properties beg (+ beg 4)) "<%#=")
+      (web-mode-remove-text-at-pos 1 (+ beg 2)))
+     ((string-match-p "<[%[:alpha:]]" (buffer-substring-no-properties (+ beg 2) (- end 2)))
+      (web-mode-remove-text-at-pos 2 (1- end))
+      (web-mode-remove-text-at-pos 3 beg))
+     (t
+      (web-mode-remove-text-at-pos 1 (+ beg 2)))
+      ) ;cond
+    )
+  )
+
+(defun web-mode-uncomment-artanis-block (pos)
+  (let (beg end)
+    (setq beg (web-mode-block-beginning-position pos)
+          end (web-mode-block-end-position pos))
+    (cond
+     ((string= (buffer-substring-no-properties beg (+ beg 4)) "<%;=")
       (web-mode-remove-text-at-pos 1 (+ beg 2)))
      ((string-match-p "<[%[:alpha:]]" (buffer-substring-no-properties (+ beg 2) (- end 2)))
       (web-mode-remove-text-at-pos 2 (1- end))
@@ -11282,6 +11387,7 @@ Prompt user if TAG-NAME isn't provided."
    ((string= web-mode-engine "lsp")               "<% ) %>")
    ((string= web-mode-engine "erb")               "<% } %>")
    ((string= web-mode-engine "erb")               "<% end %>")
+   ((string= web-mode-engine "artanis")           "<% ) %>")
    ((string= web-mode-engine "hero")              "<% } %>")
    ((string= web-mode-engine "go")                "{{end}}")
    ((string= web-mode-engine "velocity")          "#end")
