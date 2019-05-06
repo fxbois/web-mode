@@ -3473,7 +3473,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       (forward-char))
     (cond
      ((member (char-after) '(?\{))
-      (search-forward "}"))
+      (search-forward "}" nil t))
      ((looking-at-p "def \\|define ")
       (search-forward ")" (line-end-position) t))
      (t
