@@ -568,19 +568,29 @@ See web-mode-block-face."
   "Face for css comments."
   :group 'web-mode-faces)
 
+(defface web-mode-annotation-face
+  '((t :inherit web-mode-comment-face))
+  "Face for code annotations."
+  :group 'web-mode-faces)
+
 (defface web-mode-annotation-tag-face
-  '((t :inherit web-mode-comment-face :underline t))
+  '((t :inherit web-mode-annotation-face :underline t))
   "Face for @tags in code annotations."
   :group 'web-mode-faces)
 
 (defface web-mode-annotation-type-face
-  '((t :inherit web-mode-comment-face :weight bold))
+  '((t :inherit web-mode-annotation-face :weight bold))
   "Face for types in code annotations."
   :group 'web-mode-faces)
 
 (defface web-mode-annotation-value-face
-  '((t :inherit web-mode-comment-face :slant italic))
+  '((t :inherit web-mode-annotation-face :slant italic))
   "Face for values in code annotations."
+  :group 'web-mode-faces)
+
+(defface web-mode-annotation-html-face
+  '((t :inherit web-mode-annotation-face :slant italic))
+  "Face for HTML tags in code annotations."
   :group 'web-mode-faces)
 
 (defface web-mode-constant-face
@@ -6617,6 +6627,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     ;;(message "beg=%S end=%S" beg end)
     (goto-char beg)
     (when (looking-at-p "/\\*\\*")
+      (while (re-search-forward "\\(.+\\)" end t)
+        (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
+                                         'font-lock-face
+                                         'web-mode-annotation-face))
+      (goto-char beg)
       (while (re-search-forward "[ ]+\\({[^}]+}\\)" end t)
         (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
                                          'font-lock-face
@@ -6626,6 +6641,32 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
                                          'font-lock-face
                                          'web-mode-annotation-tag-face))
+      (goto-char beg)
+      (while (re-search-forward "}[[:blank:]]+\\([[:graph:]]+\\)" end t)
+        (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
+                                         'font-lock-face
+                                         'web-mode-annotation-value-face))
+      (goto-char beg)
+      (while (re-search-forward "@see[[:blank:]]+\\([[:graph:]]+\\)" end t)
+        (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
+                                         'font-lock-face
+                                         'web-mode-annotation-value-face))
+      (goto-char beg)
+      (while (re-search-forward "{\\(@\\(?:link\\|code\\)\\)\\s-+\\([^}\n]+\\)\\(#.+\\)?}" end t)
+        (font-lock-prepend-text-property (match-beginning 2) (match-end 2)
+                                         'font-lock-face
+                                         'web-mode-annotation-value-face))
+      (goto-char beg)
+      (while (re-search-forward "\\(</?\\)\\([[:alnum:]]+\\)\\s-*\\(/?>\\)" end t)
+        (font-lock-prepend-text-property (match-beginning 1) (match-end 1)
+                                         'font-lock-face
+                                         'web-mode-annotation-html-face)
+        (font-lock-prepend-text-property (match-beginning 2) (match-end 2)
+                                         'font-lock-face
+                                         'web-mode-annotation-html-face)
+        (font-lock-prepend-text-property (match-beginning 3) (match-end 3)
+                                         'font-lock-face
+                                         'web-mode-annotation-html-face))
       ) ;when
     ))
 
