@@ -5883,12 +5883,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-buffer-highlight ()
   (interactive)
   (cond
-   ((fboundp 'font-lock-flush)
+   ((and (fboundp 'font-lock-flush) global-font-lock-mode)
     (font-lock-flush)
     (font-lock-ensure))
    (t  ;emacs 24
     ;;(font-lock-fontify-buffer)
-    (font-lock-fontify-region (point-min) (point-max)))
+    (and global-font-lock-mode
+         (font-lock-fontify-region (point-min) (point-max))))
    ) ;cond
   )
 
@@ -6534,7 +6535,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (font-lock-keywords-only t)
           (font-lock-extend-region-functions nil))
       ;;      (message "%S" keywords)
-      (when (listp font-lock-keywords)
+      (when (and (listp font-lock-keywords) global-font-lock-mode)
         (font-lock-fontify-region beg end)
         )
       )
@@ -10999,7 +11000,7 @@ Prompt user if TAG-NAME isn't provided."
 
     (when (member this-command '(yank))
       (setq web-mode-fontification-off nil)
-      (when (and web-mode-scan-beg web-mode-scan-end)
+      (when (and web-mode-scan-beg web-mode-scan-end global-font-lock-mode)
         (save-excursion
           (font-lock-fontify-region web-mode-scan-beg web-mode-scan-end))
         (when web-mode-enable-auto-indentation
