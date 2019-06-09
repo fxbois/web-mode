@@ -11000,7 +11000,7 @@ Prompt user if TAG-NAME isn't provided."
 
     (when (member this-command '(yank))
       (setq web-mode-fontification-off nil)
-      (when (and web-mode-scan-beg web-mode-scan-end)
+      (when (and web-mode-scan-beg web-mode-scan-end global-font-lock-mode)
         (save-excursion
           (font-lock-fontify-region web-mode-scan-beg web-mode-scan-end))
         (when web-mode-enable-auto-indentation
