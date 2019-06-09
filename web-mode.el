@@ -5883,12 +5883,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-buffer-highlight ()
   (interactive)
   (cond
-   ((fboundp 'font-lock-flush)
+   ((and (fboundp 'font-lock-flush) global-font-lock-mode)
     (font-lock-flush)
     (font-lock-ensure))
    (t  ;emacs 24
     ;;(font-lock-fontify-buffer)
-    (font-lock-fontify-region (point-min) (point-max)))
+    (and global-font-lock-mode
+         (font-lock-fontify-region (point-min) (point-max))))
    ) ;cond
   )
 
