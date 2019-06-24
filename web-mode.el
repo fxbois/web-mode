@@ -1418,7 +1418,7 @@ shouldn't be moved back.)")
     '("abstract" "and" "array" "as" "break" "case" "catch" "class" "clone"
       "const" "continue" "declare" "default" "die" "do" "echo" "else" "elseif"
       "empty" "enddeclare" "endfor" "endforeach" "endif" "endswitch" "endwhile"
-      "eval" "exit" "extends" "final" "finally" "for" "foreach" "function"
+      "eval" "exit" "extends" "final" "finally" "fn" "for" "foreach" "function"
       "global" "goto" "if" "implements" "include" "include_once" "instanceof"
       "insteadof" "interface" "isset" "list" "namespace" "new" "or" "parent"
       "print" "private" "protected" "public" "require" "require_once" "return"
