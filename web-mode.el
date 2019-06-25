@@ -909,7 +909,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("ctemplate"        . "\\.\\(chtml\\|mustache\\)\\'")
     ("django"           . "\\.\\(djhtml\\|tmpl\\|dtl\\|liquid\\|j2\\|njk\\)\\'")
     ("dust"             . "\\.dust\\'")
-    ("elixir"           . "\\.eex\\'")
+    ("elixir"           . "\\.l?eex\\'")
     ("ejs"              . "\\.ejs\\'")
     ("erb"              . "\\.\\(erb\\|rhtml\\|erb\\.html\\)\\'")
     ("freemarker"       . "\\.ftl\\'")
