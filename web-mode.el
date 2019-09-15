@@ -318,6 +318,15 @@ See web-mode-block-face."
   :type '(repeat function)
   :group 'web-mode)
 
+(defcustom web-mode-comment-formats
+  '(("java"       . "/*")
+    ("javascript" . "/*")
+    ("php"        . "/*")
+    ("css"        . "/*"))
+  "Default comment format for a language"
+  :type '(alist :key-type string :value-type string)
+  :group 'web-mode)
+
 ;;---- FACES -------------------------------------------------------------------
 
 (defface web-mode-error-face
@@ -888,13 +897,6 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("part-face"                 . web-mode-enable-part-face)))
 
 (defvar web-mode-comment-prefixing t)
-
-(defvar web-mode-comment-formats
-  '(("java"       . "/*")
-    ("javascript" . "/*")
-    ("php"        . "/*")
-    ("css"        . "/*")
-    ))
 
 (defvar web-mode-engine-file-regexps
   '(("angular"          . "\\.component.html\\'")
