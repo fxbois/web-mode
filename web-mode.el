@@ -1273,7 +1273,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("template-toolkit" . "\\[%.\\|%%#")
    '("underscore"       . "<%")
    '("velocity"         . "#[[:alpha:]#*]\\|$[[:alpha:]!{]")
-   '("vue"              . "{{")
+   '("vue"              . "{{\\|[:@][-[:alpha:]]+=\"")
    '("web2py"           . "{{")
    '("xoops"            . "<{[[:alpha:]#$/*\"]")
    '("svelte"           . "{.")
@@ -3094,9 +3094,15 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           ) ;angular
 
          ((string= web-mode-engine "vue")
-          (setq closing-string "}}"
-                delim-open "{{"
-                delim-close "}}")
+          (cond
+           ((string-match-p "[:@][-[:alpha:]]+=\"" tagopen)
+            (setq closing-string "\""
+                  delim-open tagopen
+                  delim-close "\""))
+           ((string= tagopen "{{")
+            (setq closing-string "}}"
+                  delim-open "{{"
+                  delim-close "}}")))
           ) ;vue
 
          ((string= web-mode-engine "mason")
