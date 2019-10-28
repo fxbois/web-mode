@@ -1420,21 +1420,21 @@ shouldn't be moved back.)")
   (regexp-opt
    (append
     (cdr (assoc "php" web-mode-extra-keywords))
-    '("and" "array" "as" "break"
-      "callable" "case" "catch"  "catch all" "class" "clone" "const" "continue"
-      "default" "die" "do" "echo" "else" "elseif" "empty"
-      "endfor" "endforeach" "endif" "endswitch" "endwhile" "exit" "extends"
-      "finally" "for" "foreach" "function" "global" "goto"
-      "if" "include" "include_once" "instanceof" "interface" "isset"
-      "list" "next" "new" "or" "private" "protected" "public"
-      "require" "require_once" "return" "static" "switch" "try" "throw"
-      "unset" "use" "var" "when" "while" "xor" "yield"))))
+    '("abstract" "and" "array" "as" "break" "case" "catch" "class" "clone"
+      "const" "continue" "declare" "default" "die" "do" "echo" "else" "elseif"
+      "empty" "enddeclare" "endfor" "endforeach" "endif" "endswitch" "endwhile"
+      "eval" "exit" "extends" "final" "finally" "fn" "for" "foreach" "function"
+      "global" "goto" "if" "implements" "include" "include_once" "instanceof"
+      "insteadof" "interface" "isset" "list" "namespace" "new" "or" "parent"
+      "print" "private" "protected" "public" "require" "require_once" "return"
+      "self" "static" "switch" "trait" "try" "throw" "unset" "use" "var"
+      "while" "xor" "yield" "yield from"))))
 
 (defvar web-mode-php-types
   (eval-when-compile
     (regexp-opt
-     '("array" "bool" "boolean" "char" "const" "double" "float"
-       "int" "integer" "long" "mixed" "object" "real" "string"))))
+     '("array" "bool" "boolean" "callable" "float" "int" "integer"
+       "iterable" "mixed" "object" "resource" "string" "void"))))
 
 (defvar web-mode-css-at-rules
   (eval-when-compile
