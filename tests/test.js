@@ -1,3 +1,16 @@
+
+for ( var someLongVariable = 0; someLongVariable < someExtremely.long.prop;
+  someLongVariable++ )
+{
+  doSomething();
+}
+
+let a;
+if (true) {
+  a = 1;
+} else
+  a = 2;
+
 while (x) {
   if (true) a()
   b()

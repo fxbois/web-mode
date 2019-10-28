@@ -266,7 +266,7 @@ See web-mode-block-face."
   :group 'web-mode)
 
 (defcustom web-mode-extra-auto-pairs '()
-  "A list of additional snippets."
+  "A list of additional auto-pairs."
   :type '(alist :key-type string :value-type string)
   :group 'web-mode)
 
@@ -858,16 +858,16 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("python"           . ())
     ("razor"            . ("play" "play2"))
     ("riot"             . ())
-    ("spip"             . ())
-    ("template-toolkit" . ())
     ("smarty"           . ())
+    ("spip"             . ())
+    ("svelte"           . ("svelte"))
+    ("template-toolkit" . ())
     ("thymeleaf"        . ())
     ("underscore"       . ("underscore.js"))
     ("velocity"         . ("vtl" "cheetah" "ssp"))
     ("vue"              . ("vuejs" "vue.js"))
     ("web2py"           . ())
     ("xoops"            . ())
-    ("svelte"           . ("svelte"))
     )
   "Engine name aliases")
 
@@ -901,10 +901,10 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engine-file-regexps
   '(("angular"          . "\\.component.html\\'")
-    ("artanis"          . "\\.tpl\\'")
+    ("archibus"         . "\\.axvw\\'")
+    ;;("artanis"          . "\\.tpl\\'") // conflict with smarty, see below
     ("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
-    ("archibus"         . "\\.axvw\\'")
     ("blade"            . "\\.blade\\.php\\'")
     ("cl-emb"           . "\\.clemb\\'")
     ("clip"             . "\\.ctml\\'")
@@ -931,17 +931,16 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("razor"            . "\\.\\(cs\\|vb\\)html\\|\\.razor\\'")
     ("riot"             . "\\.tag\\'")
     ("smarty"           . "\\.tpl\\'")
+    ("svelte"           . "\\.svelte\\'")
     ("template-toolkit" . "\\.tt.?\\'")
     ("thymeleaf"        . "\\.thtml\\'")
     ("velocity"         . "\\.v\\(sl\\|tl\\|m\\)\\'")
     ("vue"              . "\\.vue\\'")
     ("xoops"            . "\\.xoops'")
-    ("svelte"           . "\\.svelte\\'")
-
-    ("spip"             . "spip")
+    ;; regexp on the path, not just the extension
     ("django"           . "[st]wig")
     ("razor"            . "scala")
-
+    ("spip"             . "spip")
     )
   "Engine file extensions.")
 
@@ -8167,18 +8166,17 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ((and is-js
                (or (eq prev-char ?\))
-                   (string-match-p "^else$" prev-line)))
+                   (string-match-p "\\(^\\|[}[:space:]]+\\)else$" prev-line)))
           (when debug (message "I370(%S)" pos))
           (cond
-           ((looking-at-p "{") ;; #1020
-            (setq offset prev-indentation))
-           ((string-match-p "^else$" prev-line)
+           ((string-match-p "else$" prev-line)
             (setq offset (+ prev-indentation web-mode-code-indent-offset))
             )
            ((setq tmp (web-mode-part-is-opener prev-pos reg-beg))
             ;;(message "is-opener")
-            (setq offset (+ tmp web-mode-code-indent-offset))
-            ;;(setq offset (+ prev-indentation web-mode-code-indent-offset))
+            (if (looking-at-p "{") ;; #1020, #1053
+                (setq offset tmp)
+              (setq offset (+ tmp web-mode-code-indent-offset)))
             )
            (t
             (setq offset
@@ -10561,11 +10559,18 @@ Prompt user if TAG-NAME isn't provided."
       (insert snippet)
       (setq pos (point)
             end (point))
-      (when (string-match-p "|" snippet)
+      (cond
+       ((string-match-p "¦" snippet)
+        (search-backward "¦")
+        (delete-char 1)
+        (setq pos (point)
+              end (1- end)))
+       ((string-match-p "|" snippet)
         (search-backward "|")
         (delete-char 1)
         (setq pos (point)
               end (1- end)))
+       ) ;cond
       (when sel
         (insert sel)
         (setq pos (point)
