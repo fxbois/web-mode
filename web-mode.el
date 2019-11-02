@@ -2833,7 +2833,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                   delim-open "</?%"
                   delim-close "/?>"))
            ((string= sub2 "${")
-            (setq closing-string "}"
+            (setq closing-string "mako-close"
                   delim-open "${"
                   delim-close "}"))
            (t
@@ -3321,6 +3321,12 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                     pos (point))
               ))
 
+           ((string= closing-string "mako-close")
+            (when (web-mode-mako-skip reg-beg reg-end)
+              (setq close (point)
+                    pos (point))
+              ))
+
            ((string= closing-string "EOR")
             (web-mode-razor-skip open)
             (setq close (if (> (point) reg-end) reg-end (point))
@@ -3470,12 +3476,51 @@ another auto-completion with different ac-sources (e.g. ac-php)")
       ) ;while
     pos))
 
+(defun web-mode-mako-skip (reg-beg reg-end)
+  (let (regexp char pos inc continue found)
+    (setq regexp "[\"'{}]"
+          inc 0)
+    (while (and (not found) (re-search-forward regexp reg-end t))
+      (setq char (char-before))
+      ;;(message "%s point: %s block-side: %s" (get-text-property (point) 'block-side) (point) 'block-side)
+      (cond
+       ((get-text-property (point) 'block-side)
+        (setq found t))
+       ((eq char ?\{)
+        (setq inc (1+ inc)))
+       ((eq char ?\})
+        (cond
+         ((and (not (eobp))
+               (< inc 1))
+          (setq found t
+                pos (1+ (point))))
+         ((> inc 0)
+          (setq inc (1- inc)))
+         )
+        )
+       ((eq char ?\')
+        (setq continue t)
+        (while (and continue (search-forward "'" reg-end t))
+          (setq continue (web-mode-string-continue-p reg-beg))
+          )
+        )
+       ((eq char ?\")
+        (setq continue t)
+        (while (and continue (search-forward "\"" reg-end t))
+          (setq continue (web-mode-string-continue-p reg-beg))
+          )
+        )
+       ) ;cond
+      ) ;while
+    pos)) ;web-mode-mako-skip
+
 (defun web-mode-django-skip (reg-beg reg-end)
   (let (regexp char pos inc continue found)
     (setq regexp "[\"'{}]"
           inc 0)
     (while (and (not found) (re-search-forward regexp reg-end t))
       (setq char (char-before))
+      ;;(message "%s point: %s block-side: %s" (get-text-property (point) 'block-side) (point) 'block-side)
       (cond
        ((get-text-property (point) 'block-side)
         (setq found t))
