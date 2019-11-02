@@ -3520,7 +3520,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           inc 0)
     (while (and (not found) (re-search-forward regexp reg-end t))
       (setq char (char-before))
-      ;;(message "%s point: %s block-side: %s" (get-text-property (point) 'block-side) (point) 'block-side)
       (cond
        ((get-text-property (point) 'block-side)
         (setq found t))
