@@ -1,4 +1,7 @@
 * Randomneo Todo list for mako mode
 ** DONE Correct block detection
 ** TODO improve colorization
-** TODO add tab adjust like in django files
+   Only one problem with ${test(t={})} pattern
+** DONE add tab adjust like in django files
+   Not copied from django (Don't know not looked for).
+   Slowed by adding some nissy regs.
