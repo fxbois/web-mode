@@ -1,0 +1,4 @@
+* Randomneo Todo list for mako mode
+** DONE Correct block detection
+** TODO improve colorization
+** TODO add tab adjust like in django files
