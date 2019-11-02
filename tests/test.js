@@ -11,6 +11,15 @@ if (true) {
 } else
   a = 2;
 
+if (1 === 1)
+{
+  x = 1;
+}
+else
+{
+  x = 2;
+}
+
 while (x) {
   if (true) a()
   b()

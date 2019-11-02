@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2019 François-Xavier Bois
 
-;; Version: 16.0.24
+;; Version: 16.0.25
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.24"
+(defconst web-mode-version "16.0.25"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7638,7 +7638,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
   (let ((offset nil)
         (char nil)
-        (debug nil)
+        (debug t)
         (inhibit-modification-hooks nil)
         (adjust t))
 
@@ -8184,7 +8184,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                    (string-match-p "\\(^\\|[}[:space:]]+\\)else$" prev-line)))
           (when debug (message "I370(%S)" pos))
           (cond
-           ((string-match-p "else$" prev-line)
+           ((and (string-match-p "else$" prev-line)
+                 (not (string-match-p "^{" curr-line)))
             (setq offset (+ prev-indentation web-mode-code-indent-offset))
             )
            ((setq tmp (web-mode-part-is-opener prev-pos reg-beg))
