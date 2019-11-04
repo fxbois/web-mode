@@ -5,6 +5,11 @@ for ( var someLongVariable = 0; someLongVariable < someExtremely.long.prop;
   doSomething();
 }
 
+$("input").keypress(function()
+  {
+    var x = 2;
+});
+
 let a;
 if (true) {
   a = 1;
@@ -233,7 +238,11 @@ function onYouTubePlayerAPIReady(videoid) {
   ytPlayer = new YT.Player('media_area',
                            {videoId: videoid,
                             playerVars: { 'rel': 0 }
-                           });
+  });
+  ytPlayer = new YT.Player('media_area', {
+    videoId: videoid,
+    playerVars: { 'rel': 0 }
+  });
 }
 
 var newB = new example();

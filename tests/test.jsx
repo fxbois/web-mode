@@ -452,7 +452,7 @@ React.createClass({
         { this.props.list.map(function(element) {
             var x = 1;
             return <li class="dxs" x="xs">{ "aa" + this.getModel().get('bb') }</li>
-          }) } cqsdc { return "cd"; }
+        }) } cqsdc { return "cd"; }
       </ul>
     )
   }
