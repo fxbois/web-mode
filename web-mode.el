@@ -8744,7 +8744,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq out (+ prev-indentation language-offset))
         )
        ((string-match-p "^[[:space:]]*[]})]" line)
-
         (setq out (- prev-indentation language-offset))
         )
        ((string-match-p "\\(if\\|else\\|elif\\|for\\|while\\|try\\|except\\)" prev-line)
