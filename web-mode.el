@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2019 François-Xavier Bois
 
-;; Version: 16.0.24
+;; Version: 16.0.25
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.24"
+(defconst web-mode-version "16.0.25"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -44,7 +44,8 @@
 ;;---- CUSTOMS -----------------------------------------------------------------
 
 (defcustom web-mode-block-padding 0
-  "Multi-line block (php, ruby, java, python, asp, etc.) left padding."
+  "Multi-line block (php, ruby, java, python, asp, etc.) left padding.
+   -1 to have to code aligned on the column 0."
   :type '(choice (integer :tags "Number of spaces")
 		         (const :tags "No indent" nil))
   :group 'web-mode)
@@ -1217,6 +1218,12 @@ Must be used in conjunction with web-mode-enable-block-face."
                  ("js"         . "{% javascript | %}\n\n{% endjavascript %}")
                  ("schema"     . "{% javascript | %}\n\n{% endschema %}")
                  ("safe"       . "{% safe | %}\n\n{% endsafe %}")))
+    ("mako" . (("if"        . "% if |:\n% endif")
+               ("for"       . "% for | in :\n% endfor")
+               ("doc"       . "<%doc>\n|\n</%doc>")
+               ("inherit"   . "<%inherit file=\"|\" />")
+               ("namespace" . "<%namespace name=\"|\" file=\"\" import=\"\"/>")
+               ("block"     . "<%block name=\"|\">\n</%block>")))
     ("template-toolkit" . (("if"      . "[% IF | %]\n\n[% END %]")))
     (nil . (("html5" . "<!doctype html>\n<html>\n<head>\n<title></title>\n<meta charset=\"utf-8\" />\n</head>\n<body>\n|\n</body>\n</html>")
             ("table" . "<table><tbody>\n<tr>\n<td>|</td>\n<td></td>\n</tr>\n</tbody></table>")
@@ -7652,7 +7659,14 @@ another auto-completion with different ac-sources (e.g. ac-php)")
        ((member language '("css" "sql" "markdown" "pug" "stylus"))
         (setq reg-col (if web-mode-style-padding (+ reg-col web-mode-style-padding) 0)))
        ((not (member language '("html" "xml" "razor")))
-        (setq reg-col (if web-mode-block-padding (+ reg-col web-mode-block-padding) 0)))
+        (setq reg-col
+              (cond
+               ((not web-mode-block-padding) reg-col)
+               ((eq web-mode-block-padding -1) 0)
+               (t (+ reg-col web-mode-block-padding))
+               ) ;cond
+              ) ;setq
+        )
        )
 
       (list :curr-char curr-char
@@ -7975,10 +7989,17 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
          ((member curr-char '(?\} ?\) ?\]))
           (when debug (message "I250(%S) closing-paren" pos))
-          (let (ori)
+          (let (ori pos2)
+            (setq pos2 pos)
+            ;; #1096
+            (when (looking-at-p ".[\]})]+")
+              (skip-chars-forward "[\]})]")
+              (backward-char)
+              (setq pos2 (point))
+              ) ;when
             (if (get-text-property pos 'block-side)
-                (setq ori (web-mode-block-opening-paren-position pos reg-beg))
-              (setq ori (web-mode-part-opening-paren-position pos reg-beg)))
+                (setq ori (web-mode-block-opening-paren-position pos2 reg-beg))
+              (setq ori (web-mode-part-opening-paren-position pos2 reg-beg)))
             ;;(message "ori=%S" ori)
             (cond
              ((null ori)
@@ -8221,7 +8242,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                    (string-match-p "\\(^\\|[}[:space:]]+\\)else$" prev-line)))
           (when debug (message "I370(%S)" pos))
           (cond
-           ((string-match-p "else$" prev-line)
+           ((and (string-match-p "else$" prev-line)
+                 (not (string-match-p "^{" curr-line)))
             (setq offset (+ prev-indentation web-mode-code-indent-offset))
             )
            ((setq tmp (web-mode-part-is-opener prev-pos reg-beg))
@@ -8722,6 +8744,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq out (+ prev-indentation language-offset))
         )
        ((string-match-p "^[[:space:]]*[]})]" line)
+
         (setq out (- prev-indentation language-offset))
         )
        ((string-match-p "\\(if\\|else\\|elif\\|for\\|while\\|try\\|except\\)" prev-line)

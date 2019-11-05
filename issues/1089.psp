@@ -1,0 +1,4 @@
+<?php
+$x = 5; ?>
+<span>The number is <?php echo $x; ?></span> <?php
+                                             $x = 7;

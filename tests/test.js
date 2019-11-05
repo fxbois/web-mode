@@ -5,11 +5,25 @@ for ( var someLongVariable = 0; someLongVariable < someExtremely.long.prop;
   doSomething();
 }
 
+$("input").keypress(function()
+  {
+    var x = 2;
+});
+
 let a;
 if (true) {
   a = 1;
 } else
   a = 2;
+
+if (1 === 1)
+{
+  x = 1;
+}
+else
+{
+  x = 2;
+}
 
 while (x) {
   if (true) a()
@@ -224,7 +238,11 @@ function onYouTubePlayerAPIReady(videoid) {
   ytPlayer = new YT.Player('media_area',
                            {videoId: videoid,
                             playerVars: { 'rel': 0 }
-                           });
+  });
+  ytPlayer = new YT.Player('media_area', {
+    videoId: videoid,
+    playerVars: { 'rel': 0 }
+  });
 }
 
 var newB = new example();
