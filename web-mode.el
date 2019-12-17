@@ -328,6 +328,12 @@ See web-mode-block-face."
   :type '(alist :key-type string :value-type string)
   :group 'web-mode)
 
+(defcustom web-mode-script-template-types
+  '("text/x-handlebars" "text/x-jquery-tmpl" "text/x-jsrender" "text/html" "text/ng-template" "text/x-template" "text/mustache" "text/x-dust-template")
+  "<script> block types that are interpreted as HTML."
+  :type '(repeat string)
+  :group 'web-mode)
+
 ;;---- FACES -------------------------------------------------------------------
 
 (defface web-mode-error-face
@@ -4714,7 +4720,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               (setq element-content-type "markdown"))
              ((string-match-p " type[ ]*=[ ]*[\"']text/ruby" script)
               (setq element-content-type "ruby"))
-             ((string-match-p " type[ ]*=[ ]*[\"']text/\\(x-handlebars\\|x-jquery-tmpl\\|x-jsrender\\|html\\|ng-template\\|template\\|x-template\\|mustache\\|x-dust-template\\)" script)
+             ((seq-some #'identity (mapc (lambda (x)
+                                           (string-match-p (concat "type[ ]*=[ ]*[\"']" x) script))
+                                         web-mode-script-template-types))
               (setq element-content-type "html"
                     part-close-tag nil))
              ((string-match-p " type[ ]*=[ ]*[\"']application/\\(ld\\+json\\|json\\)" script)
