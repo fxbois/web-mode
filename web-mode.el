@@ -4720,7 +4720,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               (setq element-content-type "markdown"))
              ((string-match-p " type[ ]*=[ ]*[\"']text/ruby" script)
               (setq element-content-type "ruby"))
-             ((seq-some #'identity (mapc (lambda (x)
+             ((seq-some #'identity (mapcar (lambda (x)
                                            (string-match-p (concat "type[ ]*=[ ]*[\"']" x) script))
                                          web-mode-script-template-types))
               (setq element-content-type "html"
