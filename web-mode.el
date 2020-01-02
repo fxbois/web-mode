@@ -1569,6 +1569,7 @@ shouldn't be moved back.)")
       "session" "t" "telephone_field" "telephone_field_tag"
       "time_tag" "translate" "url_field" "url_field_tag"
       "url_options" "video_path" "video_tag" "simple_form_for"
+      "javascript_pack_tag" "stylesheet_pack_tag" "csp_meta_tag"
 
       ))))
 
