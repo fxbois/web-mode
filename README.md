@@ -11,8 +11,6 @@ More infos on http://web-mode.org/
 
 [![paypal.me](http://web-mode.org/images/PayPal.svg)](https://www.paypal.me/fxbois)
 
-[![liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/fxbois/donate)
-
 [![MELPA](http://melpa.org/packages/web-mode-badge.svg)](http://melpa.org/#/web-mode)
 
 [![MELPA Stable](http://stable.melpa.org/packages/web-mode-badge.svg)](http://stable.melpa.org/#/web-mode)
