@@ -890,7 +890,7 @@ Must be used in conjunction with web-mode-enable-block-face."
   "Engine custom attributes")
 
 (defvar web-mode-engine-attr-regexp
-  "^ng[-]\\|^th[:]\\|^v[-]\\|^[#(\[*]"
+  "^ng[-]\\|^th[:]\\|^v[-]\\|^[@:#(\[*]"
   "Engine custom attributes")
 
 (defvar web-mode-last-enabled-feature nil)
@@ -4915,7 +4915,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         )
 
        ((and (eq ?\= char) (member state '(2 3)))
-        (setq equal-offset (- pos name-beg))
+        (setq equal-offset (- pos name-beg)
+              name-end (1- pos))
         (setq state 4)
         (setq attr (buffer-substring-no-properties name-beg (1+ name-end)))
         (when (and web-mode-indentless-attributes (member (downcase attr) web-mode-indentless-attributes))
@@ -5031,9 +5032,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq state 2)
         )
 
+       ;;((= state 2)
        ((= state 2)
         (setq name-end pos)
-        (when (and (= attr-flags 0) (member char '(?\- ?\:)))
+        (when (and nil (= attr-flags 0) (member char '(?\- ?\:)))
           (let (attr)
             (setq attr (buffer-substring-no-properties name-beg (1+ name-end)))
             (cond
@@ -5069,15 +5071,21 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     tag-flags))
 
 (defun web-mode-attr-scan (state char name-beg name-end val-beg flags equal-offset)
-  ;;(message "point(%S) state(%S) c(%c) name-beg(%S) name-end(%S) val-beg(%S) flags(%S) equal-offset(%S)"
-  ;;         (point) state char name-beg name-end val-beg flags equal-offset)
+  (message "point(%S) state(%S) c(%c) name-beg(%S) name-end(%S) val-beg(%S) flags(%S) equal-offset(%S)"
+           (point) state char name-beg name-end val-beg flags equal-offset)
   (when (null flags) (setq flags 0))
   (when (and name-beg name-end web-mode-engine-attr-regexp)
     (let (name)
       (setq name (buffer-substring-no-properties name-beg (1+ name-end)))
-      (when (string-match-p web-mode-engine-attr-regexp name)
+      (message "%S" name)
+      (cond
+       ((string-match-p "^data[-]" name)
+        (setq flags (logior flags 1))
+        )
+       ((string-match-p web-mode-engine-attr-regexp name)
         (setq flags (logior flags 2))
         )
+       )
       ) ;name
     )
   ;;(message "%S" name)
