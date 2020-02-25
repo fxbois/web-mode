@@ -1,0 +1,93 @@
+<form #f="ngForm" (ngSubmit)="saveDocument()">
+  <!-- General info -->
+  <table class="document-modal__info-table">
+    <thead>
+      <tr>
+        <th>
+          {{ 'general.general_info' | translate }}
+        </th>
+        <th class="text-right" colspan="2">
+          <a
+            class="btn document-modal__info-table__edit-btn"
+            (click)="toggleInfoEdit()"
+            *ngIf="canEdit() && document.isInvoice()"
+          >
+            {{ 'general.edit' | translate }}
+          </a>
+          <span class="icon-lock" *ngIf="!canEdit() || document.isDocument()"></span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Source -->
+      <tr>
+        <td>
+          {{ 'general.source' | translate }}
+        </td>
+        <td colspan="2">
+          <b *ngIf="document.source === 0">
+            {{ 'general.upload' | translate }}
+          </b>
+          <b *ngIf="document.source === 1">
+            {{ 'general.email' | translate }}
+          </b>
+          <b *ngIf="document.source === 3">
+            Scanner
+          </b>
+          <b *ngIf="document.source === 4">
+            Zoomit
+          </b>
+          <b *ngIf="document.source === 5">
+            Codabox
+          </b>
+          <b *ngIf="document.source === 6">
+            Basware
+          </b>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          {{ 'general.upload_date' | translate }}
+        </td>
+        <td>
+          {{ document.getDateUpload() }}
+        </td>
+      </tr>
+      <!-- Journal -->
+      <ng-container *appIfFeature="'journals'">
+        <tr *ngIf="document.isDocument()">
+          <td>
+            {{ 'journal.journal' | translate }}
+          </td>
+          <td colspan="2">
+            {{ document.journal.name }}
+          </td>
+        </tr>
+      </ng-container>
+    </tbody>
+
+    <tbody *ngIf="document.isInvoice() || document.isArchive()">
+      <!-- Customer -->
+      <tr>
+        <td>
+          {{ 'modal.customer' | translate }}
+        </td>
+        <td colspan="2" *ngIf="!editInfo">
+          {{ document.invoice.third_name }}
+        </td>
+      </tr>
+      <tr class="input-row" *ngIf="editInfo">
+        <td colspan="2">
+          <div class="p-relative">
+            <app-autocomplete
+              type="input"
+              source="third_name"
+              [placeholder]="'modal.customer' | translate"
+              [(data)]="document.invoice.third_name"
+            ></app-autocomplete>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</form>

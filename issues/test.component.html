@@ -1,0 +1,15 @@
+<a
+  if="e"
+  class="btn document-modal__info-table__edit-btn"
+  (click)="toggleInfoEdit()"
+  *ngIf="canEdit() && document.isInvoice()"
+>
+  {{ 'general.edit' | translate }}
+</a>
+<span class="cd"></span>
+<ul>
+  <!-- <li></li> -->
+  <!-- <li></li> -->
+  <!-- <li></li> -->
+  <!-- <li></li> -->
+</ul>

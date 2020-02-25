@@ -1,0 +1,34 @@
+{!-- This is a comment. --}
+{layout="site/_html-layout" title="News"}
+
+
+{!-- Note the nested braces here. --}
+<div>{entry_date {my_date_formatting}}</div>
+
+
+{!-- Iterate over a list of entries and do some tests. --}
+{exp:channel:entries channel="news"}
+<h2>{title}</h2>
+
+{if total_results == 1}
+  {body}
+  {layout:set name="title"}News | {title}{/layout:set}
+{if:ifelse x == 100}
+  <div>something else</div>
+{if:else}
+  {summary}
+{/if}
+
+{/exp:channel:entries}
+
+
+{!-- An expression that has its attributes wrapped. --}
+<ul>
+  {exp:global:something
+    attr="something"
+    this="that"
+    another="thing"
+  }
+  <li>{a_value}</li>
+  {/exp:global:something}
+</ul>
