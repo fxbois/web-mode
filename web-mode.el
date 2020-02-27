@@ -909,7 +909,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-file-regexps
   '(("angular"          . "\\.component.html\\'")
     ("archibus"         . "\\.axvw\\'")
-    ;;("artanis"          . "\\.tpl\\'") // conflict with smarty, see below
+    ("artanis"          . "\\.html\\.tpl\\'")
     ("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
     ("blade"            . "\\.blade\\.php\\'")
