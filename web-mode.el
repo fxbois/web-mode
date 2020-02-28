@@ -4203,6 +4203,16 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          )
         ) ;erb
 
+       ((string= web-mode-engine "artanis")
+        (cond
+         ((web-mode-block-starts-with "\\()\\|]\\)" reg-beg)
+          (setq controls (append controls (list (cons 'close "ctrl")))))
+         ((and (web-mode-block-starts-with "\\((\\|\\[\\)" reg-beg)
+               (progn (web-mode-block-end) (nth 9 (syntax-ppss))))
+          (setq controls (append controls (list (cons 'open "ctrl")))))
+         )
+        ) ;artanis
+
        ((string= web-mode-engine "django")
         (cond
          ((and (string= web-mode-minor-engine "jinja") ;#504
