@@ -4203,6 +4203,19 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          )
         ) ;erb
 
+       ((string= web-mode-engine "artanis")
+        (cond
+         ((nth 9 (parse-partial-sexp (web-mode-block-beginning-position)
+                                     (web-mode-block-end-position)))
+          (setq controls (append controls (list (cons 'open "ctrl")))))
+         ((and (not (nth 9 (parse-partial-sexp (web-mode-block-beginning-position)
+                                               (web-mode-block-end-position))))
+               (> 0 (nth 0 (parse-partial-sexp (web-mode-block-beginning-position)
+                                               (web-mode-block-end-position)))))
+          (setq controls (append controls (list (cons 'close "ctrl")))))
+         )
+        ) ;artanis
+
        ((string= web-mode-engine "django")
         (cond
          ((and (string= web-mode-minor-engine "jinja") ;#504
