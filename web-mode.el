@@ -5077,7 +5077,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (when (and name-beg name-end web-mode-engine-attr-regexp)
     (let (name)
       (setq name (buffer-substring-no-properties name-beg (1+ name-end)))
-      (message "%S" name)
+      ;;(message "%S" name)
       (cond
        ((string-match-p "^data[-]" name)
         (setq flags (logior flags 1))
