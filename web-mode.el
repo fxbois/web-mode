@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2020 François-Xavier Bois
 
-;; Version: 16.0.28
+;; Version: 16.0.29
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.28"
+(defconst web-mode-version "16.0.29"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -259,7 +259,8 @@ See web-mode-block-face."
   "Auto-quoting style."
   :group 'web-mode
   :type '(choice (const :tag "Auto-quotes with double quote" 1)
-                 (const :tag "Auto-quotes with single quote" 2)))
+                 (const :tag "Auto-quotes with single quote" 2)
+                 (const :tag "Auto-quotes with paren (for jsx)" 3)))
 
 (defcustom web-mode-extra-expanders '()
   "A list of additional expanders."
