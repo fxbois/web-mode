@@ -11189,9 +11189,12 @@ Prompt user if TAG-NAME isn't provided."
       (cond
        ((and (eq char ?\=)
              (not (looking-at-p "[ ]*[\"']")))
-        (if (= web-mode-auto-quote-style 2)
-            (insert "''")
-          (insert "\"\""))
+        (cond ((= web-mode-auto-quote-style 2)
+               (insert "''"))
+              ((= web-mode-auto-quote-style 3)
+               (insert "{}"))
+              (t 
+               (insert "\"\"")))
         (if (looking-at-p "[ \n>]")
             (backward-char)
           (insert " ")
