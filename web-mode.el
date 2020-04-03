@@ -6019,6 +6019,13 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 ;;---- FONTIFICATION -----------------------------------------------------------
 
+;; 1/ after-change
+;; 2/ extend-region
+;; 3/ propertize
+;; 4/ font-lock-highlight
+;; 5/ highlight-region
+;; 6/ post-command
+
 (defun web-mode-font-lock-highlight (limit)
   ;;(message "font-lock-highlight: point(%S) limit(%S) change-beg(%S) change-end(%S)" (point) limit web-mode-change-beg web-mode-change-end)
   (cond
@@ -9819,7 +9826,7 @@ Pos should be in a tag."
 (defun web-mode-lify-region ()
   "Transform current REGION in an html list (<li>line1</li>...)"
   (interactive)
-  (let (beg end)
+  (let (beg end lines)
     (save-excursion
       (when  mark-active
         (setq beg (region-beginning)
@@ -11065,19 +11072,6 @@ Prompt user if TAG-NAME isn't provided."
     (web-mode-set-content-type "jsx"))
    ))
 
-(defun web-mode-on-after-change (beg end len)
-  ;;(message "after-change: pos=%d, beg=%d, end=%d, len=%d, ocmd=%S, cmd=%S" (point) beg end len this-original-command this-command)
-  ;;(backtrace)
-  ;;(message "this-command=%S" this-command)
-  (when (eq this-original-command 'yank)
-    (setq web-mode-fontification-off t))
-  (when (or (null web-mode-change-beg) (< beg web-mode-change-beg))
-    (setq web-mode-change-beg beg))
-  (when (or (null web-mode-change-end) (> end web-mode-change-end))
-    (setq web-mode-change-end end))
-  ;;(message "on-after-change: fontification-off(%S) change-beg(%S) change-end(%S)" web-mode-fontification-off web-mode-change-beg web-mode-change-end)
-  )
-
 (defun web-mode-auto-complete ()
   "Autocomple at point."
   (interactive)
@@ -11253,12 +11247,23 @@ Prompt user if TAG-NAME isn't provided."
 
     ))
 
+;; NOTE: after-change triggered before post-command
+
+(defun web-mode-on-after-change (beg end len)
+  ;;(message "after-change: pos=%d, beg=%d, end=%d, len=%d, ocmd=%S, cmd=%S" (point) beg end len this-original-command this-command)
+  ;;(backtrace)
+  (when (eq this-original-command 'yank)
+    (setq web-mode-fontification-off t))
+  (when (or (null web-mode-change-beg) (< beg web-mode-change-beg))
+    (setq web-mode-change-beg beg))
+  (when (or (null web-mode-change-end) (> end web-mode-change-end))
+    (setq web-mode-change-end end))
+  ;;(message "on-after-change: fontification-off(%S) change-beg(%S) change-end(%S)" web-mode-fontification-off web-mode-change-beg web-mode-change-end)
+  )
+
 (defun web-mode-on-post-command ()
+  ;;(message "post-command: cmd=%S, state=%S, beg=%S, end=%S" this-command web-mode-expand-previous-state web-mode-change-beg web-mode-change-end)
   (let (ctx n char)
-
-    ;;(message "this-command=%S (%S)" this-command web-mode-expand-previous-state)
-    ;;(message "%S: %S %S" this-command web-mode-change-beg web-mode-change-end)
-
     (when (and web-mode-expand-previous-state
                (not (member this-command web-mode-commands-like-expand-region)))
       (when (eq this-command 'keyboard-quit)
