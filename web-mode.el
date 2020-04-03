@@ -9074,9 +9074,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 (defun web-mode-line-number (&optional pos)
   (setq pos (or pos (point)))
-  (+
-   (count-lines 1 pos)
-   (if (= (current-column) 0) 1 0)))
+  (+ (count-lines 1 pos) (if (= (web-mode-column-at-pos pos) 0) 1 0)))
 
 (defun web-mode-block-is-control (pos)
   (save-excursion
@@ -10208,6 +10206,8 @@ Prompt user if TAG-NAME isn't provided."
          (put-text-property beg-inside end-inside 'invisible t))
        ))))
 
+;;---- COMMENT ------------------------------------------------------------------
+
 (defun web-mode-toggle-comments ()
   "Toggle comments visbility."
   (interactive)
@@ -11194,7 +11194,7 @@ Prompt user if TAG-NAME isn't provided."
                (insert "''"))
               ((= web-mode-auto-quote-style 3)
                (insert "{}"))
-              (t 
+              (t
                (insert "\"\"")))
         (if (looking-at-p "[ \n>]")
             (backward-char)
