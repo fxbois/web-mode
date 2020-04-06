@@ -2557,6 +2557,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (unless (fboundp 'string-suffix-p)
     (fset 'string-suffix-p (symbol-function 'web-mode-string-suffix-p)))
 
+  (unless (fboundp 'seq-some)
+    (defun seq-some (pred seq)
+      (unless (null seq)
+        (or (funcall pred (car seq))
+            (seq-some pred (cdr seq))))))
   ) ;eval-and-compile
 
 ;;---- MAJOR MODE --------------------------------------------------------------
