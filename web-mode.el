@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2020 François-Xavier Bois
 
-;; Version: 16.0.30
+;; Version: 16.0.31
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.30"
+(defconst web-mode-version "16.0.31"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3062,7 +3062,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             (setq closing-string ")"
                   delim-open "@"))
            ((string= sub1 "@")
-            (setq closing-string "EOL"
+            (setq closing-string "EOB"
                   delim-open "@"))
            )
           ) ;blade
@@ -3393,6 +3393,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
               ) ;when
             )
 
+           ((string= closing-string "EOB")
+            (web-mode-blade-skip open)
+            (setq close (point)
+                  pos (point)))
+
            ((string= closing-string "EOL")
             (end-of-line)
             (setq close (point)
@@ -3595,6 +3600,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
        ) ;cond
       ) ;while
     pos))
+
+(defun web-mode-blade-skip (pos)
+  (goto-char pos)
+  (forward-char)
+  (skip-chars-forward "a-zA-Z0-9_-"))
 
 (defun web-mode-velocity-skip (pos)
   (goto-char pos)
