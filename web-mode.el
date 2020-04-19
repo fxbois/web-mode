@@ -43,7 +43,7 @@
 
 ;;---- CUSTOMS -----------------------------------------------------------------
 
-(defcustom web-mode-block-padding 3
+(defcustom web-mode-block-padding 0
   "Multi-line block (php, ruby, java, python, asp, etc.) left padding.
    -1 to have to code aligned on the column 0."
   :type '(choice (integer :tags "Number of spaces")
