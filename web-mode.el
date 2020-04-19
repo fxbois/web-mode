@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2020 François-Xavier Bois
 
-;; Version: 16.0.31
+;; Version: 16.0.32
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.31"
+(defconst web-mode-version "16.0.32"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -43,7 +43,7 @@
 
 ;;---- CUSTOMS -----------------------------------------------------------------
 
-(defcustom web-mode-block-padding 0
+(defcustom web-mode-block-padding 3
   "Multi-line block (php, ruby, java, python, asp, etc.) left padding.
    -1 to have to code aligned on the column 0."
   :type '(choice (integer :tags "Number of spaces")
@@ -7641,6 +7641,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq reg-beg (or (web-mode-block-beginning-position pos) (point-min)))
         (goto-char reg-beg)
         (setq reg-col (current-column))
+        ;;(message "%S %S" reg-beg reg-col)
         (setq language web-mode-engine)
         (setq curr-indentation web-mode-code-indent-offset)
 
@@ -7652,7 +7653,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           (setq reg-beg (+ reg-beg 2))
           )
          ((string= web-mode-engine "razor")
-          (setq reg-beg (+ reg-beg 2))
+          ;;(setq reg-beg (+ reg-beg 2))
+          ;;(setq reg-col (current-column))
           )
          ;; tests/demo.chtml
          ((string= web-mode-engine "ctemplate")
@@ -7798,7 +7800,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq reg-col (if web-mode-script-padding (+ reg-col web-mode-script-padding) 0)))
        ((member language '("css" "sql" "markdown" "pug" "sass" "stylus"))
         (setq reg-col (if web-mode-style-padding (+ reg-col web-mode-style-padding) 0)))
-       ((not (member language '("html" "xml" "razor")))
+       ((not (member language '("html" "xml")))
         (setq reg-col
               (cond
                ((not web-mode-block-padding) reg-col)
@@ -8137,6 +8139,16 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ((member language '("lsp" "cl-emb" "artanis"))
           (when debug (message "I240(%S) lsp" pos))
           (setq offset (web-mode-lisp-indentation pos ctx)))
+
+         ((and (member curr-char '(?\}))
+               (string= language "razor")
+               (get-text-property pos 'block-end))
+          (when debug (message "I245(%S) razor closing" pos))
+          (goto-char reg-beg)
+          ;;(message "%S %S" (point) (current-column))
+          (setq offset (current-column)
+                reg-col nil)
+          )
 
          ((member curr-char '(?\} ?\) ?\]))
           (when debug (message "I250(%S) closing-paren" pos))
