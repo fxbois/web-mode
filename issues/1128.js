@@ -5,7 +5,7 @@ const myStyle = css`
 `;
 
 const myStyle = html`
-  <div>
+  <div class="toto">
     coucou
   </div>
 `;
