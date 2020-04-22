@@ -11470,6 +11470,12 @@ Prompt user if TAG-NAME isn't provided."
 
     ))
 
+(defun web-mode--command-is-self-insert-p ()
+  "Return non-nil if `this-command' is `self-insert-command'.
+Also return non-nil if it is the command `self-insert-command' is remapped to."
+  (memq this-command (list 'self-insert-command
+                           (key-binding [remap self-insert-command]))))
+
 ;; NOTE: after-change triggered before post-command
 
 (defun web-mode-on-after-change (beg end len)
@@ -11529,7 +11535,7 @@ Prompt user if TAG-NAME isn't provided."
       )
 
      ((and (>= (point) 3)
-           (member this-command '(self-insert-command))
+           (web-mode--command-is-self-insert-p)
            (not (member (get-text-property (point) 'part-token) '(comment string)))
            (not (eq (get-text-property (point) 'tag-type) 'comment))
            )
@@ -11569,7 +11575,7 @@ Prompt user if TAG-NAME isn't provided."
         (setq web-mode-change-end (point-max))
         )
       )
-     ((and (member this-command '(self-insert-command))
+     ((and (web-mode--command-is-self-insert-p)
            (or (and ctx
                     (or (plist-get ctx :auto-closed)
                         (plist-get ctx :auto-expanded)))
@@ -11582,7 +11588,7 @@ Prompt user if TAG-NAME isn't provided."
         (setq web-mode-change-end (point-max))
         )
       )
-     ((and (member this-command '(self-insert-command))
+     ((and (web-mode--command-is-self-insert-p)
            (member (get-text-property (point) 'part-side) '(javascript jsx css))
            (looking-back "^[ \t]+[]})]" (point-min)))
       (indent-according-to-mode)
