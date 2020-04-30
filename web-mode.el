@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2020 François-Xavier Bois
 
-;; Version: 16.0.40
+;; Version: 16.0.41
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "16.0.40"
+(defconst web-mode-version "16.0.41"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -2765,9 +2765,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
   )
 
-;;---- LEXER BLOCKS ------------------------------------------------------------
+;;---- INVALIDATION ------------------------------------------------------------
 
-(defun web-mode-propertize (&optional beg end)
+(defun web-mode-scan (&optional beg end)
   (unless beg (setq beg web-mode-change-beg))
   (unless end (setq end web-mode-change-end))
   ;;(message "%S %S" web-mode-content-type (get-text-property beg 'part-side))
@@ -2775,7 +2775,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   ;;(message "%S %S" (get-text-property beg 'part-side) (get-text-property end 'part-side))
   (when (and end (> end (point-max)))
     (setq end (point-max)))
-  ;;(message "propertize: reset web-mode-change-beg|end")
   (setq web-mode-change-beg nil
         web-mode-change-end nil)
   (cond
@@ -2787,7 +2786,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          (> beg (point-min))
          (not (eq (get-text-property (1- beg) 'block-token) 'delimiter-beg))
          (not (eq (get-text-property end 'block-token) 'delimiter-end)))
-    ;;(message "invalidate block")
+    ;;(message "invalidate block (%S > %S)" beg end)
     (web-mode-invalidate-block-region beg end))
    ((and (or (member web-mode-content-type
                      '("css" "javascript" "json" "jsx" "sass" "stylus"
@@ -2862,6 +2861,49 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         ;;(message "beg(%S) end(%S)" beg end)
         (cons beg end)
         )
+       ) ;cond
+      )))
+
+(defun web-mode-invalidate-part-region (pos-beg pos-end)
+  (save-excursion
+    (let (beg end part-beg part-end language)
+      (if (member web-mode-content-type web-mode-part-content-types)
+          (setq language web-mode-content-type)
+        (setq language (symbol-name (get-text-property pos-beg 'part-side))))
+      (setq part-beg (web-mode-part-beginning-position pos-beg)
+            part-end (web-mode-part-end-position pos-beg))
+      ;;(message "language(%S) pos-beg(%S) pos-end(%S) part-beg(%S) part-end(%S)"
+      ;;         language pos-beg pos-end part-beg part-end)
+      (goto-char pos-beg)
+      (cond
+       ((not (and part-beg part-end
+                  (>= pos-beg part-beg)
+                  (<= pos-end part-end)
+                  (> part-end part-beg)))
+        (web-mode-invalidate-region pos-beg pos-end))
+       ((member language '("javascript" "json" "jsx" "typescript"))
+        (if (web-mode-javascript-rsb "[;{}(][ ]*\n" part-beg)
+            (setq beg (match-end 0))
+          (setq beg part-beg))
+        (goto-char pos-end)
+        (if (web-mode-javascript-rsf "[;{})][ ]*\n" part-end)
+            (setq end (match-end 0))
+          (setq end part-end))
+        (web-mode-scan-region beg end language))
+       ((member language '("css" "sass"))
+        (let (rule1 rule2)
+          (setq rule1 (web-mode-css-rule-current pos-beg))
+          (setq rule2 rule1)
+          (when (> pos-end (cdr rule1))
+            (setq rule2 (web-mode-css-rule-current pos-end)))
+          (setq beg (car rule1)
+                end (cdr rule2))
+          )
+        (web-mode-scan-region beg end language))
+       (t
+        (setq beg part-beg
+              end part-end)
+        (web-mode-scan-region beg end language))
        ) ;cond
       )))
 
@@ -2977,6 +3019,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
             ) ;cond
            (cons beg end)
            ))))))
+
+;;---- LEXER BLOCKS ------------------------------------------------------------
 
 (defun web-mode-scan-blocks (reg-beg reg-end)
   "Identifies blocks (with block-side, block-beg, block-end text properties)."
@@ -3620,6 +3664,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              ((and (string= web-mode-engine "erb")
                    (looking-at-p "<%= javascript_tag do %>"))
               (setq tagopen "<%= javascript_tag do %>"))
+             ((and (string= web-mode-engine "mojolicious")
+                   (looking-at-p "%= javascript begin"))
+              (setq tagopen "%= javascript begin"))
              ((and (string= web-mode-engine "mako")
                    (looking-at-p "<%block filter=\"collect_js\">"))
               (setq tagopen "<%block filter=\"collect_js\">"))
@@ -3644,7 +3691,8 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                          "<%block filter=\"collect_css\">"
                                          "{% javascript %}"
                                          "{% schema %}"
-                                         "{% stylesheet %}"))
+                                         "{% stylesheet %}"
+                                         "%= javascript begin"))
                        (setq part-beg close)
                        (setq tagclose
                              (cond
@@ -3655,6 +3703,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                               ((string= tagopen "{% javascript %}") "{% endjavascript %}")
                               ((string= tagopen "{% schema %}") "{% endschema %}")
                               ((string= tagopen "{% stylesheet %}") "{% endstylesheet %}")
+                              ((string= tagopen "%= javascript begin") "% end")
                               ((string= tagopen "<%= javascript_tag do %>") "<% end %>")
                               ((member tagopen '("<%block filter=\"collect_js\">"
                                                  "<%block filter=\"collect_css\">")) "</%block")
@@ -4886,48 +4935,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 ;;---- LEXER PARTS -------------------------------------------------------------
 
-(defun web-mode-invalidate-part-region (pos-beg pos-end)
-  (save-excursion
-    (let (beg end part-beg part-end language)
-      (if (member web-mode-content-type web-mode-part-content-types)
-          (setq language web-mode-content-type)
-        (setq language (symbol-name (get-text-property pos-beg 'part-side))))
-      (setq part-beg (web-mode-part-beginning-position pos-beg)
-            part-end (web-mode-part-end-position pos-beg))
-      ;;(message "language(%S) pos-beg(%S) pos-end(%S) part-beg(%S) part-end(%S)"
-      ;;         language pos-beg pos-end part-beg part-end)
-      (goto-char pos-beg)
-      (cond
-       ((not (and part-beg part-end
-                  (>= pos-beg part-beg)
-                  (<= pos-end part-end)
-                  (> part-end part-beg)))
-        (web-mode-invalidate-region pos-beg pos-end))
-       ((member language '("javascript" "json" "jsx" "typescript"))
-        (if (web-mode-javascript-rsb "[;{}(][ ]*\n" part-beg)
-            (setq beg (match-end 0))
-          (setq beg part-beg))
-        (goto-char pos-end)
-        (if (web-mode-javascript-rsf "[;{})][ ]*\n" part-end)
-            (setq end (match-end 0))
-          (setq end part-end))
-        (web-mode-scan-region beg end language))
-       ((member language '("css" "sass"))
-        (let (rule1 rule2)
-          (setq rule1 (web-mode-css-rule-current pos-beg))
-          (setq rule2 rule1)
-          (when (> pos-end (cdr rule1))
-            (setq rule2 (web-mode-css-rule-current pos-end)))
-          (setq beg (car rule1)
-                end (cdr rule2))
-          )
-        (web-mode-scan-region beg end language))
-       (t
-        (setq beg part-beg
-              end part-end)
-        (web-mode-scan-region beg end language))
-       ) ;cond
-      )))
+;; FLAGS: tag
+;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)bracket-end
+;; (32)namespaced
 
 (defun web-mode-scan-elements (reg-beg reg-end)
   (save-excursion
@@ -5116,10 +5126,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         ) ;while
 
       )))
-
-;; FLAGS: tag
-;; (1)attrs (2)custom (4)slash-beg (8)slash-end (16)bracket-end
-;; (32)namespaced
 
 ;; FLAGS: attr
 ;; (1)custom-attr (2)engine-attr (4)spread-attr[jsx] (8)code-value
@@ -5323,7 +5329,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         (setq state 2)
         )
 
-       ;;((= state 2)
        ((= state 2)
         (setq name-end pos)
         (when (and nil (= attr-flags 0) (member char '(?\- ?\:)))
@@ -6087,7 +6092,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 ;; 1/ after-change
 ;; 2/ extend-region
-;; 3/ propertize
+;; 3/ scan
 ;; 4/ fontify
 ;; 5/ post-command
 
@@ -6103,7 +6108,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (when (or (null web-mode-change-end) (> font-lock-end web-mode-change-end))
       ;;(message "font-lock-end(%S) > web-mode-change-end(%S)" font-lock-end web-mode-change-end)
       (setq web-mode-change-end font-lock-end))
-    (let ((region (web-mode-propertize web-mode-change-beg web-mode-change-end)))
+    (let ((region (web-mode-scan web-mode-change-beg web-mode-change-end)))
       (when region
         ;;(message "region: %S" region)
         (setq font-lock-beg (car region)
@@ -7421,7 +7426,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 (defun web-mode-fold-or-unfold (&optional pos)
   "Toggle folding on an html element or a control block."
   (interactive)
-  (web-mode-propertize)
+  (web-mode-scan)
   (web-mode-with-silent-modifications
    (save-excursion
      (if pos (goto-char pos))
@@ -7875,7 +7880,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
                                      "pug" "ruby" "sass" "stylus" "typescript")))
         (setq reg-beg (or (web-mode-part-beginning-position pos) (point-min)))
         (goto-char reg-beg)
-        (search-backward "<" nil t)
+        (if (and (string= web-mode-engine "mojolicious")
+                 (looking-back "javascript begin"))
+            (search-backward "%" nil t)
+          (search-backward "<" nil t))
         (setq reg-col (current-column))
         (setq language part-language)
         (cond
@@ -8004,7 +8012,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 (defun web-mode-indent-line ()
 
-  (web-mode-propertize)
+  (web-mode-scan)
 
   (let ((offset nil)
         (char nil)

@@ -1,0 +1,10 @@
+<div>
+  %= javascript begin
+   $(function() {
+     $('#select-year select').change(function() {
+       $('#select-year').attr('action', '/' + this.value );
+       $('#select-year').submit();
+     });
+   });
+  % end
+</div>
