@@ -1,0 +1,8 @@
+<div>
+  <?php
+
+  foreach ($vars as $var)
+    echo 'toto';
+
+  ?>
+</div>
