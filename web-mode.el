@@ -2275,7 +2275,7 @@ shouldn't be moved back.)")
 
 (defvar web-mode-elixir-font-lock-keywords
   (list
-   (cons (concat "\\_<\\(" web-mode-elixir-builtins "\\)\\_>") '(0 'web-mode-builtin-face))
+   (cons (concat "\\_<\\(" web-mode-elixir-builtins "\\)\\_>") '(0 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-elixir-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-elixir-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("@\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
