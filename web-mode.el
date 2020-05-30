@@ -1407,22 +1407,18 @@ shouldn't be moved back.)")
     (cdr (assoc "python" web-mode-extra-constants))
     '("True" "False" "None" "__debug__" "NotImplemented" "Ellipsis"))))
 
-(defvar web-mode-elixir-builtins
+(defvar web-mode-elixir-keywords
   (regexp-opt
    (append
-    (cdr (assoc "elixir" web-mode-extra-builtins))
-    '("case" "cond" "for" "if" "quote" "raise" "receive" "send"
-      "fn" "do" "end" "after" "else" "rescue" "catch" "end" "not" "and" "or" "when" "in"
-      "super" "throw" "try" "unless" "unquote" "unquote_splicing"
-      "with"
-      ))))
+    (cdr (assoc "elixir" web-mode-extra-keywords))
+    '("do" "end" "case" "bc" "lc" "for" "if" "cond" "with" "unless" "try" "receive" "fn" "defmodule" "defprotocol" "defimpl" "defrecord" "defrecordp" "defstruct" "defdelegate" "defcallback" "defexception" "defoverridable" "defguard" "defgaurdp" "exit" "after" "rescue" "catch" "else" "raise" "throw" "quote" "unquote" "super" "when" "and" "or" "not" "in"))))
 
 
 (defvar web-mode-elixir-constants
   (regexp-opt
    (append
     (cdr (assoc "elixir" web-mode-extra-constants))
-    '("true" "false"))))
+    '("nil" "true" "false"))))
 
 (defvar web-mode-erlang-constants
   (regexp-opt
@@ -2270,8 +2266,9 @@ shouldn't be moved back.)")
 
 (defvar web-mode-elixir-font-lock-keywords
   (list
-   (cons (concat "\\_<\\(" web-mode-elixir-builtins "\\)\\_>") '(0 'web-mode-builtin-face))
+   (cons (concat "\\_<\\(" web-mode-elixir-keywords "\\)\\_>") '(0 'web-mode-builtin-face))
    (cons (concat "\\_<\\(" web-mode-elixir-constants "\\)\\_>") '(0 'web-mode-constant-face))
+   '("def[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
    '("@\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
    '("[ ]\\(:[[:alnum:]-_]+\\)" 1 'web-mode-symbol-face)
    ))
