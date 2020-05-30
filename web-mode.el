@@ -1412,8 +1412,8 @@ shouldn't be moved back.)")
    (append
     (cdr (assoc "elixir" web-mode-extra-builtins))
     '("case" "cond" "for" "if" "quote" "raise" "receive" "send"
-                          "super" "throw" "try" "unless" "unquote" "unquote_splicing"
-                          "with"
+      "super" "throw" "try" "unless" "unquote" "unquote_splicing"
+      "with"
       ))))
 
 
