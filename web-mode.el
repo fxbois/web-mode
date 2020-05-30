@@ -1412,6 +1412,7 @@ shouldn't be moved back.)")
    (append
     (cdr (assoc "elixir" web-mode-extra-builtins))
     '("case" "cond" "for" "if" "quote" "raise" "receive" "send"
+      "fn" "do" "end" "after" "else" "rescue" "catch" "end" "not" "and" "or" "when" "in"
       "super" "throw" "try" "unless" "unquote" "unquote_splicing"
       "with"
       ))))
@@ -1422,12 +1423,6 @@ shouldn't be moved back.)")
    (append
     (cdr (assoc "elixir" web-mode-extra-constants))
     '("true" "false"))))
-
-(defvar web-mode-elixir-keywords
-  (regexp-opt
-   (append
-    (cdr (assoc "elixir" web-mode-extra-keywords))
-    '("fn" "do" "end" "after" "else" "rescue" "catch" "if" "end" "not" "and" "or" "when" "in"))))
 
 (defvar web-mode-erlang-constants
   (regexp-opt
@@ -2275,8 +2270,7 @@ shouldn't be moved back.)")
 
 (defvar web-mode-elixir-font-lock-keywords
   (list
-   (cons (concat "\\_<\\(" web-mode-elixir-builtins "\\)\\_>") '(0 'web-mode-keyword-face))
-   (cons (concat "\\_<\\(" web-mode-elixir-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
+   (cons (concat "\\_<\\(" web-mode-elixir-builtins "\\)\\_>") '(0 'web-mode-builtin-face))
    (cons (concat "\\_<\\(" web-mode-elixir-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("@\\([[:alnum:]_]+\\)" 0 'web-mode-variable-name-face)
    '("[ ]\\(:[[:alnum:]-_]+\\)" 1 'web-mode-symbol-face)
