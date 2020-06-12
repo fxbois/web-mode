@@ -47,25 +47,25 @@
   "Multi-line block (php, ruby, java, python, asp, etc.) left padding.
    -1 to have to code aligned on the column 0."
   :type '(choice (integer :tags "Number of spaces")
-		         (const :tags "No indent" nil))
+                 (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-part-padding 1
   "Part elements (script, style) left padding."
   :type '(choice (integer :tags "Number of spaces")
-		         (const :tags "No indent" nil))
+                 (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-script-padding web-mode-part-padding
   "Script element left padding."
   :type '(choice (integer :tags "Number of spaces")
-		         (const :tags "No indent" nil))
+                 (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-style-padding web-mode-part-padding
   "Style element left padding."
   :type '(choice (integer :tags "Number of spaces")
-		         (const :tags "No indent" nil))
+                 (const :tags "No indent" nil))
   :group 'web-mode)
 
 (defcustom web-mode-attr-indent-offset nil
@@ -6799,11 +6799,11 @@ another auto-completion with different ac-sources (e.g. ac-php)")
 
 (defun web-mode-colorize-foreground (color)
   (let* ((values (x-color-values color))
-	 (r (car values))
-	 (g (cadr values))
-	 (b (car (cdr (cdr values)))))
+         (r (car values))
+         (g (cadr values))
+         (b (car (cdr (cdr values)))))
     (if (> 128.0 (floor (+ (* .3 r) (* .59 g) (* .11 b)) 256))
-	"white" "black")))
+        "white" "black")))
 
 (defun web-mode-colorize (beg end)
   (let (str plist len)
