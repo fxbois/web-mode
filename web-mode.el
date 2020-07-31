@@ -5625,7 +5625,10 @@ another auto-completion with different ac-sources (e.g. ac-php)")
          ) ;cond
 
         (when (and beg (>= reg-end (point)) token-type)
-          (put-text-property beg (point) 'part-token token-type)
+          (if (and (string= content-type "jsx")
+                   (eq ?\{ (char-before beg)))
+              (put-text-property (1- beg) (point) 'part-token token-type)
+            (put-text-property beg (point) 'part-token token-type))
           (cond
            ((eq token-type 'comment)
             (put-text-property beg (1+ beg) 'syntax-table (string-to-syntax "<"))
