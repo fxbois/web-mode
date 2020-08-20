@@ -231,6 +231,11 @@ See web-mode-block-face."
   :type 'boolean
   :group 'web-mode)
 
+(defcustom web-mode-enable-front-matter-block nil
+  "Enable front matter block (data at the beginning the template between --- and ---)."
+  :type 'boolean
+  :group 'web-mode)
+
 (defcustom web-mode-enable-engine-detection nil
   "Detect such directive -*- engine: ENGINE -*- at the top of the file."
   :type 'boolean
@@ -8227,6 +8232,14 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
          ((or (bobp) (= (line-number-at-pos pos) 1))
           (when debug (message "I100(%S) first line" pos))
           (setq offset 0))
+
+         ;; #123 #1145
+         ((and web-mode-enable-front-matter-block
+               (eq (char-after (point-min)) ?\-)
+               (or (looking-at-p "---")
+                   (search-forward "---" (point-max) t)))
+          (when debug (message "I108(%S) front-matter-block" pos))
+          (setq offset nil))
 
          ;; #1073
          ((get-text-property pos 'invisible)
