@@ -1330,7 +1330,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("riot"             . "{.\\|/// begin script")
    '("smarty"           . "{[[:alpha:]#$/*\"]")
    '("spip"             . "\\[(#REM)\\|(\\|#[A-Z0-9_]\\|{\\|<:")
-   '("template-toolkit" . "\\[%.\\|%%#")
+   '("template-toolkit" . "\\[%\\(.\\|$\\)\\|%%#")
    '("underscore"       . "<%")
    '("velocity"         . "#[[:alpha:]#*]\\|$[[:alpha:]!{]")
    '("vue"              . "{{\\|[:@][-[:alpha:]]+=\"")
