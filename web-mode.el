@@ -1,5 +1,4 @@
-;;; web-mode.el --- major mode for editing web templates
-;;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; web-mode.el --- major mode for editing web templates -*- lexical-binding: t; -*-
 
 ;; Copyright 2011-2020 François-Xavier Bois
 
