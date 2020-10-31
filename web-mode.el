@@ -11048,6 +11048,7 @@ Prompt user if TAG-NAME isn't provided."
              (setq end (1+ (cdr boundaries)))
              (> (- end beg) 4))
         (when (and (eq (get-text-property beg 'part-token) 'comment)
+                   (> beg 1) ;#1158
                    (get-text-property (1- beg) 'jsx-beg))
           (setq beg (1- beg)
                 end (1+ end)))
