@@ -154,6 +154,11 @@
   :type 'boolean
   :group 'web-mode)
 
+(defcustom web-mode-enable-curly-brace-indentation nil
+  "Indent lines beginning with {."
+  :type 'boolean
+  :group 'web-mode)
+
 (defcustom web-mode-enable-control-block-indentation t
   "Control blocks increase indentation."
   :type 'boolean
@@ -8804,9 +8809,10 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             )
            ((setq tmp (web-mode-part-is-opener prev-pos reg-beg))
             ;;(message "is-opener")
-            (if (looking-at-p "{") ;; #1020, #1053
-                (setq offset tmp)
-              (setq offset (+ tmp web-mode-code-indent-offset)))
+            (if (or (not (looking-at-p "{")) ;; #1020, #1053, #1160
+                    web-mode-enable-curly-brace-indentation)
+                (setq offset (+ tmp web-mode-code-indent-offset))
+              (setq offset tmp))
             )
            (t
             (setq offset
