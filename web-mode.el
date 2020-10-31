@@ -2808,9 +2808,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (when web-mode-trace
     (message "after-change: pos(%d) beg(%d) end(%d) len(%d) this-command(%S)"
              (point) beg end len this-command))
-  ;;(backtrace)
-  ;;(when (eq this-original-command 'yank)
-  ;;  (setq web-mode-skip-fontification t))
   (when (or (null web-mode-change-beg) (< beg web-mode-change-beg))
     (setq web-mode-change-beg beg))
   (when (or (null web-mode-change-end) (> end web-mode-change-end))
@@ -2821,8 +2818,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (message "extend-region: font-lock-beg(%S) font-lock-end(%S) web-mode-change-beg(%S) web-mode-change-end(%S) web-mode-skip-fontification(%S)"
              font-lock-beg font-lock-end web-mode-change-beg web-mode-change-end web-mode-skip-fontification))
   (cond
-   ;;(web-mode-skip-fontification
-   ;; nil)
    (t
     (when (or (null web-mode-change-beg) (< font-lock-beg web-mode-change-beg))
       (when web-mode-trace (message "extend-region: font-lock-beg(%S) < web-mode-change-beg(%S)" font-lock-beg web-mode-change-beg))
@@ -2892,8 +2887,9 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                            (key-binding [remap self-insert-command]))))
 
 (defun web-mode-on-post-command ()
-  (when (and web-mode-trace (not (member this-command
-                                         '(left-char right-char previous-line next-line save-buffer mwheel-scroll end-of-line beginning-of-line))))
+  (when (and web-mode-trace
+             (not (member this-command
+                          '(left-char right-char previous-line next-line save-buffer mwheel-scroll end-of-line beginning-of-line))))
     (message "post-command: this-command(%S) web-mode-change-beg(%S) web-mode-change-end(%S) previous-state(%S)"
              this-command web-mode-change-beg web-mode-change-end web-mode-expand-previous-state))
   (let (ctx n char)
@@ -3119,10 +3115,17 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 (defun web-mode-invalidate-region-beginning-position (pos)
   (save-excursion
     (goto-char pos)
-    (when (and (bolp) (not (bobp)))
+
+    (cond
+     ((and (looking-at-p ">") ;#1151
+           (looking-back "--"))
+      (search-backward "<!--" nil t))
+     ((and (bolp) (not (bobp)))
       (backward-char))
+     )
+
     (beginning-of-line)
-    ;;(message "pos=%S %S" (point) (text-properties-at (point)))
+    ;;(message "pos=%S point=%S %S" pos (point) (text-properties-at (point)))
     (setq pos (point-min))
     (let ((continue (not (bobp))))
       (while continue
