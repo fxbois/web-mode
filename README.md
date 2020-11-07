@@ -7,7 +7,7 @@ web-mode.el is compatible with many template engines: PHP, JSP, ASP, Django, Twi
 
 More infos on https://web-mode.org/
 
-![ScreenShot](https://web-mode.org/web-mode.png?v=5)
+![ScreenShot](http://web-mode.org/web-mode.png?v=5)
 
 [![paypal.me](https://web-mode.org/images/PayPal.svg)](https://www.paypal.me/fxbois)
 
