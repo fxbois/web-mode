@@ -7,7 +7,7 @@
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
-;; URL: http://web-mode.org
+;; URL: https://web-mode.org
 ;; Repository: http://github.com/fxbois/web-mode
 ;; Created: July 2011
 ;; Keywords: languages
@@ -33,7 +33,7 @@
   "Major mode for editing web templates"
   :group 'languages
   :prefix "web-"
-  :link '(url-link :tag "Site" "http://web-mode.org")
+  :link '(url-link :tag "Site" "https://web-mode.org")
   :link '(url-link :tag "Repository" "https://github.com/fxbois/web-mode"))
 
 (defgroup web-mode-faces nil
@@ -866,7 +866,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-imenu-regexp-list
   '(("<\\(h[1-9]\\)\\([^>]*\\)>\\([^<]*\\)" 1 3 ">")
     ("^[ \t]*<\\([@a-z]+\\)[^>]*>? *$" 1 "id=\"\\([a-zA-Z0-9_]+\\)\"" "#" ">"))
-  "Regexps to match imenu items (see http://web-mode.org/doc/imenu.txt)")
+  "Regexps to match imenu items (see https://web-mode.org/doc/imenu.txt)")
 
 ;; https://www.gnu.org/software/emacs/manual/html_node/ccmode/Syntactic-Symbols.html
 (defvar web-mode-indentation-params
