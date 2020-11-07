@@ -5,11 +5,11 @@ web-mode.el is an emacs major mode for editing **web templates** aka HTML files 
 
 web-mode.el is compatible with many template engines: PHP, JSP, ASP, Django, Twig, Jinja, Mustache, ERB, FreeMarker, Velocity, Cheetah, Smarty, CTemplate, Mustache, Blade, ErlyDTL, Go Template, Dust.js, Google Closure (soy), React/JSX, Angularjs, ejs, Nunjucks, etc.
 
-More infos on http://web-mode.org/
+More infos on https://web-mode.org/
 
 ![ScreenShot](http://web-mode.org/web-mode.png?v=5)
 
-[![paypal.me](http://web-mode.org/images/PayPal.svg)](https://www.paypal.me/fxbois)
+[![paypal.me](https://web-mode.org/images/PayPal.svg)](https://www.paypal.me/fxbois)
 
 [![MELPA](http://melpa.org/packages/web-mode-badge.svg)](http://melpa.org/#/web-mode)
 
