@@ -3123,7 +3123,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
     (cond
      ((and (looking-at-p ">") ;#1151
-           (looking-back "--"))
+           (looking-back "--" (point-min)))
       (search-backward "<!--" nil t))
      ((and (bolp) (not (bobp)))
       (backward-char))
@@ -5359,7 +5359,6 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (counter 0) (brace-depth 0)
         (pos-ori (point)) (state 0) (equal-offset 0) (go-back nil)
         (is-jsx (or (string= web-mode-content-type "jsx") (eq (get-text-property (point) 'part-type) 'jsx)))
-        (is-tsx (and tsx))
         attr name-beg name-end val-beg char pos escaped spaced quoted)
 
     (while continue
