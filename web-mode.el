@@ -1,9 +1,9 @@
 ;;; web-mode.el --- major mode for editing web templates
 ;;; -*- coding: utf-8; lexical-binding: t; -*-
 
-;; Copyright 2011-2020 François-Xavier Bois
+;; Copyright 2011-2021 François-Xavier Bois
 
-;; Version: 17.0.2
+;; Version: 17.0.3
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.0.1"
+(defconst web-mode-version "17.0.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1314,7 +1314,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("closure"          . "{.\\|/\\*\\| //")
    '("clip"             . "</?c:[[:alpha:]-]+")
    '("ctemplate"        . "[$]?{[{~].")
-   '("django"           . "{[#{%]")
+   '("django"           . "{[#{%]\\|^#")
    '("dust"             . "{.")
    '("elixir"           . "<%")
    '("ejs"              . "<%")
@@ -2076,8 +2076,8 @@ shouldn't be moved back.)")
 
 (defvar web-mode-django-code-font-lock-keywords
   (list
-   (cons (concat "{%[ ]*\\(" web-mode-django-control-blocks-regexp "\\)[ %]") '(1 'web-mode-block-control-face))
-   '("{%[ ]*\\(end[[:alpha:]]+\\)\\_>" 1 'web-mode-block-control-face) ;#504
+   (cons (concat "\\({%\\|#\\)[ ]*\\(" web-mode-django-control-blocks-regexp "\\)[ %]") '(2 'web-mode-block-control-face))
+   '("\\({%\\|#\\)[ ]*\\(end[[:alpha:]]+\\)\\_>" 2 'web-mode-block-control-face) ;#504
    (cons (concat "\\_<\\(" web-mode-django-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-django-types "\\)\\_>") '(1 'web-mode-type-face))
    '("|[ ]?\\([[:alpha:]_]+\\)\\_>" 1 'web-mode-function-call-face)
@@ -3313,8 +3313,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             (setq closing-string "%}"
                   delim-open "{%[+-]?"
                   delim-close "[-]?%}"))
-           (t
+           ((string= sub2 "{#")
             (setq closing-string "#}"))
+           (t
+            (setq closing-string "EOL"
+                  delim-open "#[#]?"))
            )
           ) ;django
 
@@ -6563,6 +6566,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         (setq keywords web-mode-django-expr-font-lock-keywords))
        ((string= sub2 "{%")
         (setq keywords web-mode-django-code-font-lock-keywords))
+       ((string= sub1 "#")
+        (setq keywords web-mode-django-code-font-lock-keywords))
        )) ;django
 
      ((string= web-mode-engine "mako")
@@ -8353,6 +8358,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
          ((and (string= web-mode-engine "mason")
                (string-match-p "^%" curr-line))
           (when debug (message "I140(%S) mason" pos))
+          (setq offset 0))
+
+         ((and (string= web-mode-engine "django")
+               (string-match-p "^#" curr-line))
+          (when debug (message "I144(%S) django line statements" pos))
           (setq offset 0))
 
          ((and (get-text-property pos 'block-beg)
