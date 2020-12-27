@@ -1951,7 +1951,8 @@ shouldn't be moved back.)")
 
 (defvar web-mode-pug-font-lock-keywords
   (list
-   '("#[[:alnum:]-]+" 0 'web-mode-css-selector-face)
+   '("^[ \t]*\\(#?[[:alnum:].-]+\\)" 1 'web-mode-css-selector-face)
+   ;;'("^[ \t]*\\(#[[:alnum:]-]+\\)" 0 'web-mode-css-selector-face)
    '(" \\([@:]?\\sw+[ ]?=\\)" 1 'web-mode-param-name-face)
    ))
 
