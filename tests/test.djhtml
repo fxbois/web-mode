@@ -61,7 +61,7 @@ related issues: #417
 <span>Element should not be indented</span>
 
 <div>
-  #466
+  issue#466
   {% if block %}
     Content
   {% endif %}

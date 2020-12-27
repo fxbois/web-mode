@@ -2822,23 +2822,27 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (when web-mode-trace
     (message "extend-region: font-lock-beg(%S) font-lock-end(%S) web-mode-change-beg(%S) web-mode-change-end(%S) web-mode-skip-fontification(%S)"
              font-lock-beg font-lock-end web-mode-change-beg web-mode-change-end web-mode-skip-fontification))
-  (cond
-   (t
-    (when (or (null web-mode-change-beg) (< font-lock-beg web-mode-change-beg))
-      (when web-mode-trace (message "extend-region: font-lock-beg(%S) < web-mode-change-beg(%S)" font-lock-beg web-mode-change-beg))
-      (setq web-mode-change-beg font-lock-beg))
-    (when (or (null web-mode-change-end) (> font-lock-end web-mode-change-end))
-      (when web-mode-trace (message "extend-region: font-lock-end(%S) > web-mode-change-end(%S)" font-lock-end web-mode-change-end))
-      (setq web-mode-change-end font-lock-end))
-    (let ((region (web-mode-scan web-mode-change-beg web-mode-change-end)))
-      (when region
-        ;;(message "region: %S" region)
-        (setq font-lock-beg (car region)
-              font-lock-end (cdr region))
-        ) ;when
-      ) ;let
-    nil) ;t
-   ))
+  (when (and (string= web-mode-engine "php")
+             (and (>= font-lock-beg 6) (<= font-lock-beg 9))
+             (or (message (buffer-substring-no-properties 1 6)) t)
+             (string= (buffer-substring-no-properties 1 6) "<?php"))
+    (setq font-lock-beg (point-min)
+          font-lock-end (point-max))
+    )
+  (when (or (null web-mode-change-beg) (< font-lock-beg web-mode-change-beg))
+    (when web-mode-trace (message "extend-region: font-lock-beg(%S) < web-mode-change-beg(%S)" font-lock-beg web-mode-change-beg))
+    (setq web-mode-change-beg font-lock-beg))
+  (when (or (null web-mode-change-end) (> font-lock-end web-mode-change-end))
+    (when web-mode-trace (message "extend-region: font-lock-end(%S) > web-mode-change-end(%S)" font-lock-end web-mode-change-end))
+    (setq web-mode-change-end font-lock-end))
+  (let ((region (web-mode-scan web-mode-change-beg web-mode-change-end)))
+    (when region
+      ;;(message "region: %S" region)
+      (setq font-lock-beg (car region)
+            font-lock-end (cdr region))
+      ) ;when
+    ) ;let
+  nil)
 
 (defun web-mode-scan (&optional beg end)
   (when web-mode-trace
@@ -2935,17 +2939,14 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
       (setq char (char-before)))
 
     (cond
-
      ((null char)
       )
-
      ((and (>= (point) 3)
            (web-mode--command-is-self-insert-p)
            (not (member (get-text-property (point) 'part-token) '(comment string)))
            (not (eq (get-text-property (point) 'tag-type) 'comment))
            )
       (setq ctx (web-mode-auto-complete)))
-
      ((and web-mode-enable-auto-opening
            (member this-command '(newline electric-newline-and-maybe-indent newline-and-indent))
            (or (and (not (eobp))
