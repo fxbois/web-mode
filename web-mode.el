@@ -1291,7 +1291,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-token-regexps
   (list
    '("artanis"     . "\"\\|#|\\|;")
-   '("asp"         . "//\\|/\\*\\|\"\\|'")
+   '("asp"         . "//\\|/\\*\\|\"\\|''")
    '("ejs"         . "//\\|/\\*\\|\"\\|'")
    '("erb"         . "\"\\|'\\|#\\|<<[-]?['\"]?\\([[:alnum:]_]+\\)['\"]?")
    '("lsp"         . "\"\\|#|\\|;")
@@ -3051,17 +3051,19 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         (when (< code-end end)
           (setq end code-end))
         ;; ?? pas de (web-mode-block-tokenize beg end) ?
+        (web-mode-block-tokenize beg end)
         (cons beg end)
         ) ;asp
        (t
         (goto-char pos-beg)
+        ;;(message "pos-beg=%S" pos-beg)
         (when (string= web-mode-engine "php")
           (cond
            ((and (looking-back "\*" (point-min))
                  (looking-at-p "/"))
             (search-backward "/*" code-beg))
            ) ;cond
-          )
+          ) ;when
         (if (web-mode-block-rsb "[;{}(][ ]*\n" code-beg)
             (setq beg (match-end 0))
           (setq beg code-beg))
@@ -4383,7 +4385,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
      ((and (string= web-mode-engine "asp")
            (string= sub2 "<%"))
-      (setq regexp "//\\|/\\*\\|\"\\|'")
+      (setq regexp "//\\|/\\*\\|\"\\|''")
       ) ;asp
 
      ((string= web-mode-engine "aspx")
@@ -4534,7 +4536,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
               char (aref match 0))
         (cond
 
-         ((and (string= web-mode-engine "asp") (eq char ?\'))
+         ((and (string= web-mode-engine "asp") (string= match "''"))
           (goto-char token-end))
 
          ((and (string= web-mode-engine "razor") (eq char ?\'))
@@ -9380,7 +9382,10 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     (when h
       (setq prev-line (car h))
       (setq prev-indentation (cdr h))
+      ;;(message "line=%S" line)
       (cond
+       ((string-match-p "''" line)
+        (setq out prev-indentation))
        ;; ----------------------------------------------------------------------
        ;; unindent
        ((string-match-p "\\_<\\(\\(end \\(if\\|function\\|class\\|sub\\|with\\)\\)\\|else\\|elseif\\|next\\|loop\\)\\_>" line)
@@ -10781,6 +10786,9 @@ Prompt user if TAG-NAME isn't provided."
          ((looking-at-p ";")
           (setq format ";"
                 prefix ";"))
+         ((looking-at-p "''")
+          (setq format "''"
+                prefix "''"))
          ) ;cond
         (list :beg beg :col col :prefix prefix :type type :format format)))))
 
@@ -11090,6 +11098,8 @@ Prompt user if TAG-NAME isn't provided."
           (setq comment (replace-regexp-in-string "\\(^[ \t]*\\*\\)" "" comment))
           ;;(message "%S" comment)
           )
+         ((string= sub2 "''")
+          (setq comment (replace-regexp-in-string "''" "" comment)))
          ((string= sub2 "//")
           (setq comment (replace-regexp-in-string "^ *//" "" comment)))
          ) ;cond
