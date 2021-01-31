@@ -2350,7 +2350,7 @@ shouldn't be moved back.)")
 (defvar web-mode-php-font-lock-keywords
   (list
    (cons (concat "\\_<\\(" web-mode-php-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
-   (cons (concat "(\\_<\\(" web-mode-php-types "\\)\\_>") '(1 'web-mode-type-face))
+   (cons (concat "\\_<\\(" web-mode-php-types "\\)\\_>") '(1 'web-mode-type-face))
    (cons (concat "\\_<\\(" web-mode-php-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("function[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
    '("\\_<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
@@ -8750,6 +8750,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                    (string-match-p "^[&|?:+-]" curr-line))
                (not (and (string= language "php")
                          (string-match-p "^->" curr-line)))
+               (not (and (string= language "php")
+                         (string-match-p "^?[a-zA-z]*" curr-line)))
                (not (and (string= language "php")
                          (string-match-p "\\(else[ ]?:\\|if[ ]?([^)]*)[ ]?:\\)" prev-line)))
                (not (string-match-p "^\\(++\\|--\\)" curr-line))
