@@ -5043,6 +5043,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
        ((string= web-mode-engine "elixir")
         (cond
+         ((web-mode-block-starts-with "f = form_for" reg-beg)
+          (setq controls (append controls (list (cons 'open "form-ctrl")))))
          ((web-mode-block-starts-with "end" reg-beg)
           (setq controls (append controls (list (cons 'close "ctrl")))))
          ((web-mode-block-starts-with "else" reg-beg)
@@ -8612,6 +8614,14 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                                                   curr-indentation
                                                   reg-beg)))
 
+         ((member language '("elixir"))
+          (when debug (message "I260(%S) elixir" pos))
+          (setq offset (web-mode-elixir-indentation pos
+                                                  curr-line
+                                                  reg-col
+                                                  curr-indentation
+                                                  reg-beg)))
+
          ((string= language "css")
           (when debug (message "I270(%S) css-indentation" pos))
           ;;(message "prev=%c" prev-char)
@@ -9326,6 +9336,40 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         ) ;when
       ) ;if
     offset))
+
+(defun web-mode-elixir-indentation (pos line initial-column language-offset limit)
+  (unless limit (setq limit nil))
+  (let (h offset prev-line prev-indentation open-ctx)
+    (setq open-ctx (web-mode-bracket-up pos "elixir" limit))
+    ;;(message "%S" open-ctx)
+    (if (plist-get open-ctx :pos)
+        (cond
+         ((web-mode-looking-at-p ".[ \t\n]+" (plist-get open-ctx :pos))
+          (setq offset (+ (plist-get open-ctx :indentation) language-offset)))
+         (t
+          (setq offset (1+ (plist-get open-ctx :column))))
+         )
+      (setq h (web-mode-previous-line pos limit))
+      (setq offset initial-column)
+      (when h
+        (setq prev-line (car h))
+        (setq prev-indentation (cdr h))
+        (cond
+         ((string-match-p ",$" prev-line)
+          (save-excursion
+            (goto-char limit)
+            (looking-at "<%=? [a-z]+ ")
+            (setq offset (+ initial-column language-offset))
+            ) ;save-excursion
+          )
+         (t
+          (setq offset prev-indentation)
+          )
+         )
+        ) ;when
+      ) ;if
+    offset))
+
 
 (defun web-mode-python-indentation (pos line initial-column language-offset limit)
   (unless limit (setq limit nil))
