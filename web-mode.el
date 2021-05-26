@@ -5051,8 +5051,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           (setq controls (append controls (list (cons 'inside "ctrl")))))
          ((web-mode-block-ends-with " do" reg-beg)
           (setq controls (append controls (list (cons 'open "ctrl")))))
-         ((web-mode-block-ends-with " ->" reg-beg)
+         ((and (web-mode-block-ends-with " ->" reg-beg) (web-mode-block-starts-with "form_for" reg-beg))
           (setq controls (append controls (list (cons 'open "ctrl")))))
+         ((web-mode-block-ends-with " ->" reg-beg)
+          (setq controls (append controls (list (cons 'close "case-ctrl")) (list (cons 'open "case-ctrl"))))
+          )
          )
         ) ;elixir
 
