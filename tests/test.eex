@@ -15,3 +15,12 @@
 <%= form_for @changeset, @action, fn _form -> %>
   Hello again!
 <%= end %>
+
+<%= f = form_for @changeset, @action %>
+  Hello again!
+<%= end %>
+
+<%= MyApp.Module1.SubModule.really_long_function_name_with_multiples_lines(
+  "arg1",
+  "arg2",
+  "arg3" %>
