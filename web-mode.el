@@ -1421,7 +1421,7 @@ shouldn't be moved back.)")
   (regexp-opt
    (append
     (cdr (assoc "elixir" web-mode-extra-keywords))
-    '("do" "end" "case" "bc" "lc" "for" "if" "cond" "with" "unless" "try" "receive" "fn" "defmodule" "defprotocol" "defimpl" "defrecord" "defrecordp" "defstruct" "defdelegate" "defcallback" "defexception" "defoverridable" "defguard" "defgaurdp" "exit" "after" "rescue" "catch" "else" "raise" "throw" "quote" "unquote" "super" "when" "and" "or" "not" "in"))))
+    '("after" "and" "bc" "case" "catch" "cond" "defcallback" "defdelegate" "defexception" "defgaurdp" "defguard" "defimpl" "defmodule" "defoverridable" "defprotocol" "defrecord" "defrecordp" "defstruct" "do" "else" "end" "exit" "fn" "for" "form_for" "if" "in" "lc" "not" "or" "quote" "raise" "receive" "rescue" "super" "throw" "try" "unless" "unquote" "when" "with"))))
 
 
 (defvar web-mode-elixir-constants
