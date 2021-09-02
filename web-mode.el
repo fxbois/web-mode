@@ -970,7 +970,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("ctemplate"        . "\\.\\(chtml\\|mustache\\)\\'")
     ("django"           . "\\.\\(djhtml\\|tmpl\\|dtl\\|liquid\\|j2\\|njk\\)\\'")
     ("dust"             . "\\.dust\\'")
-    ("elixir"           . "\\.l?eex\\'")
+    ("elixir"           . "\\.[hl]?eex\\'")
     ("ejs"              . "\\.ejs\\'")
     ("erb"              . "\\.\\(erb\\|rhtml\\|erb\\.html\\)\\'")
     ("expressionengine" . "\\.ee\\'")
