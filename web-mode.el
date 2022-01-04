@@ -11,7 +11,7 @@
 ;; Repository: http://github.com/fxbois/web-mode
 ;; Created: July 2011
 ;; Keywords: languages
-;; License: GNU General Public License >= 2
+;; License: GNU General Public License >= 3
 ;; Distribution: This file is not part of Emacs
 
 ;;; Commentary:
