@@ -2836,6 +2836,9 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   (when (or (null web-mode-change-end) (> font-lock-end web-mode-change-end))
     (when web-mode-trace (message "extend-region: font-lock-end(%S) > web-mode-change-end(%S)" font-lock-end web-mode-change-end))
     (setq web-mode-change-end font-lock-end))
+  (when font-lock-dont-widen
+    (setq web-mode-change-beg (max web-mode-change-beg (point-min))
+          web-mode-change-end (min web-mode-change-end (point-max))))
   (let ((region (web-mode-scan web-mode-change-beg web-mode-change-end)))
     (when region
       ;;(message "region: %S" region)
