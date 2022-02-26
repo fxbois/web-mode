@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.1.3
+;; Version: 17.1.4
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.1.3"
+(defconst web-mode-version "17.1.4"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3304,7 +3304,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           (cond
            ((string= sub2 "<%")
             (setq closing-string '("<%". "%>")
-                  delim-open "<%[=-]?"
+                  delim-open "<%\\(==\\|[=-]\\)?"
                   delim-close "[-]?%>"))
            (t
             (setq closing-string "EOL"
