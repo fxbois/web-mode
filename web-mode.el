@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.1.0
+;; Version: 17.1.1
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.1.0"
+(defconst web-mode-version "17.1.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5649,7 +5649,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           ;; (message "val-end=%S" val-end)
           )
          )
-        ) ;if null val-beg
+        )
       (put-text-property name-beg (1+ name-beg) 'tag-attr-beg attr-flags)
       (put-text-property name-beg (1+ val-end) 'tag-attr t)
       (put-text-property val-end (1+ val-end) 'tag-attr-end equal-offset)
@@ -8252,12 +8252,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              (options (plist-get ctx :options))
              (chars (list curr-char prev-char))
              (tmp nil)
-             (is-js (member language '("javascript" "jsx" "ejs"))))
+             (is-js (member language '("javascript" "jsx" "ejs" "typescript"))))
 
         (when (member language '("json" "typescript"))
           (setq language "javascript"))
 
-        ;;(message "%S" language)
+        ;;(message "%S %S" (plist-get ctx :language) language)
         ;;(message "curr-char=[%c] prev-char=[%c]\n%S" curr-char prev-char ctx)
         ;;(message "options=%S" ctx)
 
@@ -8909,14 +8909,15 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ))
 
-         ((member ?\, chars)
-          (when debug (message "I400(%S) block-args" pos))
+         ((and is-js (member ?\, chars))
+          (when debug (message "I400(%S) part-args" pos))
           (cond
-           ((not (web-mode-block-args-beginning pos reg-beg))
+           ((not (web-mode-part-args-beginning pos reg-beg))
             ;;(message "ici")
             )
            ((cdr (assoc "lineup-args" web-mode-indentation-params))
             (setq offset (current-column))
+            ;;(message "offset=%S" offset)
             (when (eq curr-char ?\,)
               (goto-char pos)
               (looking-at ",[ \t\n]*")
@@ -8925,6 +8926,25 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            (t
             (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
            ))
+
+         ((member ?\, chars)
+          (when debug (message "I401(%S) block-args" pos))
+          (cond
+           ((not (web-mode-block-args-beginning pos reg-beg))
+            ;;(message "ici")
+            )
+           ((cdr (assoc "lineup-args" web-mode-indentation-params))
+            (setq offset (current-column))
+            ;;(message "offset=%S" offset)
+            (when (eq curr-char ?\,)
+              (goto-char pos)
+              (looking-at ",[ \t\n]*")
+              (setq offset (- offset (length (match-string-no-properties 0)))))
+            )
+           (t
+            (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+           ))
+
 
          ((and (string= language "php") (member ?\. chars))
           (when debug (message "I410(%S) block-string" pos))
