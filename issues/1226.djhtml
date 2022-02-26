@@ -1,0 +1,5 @@
+<div>
+  {% set foo %}
+    bar
+  {% endset %}
+</div>

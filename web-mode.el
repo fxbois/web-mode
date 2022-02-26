@@ -1771,7 +1771,7 @@ shouldn't be moved back.)")
      "endif" "endifchanged" "endifequal" "endifnotequal"
      "endmacro"
      "endrandom" "endraw"
-     "endsafe" "endsandbox"  "endspaceless"
+     "endsafe" "endsandbox" "endspaceless"
      "endtablerow"
      "endunless"
      "endverbatim"
@@ -2077,6 +2077,9 @@ shouldn't be moved back.)")
 
 (defvar web-mode-django-code-font-lock-keywords
   (list
+   '("{%[ ]*\\(set\\)[ ]+\\([[:alpha:]]+\\)[ ]*%}"
+     (1 'web-mode-block-control-face)
+     (2 'web-mode-variable-name-face))
    (cons (concat "\\({%\\|#\\)[ ]*\\(" web-mode-django-control-blocks-regexp "\\)[ %]") '(2 'web-mode-block-control-face))
    '("\\({%\\|#\\)[ ]*\\(end[[:alpha:]]+\\)\\_>" 2 'web-mode-block-control-face) ;#504
    (cons (concat "\\_<\\(" web-mode-django-keywords "\\)\\_>") '(1 'web-mode-keyword-face))
@@ -4772,6 +4775,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           (setq controls (append controls (list (cons 'inside "for")))))
          ((web-mode-block-starts-with "end\\([[:alpha:]]+\\)" reg-beg)
           (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
+         ((web-mode-block-starts-with "set [[:alpha:]]+[ ]*%}" reg-beg)
+          (setq controls (append controls (list (cons 'open "set")))))
          ((web-mode-block-starts-with (concat web-mode-django-control-blocks-regexp "[ %]") reg-beg)
           (let (control)
             (setq control (match-string-no-properties 1))

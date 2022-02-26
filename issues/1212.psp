@@ -1,0 +1,9 @@
+<div>
+  <?php
+  $var = array(
+	array( 'name' => 'Add', 'url' => '/add/', 'rules' => array() ),
+	array( 'name' => 'List', 'url' => '/list/', 'rules' => array() ),
+	array( 'name' => 'Sections', 'url' => '/section/', 'rules' => array() ),
+  );
+  ?>
+</div>
