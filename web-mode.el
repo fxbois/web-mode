@@ -314,7 +314,7 @@ See web-mode-block-face."
 
 (defcustom web-mode-extra-control-blocks '()
   "A list of additional control blocks."
-  :type '(alist :key-type string :value-type string)
+  :type '(alist :key-type string :value-type (repaet string))
   :group 'web-mode)
 
 (defcustom web-mode-tests-directory (concat default-directory "tests/")
