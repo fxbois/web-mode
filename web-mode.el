@@ -8845,6 +8845,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                  (not (string-match-p "^{" curr-line)))
             (setq offset (+ prev-indentation web-mode-code-indent-offset))
             )
+           ((and (string-match-p "else$" prev-line)
+                 (string-match-p "^{" curr-line)
+                 web-mode-enable-curly-brace-indentation)
+            (setq offset (+ prev-indentation web-mode-code-indent-offset))
+            )
            ((setq tmp (web-mode-part-is-opener prev-pos reg-beg))
             ;;(message "is-opener")
             (if (or (not (looking-at-p "{")) ;; #1020, #1053, #1160
