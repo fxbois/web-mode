@@ -833,7 +833,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-void-elements
   '("area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen"
-    "link" "meta" "param" "source" "track" "wbr"))
+    "link" "meta" "param" "source" "track" "wbr" "tmpl_var"))
 
 (defvar web-mode-part-content-types
   '("css" "javascript" "json" "jsx" "markdown" "pug" "ruby"
