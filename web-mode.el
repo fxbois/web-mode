@@ -3,7 +3,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.1.2
+;; Version: 17.1.3
 ;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
 ;; Maintainer: François-Xavier Bois
 ;; Package-Requires: ((emacs "23.1"))
@@ -24,7 +24,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.1.2"
+(defconst web-mode-version "17.1.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -10585,12 +10585,12 @@ Prompt user if TAG-NAME isn't provided."
       (unless tag-name (setq tag-name (read-from-minibuffer "New tag name? ")))
       (when (and (> (length tag-name) 0)
                  (web-mode-element-beginning)
-                 (looking-at "<\\([[:alnum:]]+\\(:?[-][[:alpha:]]+\\)?\\)"))
+                 (looking-at "<\\([[:alnum:]]+\\(:?[[:alpha:]_-]+\\)?\\)"))
         (setq pos (point))
         (unless (web-mode-element-is-void)
             (save-match-data
               (web-mode-tag-match)
-              (if (looking-at "</[ ]*\\([[:alnum:]]+\\(:?[-][[:alpha:]]+\\)?\\)")
+              (if (looking-at "</[ ]*\\([[:alnum:]]+\\(:?[[:alpha:]_-]+\\)?\\)")
                   (replace-match (concat "</" tag-name))
                 )))
         (goto-char pos)
