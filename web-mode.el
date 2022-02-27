@@ -1,11 +1,10 @@
-;;; web-mode.el --- major mode for editing web templates
-;;; -*- coding: utf-8; lexical-binding: t; -*-
+;;; web-mode.el --- major mode for editing web templates -*- coding: utf-8; lexical-binding: t; -*-
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.1.4
-;; Author: François-Xavier Bois <fxbois AT Google Mail Service>
-;; Maintainer: François-Xavier Bois
+;; Version: 17.2.0
+;; Author: François-Xavier Bois
+;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
 ;; URL: https://web-mode.org
 ;; Repository: http://github.com/fxbois/web-mode
@@ -2632,7 +2631,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
              (buffer-undo-list t))
          (unwind-protect
              ,@body
-           (set-buffer-modified-p old-modified-p)))))
+           (restore-buffer-modified-p old-modified-p)))))
 
   ;; compatibility with emacs < 24.3
   (defun web-mode-buffer-narrowed-p ()
@@ -2755,14 +2754,14 @@ another auto-completion with different ac-sources (e.g. ac-php)")
         uncomment-region-function 'web-mode-comment-or-uncomment-region
         prettify-symbols-alist web-mode-prettify-symbols-alist)
 
-  (substitute-key-definition 'indent-new-comment-line
-                             'web-mode-comment-indent-new-line
+  (substitute-key-definition #'indent-new-comment-line
+                             #'web-mode-comment-indent-new-line
                              web-mode-map global-map)
 
-  (add-hook 'after-change-functions 'web-mode-on-after-change nil t)
-  (add-hook 'after-save-hook        'web-mode-on-after-save t t)
-  (add-hook 'change-major-mode-hook 'web-mode-on-exit nil t)
-  (add-hook 'post-command-hook      'web-mode-on-post-command nil t)
+  (add-hook 'after-change-functions #'web-mode-on-after-change nil t)
+  (add-hook 'after-save-hook        #'web-mode-on-after-save t t)
+  (add-hook 'change-major-mode-hook #'web-mode-on-exit nil t)
+  (add-hook 'post-command-hook      #'web-mode-on-post-command nil t)
 
   (cond
    ((boundp 'yas-after-exit-snippet-hook)
@@ -2779,7 +2778,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (web-mode-whitespaces-on))
 
   (when web-mode-enable-sexp-functions
-    (setq-local forward-sexp-function 'web-mode-forward-sexp))
+    (setq-local forward-sexp-function #'web-mode-forward-sexp))
 
   (web-mode-guess-engine-and-content-type)
   (setq web-mode-change-beg (point-min)
@@ -3253,7 +3252,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   "Identifies blocks (with block-side, block-beg, block-end text properties)."
   (save-excursion
 
-    (let ((i 0) open close closing-string start sub1 sub2 pos tagopen tmp delim-open delim-close part-beg part-end tagclose)
+    (let ((i 0) open close closing-string sub1 sub2 pos tagopen tmp delim-open delim-close part-beg part-end tagclose)
 
       (goto-char reg-beg)
 
@@ -4521,7 +4520,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   ;;(message "tokenize: reg-beg(%S) reg-end(%S) command(%S)" reg-beg reg-end this-command)
   ;;(message "%S>%S : %S" reg-beg reg-end (buffer-substring-no-properties reg-beg reg-end))
   (save-excursion
-    (let ((pos reg-beg) beg end char match continue (flags 0) token-type token-end)
+    (let ((pos reg-beg) beg char match continue (flags 0) token-type token-end)
 
       (remove-list-of-text-properties reg-beg reg-end '(block-token))
 
@@ -7327,7 +7326,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
       (setq tag (get-text-property pos 'tag-name))
       (cond
        ((eq (get-text-property (point) 'tag-type) 'start)
-        (setq tags (add-to-list 'tags (list tag pos)))
+        (setq tags (push (list tag pos) tags))
 ;;        (message "(%S) opening %S" pos tag)
         )
        ((eq (get-text-property (point) 'tag-type) 'end)
@@ -11251,10 +11250,7 @@ Prompt user if TAG-NAME isn't provided."
     (web-mode-remove-text-at-pos 1 (1+ beg))))
 
 (defun web-mode-snippet-names ()
-  (let (codes)
-    (dolist (snippet web-mode-snippets)
-      (add-to-list 'codes (car snippet) t))
-    codes))
+  (mapcar #'car web-mode-snippets))
 
 (defun web-mode-snippet-insert (code)
   "Insert a snippet."
@@ -14117,7 +14113,7 @@ Prompt user if TAG-NAME isn't provided."
   (web-mode-buffer-fontify))
 
 (defun web-mode-on-engine-setted ()
-  (let (elt elts engines)
+  (let (elt elts)
 
     (when (string= web-mode-engine "razor") (setq web-mode-enable-block-face t))
     ;;(setq web-mode-engine-attr-regexp (cdr (assoc web-mode-engine web-mode-engine-attr-regexps)))
@@ -14162,7 +14158,7 @@ Prompt user if TAG-NAME isn't provided."
 
     (dolist (elt elts)
       (unless (assoc (car elt) web-mode-snippets)
-        (setq web-mode-snippets (append (list elt) web-mode-snippets)))
+        (setq web-mode-snippets (cons elt web-mode-snippets)))
       )
 
     (setq web-mode-engine-font-lock-keywords
@@ -14191,7 +14187,7 @@ Prompt user if TAG-NAME isn't provided."
     web-mode-minor-engine))
 
 (defun web-mode-guess-engine-and-content-type ()
-  (let (buff-name elt found)
+  (let (buff-name found)
 
     (setq buff-name (buffer-file-name))
     (unless buff-name (setq buff-name (buffer-name)))
@@ -14412,7 +14408,7 @@ extended to support more filetypes by customizing
     (mapc (lambda (mode)
             (condition-case nil
                 (if (and (symbolp mode) (symbol-value mode) (not (member mode ignore)))
-                    (add-to-list 'modes mode))
+                    (push mode modes))
               (error nil))
             ) ;lambda
           minor-mode-list)
