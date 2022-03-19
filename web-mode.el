@@ -1600,7 +1600,7 @@ shouldn't be moved back.)")
       "select_time" "select_year" "debug"
       "check_box" "fields_for" "file_field" "form_for" "hidden_field"
       "label" "password_field" "radio_button" "text_area" "text_field"
-      "check_box_tag" "field_set_tag" "file_field_tag" "form_tag"
+      "check_box_tag" "field_set_tag" "file_field_tag" "form_with" "form_tag"
       "hidden_field_tag" "image_submit_tag" "label_tag" "password_field_tag"
       "radio_button_tag" "select_tag" "submit_tag" "text_area_tag"
       "text_field_tag"
