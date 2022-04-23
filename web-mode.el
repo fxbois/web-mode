@@ -7067,7 +7067,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                            'web-mode-interpolate-color1-face)
         )
       (goto-char (1+ beg))
-      (while (re-search-forward "</?\\|/?>\\| [[:alnum:]]+=" end t)
+      (while (re-search-forward "</?\\|/?>\\| [.@?]?[[:alnum:]]+=" end t)
         (cond
          ((member (char-after (match-beginning 0)) '(?\< ?\/ ?\>))
           (put-text-property (match-beginning 0) (match-end 0)
