@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.2.0
+;; Version: 17.2.1
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.1.4"
+(defconst web-mode-version "17.2.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -894,7 +894,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("dust"             . ("dustjs"))
     ("ejs"              . ())
     ("elixir"           . ("phoenix"))
-    ("erb"              . ("eruby" "erubis"))
+    ("erb"              . ("eruby" "erubis" "crystal"))
     ("expressionengine" . ("ee"))
     ("freemarker"       . ())
     ("go"               . ("gtl" "hugo"))
@@ -971,7 +971,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("dust"             . "\\.dust\\'")
     ("elixir"           . "\\.[hl]?eex\\'")
     ("ejs"              . "\\.ejs\\'")
-    ("erb"              . "\\.\\(erb\\|rhtml\\|erb\\.html\\)\\'")
+    ("erb"              . "\\.\\(erb\\|rhtml\\|erb\\.html\\|ecr\\)\\'")
     ("expressionengine" . "\\.ee\\'")
     ("freemarker"       . "\\.ftl\\'")
     ("go"               . "\\.go\\(html\\|tmpl\\)\\'")
