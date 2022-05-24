@@ -6983,7 +6983,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     (when (and dec-beg dec-end)
       (goto-char dec-beg)
       (while (and web-mode-enable-css-colorization
-                  (re-search-forward "#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgba?([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" dec-end t)
+                  (re-search-forward "palegoldenrod\\|palegreen\\|#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgba?([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" dec-end t)
                   ;;(progn (message "%S %S" end (point)) t)
                   (<= (point) dec-end))
         (web-mode-colorize (match-beginning 0) (match-end 0))
@@ -7001,23 +7001,24 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         "white" "black")))
 
 (defun web-mode-colorize (beg end)
-  (let (str plist len)
+  (let (str plist)
     (setq str (buffer-substring-no-properties beg end))
-    (setq len (length str))
+    ;;(message "%S" str)
     (cond
      ((string= (substring str 0 1) "#")
       (setq plist (list :background str
-                        :foreground (web-mode-colorize-foreground str)))
-      (put-text-property beg end 'face plist))
+                        :foreground (web-mode-colorize-foreground str))))
      ((or (string= (substring str 0 4) "rgb(") (string= (substring str 0 5) "rgba("))
       (setq str (format "#%02X%02X%02X"
                         (string-to-number (match-string-no-properties 1))
                         (string-to-number (match-string-no-properties 2))
                         (string-to-number (match-string-no-properties 3))))
       (setq plist (list :background str
-                        :foreground (web-mode-colorize-foreground str)))
-      (put-text-property beg end 'face plist))
+                        :foreground (web-mode-colorize-foreground str))))
+     ((string= str "palegoldenrod") (setq plist (list :background "#eee8aa" :foreground (web-mode-colorize-foreground "#eee8aa"))))
+     ((string= str "palegreen") (setq plist (list :background "#98fb98" :foreground (web-mode-colorize-foreground "#98fb98"))))
      ) ;cond
+    (put-text-property beg end 'face plist)
     ))
 
 (defun web-mode-interpolate-block-tag (beg end)
