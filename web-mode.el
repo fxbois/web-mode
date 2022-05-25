@@ -1315,7 +1315,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("ctemplate"        . "[$]?{[{~].")
    '("django"           . "{[#{%]\\|^#")
    '("dust"             . "{.")
-   '("elixir"           . "<%")
+   '("elixir"           . "<%\\|</?[.:]")
    '("ejs"              . "<%")
    '("erb"              . "<%\\|^%.")
    '("expressionengine" . "{.")
