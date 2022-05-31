@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.2.1
+;; Version: 17.2.2
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.2.1"
+(defconst web-mode-version "17.2.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -6983,9 +6983,10 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     (when (and dec-beg dec-end)
       (goto-char dec-beg)
       (while (and web-mode-enable-css-colorization
-                  (re-search-forward "black\\|silver\\|gray\\|white\\|maroon\\|red\\|purple\\|fuchsia\\|green\\|lime\\|olive\\|yellow\\|navy\\|blue\\|teal\\|aqua\\|orange\\|aliceblue\\|antiquewhite\\|aquamarine\\|azure\\|beige\\|bisque\\|blanchedalmond\\|blueviolet\\|brown\\|burlywood\\|cadetblue\\|chartreuse\\|chocolate\\|coral\\|cornflowerblue\\|cornsilk\\|crimson\\|cyan\\|darkblue\\|darkcyan\\|darkgoldenrod\\|darkgray\\|darkgreen\\|darkgrey\\|darkkhaki\\|darkmagenta\\|darkolivegreen\\|darkorange\\|darkorchid\\|darkred\\|darksalmon\\|darkseagreen\\|darkslateblue\\|darkslategray\\|darkslategrey\\|darkturquoise\\|darkviolet\\|deeppink\\|deepskyblue\\|dimgray\\|dimgrey\\|dodgerblue\\|firebrick\\|floralwhite\\|forestgreen\\|gainsboro\\|ghostwhite\\|gold\\|goldenrod\\|greenyellow\\|grey\\|honeydew\\|hotpink\\|indianred\\|indigo\\|ivory\\|khaki\\|lavender\\|lavenderblush\\|lawngreen\\|lemonchiffon\\|lightblue\\|lightcoral\\|lightcyan\\|lightgoldenrodyellow\\|lightgray\\|lightgreen\\|lightgrey\\|lightpink\\|lightsalmon\\|lightseagreen\\|lightskyblue\\|lightslategray\\|lightslategrey\\|lightsteelblue\\|lightyellow\\|limegreen\\|linen\\|magenta\\|mediumaquamarine\\|mediumblue\\|mediumorchid\\|mediumpurple\\|mediumseagreen\\|mediumslateblue\\|mediumspringgreen\\|mediumturquoise\\|mediumvioletred\\|midnightblue\\|mintcream\\|mistyrose\\|moccasin\\|navajowhite\\|oldlace\\|olivedrab\\|orangered\\|orchid\\|palegoldenrod\\|palegreen\\|paleturquoise\\|palevioletred\\|papayawhip\\|peachpuff\\|peru\\|pink\\|plum\\|powderblue\\|rosybrown\\|royalblue\\|saddlebrown\\|salmon\\|sandybrown\\|seagreen\\|seashell\\|sienna\\|skyblue\\|slateblue\\|slategray\\|slategrey\\|snow\\|springgreen\\|steelblue\\|tan\\|thistle\\|tomato\\|turquoise\\|violet\\|wheat\\|whitesmoke\\|yellowgreen\\|#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgba?([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" dec-end t)
+                  (re-search-forward "\\([: ]\\(black\\|silver\\|gray\\|white\\|maroon\\|red\\|purple\\|fuchsia\\|green\\|lime\\|olive\\|yellow\\|navy\\|blue\\|teal\\|aqua\\|orange\\|aliceblue\\|antiquewhite\\|aquamarine\\|azure\\|beige\\|bisque\\|blanchedalmond\\|blueviolet\\|brown\\|burlywood\\|cadetblue\\|chartreuse\\|chocolate\\|coral\\|cornflowerblue\\|cornsilk\\|crimson\\|cyan\\|darkblue\\|darkcyan\\|darkgoldenrod\\|darkgray\\|darkgreen\\|darkgrey\\|darkkhaki\\|darkmagenta\\|darkolivegreen\\|darkorange\\|darkorchid\\|darkred\\|darksalmon\\|darkseagreen\\|darkslateblue\\|darkslategray\\|darkslategrey\\|darkturquoise\\|darkviolet\\|deeppink\\|deepskyblue\\|dimgray\\|dimgrey\\|dodgerblue\\|firebrick\\|floralwhite\\|forestgreen\\|gainsboro\\|ghostwhite\\|gold\\|goldenrod\\|greenyellow\\|grey\\|honeydew\\|hotpink\\|indianred\\|indigo\\|ivory\\|khaki\\|lavender\\|lavenderblush\\|lawngreen\\|lemonchiffon\\|lightblue\\|lightcoral\\|lightcyan\\|lightgoldenrodyellow\\|lightgray\\|lightgreen\\|lightgrey\\|lightpink\\|lightsalmon\\|lightseagreen\\|lightskyblue\\|lightslategray\\|lightslategrey\\|lightsteelblue\\|lightyellow\\|limegreen\\|linen\\|magenta\\|mediumaquamarine\\|mediumblue\\|mediumorchid\\|mediumpurple\\|mediumseagreen\\|mediumslateblue\\|mediumspringgreen\\|mediumturquoise\\|mediumvioletred\\|midnightblue\\|mintcream\\|mistyrose\\|moccasin\\|navajowhite\\|oldlace\\|olivedrab\\|orangered\\|orchid\\|palegoldenrod\\|palegreen\\|paleturquoise\\|palevioletred\\|papayawhip\\|peachpuff\\|peru\\|pink\\|plum\\|powderblue\\|rosybrown\\|royalblue\\|saddlebrown\\|salmon\\|sandybrown\\|seagreen\\|seashell\\|sienna\\|skyblue\\|slateblue\\|slategray\\|slategrey\\|snow\\|springgreen\\|steelblue\\|tan\\|thistle\\|tomato\\|turquoise\\|violet\\|wheat\\|whitesmoke\\|yellowgreen\\)[ ;]\\)\\|#[0-9a-fA-F]\\{6\\}\\|#[0-9a-fA-F]\\{3\\}\\|rgba?([ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)[ ]*,[ ]*\\([[:digit:]]\\{1,3\\}\\)\\(.*?\\))" dec-end t)
                   ;;(progn (message "%S %S" end (point)) t)
                   (<= (point) dec-end))
+        ;;(message "web-mode-colorize beg=%S end=%S match=%S" (match-beginning 0) (match-end 0) (buffer-substring-no-properties (match-beginning 0) (match-end 0)))
         (web-mode-colorize (match-beginning 0) (match-end 0))
         ) ;while
       ) ;when
@@ -7008,7 +7009,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
      ((string= (substring str 0 1) "#")
       (setq plist (list :background str
                         :foreground (web-mode-colorize-foreground str))))
-     ((or (string= (substring str 0 4) "rgb(") (string= (substring str 0 5) "rgba("))
+     ((and (>= (length str) 5) (or (string= (substring str 0 4) "rgb(") (string= (substring str 0 5) "rgba(")))
       (setq str (format "#%02X%02X%02X"
                         (string-to-number (match-string-no-properties 1))
                         (string-to-number (match-string-no-properties 2))
