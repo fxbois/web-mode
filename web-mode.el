@@ -10936,7 +10936,7 @@ Prompt user if TAG-NAME isn't provided."
      (t
       (newline 1)
       (indent-line-to (plist-get ctx :col))
-      (insert (concat (plist-get ctx :prefix) "")))
+      (insert (concat (plist-get ctx :prefix) " ")))
      ) ;cond
     ))
 
