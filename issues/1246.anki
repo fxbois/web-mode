@@ -1,0 +1,64 @@
+<!-- Note that most of HTML's base structure is implied, it will be put in <html><body> ... </body></html> -->
+What is the capital of {{Country}}?
+<!-- Anki templates are of two categories: the Front template, and the Back template.
+     The Front template is for the question, the Back template is for the answer.
+     They are completely separated (ie. different HTML code). -->
+<hr id="answer">
+
+The capital is <b>{{Capital}}</b>
+
+<!-- Conditional allow you to skip this if the field is empty (Region in this case) -->
+<div>
+  {{#Region}}
+    And it is in <span class="region">{{Region}}</span>
+  {{/Region}}
+</div>
+<!-- or skip it if the field is *not* empty. Conditionals can be nested. -->
+{{^Region}}
+  {{Capital}} is in no region :/
+{{/Region}}
+
+
+{{tts en_US speed=0.8 voices=Apple_Otoya:Example Word}}
+<!-- or even, with cloze support -->
+{{tts en_US:cloze-only:Example Word}}
+
+<!-- cloze deletion: these will be replaced by [...] on the Front side, but not on the Back side -->
+{{cloze:Example Word}}
+{{#c1}}
+  Hint for cloze deletion card <i>c1</i>
+{{/c1}}
+{{#c2}}
+  Hint for cloze deletion card <i>c2</i>
+{{/c2}}
+
+<!-- some of these fields have a special meaning: -->
+<p>{{Tags}} {{Type}} {{Deck}} {{Subdeck}} {{Card}} are always set.</p>
+<p>{{FrontSide}} is only set in the Back template (answer), but not in the Front template (question)</p>
+It will render the Front side of the card.
+
+<!-- Hints are links that turn into regular text, with the content of the field, when clicked -->
+{{hint:My Field}}
+
+<!-- Answers can be typed: this will make an input in the Front side, and will compare what was typed-in
+     with the content of the field -->
+{{type:My Field}}
+<!-- This can even be mixed with cloze deletion -->
+{{type:cloze:MyField}}
+
+<!-- Fields can be embedded everywhere -->
+<a href="http://example.com/search?q={{Expression}}">check in dictionary</a>
+<!-- but they are still regular HTML: Expression might be "<b>a word</b>", or even include some script -->
+<!-- for this reason, fields can be striped of their formatting, with -->
+<a href="http://example.com/search?q={{text:Expression}}">check in dictionary</a>
+
+<!-- The syntax for embedding media is different -->
+<!-- a regular image -->
+<img src="something.jpg">
+<!-- a sound -->
+[sound:something.mp3]
+<!-- latex -->
+[latex]$\displaystyle\sum_0^\infty\frac1{n^2}=\frac{\pi^2}4$[/latex]
+but also inline [$]2+3=5[/$] equations, or [$$]centered equations[/$$].
+<!-- MathJax is also supported, with regular syntax -->
+Inline \(2+3=5\) euqations, or \[centered equations\].

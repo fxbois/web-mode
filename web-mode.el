@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.2.2
+;; Version: 17.2.3
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.2.2"
+(defconst web-mode-version "17.2.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -879,6 +879,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engines
   '(("angular"          . ("angularjs"))
+    ("anki"             . ())
     ("archibus"         . ())
     ("artanis"          . ())
     ("asp"              . ())
@@ -958,6 +959,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engine-file-regexps
   '(("angular"          . "\\.component.html\\'")
+    ("anki"             . "\\.anki\\'")
     ("archibus"         . "\\.axvw\\'")
     ("artanis"          . "\\.html\\.tpl\\'")
     ("asp"              . "\\.asp\\'")
@@ -1146,6 +1148,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 
 (defvar web-mode-engines-auto-pairs
   '(("angular"          . (("{{ " . " }}")))
+    ("anki"             . (("{{ " . " }}")))
     ("artanis"          . (("<% "       . " %>")
                            ("<%="       . " | %>")
                            ("<@css"     . " | %>")
@@ -1305,6 +1308,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-engine-open-delimiter-regexps
   (list
    '("angular"          . "{{")
+   '("anki"             . "{{")
    '("artanis"          . "<%\\|<@\\(css\\|icon\\|include\\|js\\)")
    '("asp"              . "<%\\|</?[[:alpha:]]+:[[:alpha:]]+\\|</?[[:alpha:]]+Template")
    '("aspx"             . "<%.")
@@ -1977,6 +1981,15 @@ shouldn't be moved back.)")
    '("/?>" 0 'web-mode-html-tag-bracket-face)
   ))
 
+(defvar web-mode-anki-font-lock-keywords
+  (list
+   '("{{[#/^]\\([[:alnum:]_.]+\\)" 1 'web-mode-block-control-face)
+   ;;'("\\_<\\([[:alnum:]_]+=\\)\\(\"[^\"]*\"\\|[[:alnum:]_.: ]*\\)"
+   ;;  (1 'web-mode-block-attr-name-face)
+   ;;  (2 'web-mode-block-attr-value-face))
+   '("{{\\(.+\\)}}" 1 'web-mode-variable-name-face)
+   ))
+
 (defvar web-mode-dust-font-lock-keywords
   (list
    '("{[#:/?@><+^]\\([[:alpha:]_.]+\\)" 1 'web-mode-block-control-face)
@@ -2384,6 +2397,7 @@ shouldn't be moved back.)")
 
 (defvar web-mode-engines-font-lock-keywords
   '(("angular"          . web-mode-angular-font-lock-keywords)
+    ("anki"             . web-mode-anki-font-lock-keywords)
     ("artanis"          . web-mode-artanis-font-lock-keywords)
     ("blade"            . web-mode-blade-font-lock-keywords)
     ("cl-emb"           . web-mode-cl-emb-font-lock-keywords)
@@ -3330,6 +3344,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            )
           ) ;django
 
+         ((string= web-mode-engine "anki")
+          (setq closing-string "}}"
+                delim-open "{{[#/^]?"
+                delim-close "}}")
+          ) ;anki
+
          ((string= web-mode-engine "ejs")
           (setq closing-string "%>"
                 delim-open "<%[=-]?"
@@ -4184,7 +4204,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   "Set text-property 'block-token to 'delimiter-(beg|end) on block delimiters (e.g. <?php and ?>)"
   ;;(message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine
-                '("artanis" "asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
+                '("artanis" "anki" "asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
                   "elixir" "ejs" "erb" "expressionengine" "freemarker" "go" "hero" "jsp" "lsp"
                   "mako" "mason" "mojolicious"
                   "smarty" "template-toolkit" "web2py" "xoops" "svelte"))
@@ -4861,6 +4881,15 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           (setq controls (append controls (list (cons 'open (match-string-no-properties 1))))))
          )
         ) ;dust
+
+       ((string= web-mode-engine "anki")
+        (cond
+         ((looking-at "{{[#^]\\([[:alpha:].]+\\)")
+          (setq controls (append controls (list (cons 'open (match-string-no-properties 1))))))
+         ((looking-at "{{/\\([[:alpha:].]+\\)")
+          (setq controls (append controls (list (cons 'close (match-string-no-properties 1))))))
+         )
+        ) ;anki
 
        ((member web-mode-engine '("mojolicious"))
         (cond
