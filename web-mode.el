@@ -357,6 +357,36 @@ See web-mode-block-face."
   :type '(repeat string)
   :group 'web-mode)
 
+(defcustom web-mode-attribute-list
+  '("accept" "accesskey" "action" "alt" "async" "autocomplete" "autofocus"
+    "autoplay" "charset" "checked" "cite" "class" "cols" "colspan" "content"
+    "contenteditable" "controls" "coords" "data" "datetime" "default" "defer"
+    "dir" "dirname" "disabled" "download" "draggable" "enctype" "for" "form"
+    "formaction" "headers" "height" "hidden" "high" "href" "hreflang" "http"
+    "id" "ismap" "kind" "label" "lang" "list" "loop" "low" "max" "maxlength"
+    "media" "method" "min" "multiple" "muted" "name" "novalidate" "onabort"
+    "onafterprint" "onbeforeprint" "onbeforeunload" "onblur" "oncanplay"
+    "oncanplaythrough" "onchange" "onclick" "oncontextmenu" "oncopy"
+    "oncuechange" "oncut" "ondblclick" "ondrag" "ondragend" "ondragenter"
+    "ondragleave" "ondragover" "ondragstart" "ondrop" "ondurationchange"
+    "onemptied" "onended" "onerror" "onfocus" "onhashchange" "oninput"
+    "oninvalid" "onkeydown" "onkeypress" "onkeyup" "onload" "onloadeddata"
+    "onloadedmetadata" "onloadstart" "onmousedown" "onmousemove" "onmouseout"
+    "onmouseover" "onmouseup" "onmousewheel" "onoffline" "ononline"
+    "onpagehide" "onpageshow" "onpaste" "onpause" "onplay" "onplaying"
+    "onpopstate" "onprogress" "onratechange" "onreset" "onresize" "onscroll"
+    "onsearch" "onseeked" "onseeking" "onselect" "onstalled" "onstorage"
+    "onsubmit" "onsuspend" "ontimeupdate" "ontoggle" "onunload"
+    "onvolumechange" "onwaiting" "onwheel" "open" "optimum" "pattern"
+    "placeholder" "poster" "preload" "readonly" "rel" "required" "reversed"
+    "rows" "rowspan" "sandbox" "scope" "selected" "shape" "size" "sizes"
+    "span" "spellcheck" "src" "srcdoc" "srclang" "srcset" "start" "step"
+    "style" "tabindex" "target" "title" "translate" "type" "usemap" "value"
+    "width" "wrap")
+  "HTML attributes used for completion."
+  :type '(repeat string)
+  :group 'web-mode)
+
 ;;---- FACES -------------------------------------------------------------------
 
 (defface web-mode-error-face
@@ -876,6 +906,9 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("lineup-ternary"    . t)
     ("case-extra-offset" . t)
     ))
+
+(defvar web-mode-attribute-history nil)
+(defvar web-mode-attribute-value-history nil)
 
 (defvar web-mode-engines
   '(("angular"          . ("angularjs"))
@@ -11907,19 +11940,27 @@ Prompt user if TAG-NAME isn't provided."
       ;;(message "attrs=%S" attrs)
       )))
 
-(defun web-mode-attribute-insert ()
+(defun web-mode-attribute-insert (&optional attr-name attr-value)
   "Insert an attribute inside current tag."
   (interactive)
   (let (attr attr-name attr-value)
     (cond
      ((not (member (get-text-property (point) 'tag-type) '(start void)))
       (message "attribute-insert ** invalid context **"))
-     ((not (and (setq attr-name (read-from-minibuffer "Attribute name? "))
+     ((not (and (setq attr-name (or attr-name (completing-read
+                                               "Attribute name: "
+                                               (append
+                                                web-mode-attribute-list
+                                                web-mode-attribute-history)
+                                               nil nil nil 'web-mode-attribute-history)))
                 (> (length attr-name) 0)))
       (message "attribute-insert ** failure **"))
      (t
       (setq attr (concat " " attr-name))
-      (when (setq attr-value (read-from-minibuffer "Attribute value? "))
+      (when (setq attr-value (or attr-value (completing-read
+                                             "Attribute value: "
+                                             web-mode-attribute-value-history
+                                             nil nil nil 'web-mode-attribute-value-history)))
         (setq attr (concat attr "=\"" attr-value "\"")))
       (web-mode-tag-end)
       (if (looking-back "/>" (point-min))
