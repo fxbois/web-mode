@@ -357,6 +357,27 @@ See web-mode-block-face."
   :type '(repeat string)
   :group 'web-mode)
 
+;; https://developer.mozilla.org/en-US/docs/Web/HTML/Element
+(defcustom web-mode-tag-list
+  '("html" "base" "head" "link" "meta" "style" "title" "body" "address"
+    "article" "aside" "footer" "header" "h1" "h2" "h3" "h4" "h5" "h6" "main"
+    "nav" "section" "blockquote" "dd" "div" "dl" "dt" "figcaption" "figure"
+    "hr" "li" "menu" "ol" "p" "pre" "ula" "a" "abbr" "b" "bdi" "bdo" "br"
+    "cite" "code" "data" "dfn" "em" "i" "kbdmark" "q" "rp" "rt" "ruby" "s"
+    "samp" "small" "span" "strong" "sub" "sup" "time" "u" "var" "wbr" "area"
+    "audio" "img" "map" "track" "video" "embed" "iframe" "object" "picture"
+    "portal" "source" "svg" "math" "canvas" "noscript" "script" "del" "ins"
+    "caption" "col" "colgroup" "table" "tbody" "td" "tfoot" "th" "thead" "tr"
+    "button" "datalist" "fieldset" "form" "input" "label" "legend" "meter"
+    "optgroup" "option" "output" "progress" "select" "textarea" "details"
+    "dialog" "summary" "slot" "template")
+  "HTML tags used for completion."
+  :type '(repeat string)
+  :group 'web-mode)
+
+
+;; https://www.w3schools.com/tags/ref_attributes.asp
+;; Attributes marked as deprecated in HTML 5 are not added.
 (defcustom web-mode-attribute-list
   '("accept" "accesskey" "action" "alt" "async" "autocomplete" "autofocus"
     "autoplay" "charset" "checked" "cite" "class" "cols" "colspan" "content"
@@ -907,6 +928,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("case-extra-offset" . t)
     ))
 
+(defvar web-mode-tag-history nil)
 (defvar web-mode-attribute-history nil)
 (defvar web-mode-attribute-value-history nil)
 
@@ -10402,7 +10424,7 @@ Pos should be in a tag."
     (let (beg end line-beg line-end pos tag tag-start tag-end)
       (save-excursion
         (combine-after-change-calls
-          (setq tag (read-from-minibuffer "Tag name? ")
+          (setq tag (web-mode-element-complete)
                 tag-start (concat "<" tag ">")
                 tag-end (concat "</" tag ">")
                 pos (point)
@@ -10453,13 +10475,22 @@ Pos should be in a tag."
     ) ;let
   )
 
+(defun web-mode-element-complete (&optional prompt)
+  "Completes for an element tag."
+  (completing-read
+   (or prompt "Tag name: ")
+   (append
+    web-mode-tag-list
+    web-mode-tag-history)
+   nil nil nil 'web-mode-tag-history))
+
 (defun web-mode-element-wrap (&optional tag-name)
   "Wrap current REGION with start and end tags.
 Prompt user if TAG-NAME isn't provided."
   (interactive)
   (let (beg end pos tag sep)
     (save-excursion
-      (setq tag (or tag-name (read-from-minibuffer "Tag name? ")))
+      (setq tag (or tag-name (web-mode-element-complete)))
       (setq pos (point))
       (cond
        (mark-active
@@ -10569,7 +10600,7 @@ Prompt user if TAG-NAME isn't provided."
      ((and (get-text-property (point) 'tag-type)
            (not (get-text-property (point) 'tag-beg)))
       (message "element-insert ** invalid context **"))
-     ((not (and (setq tag-name (read-from-minibuffer "Tag name? "))
+     ((not (and (setq tag-name (web-mode-element-complete))
                 (> (length tag-name) 0)))
       (message "element-insert ** failure **"))
      ((web-mode-element-is-void tag-name)
@@ -10619,7 +10650,7 @@ Prompt user if TAG-NAME isn't provided."
   (interactive)
   (save-excursion
     (let (pos)
-      (unless tag-name (setq tag-name (read-from-minibuffer "New tag name? ")))
+      (unless tag-name (setq tag-name (web-mode-element-complete "New tag name: ")))
       (when (and (> (length tag-name) 0)
                  (web-mode-element-beginning)
                  (looking-at "<\\([[:alnum:]]+\\(:?[[:alpha:]_-]+\\)?\\)"))
