@@ -11034,7 +11034,14 @@ Prompt user if TAG-NAME isn't provided."
      (t
       (newline 1)
       (indent-line-to (plist-get ctx :col))
-      (insert (concat (plist-get ctx :prefix) "")))
+      (let ((prefix (plist-get ctx :prefix)))
+        (insert
+         (concat prefix
+                 ;; Check if the comment ends with a space, and if not, insert one.
+                 (if
+                     (string-equal (substring prefix -1 (length prefix)) " ")
+                     ""
+                   " ")))))
      ) ;cond
     ))
 
