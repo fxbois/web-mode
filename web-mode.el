@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.2.3
+;; Version: 17.3.1
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.2.3"
+(defconst web-mode-version "17.3.1"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -981,6 +981,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("svelte"           . ("svelte"))
     ("template-toolkit" . ())
     ("thymeleaf"        . ())
+    ("perl"             . ())
     ("underscore"       . ("underscore.js"))
     ("velocity"         . ("vtl" "cheetah" "ssp"))
     ("vue"              . ("vuejs" "vue.js"))
@@ -1051,6 +1052,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("marko"            . "\\.marko\\'")
     ("mason"            . "\\.mas\\'")
     ("mojolicious"      . "\\.epl?\\'")
+    ("perl"             . "\\.\\(ptmpl\\|perl\\.html\\)\\'")
     ("php"              . "\\.\\(p[hs]p\\|ctp\\|inc\\)\\'")
     ("python"           . "\\.pml\\'")
     ("razor"            . "\\.\\(cs\\|vb\\)html\\|\\.razor\\'")
@@ -1398,6 +1400,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("marko"            . "${")
    '("mason"            . "</?[&%]\\|^%.")
    '("mojolicious"      . "<%\\|^[ \t]*%.")
+   '("perl"             . "</?TMPL_[[:alpha:]]+")
    '("php"              . "<\\?")
    '("python"           . "<\\?")
    '("razor"            . "@.\\|^[ \t]*}")
@@ -2249,7 +2252,7 @@ shouldn't be moved back.)")
 
 (defvar web-mode-engine-tag-font-lock-keywords
   (list
-   '("</?\\([[:alpha:]]+\\(?:Template\\|[:.][[:alpha:]-]+\\)\\)" 1 'web-mode-block-control-face)
+   '("</?\\([[:alpha:]]+\\(?:Template\\|[:.][[:alpha:]-]+\\)\\|TMPL_[[:alpha:]]+\\)" 1 'web-mode-block-control-face)
    '("\\_<\\([[:alpha:]-]+=\\)\\(\"[^\"]*\"\\)"
      (1 'web-mode-block-attr-name-face t t)
      (2 'web-mode-block-attr-value-face t t))
@@ -3571,6 +3574,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                 delim-close "/?>")
           ) ;clip
 
+         ((string= web-mode-engine "perl")
+          (setq closing-string ">"
+                delim-open "</?"
+                delim-close "/?>")
+          ) ;perl
+
          ((string= web-mode-engine "blade")
           (cond
            ((string= tagopen "{{-")
@@ -4274,6 +4283,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                 '("artanis" "anki" "asp" "aspx" "cl-emb" "clip" "closure" "ctemplate" "django" "dust"
                   "elixir" "ejs" "erb" "expressionengine" "freemarker" "go" "hero" "jsp" "lsp"
                   "mako" "mason" "mojolicious"
+                  "perl"
                   "smarty" "template-toolkit" "web2py" "xoops" "svelte"))
     (save-excursion
       (when delim-open
@@ -4474,6 +4484,10 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
      ((string= web-mode-engine "clip")
       (setq regexp nil)
       ) ;clip
+
+     ((string= web-mode-engine "perl")
+      (setq regexp nil)
+      ) ;perl
 
      ((and (string= web-mode-engine "asp")
            (string= sub2 "<%"))
@@ -4985,23 +4999,25 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
          )
         ) ;aspx underscore
 
-       ((member web-mode-engine '("jsp" "asp" "clip"))
+       ((member web-mode-engine '("jsp" "asp" "clip" "perl"))
         (cond
-         ((eq (char-after (1- reg-end)) ?\/)
+          ((eq (char-after (1- reg-end)) ?\/)
+           )
+          ((looking-at "<TMPL_ELSE")
+           (setq controls (append controls (list (cons 'inside "TMPL_IF")))))
+          ((looking-at "</?\\([[:alpha:]]+\\(?:[:.][[:alpha:]]+\\)\\|[[:alpha:]]+Template\\|TMPL_[[:alpha:]]+\\)")
+           (setq control (match-string-no-properties 1)
+                 type (if (eq (aref (match-string-no-properties 0) 1) ?\/) 'close 'open))
+           (when (not (member control '("h:inputtext" "jsp:usebean" "jsp:forward" "struts:property")))
+             (setq controls (append controls (list (cons type control)))))
+           )
+          (t
+           (when (web-mode-block-starts-with "}" reg-beg)
+             (setq controls (append controls (list (cons 'close "{")))))
+           (when (web-mode-block-ends-with "{" reg-beg)
+             (setq controls (append controls (list (cons 'open "{")))))
+           )
           )
-         ((looking-at "</?\\([[:alpha:]]+\\(?:[:.][[:alpha:]]+\\)\\|[[:alpha:]]+Template\\)")
-          (setq control (match-string-no-properties 1)
-                type (if (eq (aref (match-string-no-properties 0) 1) ?\/) 'close 'open))
-          (when (not (member control '("h:inputtext" "jsp:usebean" "jsp:forward" "struts:property")))
-            (setq controls (append controls (list (cons type control)))))
-          )
-         (t
-          (when (web-mode-block-starts-with "}" reg-beg)
-            (setq controls (append controls (list (cons 'close "{")))))
-          (when (web-mode-block-ends-with "{" reg-beg)
-            (setq controls (append controls (list (cons 'open "{")))))
-          )
-         )
         ) ;jsp asp
 
        ((string= web-mode-engine "mako")
@@ -6738,6 +6754,10 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
      ((string= web-mode-engine "clip")
       (setq keywords web-mode-engine-tag-font-lock-keywords)
       ) ;clip
+
+     ((string= web-mode-engine "perl")
+      (setq keywords web-mode-engine-tag-font-lock-keywords)
+      ) ;perl
 
      ((string= web-mode-engine "aspx")
       (cond
