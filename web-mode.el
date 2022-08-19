@@ -6923,12 +6923,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
               (cond
                ((and (eq (char-after beg) ?\`)
                      web-mode-enable-literal-interpolation
-                     (member content-type '("javascript" "jsx")))
+                     (member content-type '("javascript" "jsx" "typescript")))
                 (web-mode-interpolate-javascript-literal beg end)
                 )
                ((and (eq (char-after beg) ?\")
                      web-mode-enable-string-interpolation
-                     (member content-type '("javascript" "jsx")))
+                     (member content-type '("javascript" "jsx" "typescript")))
                 (web-mode-interpolate-javascript-string beg end))
                ) ;cond
               ) ;case string
