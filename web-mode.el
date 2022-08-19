@@ -11929,7 +11929,7 @@ Prompt user if TAG-NAME isn't provided."
                         (not (get-text-property (1- pos) 'part-side))))
                (not (get-text-property (1- pos) 'block-side))
                )
-      (setq expanders (append web-mode-expanders web-mode-extra-expanders))
+      (setq expanders (append web-mode-extra-expanders web-mode-expanders))
       (let ((i 0) pair (l (length expanders)))
         (setq chunk (buffer-substring-no-properties (- pos 2) pos))
         ;;(message "%S" chunk)
