@@ -543,6 +543,16 @@ See web-mode-block-face."
   "Face for CSS rules."
   :group 'web-mode-faces)
 
+(defface web-mode-css-selector-class-face
+  '((t :inherit font-lock-keyword-face))
+  "Face for CSS class rules."
+  :group 'web-mode-faces)
+
+(defface web-mode-css-selector-tag-face
+  '((t :inherit font-lock-keyword-face))
+  "Face for CSS tag rules."
+  :group 'web-mode-faces)
+
 (defface web-mode-css-pseudo-class-face
   '((t :inherit font-lock-builtin-face))
   "Face for CSS pseudo-classes."
@@ -1943,7 +1953,8 @@ shouldn't be moved back.)")
          '(0 'web-mode-css-at-rule-face))
    '("\\_<\\(all\|braille\\|embossed\\|handheld\\|print\\|projection\\|screen\\|speech\\|tty\\|tv\\|and\\|or\\)\\_>"
      1 'web-mode-keyword-face)
-   '("[^,]+" 0 'web-mode-css-selector-face)
+   '("\\.[^ ,]+" 0 'web-mode-css-selector-class-face)
+   '("[^,]+" 0 'web-mode-css-selector-tag-face)
    (cons (concat ":\\([ ]*[[:alpha:]][^,{]*\\)") '(0 'web-mode-css-pseudo-class-face t t))
    ))
 
