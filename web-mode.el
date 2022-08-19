@@ -329,8 +329,8 @@ See web-mode-block-face."
   :group 'web-mode)
 
 (defcustom web-mode-commands-like-expand-region
-  '(web-mode-mark-and-expand er/expand-region mc/mark-next-like-this)
-  "Add it to here if you have some wrapper function for er/expand-region"
+  '(web-mode-mark-and-expand er/expand-region mc/mark-next-like-this mc/mark-previous-like-this)
+  "Add commmand here if you have some wrapper function for er/expand-region"
   :type '(repeat function)
   :group 'web-mode)
 
