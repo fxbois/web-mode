@@ -1,9 +1,8 @@
 <div>
-  <Example
+  <img
+    class="hello"
     a={b}
-      c={d}
-    e={f}
-      g={h}
+    c={d}
     i={j}
   />
 </div>
