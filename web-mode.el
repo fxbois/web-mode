@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.3.2
+;; Version: 17.3.3
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.2"
+(defconst web-mode-version "17.3.3"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8451,7 +8451,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                      (not (eq ?\< curr-char))))
         (let (prev)
           (cond
-           ((member language '("html" "xml" "javascript" "jsx" "css"))
+           ((member language '("html" "xml" "javascript" "typescript" "jsx" "css"))
             (when (setq prev (web-mode-part-previous-live-line reg-beg))
               (setq prev-line (nth 0 prev)
                     prev-indentation (nth 1 prev)
