@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2022 François-Xavier Bois
 
-;; Version: 17.3.1
+;; Version: 17.3.2
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.1"
+(defconst web-mode-version "17.3.2"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1093,6 +1093,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     (?\> . "&gt;"))
   "XML chars")
 
+;; #1254 : https://html.spec.whatwg.org/entities.json
 (defvar web-mode-html-entities
   ;; #985
   ;; remove ("gt" . 62) ("lt" . 60) ("amp" . 38)
@@ -7313,7 +7314,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                            'web-mode-variable-name-face)
       )
     (cond
-     ((web-mode-looking-back "\\(css\\|styled[[:alnum:].]+\\)" beg)
+     ((web-mode-looking-back "\\(css\\|styled[[:alnum:].]+\\|css = \\)" beg)
       (goto-char (1+ beg))
       (while (re-search-forward ".*?:" end t)
         (put-text-property (match-beginning 0) (match-end 0)
@@ -7321,7 +7322,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                            'web-mode-interpolate-color1-face)
         )
       ) ;case css
-     ((web-mode-looking-back "\\(template\\|html\\)" beg)
+     ((web-mode-looking-back "\\(template\\|html\\|html = \\)" beg)
       (goto-char (1+ beg))
       (while (re-search-forward web-mode-tag-regexp end t)
         (put-text-property (match-beginning 1) (match-end 1)
