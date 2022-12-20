@@ -998,7 +998,7 @@ Must be used in conjunction with web-mode-enable-block-face."
 (defvar web-mode-content-types
   '(("css"        . "\\.\\(s?css\\|css\\.erb\\)\\'")
     ("javascript" . "\\.\\([mc]?js\\|js\\.erb\\)\\'")
-    ("typescript" . "\\.\\(ts\\|ts\\.erb\\)\\'")
+    ("typescript" . "\\.\\([mc]?ts\\|ts\\.erb\\)\\'")
     ("json"       . "\\.\\(api\\|json\\|jsonld\\)\\'")
     ("jsx"        . "\\.[jt]sx\\'")
     ("xml"        . "\\.xml\\'")
