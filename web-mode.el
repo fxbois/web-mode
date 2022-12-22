@@ -954,6 +954,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("artanis"          . ())
     ("asp"              . ())
     ("aspx"             . ())
+    ("astro"            . ())
     ("blade"            . ("laravel"))
     ("cl-emb"           . ())
     ("clip"             . ())
@@ -1035,6 +1036,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("artanis"          . "\\.html\\.tpl\\'")
     ("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
+    ("astro"            . "\\.astro\\'")
     ("blade"            . "\\.blade\\.php\\'")
     ("cl-emb"           . "\\.clemb\\'")
     ("clip"             . "\\.ctml\\'")
@@ -1236,6 +1238,7 @@ Must be used in conjunction with web-mode-enable-block-face."
                            ("<%@" . "%>")
                            ("<%:" . "%>")
                            ("<%-" . "- | --%>")))
+    ("astro"            . (("---" . "---")))
     ("blade"            . (("{{{" . " | }}}")
                            ("{{ " . " }}")
                            ("{!!" . " | !!}")
@@ -1386,6 +1389,7 @@ Must be used in conjunction with web-mode-enable-block-face."
    '("artanis"          . "<%\\|<@\\(css\\|icon\\|include\\|js\\)")
    '("asp"              . "<%\\|</?[[:alpha:]]+:[[:alpha:]]+\\|</?[[:alpha:]]+Template")
    '("aspx"             . "<%.")
+   '("astro"            . "---")
    '("blade"            . "{{.\\|{!!\\|@{{\\|@[[:alpha:]]")
    '("cl-emb"           . "<%")
    '("closure"          . "{.\\|/\\*\\| //")
@@ -2066,6 +2070,9 @@ shouldn't be moved back.)")
    '("{{\\(.+\\)}}" 1 'web-mode-variable-name-face)
    ))
 
+(defvar web-mode-astro-font-lock-keywords
+    web-mode-javascript-font-lock-keywords)
+
 (defvar web-mode-dust-font-lock-keywords
   (list
    '("{[#:/?@><+^]\\([[:alpha:]_.]+\\)" 1 'web-mode-block-control-face)
@@ -2475,6 +2482,7 @@ shouldn't be moved back.)")
   '(("angular"          . web-mode-angular-font-lock-keywords)
     ("anki"             . web-mode-anki-font-lock-keywords)
     ("artanis"          . web-mode-artanis-font-lock-keywords)
+    ("astro"            . web-mode-astro-font-lock-keywords)
     ("blade"            . web-mode-blade-font-lock-keywords)
     ("cl-emb"           . web-mode-cl-emb-font-lock-keywords)
     ("closure"          . web-mode-closure-font-lock-keywords)
@@ -3725,6 +3733,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                 delim-close "-?}}")
           ) ;go
 
+         ((string= web-mode-engine "astro")
+          (setq closing-string "---"
+                delim-open "---"
+                delim-close "---")
+          ) ;astro
+
          ((string= web-mode-engine "angular")
           (setq closing-string "}}"
                 delim-open "{{"
@@ -4027,7 +4041,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                                          "{% javascript %}"
                                          "{% schema %}"
                                          "{% stylesheet %}"
-                                         "%= javascript begin"))
+                                         "%= javascript begin"
+                                         "---"))
                        (setq part-beg close)
                        (setq tagclose
                              (cond
@@ -4040,6 +4055,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                               ((string= tagopen "{% stylesheet %}") "{% endstylesheet %}")
                               ((string= tagopen "%= javascript begin") "% end")
                               ((string= tagopen "<%= javascript_tag do %>") "<% end %>")
+                              ((string= tagopen "---") "---")
                               ((member tagopen '("<%block filter=\"collect_js\">"
                                                  "<%block filter=\"collect_css\">")) "</%block")
                               ))
