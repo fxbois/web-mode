@@ -1,0 +1,45 @@
+<div>
+  {{ if meta_title }}
+    {{ meta_title }}
+  {{ elseif title }}
+    {{ title }}
+  {{ else }}
+    {{ site:name }}
+  {{ /if }}
+
+  {{ size = 'lg' }}
+
+  <div style="{{ switch
+              (
+              (size == 'sm') => '(min-width: 768px) 35vw, 90vw',
+              (size == 'md') => '(min-width: 768px) 55vw, 90vw',
+              (size == 'lg') => '(min-width: 768px) 75vw, 90vw',
+              (size == 'xl') => '90vw',
+              () => '100vw'
+              )
+              }}">
+
+    {{ perfectenschlag }}
+    {{squished}}
+    {{ some_variabler | upper }}
+    {{ nav :from="segment_1" }}
+    {{ collection:blog limit="{entry_limit ?? 10}" }}
+    {{
+    testimonials
+    limit="5"
+    order="username"
+    }}
+    {{playSad_Tromb0ne            }}
+
+
+</div>
+
+{{ if neighbor == "Kramer" }}
+  <p>These pretzels are making me thirsty!</p>
+{{ elseif neighbor == "Newman" }}
+  <div>
+    <p>Hello...Newman.</p>
+  </div>
+{{ else }}
+  <!-- Who are you? -->
+{{ /if }}
