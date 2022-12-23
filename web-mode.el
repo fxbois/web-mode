@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.4
+;; Version: 17.3.5
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.4"
+(defconst web-mode-version "17.3.5"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -5892,7 +5892,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         ((member content-type '("javascript" "json"))
          (setq token-re "/\\|\"\\|'\\|`"))
         ((member content-type '("typescript"))
-         (setq token-re "\"\\|'\\|`\\|//\\|/\\*"))
+         (setq token-re "/\\|\"\\|'\\|`\\|//\\|/\\*"))
         ((member content-type '("jsx"))
          (setq token-re "/\\|\"\\|'\\|`\\|</?[[:alpha:]>]"))
         ((string= web-mode-content-type "css")
@@ -5974,7 +5974,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            ;;(message "after [%S>%S|%S] pt=%S" reg-beg reg-end depth (point))
            )
 
-          ((and (eq ?\/ ch-at) (member content-type '("javascript" "jsx")))
+          ((and (eq ?\/ ch-at) (member content-type '("javascript" "jsx" "typescript")))
            (cond
              ((eq ?\\ ch-before)
               )
