@@ -1,0 +1,17 @@
+---
+import Button from './Button.astro';
+---
+<h1>{title}</h1>
+<div>
+  <Button title="Button 1" />
+  <Button title="Button 2" />
+  <Button title="Button 3" />
+</div>
+<div>
+  <!-- Mix HTML with JavaScript expressions, similar to JSX: -->
+  <ul>
+    {myFavoritePokemon.map((data) => <li>{data.name}</li>)}
+  </ul>
+  <!-- Use a template directive to build class names from multiple strings or even objects! -->
+  <p class:list={["add", "dynamic", {classNames: true}]} />
+</div>

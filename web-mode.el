@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.5
+;; Version: 17.3.6
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.5"
+(defconst web-mode-version "17.3.6"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -959,6 +959,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("artanis"          . ())
     ("asp"              . ())
     ("aspx"             . ())
+    ("astro"            . ())
     ("blade"            . ("laravel"))
     ("cl-emb"           . ())
     ("clip"             . ())
@@ -1041,6 +1042,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("artanis"          . "\\.html\\.tpl\\'")
     ("asp"              . "\\.asp\\'")
     ("aspx"             . "\\.as[cp]x\\'")
+    ("astro"            . "\\.astro\\'")
     ("blade"            . "\\.blade\\.php\\'")
     ("cl-emb"           . "\\.clemb\\'")
     ("clip"             . "\\.ctml\\'")
@@ -1247,6 +1249,7 @@ For example,
                            ("<%@" . "%>")
                            ("<%:" . "%>")
                            ("<%-" . "- | --%>")))
+    ("astro"            . (("{ " . " }")))
     ("blade"            . (("{{{" . " | }}}")
                            ("{{ " . " }}")
                            ("{!!" . " | !!}")
@@ -1399,6 +1402,7 @@ For example,
    '("artanis"          . "<%\\|<@\\(css\\|icon\\|include\\|js\\)")
    '("asp"              . "<%\\|</?[[:alpha:]]+:[[:alpha:]]+\\|</?[[:alpha:]]+Template")
    '("aspx"             . "<%.")
+   '("astro"            . "---")
    '("blade"            . "{{.\\|{!!\\|@{{\\|@[[:alpha:]]")
    '("cl-emb"           . "<%")
    '("closure"          . "{.\\|/\\*\\| //")
@@ -2010,7 +2014,7 @@ shouldn't be moved back.)")
    (cons (concat "\\([ \t}{(]\\|^\\)\\(" web-mode-javascript-keywords "\\)\\_>") '(2 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-javascript-constants "\\)\\_>") '(0 'web-mode-constant-face))
    '("\\_<\\([$]\\)(" 1 'web-mode-type-face)
-   '("\\_<\\(new\\|instanceof\\|class\\|extends\\) \\([[:alnum:]_.]+\\)\\_>" 2 'web-mode-type-face)
+   '("\\_<\\(new\\|instanceof\\|class\\|extends\\|import\\) \\([[:alnum:]_.]+\\)\\_>" 2 'web-mode-type-face)
    '("\\_<\\([[:alnum:]_]+\\):[ ]*function[ ]*(" 1 'web-mode-function-name-face)
    '("\\_<\\(function\\|get\\|set\\)[ ]+\\([[:alnum:]_]+\\)"
      (1 'web-mode-keyword-face)
@@ -2198,6 +2202,16 @@ shouldn't be moved back.)")
      (1 'web-mode-block-attr-name-face))
    '("\"[^\"]+\"" 0 'web-mode-block-string-face)
    ))
+
+(defvar web-mode-astro-font-lock-keywords
+  (append
+   (list
+    '("\\({\\)\\([[:alpha:]]+\\)\\(}\\)"
+      (1 'web-mode-block-control-face)
+      (2 'web-mode-variable-name-face)
+      (3 'web-mode-block-control-face)))
+    web-mode-javascript-font-lock-keywords
+    ))
 
 (defvar web-mode-antlers-font-lock-keywords
   (list
@@ -2498,6 +2512,7 @@ shouldn't be moved back.)")
     ("anki"             . web-mode-anki-font-lock-keywords)
     ("antlers"          . web-mode-antlers-font-lock-keywords)
     ("artanis"          . web-mode-artanis-font-lock-keywords)
+    ("astro"            . web-mode-astro-font-lock-keywords)
     ("blade"            . web-mode-blade-font-lock-keywords)
     ("cl-emb"           . web-mode-cl-emb-font-lock-keywords)
     ("closure"          . web-mode-closure-font-lock-keywords)
@@ -3588,6 +3603,16 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              )
            ) ;antlers
 
+          ((string= web-mode-engine "astro")
+           (cond
+             ((string= tagopen "---")
+              (setq closing-string "---"
+                    delim-open "---"
+                    delim-close "---")
+              )
+             )
+           ) ;astro
+
           ((string= web-mode-engine "aspx")
            (setq closing-string "%>"
                  delim-open "<%[:=#@$]?"
@@ -4034,6 +4059,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              (setq close (match-end 0)
                    pos (point)))
 
+            ((and (member web-mode-engine '("astro"))
+                  (re-search-forward closing-string reg-end t))
+             (setq close (match-end 0)
+                   pos (point)))
+
             ((search-forward closing-string reg-end t)
              (setq close (match-end 0)
                    pos (point)))
@@ -4080,7 +4110,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                                          "{% javascript %}"
                                          "{% schema %}"
                                          "{% stylesheet %}"
-                                         "%= javascript begin"))
+                                         "%= javascript begin"
+                                         "---"))
                        (setq part-beg close)
                        (setq tagclose
                              (cond
@@ -4092,6 +4123,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                                ((string= tagopen "{% schema %}") "{% endschema %}")
                                ((string= tagopen "{% stylesheet %}") "{% endstylesheet %}")
                                ((string= tagopen "%= javascript begin") "% end")
+                               ((string= tagopen "---") "---")
                                ((string= tagopen "<%= javascript_tag do %>") "<% end %>")
                                ((member tagopen '("<%block filter=\"collect_js\">"
                                                   "<%block filter=\"collect_css\">")) "</%block")
@@ -4454,6 +4486,10 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           )
          )
        ) ;antlers
+
+      ((string= web-mode-engine "astro")
+       (setq regexp "\"\\|'")
+       ) ;astro
 
       ((string= web-mode-engine "go")
        (cond
@@ -14562,7 +14598,7 @@ Prompt user if TAG-NAME isn't provided."
     (when (string= web-mode-engine "spip")
       (modify-syntax-entry ?# "w" (syntax-table)))
 
-    ;;    (message "%S" (symbol-value (cdr (assoc web-mode-engine web-mode-engines-font-lock-keywords))))
+    ;;(message "%S" (symbol-value (cdr (assoc web-mode-engine web-mode-engines-font-lock-keywords))))
 
     ))
 
@@ -14619,11 +14655,15 @@ Prompt user if TAG-NAME isn't provided."
     (unless web-mode-engine
       (setq found nil)
       (dolist (elt web-mode-engine-file-regexps)
-        ;;(message "%S %S" (cdr elt) buff-name)
+        ;;(message "%S %S %S" (cdr elt) (car elt) buff-name)
         (when (and (not found) (string-match-p (cdr elt) buff-name))
           ;;(message "%S %S %S" (cdr elt) (car elt) buff-name)
           (setq web-mode-engine (car elt)
-                found t))
+                found t)
+          ;;(when (and web-mode-engine (string= web-mode-engine "astro"))
+          ;;  (setq web-mode-enable-front-matter-block t)
+          ;;) ;when
+          ) ;when
         )
       )
 
@@ -14647,6 +14687,8 @@ Prompt user if TAG-NAME isn't provided."
       (setq web-mode-minor-engine web-mode-engine
             web-mode-engine (web-mode-engine-canonical-name web-mode-engine))
       )
+
+    ;;(message "%S %S" web-mode-engine web-mode-enable-engine-detection)
 
     (when (and (or (null web-mode-engine)
                    (string= web-mode-engine "none"))
