@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.6
+;; Version: 17.3.7
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.6"
+(defconst web-mode-version "17.3.7"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8823,8 +8823,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                 ;;(or (not (string= language "jsx"))
                 ;;    (string= options "is-html"))
                 (not (and (string= language "jsx")
-                          (or (string= options "is-html")
-                              (web-mode-jsx-is-expr pos))))
+                          (web-mode-jsx-is-expr pos)))
                 )
            (when debug (message "I190(%S) attr-indent" pos))
            (cond
