@@ -7962,6 +7962,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
        (web-mode-make-tag-overlays)
        (setq len (length (get-text-property (caar ctx) 'tag-name)))
        (move-overlay web-mode-overlay-tag-start (+ (caar ctx) 1) (+ (caar ctx) 1 len))
+       (move-overlay web-mode-overlay-tag-end (+ (cadr ctx) 1) (+ (cadr ctx) 1 len)) ;; #1257
        )
       (t
        (web-mode-make-tag-overlays)
