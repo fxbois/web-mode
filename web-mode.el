@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.7
+;; Version: 17.3.8
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.7"
+(defconst web-mode-version "17.3.8"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -8769,6 +8769,14 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                 (string-match-p "^%" curr-line))
            (when debug (message "I140(%S) mason" pos))
            (setq offset 0))
+
+          ((and (string= web-mode-engine "razor")
+                (string-match-p "^\\([{}]\\|else\\)" curr-line))
+           (when debug (message "I142(%S) razor" pos))
+           (save-excursion
+             (web-mode-block-previous)
+             (setq offset (current-indentation))
+             ))
 
           ((and (string= web-mode-engine "django")
                 (string-match-p "^#" curr-line))
