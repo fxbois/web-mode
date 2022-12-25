@@ -1,7 +1,14 @@
 <script>
  {% if condition %}
- console.log('Current indentation');
+   console.log('Current indentation');
+   if (true) {
+     console.log('hello');
+   }
+   console.log('Current indentation');
  {% endif %}
+ if (true) {
+   console.log('hesllo');
+ }
 </script>
 <div>
   {% if condition %}
