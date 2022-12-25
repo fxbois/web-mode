@@ -4131,7 +4131,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                        (web-mode-sf tagclose)
                        (setq part-end (match-beginning 0))
                        (> part-end part-beg))
-              ;;(message "end=%S" (point))
+              ;;(message "tagopen=%S tagclose=%S end=%S" tagopen tagclose (point))
               (put-text-property part-beg part-end
                                  'part-side
                                  (cond
@@ -5550,6 +5550,9 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                ) ;cond
              ) ;let
            ) ;script
+          ((string= tname "i18n")
+           (setq element-content-type "javascript"
+                 part-close-tag "</i18n>"))
           ((and (string= tname "template") (string-match-p " lang" (buffer-substring-no-properties tbeg tend)))
            (let (template)
              (setq template (buffer-substring-no-properties tbeg tend)
