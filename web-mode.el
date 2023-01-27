@@ -2745,7 +2745,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   ;; compatibility with emacs < 23
   (defun web-mode-string-match-p (regexp string &optional start)
     "Same as `string-match' except it does not change the match data."
-    (let ((inhibit-changing-match-data t))
+    (save-match-data
       (string-match regexp string start)))
 
   (unless (fboundp 'string-match-p)
