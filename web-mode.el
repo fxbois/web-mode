@@ -14882,4 +14882,5 @@ extended to support more filetypes by customizing
 ;; Local Variables:
 ;; coding: utf-8
 ;; indent-tabs-mode: nil
+;; sentence-end-double-space: nil
 ;; End:
