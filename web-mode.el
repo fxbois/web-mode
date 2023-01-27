@@ -14416,8 +14416,8 @@ Prompt user if TAG-NAME isn't provided."
     (indent-region yas-snippet-beg yas-snippet-end)))
 
 (defun web-mode-imenu-index ()
-  (interactive)
   "Returns imenu items."
+  (interactive)
   (let (toc-index
         line)
     (save-excursion
