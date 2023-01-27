@@ -1088,14 +1088,15 @@ Must be used in conjunction with web-mode-enable-block-face."
   "A list of filename patterns and corresponding web-mode content types.
 For example,
 (setq web-mode-content-types-alist
-  '((\"json\" . \"/some/path/.*\\.api\\'\")
-    (\"jsx\"  . \"/some/react/path/.*\\.js[x]?\\'\")))")
+  \\='((\"json\" . \"/some/path/.*\\.api\\\\='\")
+    (\"jsx\"  . \"/some/react/path/.*\\.js[x]?\\\\='\")))")
 
 (defvar web-mode-engines-alist nil
-  "A list of filename patterns and corresponding web-mode engine. For example,
-(setq web-mode-engines-alist
-      '((\"php\"    . \"\\\\.phtml\\\\'\")
-        (\"blade\"  . \"\\\\.blade\\\\.\")))")
+  "A list of filename patterns and corresponding `web-mode' engine.
+For example,
+\(setq web-mode-engines-alist
+       \\='((\"php\"    . \"\\\\.phtml\\\\\\='\")
+         (\"blade\"  . \"\\\\.blade\\\\.\")))")
 
 (defvar web-mode-smart-quotes
   '("«" . "»")
@@ -2556,9 +2557,9 @@ nicely with web-mode. This hook gives users the chance to adjust
 the environment as needed for ac-sources, right before they're used.")
 
 (defvar web-mode-ignore-ac-start-advice nil
-  "If not nil 'defadvice' for 'ac-start' will be ignored.
+  "If not nil `defadvice' for `ac-start' will be ignored.
 
-Can be set inside a hook in 'web-mode-before-auto-complete-hooks' to
+Can be set inside a hook in `web-mode-before-auto-complete-hooks' to
 non nil to ignore the defadvice which sets ac-sources according to current
 language. This is needed if the corresponding auto-completion triggers
 another auto-completion with different ac-sources (e.g. ac-php)")
@@ -4368,8 +4369,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     ))
 
 (defun web-mode-block-delimiters-set (reg-beg reg-end delim-open delim-close)
-  "Set text-property 'block-token to 'delimiter-(beg|end) on block delimiters
- (e.g. <?php and ?>)"
+  "Set text-property `block-token' to `delimiter-(beg|end)' on block delimiters
+(e.g. <?php and ?>)"
   ;;(message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine
                 '("artanis" "anki" "antlers" "asp" "aspx"
