@@ -1088,14 +1088,15 @@ Must be used in conjunction with web-mode-enable-block-face."
   "A list of filename patterns and corresponding web-mode content types.
 For example,
 (setq web-mode-content-types-alist
-  '((\"json\" . \"/some/path/.*\\.api\\'\")
-    (\"jsx\"  . \"/some/react/path/.*\\.js[x]?\\'\")))")
+  \\='((\"json\" . \"/some/path/.*\\.api\\\\='\")
+    (\"jsx\"  . \"/some/react/path/.*\\.js[x]?\\\\='\")))")
 
 (defvar web-mode-engines-alist nil
-  "A list of filename patterns and corresponding web-mode engine. For example,
-(setq web-mode-engines-alist
-      '((\"php\"    . \"\\\\.phtml\\\\'\")
-        (\"blade\"  . \"\\\\.blade\\\\.\")))")
+  "A list of filename patterns and corresponding `web-mode' engine.
+For example,
+\(setq web-mode-engines-alist
+       \\='((\"php\"    . \"\\\\.phtml\\\\\\='\")
+         (\"blade\"  . \"\\\\.blade\\\\.\")))")
 
 (defvar web-mode-smart-quotes
   '("«" . "»")
@@ -2556,9 +2557,9 @@ nicely with web-mode. This hook gives users the chance to adjust
 the environment as needed for ac-sources, right before they're used.")
 
 (defvar web-mode-ignore-ac-start-advice nil
-  "If not nil 'defadvice' for 'ac-start' will be ignored.
+  "If not nil `defadvice' for `ac-start' will be ignored.
 
-Can be set inside a hook in 'web-mode-before-auto-complete-hooks' to
+Can be set inside a hook in `web-mode-before-auto-complete-hooks' to
 non nil to ignore the defadvice which sets ac-sources according to current
 language. This is needed if the corresponding auto-completion triggers
 another auto-completion with different ac-sources (e.g. ac-php)")
@@ -2744,7 +2745,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
   ;; compatibility with emacs < 23
   (defun web-mode-string-match-p (regexp string &optional start)
     "Same as `string-match' except it does not change the match data."
-    (let ((inhibit-changing-match-data t))
+    (save-match-data
       (string-match regexp string start)))
 
   (unless (fboundp 'string-match-p)
@@ -4350,7 +4351,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
          )
         ((looking-at-p "[ \n]*{")
          (search-forward "{")
-         (search-forward "=>" (point-at-eol) 't)
+         (search-forward "=>" (line-end-position) 't)
          (if (looking-at-p "[ \n]*[<@]")
              (setq continue nil)
              (backward-char)
@@ -4368,8 +4369,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     ))
 
 (defun web-mode-block-delimiters-set (reg-beg reg-end delim-open delim-close)
-  "Set text-property 'block-token to 'delimiter-(beg|end) on block delimiters
- (e.g. <?php and ?>)"
+  "Set text-property `block-token' to `delimiter-(beg|end)' on block delimiters
+(e.g. <?php and ?>)"
   ;;(message "reg-beg(%S) reg-end(%S) delim-open(%S) delim-close(%S)" reg-beg reg-end delim-open delim-close)
   (when (member web-mode-engine
                 '("artanis" "anki" "antlers" "asp" "aspx"
@@ -5608,7 +5609,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   (let ((tag-flags 0) (attr-flags 0) (continue t) (attrs 0) (brace-depth 0)
         (state 0) (equal-offset 0) (go-back nil)
         (is-jsx (or (string= web-mode-content-type "jsx") (eq (get-text-property (point) 'part-type) 'jsx)))
-        attr name-beg name-end val-beg char pos escaped spaced quoted)
+        attr name-beg name-end val-beg char pos mem step escaped spaced quoted)
 
     (while continue
 
@@ -5619,6 +5620,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             spaced (member char '(?\s ?\n))
             step nil)
 
+      (ignore mem step) ;; Only used in debug print
       (when quoted (setq quoted (1+ quoted)))
 
       (cond
@@ -6226,8 +6228,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 (defun web-mode-jsx-skip (reg-end)
   (let ((continue t) (pos nil) (i 0))
     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
-    (setq tag (match-string-no-properties 1))
-    ;;(message "point=%S tag=%S" (point) tag)
+    ;; (let ((tag (match-string-no-properties 1)))
+    ;;   (message "point=%S tag=%S" (point) tag))
     (save-excursion
       (while continue
         (cond
@@ -6335,7 +6337,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 (defun web-mode-jsx-is-html (&optional pos)
   (interactive)
   (unless pos (setq pos (point)))
-  (let (ret (depth (get-text-property pos 'jsx-depth)))
+  (let ((depth (get-text-property pos 'jsx-depth)))
     (cond
       ((or (null depth) (<= pos 2))
        (setq pos nil))
@@ -6623,6 +6625,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     ))
 
 (defun web-mode-unfontify-region (beg end)
+  (ignore beg end)
   ;;(message "unfontify: %S %S" beg end)
   )
 
@@ -6996,7 +6999,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
 (defun web-mode-fontify-part (reg-beg reg-end &optional depth)
   (save-excursion
-    (let (start continue token-type face pos beg end string-face comment-face content-type)
+    (let (continue token-type face pos beg end string-face comment-face content-type)
       ;;(message "fontify-part: reg-beg(%S) reg-end(%S)" reg-beg reg-end)
       (if (member web-mode-content-type web-mode-part-content-types)
           (setq content-type web-mode-content-type)
@@ -7505,7 +7508,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
       ) ;cond
     ))
 
-(defun web-mode-interpolate-comment (beg end block-side)
+(defun web-mode-interpolate-comment (beg end _block-side)
   (save-excursion
     (let ((regexp (concat "\\_<\\(" web-mode-comment-keywords "\\)\\_>")))
       (goto-char beg)
@@ -7578,10 +7581,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
 ;;---- EFFECTS -----------------------------------------------------------------
 
-(defun web-mode-fill-paragraph (&optional justify)
+(defun web-mode-fill-paragraph (&optional _justify)
   (save-excursion
     (let ((pos (point))
-          prop pair beg end delim-beg delim-end chunk fill-col)
+          prop pair beg end delim-beg delim-end chunk fill-coll)
+      (ignore delim-beg delim-end fill-coll)
       (cond
         ((or (eq (get-text-property pos 'part-token) 'comment)
              (eq (get-text-property pos 'block-token) 'comment))
@@ -7633,7 +7637,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
        (setq proc (start-process "php-proc" nil "php" "-l" file))
        (set-process-filter
         proc
-        (lambda (proc output)
+        (lambda (_proc output)
           (cond
             ((string-match-p "No syntax errors" output)
              (message "No syntax errors")
@@ -7657,7 +7661,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 (defun web-mode-jshint ()
   "Run JSHint on all the JavaScript parts."
   (interactive)
-  (let (proc lines)
+  (let (proc)
     (when (buffer-file-name)
       (setq proc (start-process
                   "jshint-proc"
@@ -7667,7 +7671,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                   (buffer-file-name)))
       (setq web-mode-jshint-errors 0)
       (set-process-filter proc
-                          (lambda (proc output)
+                          (lambda (_proc output)
                             (let ((offset 0) overlay pos (old 0) msg)
                               (remove-overlays (point-min) (point-max) 'font-lock-face 'web-mode-error-face)
                               (while (string-match
@@ -7702,7 +7706,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 (defun web-mode-dom-errors-show ()
   "Show unclosed tags."
   (interactive)
-  (let (beg end tag pos l n tags i cont cell overlay overlays first
+  (let (beg end tag pos l tags i cont cell overlay overlays first
             (ori (point))
             (errors 0)
             (continue t)
@@ -7752,7 +7756,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              ) ;cond
            ) ;while
 
-         (dotimes (i i)
+         (dotimes (_i i)
            (setq tags (cdr tags)))
 
          )
@@ -7883,7 +7887,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 (defun web-mode-column-overlay-factory (index)
   (let (overlay)
     (when (null web-mode-column-overlays)
-      (dotimes (i 100)
+      (dotimes (_i 100)
         (setq overlay (make-overlay 1 1))
         (overlay-put overlay 'font-lock-face 'web-mode-current-column-highlight-face)
         (setq web-mode-column-overlays (append web-mode-column-overlays (list overlay)))
@@ -8046,7 +8050,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   (web-mode-with-silent-modifications
    (save-excursion
      (if pos (goto-char pos))
-     (let (beg-inside beg-outside end-inside end-outside overlay overlays regexp)
+     (let (beg-inside beg-outside end-inside end-outside overlay overlays)
        (when (looking-back "^[\t ]*" (point-min))
          (back-to-indentation))
        (setq overlays (overlays-at (point)))
@@ -8194,7 +8198,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
 (defun web-mode-dom-entities-encode ()
   (save-excursion
-    (let (regexp ms elt (min (point-min)) (max (point-max)))
+    (let (regexp elt (min (point-min)) (max (point-max)))
       (when mark-active
         (setq min (region-beginning)
               max (region-end))
@@ -8249,7 +8253,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   "Replace &, > and < in html content."
   (interactive)
   (save-excursion
-    (let (expr (min (point-min)) (max (point-max)))
+    (let ((min (point-min)) (max (point-max)))
       (when mark-active
         (setq min (region-beginning)
               max (region-end))
@@ -8281,14 +8285,14 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 (defun web-mode-css-indent ()
   (save-excursion
     (goto-char (point-min))
-    (let ((continue t) rule part-end)
+    (let ((continue t) part-end)
       (while continue
         (cond
           ((not (web-mode-part-next))
            (setq continue nil))
           ((eq (get-text-property (point) 'part-side) 'css)
            (setq part-end (web-mode-part-end-position))
-           (while (setq rule (web-mode-css-rule-next part-end))
+           (while (web-mode-css-rule-next part-end)
              (when (not (looking-at-p "[[:space:]]*\\($\\|<\\)"))
                (newline)
                (indent-according-to-mode)
@@ -9552,11 +9556,9 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
 (defun web-mode-token-css-indentation (pos)
   (save-excursion
-    (let (offset)
-      (goto-char pos)
-      (web-mode-part-token-beginning)
-      (setq offset (+ web-mode-css-indent-offset (current-indentation)))
-      ) ;let
+    (goto-char pos)
+    (web-mode-part-token-beginning)
+    (+ web-mode-css-indent-offset (current-indentation))
     ))
 
 (defun web-mode-relayql-indentation (pos &optional prefix)
@@ -9629,7 +9631,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     (cons (if (< offset initial-column) initial-column offset) open-ctx)
     ))
 
-(defun web-mode-markdown-indentation (pos initial-column language-offset language &optional limit)
+(defun web-mode-markdown-indentation (pos initial-column _language-offset _language &optional _limit)
   (let (offset)
     (save-excursion
       (goto-char pos)
@@ -9638,19 +9640,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     ;;(message "%S %S %S %S" pos (point) initial-column language-offset)
     (cons (if (<= offset initial-column) initial-column offset) nil)))
 
-(defun web-mode-stylus-indentation (pos initial-column language-offset language &optional limit)
-  (let (offset)
-    (save-excursion
-      (goto-char pos)
-      (setq offset (current-column))
-      (if (looking-at-p "[[:alnum:]-]+:")
-          (setq offset (+ initial-column language-offset))
-          (setq offset initial-column))
-      ) ;save-excursion
-    ;;(message "%S %S %S %S" pos (point) initial-column language-offset)
-    (cons (if (<= offset initial-column) initial-column offset) nil)))
-
-(defun web-mode-sass-indentation (pos initial-column language-offset language &optional limit)
+(defun web-mode-stylus-indentation (pos initial-column language-offset _language &optional _limit)
   (let (offset)
     (save-excursion
       (goto-char pos)
@@ -9662,7 +9652,19 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     ;;(message "%S %S %S %S" pos (point) initial-column language-offset)
     (cons (if (<= offset initial-column) initial-column offset) nil)))
 
-(defun web-mode-pug-indentation (pos initial-column language-offset language &optional limit)
+(defun web-mode-sass-indentation (pos initial-column language-offset _language &optional _limit)
+  (let (offset)
+    (save-excursion
+      (goto-char pos)
+      (setq offset (current-column))
+      (if (looking-at-p "[[:alnum:]-]+:")
+          (setq offset (+ initial-column language-offset))
+          (setq offset initial-column))
+      ) ;save-excursion
+    ;;(message "%S %S %S %S" pos (point) initial-column language-offset)
+    (cons (if (<= offset initial-column) initial-column offset) nil)))
+
+(defun web-mode-pug-indentation (_pos _initial-column _language-offset _language &optional _limit)
   nil
   )
 
@@ -10128,16 +10130,13 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         ret
         (continue t)
         controls
-        control
-        (buffer (current-buffer))
         (h (make-hash-table :test 'equal))
         (h2 (make-hash-table :test 'equal)))
 
     ;;    (message "pos-ori=%S limit=%S" pos limit)
 
     (while continue
-      (setq control nil
-            controls nil
+      (setq controls nil
             last-end-tag nil
             tag nil)
 
@@ -10240,7 +10239,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
       ) ;while
 
     ;;(message "hashtable=%S" h)
-    (maphash (lambda (k v) (if (> v 0) (setq ret t))) h)
+    (maphash (lambda (_k v) (if (> v 0) (setq ret t))) h)
 
     (when (and (null ret)
                last-end-tag
@@ -10280,7 +10279,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
       (cons line (current-indentation))
       )))
 
-(defun web-mode-bracket-up (pos language &optional limit)
+(defun web-mode-bracket-up (pos _language &optional limit)
   (unless limit (setq limit nil))
   ;;(message "pos(%S) language(%S) limit(%S)" pos language limit)
   (save-excursion
@@ -10347,10 +10346,9 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   (web-mode-mark (point)))
 
 (defun web-mode-mark (pos)
-  (let ((beg pos) (end pos) prop reg-beg boundaries)
+  (let ((beg pos) (end pos) boundaries)
 
     (if mark-active
-        (setq reg-beg (region-beginning))
         (setq web-mode-expand-initial-pos (point)
               web-mode-expand-initial-scroll (window-start))
         )
@@ -10513,7 +10511,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 (defun web-mode-element-content-select ()
   "Select the content of a html element."
   (interactive)
-  (let (pos beg end)
+  (let (pos end)
     (web-mode-element-select)
     (when mark-active
       (setq pos (point))
@@ -10660,7 +10658,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 (defun web-mode-element-mute-blanks ()
   "Mute blanks."
   (interactive)
-  (let (pos parent beg end children elt)
+  (let (pos parent children elt)
     (setq pos (point))
     (save-excursion
       (when (and (setq parent (web-mode-element-boundaries pos))
@@ -10782,13 +10780,12 @@ Pos should be in a tag."
   "Surround each line of the current REGION with a start/end tag."
   (interactive)
   (when mark-active
-    (let (beg end line-beg line-end pos tag tag-start tag-end)
+    (let (beg end line-beg line-end tag tag-start tag-end)
       (save-excursion
         (combine-after-change-calls
           (setq tag (web-mode-element-complete)
                 tag-start (concat "<" tag ">")
                 tag-end (concat "</" tag ">")
-                pos (point)
                 beg (region-beginning)
                 end (region-end)
                 line-beg (web-mode-line-number beg)
@@ -11151,7 +11148,7 @@ Prompt user if TAG-NAME isn't provided."
      (let ((continue t)
            (pos (point-min))
            (visibility web-mode-comments-invisible)
-           overlay end)
+           end)
        (while continue
          (setq pos (next-single-property-change pos 'font-lock-face))
          (if (null pos)
@@ -11160,7 +11157,7 @@ Prompt user if TAG-NAME isn't provided."
                (setq end (next-single-property-change pos 'font-lock-face))
                (put-text-property pos end 'invisible visibility)
                (when visibility
-                 (setq overlay (make-overlay pos end)))
+                 (make-overlay pos end))
                (goto-char pos)
                )
              )
@@ -11168,7 +11165,7 @@ Prompt user if TAG-NAME isn't provided."
        ) ;let
      )))
 
-(defun web-mode-comment-or-uncomment-region (beg end &optional arg)
+(defun web-mode-comment-or-uncomment-region (beg end &optional _arg)
   (interactive)
   (save-excursion
     (push-mark end)
@@ -11204,7 +11201,7 @@ Prompt user if TAG-NAME isn't provided."
       ) ;if
   )
 
-(defun web-mode-comment-indent-new-line (&optional soft)
+(defun web-mode-comment-indent-new-line (&optional _soft)
   (interactive)
   (let (ctx)
     (setq ctx (web-mode-comment-context))
@@ -11300,7 +11297,7 @@ Prompt user if TAG-NAME isn't provided."
     ))
 
 (defun web-mode-comment (pos)
-  (let (ctx language col sel beg end tmp block-side single-line-block pos-after content)
+  (let (ctx language col sel beg end block-side single-line-block pos-after content)
 
     (setq pos-after pos)
 
@@ -11423,9 +11420,9 @@ Prompt user if TAG-NAME isn't provided."
          (delete-region beg end)
          (deactivate-mark)
          (let (beg end)
-           (setq beg (point-at-bol))
+           (setq beg (line-beginning-position))
            (insert content)
-           (setq end (point-at-eol))
+           (setq end (line-end-position))
            (indent-region beg end)
            )
          ) ;when
@@ -11716,7 +11713,7 @@ Prompt user if TAG-NAME isn't provided."
       (setq counter (1+ counter)))
     (when snippet
       (setq snippet (cdr snippet))
-      (setq beg (point-at-bol))
+      (setq beg (line-beginning-position))
       (insert snippet)
       (setq pos (point)
             end (point))
@@ -11737,7 +11734,7 @@ Prompt user if TAG-NAME isn't provided."
         (setq pos (point)
               end (+ end (length sel))))
       (goto-char end)
-      (setq end (point-at-eol))
+      (setq end (line-end-position))
       (unless sel (goto-char pos))
       (indent-region beg end))
     ))
@@ -11774,9 +11771,9 @@ Prompt user if TAG-NAME isn't provided."
 
 (defun web-mode-insert-and-indent (text)
   (let (beg end)
-    (setq beg (point-at-bol))
+    (setq beg (line-beginning-position))
     (insert text)
-    (setq end (point-at-eol))
+    (setq end (line-end-position))
     (indent-region beg end)
     ))
 
@@ -12296,7 +12293,7 @@ Prompt user if TAG-NAME isn't provided."
   (interactive)
   (unless pos (setq pos (point)))
   (save-excursion
-    (let (attrs (continue t) min max tag-beg tag-end attr attr-name attr-beg attr-end indent indentation sorter ins)
+    (let (attrs (continue t) min max tag-beg tag-end attr attr-name attr-beg attr-end indent sorter ins)
       (if (not (member (get-text-property pos 'tag-type) '(start void)))
           nil
           (setq tag-beg (web-mode-tag-beginning-position pos)
@@ -12348,7 +12345,7 @@ Prompt user if TAG-NAME isn't provided."
       ;;(message "attrs=%S" attrs)
       )))
 
-(defun web-mode-attribute-insert (&optional attr-name attr-value)
+(defun web-mode-attribute-insert (&optional _attr-name _attr-value)
   "Insert an attribute inside current tag."
   (interactive)
   (let (attr attr-name attr-value)
@@ -12383,7 +12380,7 @@ Prompt user if TAG-NAME isn't provided."
   "Transpose the current html attribute."
   (interactive)
   (unless pos (setq pos (point)))
-  (let (ret attr-beg attr-end next-beg next-end tag-end)
+  (let (attr-beg attr-end next-beg next-end tag-end)
     (when (and (get-text-property pos 'tag-attr)
                (setq next-beg (web-mode-attribute-next-position pos))
                (setq next-end (web-mode-attribute-end-position next-beg))
@@ -12530,7 +12527,7 @@ Prompt user if TAG-NAME isn't provided."
       (if (= n 0) (point) nil)
       )))
 
-(defun web-mode-token-opening-paren-position (pos limit context)
+(defun web-mode-token-opening-paren-position (pos limit _context)
   (save-restriction
     (unless limit (setq limit nil))
     (goto-char pos)
@@ -12613,13 +12610,12 @@ Prompt user if TAG-NAME isn't provided."
 
 (defun web-mode-tag-beginning-position (&optional pos)
   (unless pos (setq pos (point)))
-  (let (beg end depth)
+  (let (beg depth)
     (setq depth (get-text-property pos 'jsx-depth))
     (when (and depth (get-text-property pos 'tag-attr-beg))
       (setq depth (get-text-property (1- pos) 'jsx-depth)))
     (cond
-      ((null pos)
-       (setq end nil))
+      ((null pos))
       ((get-text-property pos 'tag-beg)
        (setq beg pos))
       ((and (> pos 1) (get-text-property (1- pos) 'tag-beg))
@@ -13175,7 +13171,7 @@ Prompt user if TAG-NAME isn't provided."
     ;;(message "pos=%S" pos)
     pos))
 
-(defun web-mode-block-statement-beginning-position (pos block-beg is-ternary)
+(defun web-mode-block-statement-beginning-position (pos block-beg _is-ternary)
   (unless pos (setq pos (point)))
   (setq pos (1- pos))
   (unless block-beg (setq block-beg (web-mode-block-beginning-position pos)))
@@ -14420,8 +14416,8 @@ Prompt user if TAG-NAME isn't provided."
     (indent-region yas-snippet-beg yas-snippet-end)))
 
 (defun web-mode-imenu-index ()
-  (interactive)
   "Returns imenu items."
+  (interactive)
   (let (toc-index
         line)
     (save-excursion
@@ -14494,7 +14490,7 @@ Prompt user if TAG-NAME isn't provided."
 (defun web-mode-test ()
   "Executes web-mode unit tests. See `web-mode-tests-directory'."
   (interactive)
-  (let (files ret regexp)
+  (let (files regexp)
     (setq regexp "^[[:alnum:]][[:alnum:]._]+\\'")
     (setq files (directory-files web-mode-tests-directory t regexp))
     (dolist (file files)
@@ -14502,7 +14498,7 @@ Prompt user if TAG-NAME isn't provided."
         ((eq (string-to-char (file-name-nondirectory file)) ?\_)
          (delete-file file))
         (t
-         (setq ret (web-mode-test-process file)))
+         (web-mode-test-process file))
         ) ;cond
       ) ;dolist
     ))
@@ -14886,4 +14882,5 @@ extended to support more filetypes by customizing
 ;; Local Variables:
 ;; coding: utf-8
 ;; indent-tabs-mode: nil
+;; sentence-end-double-space: nil
 ;; End:
