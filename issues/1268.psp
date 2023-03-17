@@ -1,0 +1,20 @@
+<div>
+  <?php
+  $x = ['a' => 0,
+        'b' => 1,
+        'c' => 2
+  ];
+
+  $y = array(
+    'a' => 0,
+    'b' => 1,
+    'c' => 2
+  );
+
+  function_call(
+    $arg0,
+    $arg1,
+    $arg2
+  );
+  ?>
+</div>

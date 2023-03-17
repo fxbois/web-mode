@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.8
+;; Version: 17.3.9
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.8"
+(defconst web-mode-version "17.3.9"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -9365,7 +9365,18 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                 (setq offset (- offset (length (match-string-no-properties 0)))))
               )
              (t
-              (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+              (setq offset (current-column))
+              ;;(message "point=%S offset=%S" (point) offset)
+              (if (looking-back "[ ]+" (point-min))
+                  (progn
+                    (setq offset (current-indentation)))
+                (setq offset (+ (current-indentation) web-mode-code-indent-offset)))
+              ;;(when (eq curr-char ?\,)
+              ;;  (goto-char pos)
+              ;;  (looking-at ",[ \t\n]*")
+              ;;  (setq offset (- offset (length (match-string-no-properties 0)))))
+              ;;(setq offset (+ (current-indentation) web-mode-code-indent-offset))
+              ) ;t
              ))
 
 
