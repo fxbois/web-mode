@@ -88,6 +88,13 @@
   :safe #'integerp
   :group 'web-mode)
 
+(defcustom web-mode-markup-comment-indent-offset
+  5
+  "Html comment indentation level."
+  :type 'integer
+  :safe #'integerp
+  :group 'web-mode)
+
 (defcustom web-mode-css-indent-offset
   (if (and (boundp 'standard-indent) standard-indent) standard-indent 2)
   "CSS indentation level."
@@ -8770,7 +8777,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                 ((string-match-p "^-" curr-line)
                  (setq offset (+ offset 3)))
                 (t
-                 (setq offset (+ offset 5)))
+                 (setq offset (+ offset web-mode-markup-comment-indent-offset)))
                 ) ;cond
               )
              ((and (string= web-mode-engine "django") (looking-back "{% comment %}" (point-min)))
