@@ -1,8 +1,3 @@
-<div>
-  <?php
-
-  foreach ($vars as $var)
-    echo 'toto';
-
-  ?>
-</div>
+<ul>
+  <img id="1" <?=$titi?> class="2" />
+</ul>

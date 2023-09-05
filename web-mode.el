@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.9
+;; Version: 17.3.10
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.9"
+(defconst web-mode-version "17.3.10"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1594,7 +1594,7 @@ shouldn't be moved back.)")
       "STR_PAD_LEFT" "STR_PAD_RIGHT"
       "ENT_COMPAT" "ENT_QUOTES" "ENT_NOQUOTES" "ENT_IGNORE"
       "ENT_SUBSTITUTE" "ENT_DISALLOWED" "ENT_HTML401" "ENT_XML1"
-      "ENT_XHTML" "ENT_HTML5" "JSON_PRETTY_PRINT"
+      "ENT_XHTML" "ENT_HTML5" "JSON_PRETTY_PRINT" "JSON_UNESCAPED_SLASHES"
       "LIBXML_NOBLANKS"))))
 
 (defvar web-mode-php-keywords
@@ -5638,6 +5638,9 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
          (setq attrs (+ attrs (web-mode-attr-scan pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)))
          )
 
+        ((and (or (= state 0) (= state 1)) (get-text-property pos 'block-side))
+         )
+
         ((or (and (= state 8) (not (member char '(?\" ?\\))))
              (and (= state 7) (not (member char '(?\' ?\\))))
              (and (= state 9) (not (member char '(?} ?\\))))
@@ -5829,7 +5832,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
         ) ;cond
 
-      ;;(message "point(%S) end(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) attr-flags(%S) equal-offset(%S)" pos end state char name-beg name-end val-beg attr-flags equal-offset tag-flags)
+      ;;(message "point(%S) state(%S) c(%S) name-beg(%S) name-end(%S) val-beg(%S) attr-flags(%S) equal-offset(%S)" pos state char name-beg name-end val-beg attr-flags equal-offset tag-flags)
 
       (when (and quoted (>= quoted 2))
         (setq quoted nil))
