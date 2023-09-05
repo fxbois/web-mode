@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.12
+;; Version: 17.3.13
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.12"
+(defconst web-mode-version "17.3.13"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7918,7 +7918,85 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                    'web-mode-current-column-highlight-face))
 
 (defun web-mode-column-show ()
-  (let ((index 0) overlay diff column line-to line-from)
+  (let ((index 0) overlay diff column line-to line-from line-delta regions (overlay-skip nil) last-line-no)
+    (web-mode-column-hide)
+    (setq web-mode-enable-current-column-highlight t)
+    (save-mark-and-excursion
+      (back-to-indentation)
+      (setq column (current-column)
+            line-to (web-mode-line-number))
+      (when (and (get-text-property (point) 'tag-beg)
+                 (member (get-text-property (point) 'tag-type) '(start end))
+                 (web-mode-tag-match)
+                 (setq line-from (web-mode-line-number))
+                 (not (= line-from line-to)))
+        (when (> line-from line-to)
+          (let (tmp)
+            (setq tmp line-from)
+            (setq line-from line-to)
+            (setq line-to tmp))
+          ) ;when
+        ;;(message "column(%S) line-from(%S) line-to(%S)" column line-from line-to)
+        (goto-char (point-min))
+        (when (> line-from 1)
+          (forward-line (1- line-from)))
+        ;; Added by JMA
+        (save-mark-and-excursion
+          (let (start-point end-point)
+            (goto-line line-from)
+            (move-to-column column)
+            (setq start-point (point))
+            (goto-line line-to)
+            (move-to-column column)
+            (setq end-point (point))
+            (setq line-delta (count-lines start-point end-point t))
+            (setq line-delta (+ line-delta (count-invisible-character-ranges start-point end-point))))
+          (setq line-to (+ line-from (1- line-delta))))
+        ;(message (format "Currently at line: %d" (line-number-at-pos)))
+        (setq last-line-no (line-number-at-pos))
+        ;; end JMA add
+        (while (<= line-from line-to)
+          (setq overlay (web-mode-column-overlay-factory index))
+          (setq diff (- (line-end-position) (point)))
+          (cond
+            ((or (and (= column 0) (= diff 0))
+                 (> column diff))
+             (end-of-line)
+             (move-overlay overlay (point) (point))
+             (overlay-put overlay
+                          'after-string
+                          (concat
+                           (if (> column diff) (make-string (- column diff) ?\s) "")
+                           (propertize " "
+                                       'font-lock-face
+                                       'web-mode-current-column-highlight-face)
+                           ) ;concat
+                          )
+             )
+            (t
+             (move-to-column column)
+             (overlay-put overlay 'after-string nil)
+             (move-overlay overlay (point) (1+ (point)))
+             )
+            ) ;cond
+          (setq line-from (1+ line-from))
+          (forward-line)
+          ;; JMA ADD
+          ;(message (format "Currently at line: %d" (line-number-at-pos)))
+          (if (not (= (1+ last-line-no) (line-number-at-pos)))
+              (delete-overlay overlay))
+          (setq last-line-no (line-number-at-pos))
+          ;; END JMA ADD
+          (setq index (1+ index))
+          ) ;while
+        ) ;when
+      ) ;save-mark-and-excursion
+    ) ;let
+  )
+
+(defun web-mode-column-show2 ()
+  (let ((index 0) overlay diff column line-to line-from
+        line-delta regions (overlay-skip nil) last-line-no)
     (web-mode-column-hide)
     (setq web-mode-enable-current-column-highlight t)
     (save-excursion
