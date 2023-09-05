@@ -1,7 +1,7 @@
 <span>test</span>
 {% block js %}
   <script>
-          let a = 1;
+   let a = 1;
   </script>
 {% endblock %}
 <div>
