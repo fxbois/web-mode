@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.10
+;; Version: 17.3.11
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.10"
+(defconst web-mode-version "17.3.11"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -9698,13 +9698,15 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     (setq indentation (plist-get open-ctx :indentation))
     (when (and initial-column (> initial-column indentation))
       (setq indentation initial-column))
-    (setq case-fold-search nil) ; #1006
+    (setq case-fold-search nil) ;#1006
     (when open-ctx
       (setq open-pos (plist-get open-ctx :pos)))
     (setq block-pos (web-mode-inside-block-control pos))
+    (when (and block-pos (> limit block-pos)) ;#1275
+      (setq block-pos nil))
     ;;(message "bracket-pos=%S block-pos=%S" open-pos block-pos)
     (cond
-      ((and block-pos (or (null open-pos) (> block-pos open-pos))) ;; #1230
+      ((and block-pos (or (null open-pos) (> block-pos open-pos))) ;#1230
        (setq offset (+ indentation language-offset)))
       ((null open-pos)
        (setq offset initial-column))

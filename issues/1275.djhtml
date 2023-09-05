@@ -1,0 +1,11 @@
+<span>test</span>
+{% block js %}
+  <script>
+          let a = 1;
+  </script>
+{% endblock %}
+<div>
+  <script>
+   let a = 2;
+  </script>
+</div>
