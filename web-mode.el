@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.11
+;; Version: 17.3.12
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.11"
+(defconst web-mode-version "17.3.12"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1390,7 +1390,7 @@ For example,
   (list
    '("antlers"     . "\"\\|'")
    '("artanis"     . "\"\\|#|\\|;")
-   '("asp"         . "//\\|/\\*\\|\"\\|''")
+   '("asp"         . "//\\|/\\*\\|\"\\|'")
    '("ejs"         . "//\\|/\\*\\|\"\\|'")
    '("erb"         . "\"\\|'\\|#\\|<<[-]?['\"]?\\([[:alnum:]_]+\\)['\"]?")
    '("lsp"         . "\"\\|#|\\|;")
@@ -4605,7 +4605,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
       ((and (string= web-mode-engine "asp")
             (string= sub2 "<%"))
-       (setq regexp "//\\|/\\*\\|\"\\|''")
+       (setq regexp "//\\|/\\*\\|\"\\|'")
        ) ;asp
 
       ((string= web-mode-engine "aspx")
@@ -4756,7 +4756,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
               char (aref match 0))
         (cond
 
-          ((and (string= web-mode-engine "asp") (string= match "''"))
+          ((and (string= web-mode-engine "asp") (string= match "'"))
            (goto-char token-end))
 
           ((and (string= web-mode-engine "razor") (eq char ?\'))
@@ -9869,7 +9869,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
       (setq prev-indentation (cdr h))
       ;;(message "line=%S" line)
       (cond
-        ((string-match-p "''" line)
+        ((string-match-p "'" line)
          (setq out prev-indentation))
         ;; ----------------------------------------------------------------------
         ;; unindent
@@ -11432,7 +11432,7 @@ Prompt user if TAG-NAME isn't provided."
           (setq content (replace-regexp-in-string "^[ ]*" "#" sel)))
 
          ((member language '("asp"))
-          (setq content (replace-regexp-in-string "^[ ]*" "''" sel)))
+          (setq content (replace-regexp-in-string "^[ ]*" "'" sel)))
 
          (t
           (setq content (concat "/* " sel " */")))
