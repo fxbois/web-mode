@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.13
+;; Version: 17.3.14
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.13"
+(defconst web-mode-version "17.3.14"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3687,13 +3687,14 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                     delim-close "}}"))
              ((looking-at-p "[[:alnum:]]+\\.[[:alpha:]]+")
               )
-             ((looking-at-p "[[:alnum:]]+(")
-              (setq closing-string ")"
-                    delim-open "@"))
              ((string= sub1 "@")
               (setq closing-string "EOB"
                     delim-open "@"))
+             ((looking-at-p "[[:alnum:]]+(")
+              (setq closing-string ")"
+                    delim-open "@"))
              )
+           ;;(message "closing-string=%S delim-open=%S delim-close=%S" closing-string delim-open delim-close)
            ) ;blade
 
           ((string= web-mode-engine "smarty")
@@ -4273,9 +4274,47 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     pos))
 
 (defun web-mode-blade-skip (pos)
-  (goto-char pos)
-  (forward-char)
-  (skip-chars-forward "a-zA-Z0-9_-"))
+  (let (regexp char inc continue found (reg-beg pos) (reg-end (point-max)))
+    (goto-char pos)
+    (forward-char)
+    (skip-chars-forward "a-zA-Z0-9_-")
+    (when (eq (char-after) ?\()
+      (setq regexp "[\"'()]"
+            inc 0)
+      (while (and (not found) (re-search-forward regexp reg-end t))
+        (setq char (char-before))
+        ;;(message "pos=%S char=%c" (point) char)
+        (cond
+         ((eq char ?\()
+          (setq inc (1+ inc)))
+         ((eq char ?\))
+          (cond
+           ((and (not (eobp))
+                (eq (char-after) ?\))
+                (< inc 2))
+            (forward-char)
+            (setq found t)
+            )
+           ((> inc 0)
+            (setq inc (1- inc)))
+           )
+          )
+         ((eq char ?\')
+          (setq continue t)
+          (while (and continue (search-forward "'" reg-end t))
+            (setq continue (web-mode-string-continue-p reg-beg))
+            )
+          )
+         ((eq char ?\")
+          (setq continue t)
+          (while (and continue (search-forward "\"" reg-end t))
+            (setq continue (web-mode-string-continue-p reg-beg))
+            )
+          )
+         ) ;cond
+        ) ;while
+    ) ; when
+  ))
 
 (defun web-mode-velocity-skip (pos)
   (goto-char pos)
