@@ -370,18 +370,20 @@ by a li open tag is valid)."
 
 ;; https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 (defcustom web-mode-tag-list
-  '("html" "base" "head" "link" "meta" "style" "title" "body" "address"
-    "article" "aside" "footer" "header" "h1" "h2" "h3" "h4" "h5" "h6" "main"
-    "nav" "section" "blockquote" "dd" "div" "dl" "dt" "figcaption" "figure"
-    "hr" "li" "menu" "ol" "p" "pre" "ula" "a" "abbr" "b" "bdi" "bdo" "br"
-    "cite" "code" "data" "dfn" "em" "i" "kbdmark" "q" "rp" "rt" "ruby" "s"
-    "samp" "small" "span" "strong" "sub" "sup" "time" "u" "var" "wbr" "area"
-    "audio" "img" "map" "track" "video" "embed" "iframe" "object" "picture"
-    "portal" "source" "svg" "math" "canvas" "noscript" "script" "del" "ins"
-    "caption" "col" "colgroup" "table" "tbody" "td" "tfoot" "th" "thead" "tr"
-    "button" "datalist" "fieldset" "form" "input" "label" "legend" "meter"
-    "optgroup" "option" "output" "progress" "select" "textarea" "details"
-    "dialog" "summary" "slot" "template")
+  '("a" "abbr" "address" "area" "article" "aside" "audio" "b"
+    "base" "bdi" "bdo" "blockquote" "body" "br" "button" "canvas"
+    "caption" "cite" "code" "col" "colgroup" "data" "datalist"
+    "dd" "del" "details" "dfn" "dialog" "div" "dl" "dt" "em"
+    "embed" "fieldset" "figcaption" "figure" "footer" "form" "h1"
+    "h2" "h3" "h4" "h5" "h6" "head" "header" "hgroup" "hr" "html"
+    "i" "iframe" "img" "input" "ins" "kbd" "label" "legend" "li"
+    "link" "main" "map" "mark" "math" "menu" "meta" "meter" "nav"
+    "noscript" "object" "ol" "optgroup" "option" "output" "p"
+    "picture" "pre" "progress" "q" "rp" "rt" "ruby" "s" "samp"
+    "script" "search" "section" "select" "slot" "small" "source"
+    "span" "strong" "style" "sub" "summary" "sup" "svg" "table"
+    "tbody" "td" "template" "textarea" "tfoot" "th" "thead" "time"
+    "title" "tr" "track" "u" "ul" "var" "video" "wbr")
   "HTML tags used for completion."
   :type '(repeat string)
   :group 'web-mode)
