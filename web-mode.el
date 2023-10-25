@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2023 François-Xavier Bois
 
-;; Version: 17.3.14
+;; Version: 17.3.15
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.14"
+(defconst web-mode-version "17.3.15"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -7958,6 +7958,22 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                    'font-lock-face
                    'web-mode-current-column-highlight-face))
 
+(defun web-mode-count-invisible-character-ranges (min max)
+  (interactive "r")
+  (let ((count 0) (current-pos min))
+    (save-excursion
+      (while (<= current-pos max)
+        (goto-char current-pos)
+        (if (get-text-property current-pos 'invisible)
+            (progn
+              (setq count (1+ count))
+              (setq current-pos (1+ current-pos))
+              (while (and (<= current-pos max)
+                          (get-text-property current-pos 'invisible))
+                (setq current-pos (1+ current-pos))))
+          (setq current-pos (1+ current-pos)))))
+    count))
+
 (defun web-mode-column-show ()
   (let ((index 0) overlay diff column line-to line-from line-delta regions (overlay-skip nil) last-line-no)
     (web-mode-column-hide)
@@ -7991,7 +8007,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             (move-to-column column)
             (setq end-point (point))
             (setq line-delta (count-lines start-point end-point t))
-            (setq line-delta (+ line-delta (count-invisible-character-ranges start-point end-point))))
+            (setq line-delta (+ line-delta (web-mode-count-invisible-character-ranges start-point end-point))))
           (setq line-to (+ line-from (1- line-delta))))
         ;(message (format "Currently at line: %d" (line-number-at-pos)))
         (setq last-line-no (line-number-at-pos))
