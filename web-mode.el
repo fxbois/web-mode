@@ -2901,6 +2901,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (add-hook 'after-save-hook        #'web-mode-on-after-save t t)
     (add-hook 'change-major-mode-hook #'web-mode-on-exit nil t)
     (add-hook 'post-command-hook      #'web-mode-on-post-command nil t)
+    (add-hook 'hack-local-variables-hook #'web-mode-guess-engine-and-content-type t t)
 
     (cond
       ((boundp 'yas-after-exit-snippet-hook)
@@ -2919,7 +2920,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (when web-mode-enable-sexp-functions
       (setq-local forward-sexp-function #'web-mode-forward-sexp))
 
-    (web-mode-guess-engine-and-content-type)
     (setq web-mode-change-beg (point-min)
           web-mode-change-end (point-max))
     (when (> (point-max) 256000)
