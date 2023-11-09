@@ -421,6 +421,15 @@ by a li open tag is valid)."
   :type '(repeat string)
   :group 'web-mode)
 
+(defcustom web-mode-engines-alist nil
+  "A list of filename patterns and corresponding `web-mode' engine.
+For example,
+\(setq web-mode-engines-alist
+       \\='((\"php\"    . \"\\\\.phtml\\\\\\='\")
+         (\"blade\"  . \"\\\\.blade\\\\.\")))"
+  :type '(alist :key-type string :value-type string)
+  :group 'web-mode)
+
 ;;---- FACES -------------------------------------------------------------------
 
 (defface web-mode-error-face
@@ -1099,13 +1108,6 @@ For example,
 (setq web-mode-content-types-alist
   \\='((\"json\" . \"/some/path/.*\\.api\\\\='\")
     (\"jsx\"  . \"/some/react/path/.*\\.js[x]?\\\\='\")))")
-
-(defvar web-mode-engines-alist nil
-  "A list of filename patterns and corresponding `web-mode' engine.
-For example,
-\(setq web-mode-engines-alist
-       \\='((\"php\"    . \"\\\\.phtml\\\\\\='\")
-         (\"blade\"  . \"\\\\.blade\\\\.\")))")
 
 (defvar web-mode-smart-quotes
   '("«" . "»")
