@@ -421,6 +421,15 @@ by a li open tag is valid)."
   :type '(repeat string)
   :group 'web-mode)
 
+(defcustom web-mode-engines-alist nil
+  "A list of filename patterns and corresponding `web-mode' engine.
+For example,
+\(setq web-mode-engines-alist
+       \\='((\"php\"    . \"\\\\.phtml\\\\\\='\")
+         (\"blade\"  . \"\\\\.blade\\\\.\")))"
+  :type '(alist :key-type string :value-type string)
+  :group 'web-mode)
+
 ;;---- FACES -------------------------------------------------------------------
 
 (defface web-mode-error-face
@@ -1099,13 +1108,6 @@ For example,
 (setq web-mode-content-types-alist
   \\='((\"json\" . \"/some/path/.*\\.api\\\\='\")
     (\"jsx\"  . \"/some/react/path/.*\\.js[x]?\\\\='\")))")
-
-(defvar web-mode-engines-alist nil
-  "A list of filename patterns and corresponding `web-mode' engine.
-For example,
-\(setq web-mode-engines-alist
-       \\='((\"php\"    . \"\\\\.phtml\\\\\\='\")
-         (\"blade\"  . \"\\\\.blade\\\\.\")))")
 
 (defvar web-mode-smart-quotes
   '("«" . "»")
@@ -2901,6 +2903,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (add-hook 'after-save-hook        #'web-mode-on-after-save t t)
     (add-hook 'change-major-mode-hook #'web-mode-on-exit nil t)
     (add-hook 'post-command-hook      #'web-mode-on-post-command nil t)
+    (add-hook 'hack-local-variables-hook #'web-mode-guess-engine-and-content-type t t)
 
     (cond
       ((boundp 'yas-after-exit-snippet-hook)
@@ -2919,7 +2922,6 @@ another auto-completion with different ac-sources (e.g. ac-php)")
     (when web-mode-enable-sexp-functions
       (setq-local forward-sexp-function #'web-mode-forward-sexp))
 
-    (web-mode-guess-engine-and-content-type)
     (setq web-mode-change-beg (point-min)
           web-mode-change-end (point-max))
     (when (> (point-max) 256000)
