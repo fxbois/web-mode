@@ -2490,7 +2490,7 @@ shouldn't be moved back.)")
   (list
    (cons (concat "\\_<\\(" web-mode-php-keywords "\\)\\_>") '(0 'web-mode-keyword-face))
    (cons (concat "\\_<\\(" web-mode-php-types "\\)\\_>") '(1 'web-mode-type-face))
-   (cons (concat "\\_<\\(" web-mode-php-constants "\\)\\_>") '(0 'web-mode-constant-face))
+   (cons (concat "\\(" web-mode-php-constants "\\)") '(0 'web-mode-constant-face))
    '("function[ ]+\\([[:alnum:]_]+\\)" 1 'web-mode-function-name-face)
    '("\\_<\\([[:alnum:]_]+\\)[ ]?(" 1 'web-mode-function-call-face)
    '("[[:alnum:]_][ ]?::[ ]?\\([[:alnum:]_]+\\)" 1 'web-mode-constant-face)
