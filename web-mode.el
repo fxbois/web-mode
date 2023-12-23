@@ -7980,7 +7980,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
   (let ((index 0) overlay diff column line-to line-from line-delta regions (overlay-skip nil) last-line-no)
     (web-mode-column-hide)
     (setq web-mode-enable-current-column-highlight t)
-    (save-mark-and-excursion
+    (save-excursion ;;save-mark-and-excursion
       (back-to-indentation)
       (setq column (current-column)
             line-to (web-mode-line-number))
@@ -8000,7 +8000,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         (when (> line-from 1)
           (forward-line (1- line-from)))
         ;; Added by JMA
-        (save-mark-and-excursion
+        (save-excursion ;;save-mark-and-excursion
           (let (start-point end-point)
             (goto-line line-from)
             (move-to-column column)
@@ -8049,7 +8049,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           (setq index (1+ index))
           ) ;while
         ) ;when
-      ) ;save-mark-and-excursion
+      ) ;save-excursion
     ) ;let
   )
 
