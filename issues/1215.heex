@@ -1,34 +1,37 @@
+<div>
+  test
+</div>
 <.two_column>
-<:title>
-Pipelines
-</:title>
-<:left_content>
-<.card_with_title>
-<:title>
-Listing Pipelines
-</:title>
-<:content>
-<.pipelines_table pipelines={@pipelines} />
-</:content>
-</.card_with_title>
-</:left_content>
-<:right_content>
-<.card_with_title>
-<:title>
-Filters
-</:title>
-<:content>
-<.form let={f} for={@filters_changeset} phx-change="filter-pipelines">
-<.input_label label="Client Name">
-<.text_input form={f} name={:client_name} />
-</.input_label>
-<.input_label label="Pipeline Type">
-<.text input form={f} name={:pipeline_type} />
-</.input_label>
-</.form>
-</:content>
-</.card_with_title>
-</:right_content>
+  <:title>
+    Pipelines
+  </:title>
+  <:left_content>
+    <.card_with_title>
+      <:title>
+        Listing Pipelines
+      </:title>
+      <:content>
+        <.pipelines_table pipelines={@pipelines} />
+      </:content>
+    </.card_with_title>
+  </:left_content>
+  <:right_content>
+    <.card_with_title>
+      <:title>
+        Filters
+      </:title>
+      <:content>
+        <.form let={f} for={@filters_changeset} phx-change="filter-pipelines">
+          <.input_label label="Client Name">
+            <.text_input form={f} name={:client_name} />
+          </.input_label>
+          <.input_label label="Pipeline Type">
+            <.text input form={f} name={:pipeline_type} />
+          </.input_label>
+        </.form>
+      </:content>
+    </.card_with_title>
+  </:right_content>
 </.two_column>
 <div>
   <span>ok</span>

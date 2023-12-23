@@ -938,13 +938,13 @@ Must be used in conjunction with web-mode-enable-block-face."
         'syntax-table)
   "Text properties used for code regions/tokens and html nodes.")
 
-(defvar web-mode-start-tag-regexp "<\\([[:alpha:]][[:alnum:].:_-]*\\|>\\)"
+(defvar web-mode-start-tag-regexp "<\\([[:alnum:].:_-]*\\|>\\)"
   "Regular expression for HTML/XML start tag.")
 
-(defvar web-mode-tag-regexp "</?\\([[:alpha:]][[:alnum:].:_-]*\\)"
+(defvar web-mode-tag-regexp "</?\\([[:alnum:].:_-]*\\)"
   "Regular expression for HTML/XML tag.")
 
-(defvar web-mode-dom-regexp "<\\(/?>\\|/?[[:alpha:]][[:alnum:].:_-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
+(defvar web-mode-dom-regexp "<\\(/?>\\|/?[[:alnum:].:_-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
 
 (defvar web-mode-whitespaces-regexp
   "^[ \t]\\{2,\\}$\\| \t\\|\t \\|[ \t]+$\\|^[ \n\t]+\\'\\|^[ \t]?[\n]\\{2,\\}"
@@ -5495,7 +5495,9 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            (cond
              ((string-match-p "-" tname)
               (setq flags (logior flags 2)))
-             ((string-match-p ":" tname)
+             ;;((string-match-p ":" tname)
+             ;; (setq flags (logior flags 32)))
+             ((string-match-p "[.:]" tname)
               (setq flags (logior flags 32)))
              )
            (cond
