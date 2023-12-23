@@ -1,8 +1,8 @@
 ;;; web-mode.el --- major mode for editing web templates -*- coding: utf-8; lexical-binding: t; -*-
 
-;; Copyright 2011-2023 François-Xavier Bois
+;; Copyright 2011-2024 François-Xavier Bois
 
-;; Version: 17.3.15
+;; Version: 17.3.16
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.15"
+(defconst web-mode-version "17.3.16"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -3431,13 +3431,15 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              (setq closing-string '("<\\?". "\\?>")))
            (cond
              ((looking-at-p "<?php")
-              (setq delim-open "<?php"))
+              (setq delim-open "<?php")
+              (setq delim-close "?>"))
              ((eq (char-after) ?\=)
-              (setq delim-open "<?="))
+              (setq delim-open "<?=")
+              (setq delim-close "?>"))
              (t
-              (setq delim-open "<?"))
+              (setq delim-open "<?")
+              (setq delim-close "?>"))
              ) ;cond
-           (setq delim-close "?>")
            ) ;php
 
           ((string= web-mode-engine "erb")
