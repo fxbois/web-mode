@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2024 François-Xavier Bois
 
-;; Version: 17.3.16
+;; Version: 17.3.17
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.16"
+(defconst web-mode-version "17.3.17"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -938,13 +938,13 @@ Must be used in conjunction with web-mode-enable-block-face."
         'syntax-table)
   "Text properties used for code regions/tokens and html nodes.")
 
-(defvar web-mode-start-tag-regexp "<\\([[:alnum:].:_-]*\\|>\\)"
+(defvar web-mode-start-tag-regexp "<\\([[:alnum:].:_-]+\\|>\\)"
   "Regular expression for HTML/XML start tag.")
 
-(defvar web-mode-tag-regexp "</?\\([[:alnum:].:_-]*\\)"
+(defvar web-mode-tag-regexp "</?\\([[:alnum:].:_-]+\\)"
   "Regular expression for HTML/XML tag.")
 
-(defvar web-mode-dom-regexp "<\\(/?>\\|/?[[:alnum:].:_-]*\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
+(defvar web-mode-dom-regexp "<\\(/?>\\|/?[[:alnum:].:_-]+\\|!--\\|!\\[CDATA\\[\\|!doctype\\|!DOCTYPE\\|\?xml\\)")
 
 (defvar web-mode-whitespaces-regexp
   "^[ \t]\\{2,\\}$\\| \t\\|\t \\|[ \t]+$\\|^[ \n\t]+\\'\\|^[ \t]?[\n]\\{2,\\}"
@@ -5497,7 +5497,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
               (setq flags (logior flags 2)))
              ;;((string-match-p ":" tname)
              ;; (setq flags (logior flags 32)))
-             ((string-match-p "[.:]" tname)
+             ((string-match-p "[._:]" tname)
               (setq flags (logior flags 32)))
              )
            (cond
