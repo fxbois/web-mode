@@ -1,0 +1,16 @@
+<div>
+  <%= render_to_string partial: 'some_partial',
+                       locals: {
+                         icon: nil,
+                         errors: [],
+                         title: 'Title'
+                       } %>
+
+  <!-- The same for render: -->
+  <%= render partial: 'some_partial',
+             locals: {
+               icon: nil,
+               errors: [],
+               title: 'Title'
+             } %>
+</div>

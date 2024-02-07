@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2024 François-Xavier Bois
 
-;; Version: 17.3.17
+;; Version: 17.3.18
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.17"
+(defconst web-mode-version "17.3.18"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1742,7 +1742,7 @@ shouldn't be moved back.)")
       "localize" "logger" "number_field"
       "number_field_tag" "number_to_human" "params" "path_to_audio"
       "path_to_video" "phone_field" "phone_field_tag" "provide"
-      "range_field" "range_field_tag" "raw" "render" "request"
+      "range_field" "range_field_tag" "raw" "render" "render_to_string" "request"
       "request_forgery_protection_token" "response" "safe_concat"
       "safe_join" "search_field" "search_field_tag"
       "session" "t" "telephone_field" "telephone_field_tag"
@@ -9922,7 +9922,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             ((string-match-p ",$" prev-line)
              (save-excursion
                (goto-char limit)
-               (looking-at "<%=? [a-z]+ ")
+               (looking-at "<%=? [a-z_]+ ")
                (setq offset (+ initial-column (length (match-string-no-properties 0))))
                ) ;save-excursion
              )
