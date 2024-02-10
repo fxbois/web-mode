@@ -1855,7 +1855,7 @@ shouldn't be moved back.)")
    '(
 
      "assets" "autoescape"
-     "block" "blocktrans"
+     "block" "blocktrans" "blocktranslate"
      "cache" "call" "capture" "comment"
      "draw"
      "embed"
@@ -1870,7 +1870,7 @@ shouldn't be moved back.)")
      "with"
 
      "endassets" "endautoescape"
-     "endblock" "endblocktrans"
+     "endblock" "endblocktrans" "endblocktranslate"
      "endcache" "endcall" "endcapture" "endcomment"
      "draw"
      "endembed"
