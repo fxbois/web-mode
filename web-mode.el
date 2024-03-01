@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2024 François-Xavier Bois
 
-;; Version: 17.3.18
+;; Version: 17.3.19
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.18"
+(defconst web-mode-version "17.3.19"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -4281,6 +4281,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
 (defun web-mode-blade-skip (pos)
   (let (regexp char inc continue found (reg-beg pos) (reg-end (point-max)))
+    ;;(message "pos=%S" pos)
     (goto-char pos)
     (forward-char)
     (skip-chars-forward "a-zA-Z0-9_-")
@@ -4289,16 +4290,16 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             inc 0)
       (while (and (not found) (re-search-forward regexp reg-end t))
         (setq char (char-before))
-        ;;(message "pos=%S char=%c" (point) char)
+        ;;(message "point=%S char=%c inc=%S" (point) char inc)
         (cond
          ((eq char ?\()
           (setq inc (1+ inc)))
          ((eq char ?\))
           (cond
            ((and (not (eobp))
-                (eq (char-after) ?\))
-                (< inc 2))
+                 (< inc 2))
             (forward-char)
+            (setq inc (1- inc))
             (setq found t)
             )
            ((> inc 0)
@@ -4318,8 +4319,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             )
           )
          ) ;cond
+        ;;(message "inc=%S found=%S" inc found)
         ) ;while
-    ) ; when
+      ) ; when
+    ;;(message "point=%S inc=%S" (point) inc)
+    (when found (backward-char))
   ))
 
 (defun web-mode-velocity-skip (pos)
