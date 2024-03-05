@@ -8487,7 +8487,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             language ""
             prev-line ""
             prev-char 0
-            prev-pos nil)
+            prev-pos nil
+            prev-line-end nil)
 
       (when (get-text-property pos 'part-side)
         (setq part-language (symbol-name (get-text-property pos 'part-side))))
@@ -8738,12 +8739,15 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              (when (setq prev (web-mode-part-previous-live-line reg-beg))
                (setq prev-line (nth 0 prev)
                      prev-indentation (nth 1 prev)
-                     prev-pos (nth 2 prev))
+                     prev-pos (nth 2 prev)
+                     prev-line-end (nth 3 prev))
                )
              )
             ((setq prev (web-mode-block-previous-live-line))
-             (setq prev-line (car prev)
-                   prev-indentation (cdr prev))
+             (setq prev-line (nth 0 prev)
+                   prev-indentation (nth 1 prev)
+                   prev-pos (nth 2 prev)
+                   prev-line-end (nth 3 prev))
              (setq prev-line (web-mode-clean-block-line prev-line)))
             ) ;cond
           ) ;let
@@ -8779,6 +8783,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             :prev-char prev-char
             :prev-indentation prev-indentation
             :prev-line prev-line
+            :prev-line-end prev-line-end
             :prev-pos prev-pos
             :reg-beg reg-beg
             :reg-col reg-col
@@ -8791,7 +8796,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
   (let ((offset nil)
         (char nil)
-        (debug nil)
+        (debug t)
         (inhibit-modification-hooks nil)
         (adjust t))
 
@@ -8807,6 +8812,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              (prev-char (plist-get ctx :prev-char))
              (prev-indentation (plist-get ctx :prev-indentation))
              (prev-line (plist-get ctx :prev-line))
+             (prev-line-end (plist-get ctx :prev-line-end))
              (prev-pos (plist-get ctx :prev-pos))
              (reg-beg (plist-get ctx :reg-beg))
              (reg-col (plist-get ctx :reg-col))
@@ -9381,7 +9387,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           ((and is-js
                 (or (member ?\, chars)
                     (member prev-char '(?\( ?\[))))
-           (when debug (message "I360(%S) javascript-args" pos))
+           (when debug (message "I360(%S) javascript-args(%S)" pos (web-mode-jsx-is-html prev-line-end)))
            (cond
              ((not (web-mode-javascript-args-beginning pos reg-beg))
               (message "no js args beg")
@@ -10059,7 +10065,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         ) ;while
       (if (string= line "")
           (progn (goto-char pos) nil)
-          (cons line (current-indentation)))
+          (list line (current-indentation) pos (line-end-position)))
       )))
 
 (defun web-mode-part-is-opener (pos reg-beg)
@@ -10111,7 +10117,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            ) ;while
          ;;(message "%S %S : %S" bol-pos eol-pos pos)
          (setq line (web-mode-clean-part-line line))
-         (list line (current-indentation) pos))
+         (list line (current-indentation) pos (line-end-position)))
         ) ;cond
       )))
 
