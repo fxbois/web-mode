@@ -6072,8 +6072,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            )
 
           ((and (eq ?\< ch-at)
-                (not (or (and (>= ch-before 97) (<= ch-before 122))
-                         (and (>= ch-before 65) (<= ch-before 90)))))
+                (not (or (and (>= ch-before 97) (<= ch-before 122)) ;; a-z
+                         (and (>= ch-before 65) (<= ch-before 90))))) ;; A-Z
            ;;(message "before [%S>%S|%S] pt=%S" reg-beg reg-end depth (point))
            (search-backward "<")
            (if (web-mode-jsx-skip reg-end)
