@@ -6072,8 +6072,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            )
 
           ((and (eq ?\< ch-at)
-                (not (or (and (>= ch-before 97) (<= ch-before 122))
-                         (and (>= ch-before 65) (<= ch-before 90)))))
+                (not (or (and (>= ch-before 97) (<= ch-before 122)) ;; a-z
+                         (and (>= ch-before 65) (<= ch-before 90))))) ;; A-Z
            ;;(message "before [%S>%S|%S] pt=%S" reg-beg reg-end depth (point))
            (search-backward "<")
            (if (web-mode-jsx-skip reg-end)
@@ -6286,7 +6286,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
       (cons beg end)
       )))
 
-(defun web-mode-jsx-skip (reg-end)
+(defun web-mode-jsx-skip2 (reg-end)
   (let ((continue t) (pos nil) (i 0))
     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
     ;; (let ((tag (match-string-no-properties 1)))
@@ -6320,40 +6320,78 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     ;;(message "jsx-skip: %S" pos)
     pos))
 
-;; (defun web-mode-jsx-skip2 (reg-end)
-;;   (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil) (counter 1))
-;;     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
-;;     (setq tag (match-string-no-properties 1))
-;;     (setq regexp (concat "</?" tag))
-;;     ;;(message "point=%S tag=%S" (point) tag)
-;;     (save-excursion
-;;       (while continue
-;;         (cond
-;;          ((> (setq i (1+ i)) 100)
-;;           (message "jsx-skip ** warning **")
-;;           (setq continue nil))
-;;          ((looking-at "<[[:alpha:]][[:alnum:]:-]*[ ]*/>")
-;;           (goto-char (match-end 0))
-;;           (setq pos (point))
-;;           (setq continue nil))
-;;          ((not (web-mode-dom-rsf ">\\([ \t\n]*[\];,)':}]\\)\\|{" reg-end))
-;;           (setq continue nil)
-;;           )
-;;          ((eq (char-before) ?\{)
-;;           (backward-char)
-;;           (web-mode-closing-paren reg-end)
-;;           (forward-char)
-;;           )
-;;          (t
-;;           (setq continue nil)
-;;           (setq pos (match-beginning 1))
-;;           ) ;t
-;;          ) ;cond
-;;         ) ;while
-;;       ) ;save-excursion
-;;     (when pos (goto-char pos))
-;;     ;;(message "jsx-skip: %S" pos)
-;;     pos))
+ (defun web-mode-jsx-skip (reg-end) ;; #1299
+   (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil) (counter 0) (ret nil) (match nil) (inside t))
+     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
+     (setq tag (match-string-no-properties 1))
+     (setq regexp (concat "<" tag "[[:space:]/>]"))
+     ;;(message "-----\npoint=%S tag=%S reg-end=%S" (point) tag reg-end)
+     (save-excursion
+       (while continue
+         (setq ret (web-mode-dom-rsf regexp reg-end))
+         (if ret
+             (progn
+               (setq match (match-string-no-properties 0))
+               (when (and (eq (aref match 0) ?\<)
+                          (eq (char-before) ?\>))
+                 (backward-char)
+                 (when (eq (char-before) ?\/) (backward-char)))
+               )
+           (setq match nil)
+           ) ;if
+         ;;(message "point=%S regexp=%S match=%S" (point) regexp match)
+         (cond
+          ((> (setq i (1+ i)) 100)
+           (message "jsx-skip ** warning **")
+           (setq continue nil))
+          ((not ret)
+           (setq continue nil)
+           )
+          ((eq (aref match 0) ?\{)
+           (backward-char)
+           (web-mode-closing-paren reg-end)
+           (forward-char)
+           (if inside
+               (setq regexp (concat "[{]\\|/?>"))
+             (setq regexp (concat "[{]\\|</?" tag "[[:space:]/>]"))
+             )
+           )
+          ((and (eq (char-before) ?\>) (eq (char-before (1- (point))) ?\/)) ;; />
+           (setq inside nil)
+           (if (eq counter 1)
+               (progn
+                 (setq counter 0)
+                 (setq continue nil)
+                 (setq pos (point)))
+             (setq regexp (concat "[{]\\|<" tag "[[:space:]/>]"))
+             )
+           )
+          ((eq (char-before) ?\>) ;; >
+           (setq inside nil)
+           (if (= counter 0)
+               (progn
+                 (setq continue nil)
+                 (setq pos (point)))
+             (setq regexp (concat "[{]\\|</?" tag "[[:space:]/>]"))
+             )
+           )
+          ((and (> (length match) 1) (string= (substring match 0 2) "</"))
+           (setq inside t)
+           (setq counter (1- counter))
+           (setq regexp (concat "[{]\\|>"))
+           )
+          (t ;; <tag
+           (setq inside t)
+           (setq counter (1+ counter))
+           (setq regexp (concat "[{]\\|>"))
+           ) ;t
+          ) ;cond
+         ;;(message "point=%S counter=%S inside=%S" (point) counter inside)
+         ) ;while
+       ) ;save-excursion
+     (when pos (goto-char pos))
+     ;;(message "jsx-skip: %S" pos)
+     pos))
 
 ;; http://facebook.github.io/jsx/
 ;; https://github.com/facebook/jsx/blob/master/AST.md
@@ -8487,7 +8525,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             language ""
             prev-line ""
             prev-char 0
-            prev-pos nil)
+            prev-pos nil
+            prev-line-end nil)
 
       (when (get-text-property pos 'part-side)
         (setq part-language (symbol-name (get-text-property pos 'part-side))))
@@ -8738,12 +8777,15 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              (when (setq prev (web-mode-part-previous-live-line reg-beg))
                (setq prev-line (nth 0 prev)
                      prev-indentation (nth 1 prev)
-                     prev-pos (nth 2 prev))
+                     prev-pos (nth 2 prev)
+                     prev-line-end (nth 3 prev))
                )
              )
             ((setq prev (web-mode-block-previous-live-line))
-             (setq prev-line (car prev)
-                   prev-indentation (cdr prev))
+             (setq prev-line (nth 0 prev)
+                   prev-indentation (nth 1 prev)
+                   prev-pos (nth 2 prev)
+                   prev-line-end (nth 3 prev))
              (setq prev-line (web-mode-clean-block-line prev-line)))
             ) ;cond
           ) ;let
@@ -8779,6 +8821,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
             :prev-char prev-char
             :prev-indentation prev-indentation
             :prev-line prev-line
+            :prev-line-end prev-line-end
             :prev-pos prev-pos
             :reg-beg reg-beg
             :reg-col reg-col
@@ -8807,6 +8850,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
              (prev-char (plist-get ctx :prev-char))
              (prev-indentation (plist-get ctx :prev-indentation))
              (prev-line (plist-get ctx :prev-line))
+             (prev-line-end (plist-get ctx :prev-line-end))
              (prev-pos (plist-get ctx :prev-pos))
              (reg-beg (plist-get ctx :reg-beg))
              (reg-col (plist-get ctx :reg-col))
@@ -9381,7 +9425,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
           ((and is-js
                 (or (member ?\, chars)
                     (member prev-char '(?\( ?\[))))
-           (when debug (message "I360(%S) javascript-args" pos))
+           (when debug (message "I360(%S) javascript-args(%S)" pos (web-mode-jsx-is-html prev-line-end)))
            (cond
              ((not (web-mode-javascript-args-beginning pos reg-beg))
               (message "no js args beg")
@@ -10059,7 +10103,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         ) ;while
       (if (string= line "")
           (progn (goto-char pos) nil)
-          (cons line (current-indentation)))
+          (list line (current-indentation) pos (line-end-position)))
       )))
 
 (defun web-mode-part-is-opener (pos reg-beg)
@@ -10111,7 +10155,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            ) ;while
          ;;(message "%S %S : %S" bol-pos eol-pos pos)
          (setq line (web-mode-clean-part-line line))
-         (list line (current-indentation) pos))
+         (list line (current-indentation) pos (line-end-position)))
         ) ;cond
       )))
 
