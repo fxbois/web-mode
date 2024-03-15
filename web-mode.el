@@ -6320,12 +6320,12 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     ;;(message "jsx-skip: %S" pos)
     pos))
 
- (defun web-mode-jsx-skip (reg-end)
+ (defun web-mode-jsx-skip (reg-end) ;; #1299
    (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil) (counter 0) (ret nil) (match nil) (inside t))
      (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
      (setq tag (match-string-no-properties 1))
      (setq regexp (concat "<" tag "[[:space:]/>]"))
-     (message "-----\npoint=%S tag=%S reg-end=%S" (point) tag reg-end)
+     ;;(message "-----\npoint=%S tag=%S reg-end=%S" (point) tag reg-end)
      (save-excursion
        (while continue
          (setq ret (web-mode-dom-rsf regexp reg-end))
@@ -6339,7 +6339,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                )
            (setq match nil)
            ) ;if
-         (message "point=%S regexp=%S match=%S" (point) regexp match)
+         ;;(message "point=%S regexp=%S match=%S" (point) regexp match)
          (cond
           ((> (setq i (1+ i)) 100)
            (message "jsx-skip ** warning **")
@@ -6386,11 +6386,11 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
            (setq regexp (concat "[{]\\|>"))
            ) ;t
           ) ;cond
-         (message "point=%S counter=%S inside=%S" (point) counter inside)
+         ;;(message "point=%S counter=%S inside=%S" (point) counter inside)
          ) ;while
        ) ;save-excursion
      (when pos (goto-char pos))
-     (message "jsx-skip: %S" pos)
+     ;;(message "jsx-skip: %S" pos)
      pos))
 
 ;; http://facebook.github.io/jsx/
@@ -8834,7 +8834,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
   (let ((offset nil)
         (char nil)
-        (debug t)
+        (debug nil)
         (inhibit-modification-hooks nil)
         (adjust t))
 
