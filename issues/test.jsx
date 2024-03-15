@@ -1,9 +1,10 @@
-
-render() {
+function hello() {
   return (
-    <>
-      Sqome text.
-      <h2>A heading</h2>
-    </>
+    <input
+      type="file"
+      ref={component => {
+        this.inputFile = component;
+      }}
+    />
   );
 }
