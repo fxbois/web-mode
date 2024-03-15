@@ -6324,7 +6324,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
    (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil) (counter 0) (ret nil))
      (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)[[:space:]>]")
      ;; TODO : traiter self closed
-     ;; TODO : skip les exprs {}
+     ;; TODO : skip les exprs {} et on skip jusq /> ou </
      (setq tag (match-string-no-properties 1))
      (setq regexp (concat "</?" tag))
      (message "point=%S tag=%S regexp=%S" (point) tag regexp)
