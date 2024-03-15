@@ -6286,7 +6286,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
       (cons beg end)
       )))
 
-(defun web-mode-jsx-skip (reg-end)
+(defun web-mode-jsx-skip2 (reg-end)
   (let ((continue t) (pos nil) (i 0))
     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
     ;; (let ((tag (match-string-no-properties 1)))
@@ -6320,40 +6320,44 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     ;;(message "jsx-skip: %S" pos)
     pos))
 
-;; (defun web-mode-jsx-skip2 (reg-end)
-;;   (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil) (counter 1))
-;;     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
-;;     (setq tag (match-string-no-properties 1))
-;;     (setq regexp (concat "</?" tag))
-;;     ;;(message "point=%S tag=%S" (point) tag)
-;;     (save-excursion
-;;       (while continue
-;;         (cond
-;;          ((> (setq i (1+ i)) 100)
-;;           (message "jsx-skip ** warning **")
-;;           (setq continue nil))
-;;          ((looking-at "<[[:alpha:]][[:alnum:]:-]*[ ]*/>")
-;;           (goto-char (match-end 0))
-;;           (setq pos (point))
-;;           (setq continue nil))
-;;          ((not (web-mode-dom-rsf ">\\([ \t\n]*[\];,)':}]\\)\\|{" reg-end))
-;;           (setq continue nil)
-;;           )
-;;          ((eq (char-before) ?\{)
-;;           (backward-char)
-;;           (web-mode-closing-paren reg-end)
-;;           (forward-char)
-;;           )
-;;          (t
-;;           (setq continue nil)
-;;           (setq pos (match-beginning 1))
-;;           ) ;t
-;;          ) ;cond
-;;         ) ;while
-;;       ) ;save-excursion
-;;     (when pos (goto-char pos))
-;;     ;;(message "jsx-skip: %S" pos)
-;;     pos))
+ (defun web-mode-jsx-skip (reg-end)
+   (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil) (counter 0) (ret nil))
+     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)[[:space:]>]")
+     ;; TODO : traiter self closed
+     ;; TODO : skip les exprs {}
+     (setq tag (match-string-no-properties 1))
+     (setq regexp (concat "</?" tag))
+     (message "point=%S tag=%S regexp=%S" (point) tag regexp)
+     (save-excursion
+       (while continue
+         (setq i (1+ i))
+         (setq ret (web-mode-dom-rsf regexp reg-end))
+         (message "move to point=%S" (point))
+         (cond
+           ((not ret)
+            (setq continue nil)
+            (when (and (eq i 2)
+                       (web-mode-dom-rsf "/>" reg-end))
+              (setq pos (point))))
+           ((> i 100)
+             (message "jsx-skip ** warning **")
+            (setq continue nil))
+           ((string= (substring (match-string-no-properties 0) 0 2) "</")
+            (setq counter (1- counter))
+            (when (< counter 1) (setq continue nil))
+            (when (web-mode-dom-rsf ">" reg-end) (setq pos (point)))
+            )
+           (t
+            (setq counter (1+ counter))
+            (when (web-mode-dom-rsf ">" reg-end) (setq pos (point)))
+            ) ;t
+           ) ;cond
+         (message "point=%S counter=%S" (point) counter)
+         ) ;while
+       ) ;save-excursion
+     (when pos (goto-char pos))
+     (message "jsx-skip: %S" pos)
+     pos))
 
 ;; http://facebook.github.io/jsx/
 ;; https://github.com/facebook/jsx/blob/master/AST.md
