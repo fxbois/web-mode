@@ -6321,55 +6321,72 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     pos))
 
  (defun web-mode-jsx-skip (reg-end)
-   (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil)
-         (counter 0) (ret nil) (char nil) (match nil))
-     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)[[:space:]>]")
-     ;; TODO : traiter self closed
-     ;; TODO : skip les exprs {} et on skip jusq /> ou </
+   (let ((continue t) (pos nil) (i 0) (tag nil) (regexp nil) (counter 0) (ret nil) (match nil) (inside t))
+     (looking-at "<\\([[:alpha:]][[:alnum:]:-]*\\)")
      (setq tag (match-string-no-properties 1))
-     (setq regexp (concat "[{]\\|/>\\|</?" tag))
-     (message "point=%S tag=%S regexp=%S" (point) tag regexp)
+     (setq regexp (concat "<" tag "[[:space:]/>]"))
+     (message "-----\npoint=%S tag=%S reg-end=%S" (point) tag reg-end)
      (save-excursion
        (while continue
          (setq ret (web-mode-dom-rsf regexp reg-end))
          (if ret
              (progn
                (setq match (match-string-no-properties 0))
-               (setq char (aref match 0)))
-           (setq char nil
-                 match nil)
-           )
-         (message "B] point=%S match=%S char=%c" (point) match char)
+               (when (and (eq (aref match 0) ?\<)
+                          (eq (char-before) ?\>))
+                 (backward-char)
+                 (when (eq (char-before) ?\/) (backward-char)))
+               )
+           (setq match nil)
+           ) ;if
+         (message "point=%S regexp=%S match=%S" (point) regexp match)
          (cond
           ((> (setq i (1+ i)) 100)
            (message "jsx-skip ** warning **")
            (setq continue nil))
           ((not ret)
            (setq continue nil)
-           (when (and (eq i 2)
-                      (web-mode-dom-rsf "/>" reg-end))
-             (setq pos (point))))
-          ((eq char ?\{)
+           )
+          ((eq (aref match 0) ?\{)
            (backward-char)
            (web-mode-closing-paren reg-end)
-           (message "point=%S (closing-paren)" (point))
            (forward-char)
+           (if inside
+               (setq regexp (concat "[{]\\|/?>"))
+             (setq regexp (concat "[{]\\|</?" tag "[[:space:]/>]"))
+             )
            )
-          ((eq char ?\/)
-           (setq continue nil)
-           (setq pos (point))
+          ((and (eq (char-before) ?\>) (eq (char-before (1- (point))) ?\/)) ;; />
+           (setq inside nil)
+           (if (eq counter 1)
+               (progn
+                 (setq counter 0)
+                 (setq continue nil)
+                 (setq pos (point)))
+             (setq regexp (concat "[{]\\|<" tag "[[:space:]/>]"))
+             )
+           )
+          ((eq (char-before) ?\>) ;; >
+           (setq inside nil)
+           (if (= counter 0)
+               (progn
+                 (setq continue nil)
+                 (setq pos (point)))
+             (setq regexp (concat "[{]\\|</?" tag "[[:space:]/>]"))
+             )
            )
           ((and (> (length match) 1) (string= (substring match 0 2) "</"))
+           (setq inside t)
            (setq counter (1- counter))
-           (when (< counter 1) (setq continue nil))
-           (when (web-mode-dom-rsf ">" reg-end) (setq pos (point)))
+           (setq regexp (concat "[{]\\|>"))
            )
-          (t
+          (t ;; <tag
+           (setq inside t)
            (setq counter (1+ counter))
-           ;;(when (web-mode-dom-rsf ">" reg-end) (setq pos (point)))
+           (setq regexp (concat "[{]\\|>"))
            ) ;t
           ) ;cond
-         (message "A] point=%S counter=%S" (point) counter)
+         (message "point=%S counter=%S inside=%S" (point) counter inside)
          ) ;while
        ) ;save-excursion
      (when pos (goto-char pos))
