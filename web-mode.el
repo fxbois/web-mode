@@ -71,49 +71,58 @@
   "Html attribute indentation level."
   :type '(choice (integer :tags "Number of spaces")
           (const :tags "Default" nil))
-  :safe #'(lambda (v) (or (integerp v) (booleanp v)))
   :group 'web-mode)
+;;;###autoload
+(put 'web-mode-attr-indent-offset
+     'safe-local-variable #'(lambda (v) (or (integerp v) (booleanp v))))
 
 (defcustom web-mode-attr-value-indent-offset nil
   "Html attribute value indentation level."
   :type '(choice (integer :tags "Number of spaces")
           (const :tags "Default" nil))
-  :safe #'(lambda (v) (or (integerp v) (booleanp v)))
   :group 'web-mode)
+;;;###autoload
+(put 'web-mode-attr-value-indent-offset
+     'safe-local-variable #'(lambda (v) (or (integerp v) (booleanp v))))
 
 (defcustom web-mode-markup-indent-offset
   (if (and (boundp 'standard-indent) standard-indent) standard-indent 2)
   "Html indentation level."
   :type 'integer
-  :safe #'integerp
   :group 'web-mode)
+;;;###autoload
+(put 'web-mode-markup-indent-offset 'safe-local-variable #'integerp)
 
 (defcustom web-mode-markup-comment-indent-offset
   5
   "Html comment indentation level."
   :type 'integer
-  :safe #'integerp
   :group 'web-mode)
+;;;###autoload
+(put 'web-mode-markup-comment-indent-offset 'safe-local-variable #'integerp)
 
 (defcustom web-mode-css-indent-offset
   (if (and (boundp 'standard-indent) standard-indent) standard-indent 2)
   "CSS indentation level."
   :type 'integer
-  :safe #'integerp
   :group 'web-mode)
+;;;###autoload
+(put 'web-mode-css-indent-offset 'safe-local-variable #'integerp)
 
 (defcustom web-mode-code-indent-offset
   (if (and (boundp 'standard-indent) standard-indent) standard-indent 2)
   "Code (javascript, php, etc.) indentation level."
   :type 'integer
-  :safe #'integerp
   :group 'web-mode)
+;;;###autoload
+(put 'web-mode-code-indent-offset 'safe-local-variable #'integerp)
 
 (defcustom web-mode-sql-indent-offset 4
   "Sql (inside strings) indentation level."
   :type 'integer
-  :safe #'integerp
   :group 'web-mode)
+;;;###autoload
+(put 'web-mode-sql-indent-offset 'safe-local-variable #'integerp)
 
 (defcustom web-mode-enable-css-colorization (display-graphic-p)
   "In a CSS part, set background according to the color: #xxx, rgb(x,x,x)."
