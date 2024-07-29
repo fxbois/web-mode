@@ -4294,6 +4294,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     (goto-char pos)
     (forward-char)
     (skip-chars-forward "a-zA-Z0-9_-")
+    (skip-chars-forward " ")
     (when (eq (char-after) ?\()
       (setq regexp "[\"'()]"
             inc 0)
