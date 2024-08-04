@@ -2,7 +2,7 @@
 
 ;; Copyright 2011-2024 François-Xavier Bois
 
-;; Version: 17.3.19
+;; Version: 17.3.20
 ;; Author: François-Xavier Bois
 ;; Maintainer: François-Xavier Bois <fxbois@gmail.com>
 ;; Package-Requires: ((emacs "23.1"))
@@ -23,7 +23,7 @@
 
 ;;---- CONSTS ------------------------------------------------------------------
 
-(defconst web-mode-version "17.3.19"
+(defconst web-mode-version "17.3.20"
   "Web Mode version.")
 
 ;;---- GROUPS ------------------------------------------------------------------
@@ -1006,7 +1006,7 @@ Must be used in conjunction with web-mode-enable-block-face."
     ("json-t"           . ())
     ("jsp"              . ("grails"))
     ("mako"             . ())
-    ("marko"            . ())
+    ("marko"            . ("pandoc"))
     ("mason"            . ("poet"))
     ("lsp"              . ("lisp"))
     ("mojolicious"      . ())
