@@ -8066,7 +8066,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
     count))
 
 (defun web-mode-column-show ()
-  (let ((index 0) overlay diff column line-to line-from line-delta regions (overlay-skip nil) last-line-no)
+  (let ((index 0) overlay diff column line-to line-from line-delta last-line-no)
     (web-mode-column-hide)
     (setq web-mode-enable-current-column-highlight t)
     (save-excursion ;;save-mark-and-excursion
