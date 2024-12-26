@@ -11689,21 +11689,18 @@ Prompt user if TAG-NAME isn't provided."
     ))
 
 (defun web-mode-comment-ejs-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
+  (let (beg)
+    (setq beg (web-mode-block-beginning-position pos))
     (web-mode-insert-text-at-pos "//" (+ beg 2))))
 
 (defun web-mode-comment-erb-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
+  (let (beg)
+    (setq beg (web-mode-block-beginning-position pos))
     (web-mode-insert-text-at-pos "#" (+ beg 2))))
 
 (defun web-mode-comment-artanis-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
+  (let (beg)
+    (setq beg (web-mode-block-beginning-position pos))
     (web-mode-insert-text-at-pos ";" (+ beg 2))))
 
 (defun web-mode-comment-django-block (pos)
@@ -11728,9 +11725,8 @@ Prompt user if TAG-NAME isn't provided."
     (web-mode-insert-text-at-pos "#" (1+ beg))))
 
 (defun web-mode-comment-jsp-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
+  (let (beg)
+    (setq beg (web-mode-block-beginning-position pos))
     (web-mode-insert-text-at-pos "--" (+ beg 2))))
 
 (defun web-mode-comment-go-block (pos)
@@ -11873,9 +11869,8 @@ Prompt user if TAG-NAME isn't provided."
   )
 
 (defun web-mode-uncomment-ejs-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
+  (let (beg)
+    (setq beg (web-mode-block-beginning-position pos))
     (web-mode-remove-text-at-pos 1 (+ beg 2))))
 
 (defun web-mode-uncomment-django-block (pos)
@@ -11922,9 +11917,8 @@ Prompt user if TAG-NAME isn't provided."
     (web-mode-remove-text-at-pos 1 (1+ beg))))
 
 (defun web-mode-uncomment-jsp-block (pos)
-  (let (beg end)
-    (setq beg (web-mode-block-beginning-position pos)
-          end (web-mode-block-end-position pos))
+  (let (beg)
+    (setq beg (web-mode-block-beginning-position pos))
     (web-mode-remove-text-at-pos 2 (+ beg 2))))
 
 (defun web-mode-uncomment-go-block (pos)
