@@ -8682,7 +8682,7 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
          (cond
            ((string= web-mode-engine "blade")
             (save-excursion
-              (when (web-mode-rsf "{[{!]+[ ]*")
+              (when (web-mode-rsf "{[{!]+[ ]*\\|@props[ ]*[(]") ;; #1318
                 (setq reg-col (current-column))))
             (setq reg-beg (+ reg-beg 2))
             )
@@ -9647,7 +9647,10 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                                                               reg-beg))))
 
           (t
-           (when debug (message "I430(%S) bracket-indentation" pos))
+           (when debug
+             (message "I430(%S) bracket-indentation" pos)
+             ;;(message "reg-col=%S curr-ind=%S lang=%S reg-beg=%S" reg-col curr-indentation language reg-beg)
+             )
            (setq offset (car (web-mode-bracket-indentation pos
                                                            reg-col
                                                            curr-indentation
