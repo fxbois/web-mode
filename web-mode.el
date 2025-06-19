@@ -5478,7 +5478,8 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
         ;;(message "%S: %S (%S %S)" (point) (match-string-no-properties 0) reg-beg reg-end)
 
         (setq flags 0
-              tname (downcase (match-string-no-properties 1))
+              tnameraw (match-string-no-properties 1)
+              tname (downcase tnameraw)
               char (aref tname 0)
               tbeg (match-beginning 0)
               tend nil
@@ -5507,7 +5508,9 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
 
           ((not (member char '(?\! ?\?)))
            (cond
-             ((string-match-p "-" tname)
+             ((or (string-match-p "-" tname)
+                  (let ((case-fold-search nil))
+                    (string-match-p "^/?[[:upper:]][[:lower:]]" tnameraw)))
               (setq flags (logior flags 2)))
              ;;((string-match-p ":" tname)
              ;; (setq flags (logior flags 32)))
