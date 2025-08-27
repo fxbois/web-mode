@@ -9649,9 +9649,14 @@ Also return non-nil if it is the command `self-insert-command' is remapped to."
                                                               language
                                                               reg-beg))))
 
+          ((member language '("django"))
+           (when debug (message "I430(%S) django-indentation" pos))
+           (setq offset nil)
+           )
+
           (t
            (when debug
-             (message "I430(%S) bracket-indentation" pos)
+             (message "I440(%S) generic bracket-indentation" pos)
              ;;(message "reg-col=%S curr-ind=%S lang=%S reg-beg=%S" reg-col curr-indentation language reg-beg)
              )
            (setq offset (car (web-mode-bracket-indentation pos
