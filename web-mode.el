@@ -2892,7 +2892,7 @@ another auto-completion with different ac-sources (e.g. ac-php)")
           comment-start "<!--"
           fill-paragraph-function 'web-mode-fill-paragraph
           ;;font-lock-defaults '(web-mode-font-lock-keywords t)
-          font-lock-defaults '('(web-mode-fontify) t)
+          font-lock-defaults '(web-mode-fontify t)
           font-lock-extend-region-functions '(web-mode-extend-region)
           font-lock-support-mode nil
           font-lock-unfontify-region-function 'web-mode-unfontify-region
